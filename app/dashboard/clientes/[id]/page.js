@@ -1,7 +1,7 @@
 // app/dashboard/clientes/[id]/page.js
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   FiUser,
@@ -18,6 +18,8 @@ import {
   FiCheck,
   FiX,
   FiPlus,
+  FiTrendingDown,
+  FiTrendingUp,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import LoadingSpinner from "../../../components/LoadingSpinner";
@@ -34,7 +36,41 @@ export default function DetalleCliente({ params }) {
   params = useParams();
 
   const clienteId = params.id;
-  console.log(cliente);
+    // Calcular los totales financieros
+  const resumenFinanciero = useMemo(() => {
+    let totalCreditos = 0;
+    let totalMontoNeto = 0;
+    let totalPerdidas = 0;
+    let totalIngresos = 0;
+
+    creditos.forEach(credito => {
+      const monto = parseInt(credito.valor_venta) || 0;
+      const saldo = parseInt(credito.saldo_actual) || 0;
+      const intereses = parseInt(credito.total_a_pagar) || 0;
+      
+      totalCreditos += 1;
+      totalMontoNeto += monto;
+      
+      // Calcular pérdidas (créditos vencidos con saldo pendiente)
+      if (credito.estado_venta === "Perdida") {
+        totalPerdidas += saldo;
+      }
+      
+      // Calcular ingresos (solo créditos pagados)
+      if (credito.estado_venta === "Pagado") {
+        // Ingresos = Monto inicial + Intereses - Saldo actual (debería ser 0)
+
+        totalIngresos += intereses-monto;
+      }
+    });
+
+    return {
+      totalCreditos,
+      totalMontoNeto,
+      totalPerdidas,
+      totalIngresos
+    };
+  }, [creditos]);
 
   console.log("creditos:", creditos);
 
@@ -251,7 +287,7 @@ export default function DetalleCliente({ params }) {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
             <button
-              onClick={() => router.push("/clientes")}
+              onClick={() => router.push("/dashboard/clientes")}
               className="flex items-center text-indigo-600 hover:text-indigo-800 mb-4"
             >
               <FiArrowLeft className="mr-2" /> Volver a clientes
@@ -343,6 +379,53 @@ export default function DetalleCliente({ params }) {
               <p className="text-sm font-bold text-gray-800">Dirección</p>
               <p className="font-medium text-gray-500">{cliente.direccion}</p>
             </div>
+          </div>
+        </div>
+
+            {/* Resumen financiero */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-500">Total Créditos</h3>
+              <FiCreditCard className="text-indigo-600" />
+            </div>
+            <p className="text-2xl font-bold mt-2">
+              {resumenFinanciero.totalCreditos}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">Todos los créditos asignados</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-500">Monto Neto</h3>
+              <FiDollarSign className="text-green-600" />
+            </div>
+            <p className="text-2xl font-bold mt-2">
+              {(resumenFinanciero.totalMontoNeto).toLocaleString()}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">Suma de todos los créditos</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-500">Pérdidas</h3>
+              <FiTrendingDown className="text-red-600" />
+            </div>
+            <p className="text-2xl font-bold mt-2">
+              {(resumenFinanciero.totalPerdidas).toLocaleString()}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">Créditos vencidos no recuperados</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-500">Ingresos por Créditos</h3>
+              <FiTrendingUp className="text-green-600" />
+            </div>
+            <p className="text-2xl font-bold mt-2">
+              {(resumenFinanciero.totalIngresos).toLocaleString()}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">De créditos completamente pagados</p>
           </div>
         </div>
 
