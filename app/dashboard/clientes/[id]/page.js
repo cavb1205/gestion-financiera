@@ -473,18 +473,7 @@ export default function DetalleCliente({ params }) {
           )}
         </div>
 
-        {/* Notas adicionales */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <FiClock className="mr-2 text-indigo-600" />
-            Notas Adicionales
-          </h2>
-
-          <div className="bg-gray-50 p-4 rounded-lg">
-            {cliente.notas ||
-              "No hay notas adicionales registradas para este cliente."}
-          </div>
-        </div>
+      
       </div>
 
       {/* Modal de confirmación de eliminación */}
