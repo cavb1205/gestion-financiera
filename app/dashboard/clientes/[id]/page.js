@@ -36,31 +36,31 @@ export default function DetalleCliente({ params }) {
   params = useParams();
 
   const clienteId = params.id;
-    // Calcular los totales financieros
+  // Calcular los totales financieros
   const resumenFinanciero = useMemo(() => {
     let totalCreditos = 0;
     let totalMontoNeto = 0;
     let totalPerdidas = 0;
     let totalIngresos = 0;
 
-    creditos.forEach(credito => {
+    creditos.forEach((credito) => {
       const monto = parseInt(credito.valor_venta) || 0;
       const saldo = parseInt(credito.saldo_actual) || 0;
       const intereses = parseInt(credito.total_a_pagar) || 0;
-      
+
       totalCreditos += 1;
       totalMontoNeto += monto;
-      
+
       // Calcular pérdidas (créditos vencidos con saldo pendiente)
       if (credito.estado_venta === "Perdida") {
         totalPerdidas += saldo;
       }
-      
+
       // Calcular ingresos (solo créditos pagados)
       if (credito.estado_venta === "Pagado") {
         // Ingresos = Monto inicial + Intereses - Saldo actual (debería ser 0)
 
-        totalIngresos += intereses-monto;
+        totalIngresos += intereses - monto;
       }
     });
 
@@ -68,7 +68,7 @@ export default function DetalleCliente({ params }) {
       totalCreditos,
       totalMontoNeto,
       totalPerdidas,
-      totalIngresos
+      totalIngresos,
     };
   }, [creditos]);
 
@@ -331,68 +331,73 @@ export default function DetalleCliente({ params }) {
         </div>
 
         {/* Información del cliente */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="mb-5">
           {/* Información personal */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <FiUser className="mr-2 text-indigo-600" />
               Información del Cliente
             </h2>
-
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-bold text-gray-800">
+                    Identificación
+                  </p>
+                  <p className="font-medium text-gray-500">
+                    {cliente.identificacion}
+                  </p>
+                </div>
+              </div>
               <div>
                 <p className="text-sm font-bold text-gray-800">
-                  Identificación
+                  Teléfono Principal
                 </p>
                 <p className="font-medium text-gray-500">
-                  {cliente.identificacion}
+                  {formatPhone(cliente.telefono_principal)}
                 </p>
               </div>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-800">
-                Teléfono Principal
-              </p>
-              <p className="font-medium text-gray-500">
-                {formatPhone(cliente.telefono_principal)}
-              </p>
-            </div>
-            {cliente.telefono_opcional && (
+              {cliente.telefono_opcional && (
+                <div>
+                  <p className="text-sm font-bold text-gray-800">
+                    Teléfono Opcional
+                  </p>
+                  <p className="font-medium text-gray-500">
+                    {formatPhone(cliente.telefono_opcional)}
+                  </p>
+                </div>
+              )}
               <div>
                 <p className="text-sm font-bold text-gray-800">
-                  Teléfono Opcional
+                  Nombre del Negocio
                 </p>
                 <p className="font-medium text-gray-500">
-                  {formatPhone(cliente.telefono_opcional)}
+                  {cliente.nombre_local}
                 </p>
               </div>
-            )}
-            <div>
-              <p className="text-sm font-bold text-gray-800">
-                Nombre del Negocio
-              </p>
-              <p className="font-medium text-gray-500">
-                {cliente.nombre_local}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-800">Dirección</p>
-              <p className="font-medium text-gray-500">{cliente.direccion}</p>
+              <div>
+                <p className="text-sm font-bold text-gray-800">Dirección</p>
+                <p className="font-medium text-gray-500">{cliente.direccion}</p>
+              </div>
             </div>
           </div>
         </div>
 
-            {/* Resumen financiero */}
+        {/* Resumen financiero */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-500">Total Créditos</h3>
+              <h3 className="text-sm font-medium text-gray-500">
+                Total Créditos
+              </h3>
               <FiCreditCard className="text-indigo-600" />
             </div>
-            <p className="text-2xl font-bold mt-2">
+            <p className="text-2xl font-bold mt-2 text-gray-500">
               {resumenFinanciero.totalCreditos}
             </p>
-            <p className="text-sm text-gray-500 mt-1">Todos los créditos asignados</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Todos los créditos asignados
+            </p>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-6">
@@ -400,10 +405,12 @@ export default function DetalleCliente({ params }) {
               <h3 className="text-sm font-medium text-gray-500">Monto Neto</h3>
               <FiDollarSign className="text-green-600" />
             </div>
-            <p className="text-2xl font-bold mt-2">
-              {(resumenFinanciero.totalMontoNeto).toLocaleString()}
+            <p className="text-2xl font-bold mt-2 text-gray-500">
+              {resumenFinanciero.totalMontoNeto.toLocaleString()}
             </p>
-            <p className="text-sm text-gray-500 mt-1">Suma de todos los créditos</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Suma de todos los créditos
+            </p>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-6">
@@ -411,21 +418,27 @@ export default function DetalleCliente({ params }) {
               <h3 className="text-sm font-medium text-gray-500">Pérdidas</h3>
               <FiTrendingDown className="text-red-600" />
             </div>
-            <p className="text-2xl font-bold mt-2">
-              {(resumenFinanciero.totalPerdidas).toLocaleString()}
+            <p className="text-2xl font-bold mt-2 text-red-400">
+              {resumenFinanciero.totalPerdidas.toLocaleString()}
             </p>
-            <p className="text-sm text-gray-500 mt-1">Créditos vencidos no recuperados</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Créditos vencidos no recuperados
+            </p>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-500">Ingresos por Créditos</h3>
+              <h3 className="text-sm font-medium text-gray-500">
+                Ingresos por Créditos
+              </h3>
               <FiTrendingUp className="text-green-600" />
             </div>
-            <p className="text-2xl font-bold mt-2">
-              {(resumenFinanciero.totalIngresos).toLocaleString()}
+            <p className="text-2xl font-bold mt-2 text-green-600">
+              {resumenFinanciero.totalIngresos.toLocaleString()}
             </p>
-            <p className="text-sm text-gray-500 mt-1">De créditos completamente pagados</p>
+            <p className="text-xs text-gray-500 mt-1">
+              De créditos completamente pagados
+            </p>
           </div>
         </div>
 
