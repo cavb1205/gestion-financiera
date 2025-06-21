@@ -20,7 +20,10 @@ import {
   FiPlus,
   FiTrendingDown,
   FiTrendingUp,
+  FiStar,
+  FiAlertCircle,
 } from "react-icons/fi";
+import { FaStar, FaRegStar, FaBan } from "react-icons/fa";
 import { useAuth } from "../../../context/AuthContext";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import ErrorMessage from "../../../components/ErrorMessage";
@@ -43,6 +46,13 @@ export default function DetalleCliente({ params }) {
     let totalPerdidas = 0;
     let totalIngresos = 0;
 
+    // Variables para calificación
+    let creditosPagadosATiempo = 0;
+    let creditosConAtraso = 0;
+    let creditosPerdidos = 0;
+    let creditosCompletados = 0;
+    let totalDiasAtraso = 0;
+
     creditos.forEach((credito) => {
       const monto = parseInt(credito.valor_venta) || 0;
       const saldo = parseInt(credito.saldo_actual) || 0;
@@ -54,6 +64,7 @@ export default function DetalleCliente({ params }) {
       // Calcular pérdidas (créditos vencidos con saldo pendiente)
       if (credito.estado_venta === "Perdida") {
         totalPerdidas += saldo;
+        creditosPerdidos += 1;
       }
 
       // Calcular ingresos (solo créditos pagados)
@@ -61,14 +72,60 @@ export default function DetalleCliente({ params }) {
         // Ingresos = Monto inicial + Intereses - Saldo actual (debería ser 0)
 
         totalIngresos += intereses - monto;
+        creditosCompletados += 1;
+
+        // Calcular pagos a tiempo vs atrasados
+        if (credito.dias_atrasados > 0) {
+          creditosConAtraso += 1;
+          totalDiasAtraso += credito.dias_atrasados;
+        } else {
+          creditosPagadosATiempo += 1;
+        }
       }
     });
+
+    // Calcular calificación (0-100 puntos)
+    let calificacion = 0;
+    let estrellas = 0;
+    let bloqueado = creditosPerdidos > 0;
+
+    if (!bloqueado && totalCreditos > 0) {
+      // Base: Porcentaje de créditos pagados a tiempo (70% del puntaje)
+      const porcentajeATiempo = (creditosPagadosATiempo / creditosCompletados) * 100 || 0;
+      
+      // Penalización por días de atraso (máximo 30% de reducción)
+      const penalizacionAtraso = Math.min(30, totalDiasAtraso);
+      
+      // Bonus por cantidad de créditos completados
+      const bonusExperiencia = Math.min(10, creditosCompletados);
+      
+      // Cálculo final
+      calificacion = Math.max(0, Math.min(100, 
+        (porcentajeATiempo * 0.7) - penalizacionAtraso + bonusExperiencia
+      ));
+      
+      // Convertir a estrellas (1-5)
+      estrellas = calificacion >= 90 ? 5 :
+                  calificacion >= 70 ? 4 :
+                  calificacion >= 50 ? 3 :
+                  calificacion >= 30 ? 2 : 1;
+    }
 
     return {
       totalCreditos,
       totalMontoNeto,
       totalPerdidas,
       totalIngresos,
+      calificacion,
+      estrellas,
+      bloqueado,
+      creditosPagadosATiempo,
+      creditosConAtraso,
+      creditosPerdidos,
+      creditosCompletados,
+      promedioAtraso: creditosConAtraso > 0 
+        ? (totalDiasAtraso / creditosConAtraso).toFixed(1) 
+        : "0.0",
     };
   }, [creditos]);
 
@@ -301,6 +358,30 @@ export default function DetalleCliente({ params }) {
                 <h1 className="text-2xl font-bold text-gray-900">
                   {cliente.nombres} {cliente.apellidos}
                 </h1>
+                {/* Mostrar calificación como estrellas */}
+                 {/* Mostrar calificación como estrellas o bloqueado */}
+                  {resumenFinanciero.totalCreditos > 0 && (
+                    <div className="ml-3 flex items-center">
+                      {resumenFinanciero.bloqueado ? (
+                        <span className="flex items-center bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">
+                          <FaBan className="mr-1" /> BLOQUEADO
+                        </span>
+                      ) : (
+                        <>
+                          {[...Array(5)].map((_, i) => (
+                            i < resumenFinanciero.estrellas ? (
+                              <FaStar key={i} className="text-yellow-400 text-sm" />
+                            ) : (
+                              <FaRegStar key={i} className="text-gray-300 text-sm" />
+                            )
+                          ))}
+                          <span className="ml-1 text-xs text-gray-500">
+                            ({resumenFinanciero.calificacion.toFixed(1)})
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 <div className="flex items-center mt-1">
                   {getStatusBadge(cliente.estado_cliente)}
                   <span className="ml-3 text-gray-500 text-sm">
@@ -384,7 +465,7 @@ export default function DetalleCliente({ params }) {
         </div>
 
         {/* Resumen financiero */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-gray-500">
@@ -442,6 +523,67 @@ export default function DetalleCliente({ params }) {
           </div>
         </div>
 
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-500">Calificación</h3>
+              {resumenFinanciero.bloqueado ? (
+                <FaBan className="text-red-600" />
+              ) : (
+                <FiStar className="text-yellow-400" />
+              )}
+            </div>
+            <div className="mt-2">
+              {resumenFinanciero.bloqueado ? (
+                <div className="text-center py-4">
+                  <div className="bg-red-100 rounded-full p-3 inline-block">
+                    <FaBan className="text-red-600 text-2xl" />
+                  </div>
+                  <p className="mt-3 font-bold text-red-600">CLIENTE BLOQUEADO</p>
+                  <p className="text-xs text-gray-600 mt-2">
+                    Tiene {resumenFinanciero.creditosPerdidos} crédito(s) perdido(s)
+                  </p>
+                </div>
+              ) : resumenFinanciero.totalCreditos > 0 ? (
+                <>
+                  <div className="flex justify-center mb-2">
+                    {[...Array(5)].map((_, i) => (
+                      i < resumenFinanciero.estrellas ? (
+                        <FaStar key={i} className="text-yellow-400 text-2xl mx-1" />
+                      ) : (
+                        <FaRegStar key={i} className="text-gray-300 text-2xl mx-1" />
+                      )
+                    ))}
+                  </div>
+                  <p className="text-center text-lg font-bold text-gray-800">
+                    {resumenFinanciero.calificacion.toFixed(1)}/100
+                  </p>
+                  <div className="mt-2 text-xs text-gray-600">
+                    <p className="flex items-center">
+                      <FiCheck className="text-green-500 mr-1" /> 
+                      {resumenFinanciero.creditosPagadosATiempo} pagos a tiempo
+                    </p>
+                    <p className="flex items-center">
+                      <FiAlertCircle className="text-yellow-500 mr-1" /> 
+                      {resumenFinanciero.creditosConAtraso} con atraso
+                    </p>
+                    <p className="flex items-center">
+                      <FiClock className="text-blue-500 mr-1" /> 
+                      {resumenFinanciero.promedioAtraso} días de atraso promedio
+                    </p>
+                    <p className="flex items-center">
+                      <FiCreditCard className="text-indigo-500 mr-1" /> 
+                      {resumenFinanciero.creditosCompletados} créditos completados
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <p className="text-center text-gray-500 py-4">
+                  Sin créditos para calificar
+                </p>
+              )}
+            </div>
+          </div>
+        
         {/* Historial de créditos */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
