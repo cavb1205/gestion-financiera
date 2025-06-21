@@ -119,7 +119,7 @@ export default function DetalleCliente({ params }) {
   };
 
   const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "long", day: "numeric" };
+    const options = { year: "numeric", month: "numeric", day: "numeric" };
     return new Date(dateString).toLocaleDateString("es-ES", options);
   };
 
@@ -305,37 +305,45 @@ export default function DetalleCliente({ params }) {
 
             <div className="space-y-4">
               <div>
-                <p className="text-sm font-bold text-gray-800">Identificación</p>
-                <p className="font-medium text-gray-500">{cliente.identificacion}</p>
+                <p className="text-sm font-bold text-gray-800">
+                  Identificación
+                </p>
+                <p className="font-medium text-gray-500">
+                  {cliente.identificacion}
+                </p>
               </div>
             </div>
             <div>
-                <p className="text-sm font-bold text-gray-800">Teléfono Principal</p>
+              <p className="text-sm font-bold text-gray-800">
+                Teléfono Principal
+              </p>
+              <p className="font-medium text-gray-500">
+                {formatPhone(cliente.telefono_principal)}
+              </p>
+            </div>
+            {cliente.telefono_opcional && (
+              <div>
+                <p className="text-sm font-bold text-gray-800">
+                  Teléfono Opcional
+                </p>
                 <p className="font-medium text-gray-500">
-                  {formatPhone(cliente.telefono_principal)}
+                  {formatPhone(cliente.telefono_opcional)}
                 </p>
               </div>
-              {cliente.telefono_opcional && (
-                <div>
-                  <p className="text-sm font-bold text-gray-800">Teléfono Opcional</p>
-                  <p className="font-medium text-gray-500">
-                    {formatPhone(cliente.telefono_opcional)}
-                  </p>
-                </div>
-              )}
-               <div>
-                <p className="text-sm font-bold text-gray-800">Nombre del Negocio</p>
-                <p className="font-medium text-gray-500">{cliente.nombre_local}</p>
-              </div>
-               <div>
-                <p className="text-sm font-bold text-gray-800">Dirección</p>
-                <p className="font-medium text-gray-500">{cliente.direccion}</p>
-              </div>
+            )}
+            <div>
+              <p className="text-sm font-bold text-gray-800">
+                Nombre del Negocio
+              </p>
+              <p className="font-medium text-gray-500">
+                {cliente.nombre_local}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-800">Dirección</p>
+              <p className="font-medium text-gray-500">{cliente.direccion}</p>
+            </div>
           </div>
-
-          
-
-          
         </div>
 
         {/* Historial de créditos */}
@@ -430,13 +438,10 @@ export default function DetalleCliente({ params }) {
                         <div className="text-sm font-medium text-gray-900">
                           CR-{credito.id.toString().padStart(4, "0")}
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {credito.tipo_credito}
-                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          ${credito.valor_venta.toLocaleString()}
+                          ${parseInt(credito.valor_venta).toLocaleString()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -451,7 +456,7 @@ export default function DetalleCliente({ params }) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          ${credito.saldo_actual.toLocaleString()}
+                          ${parseInt(credito.saldo_actual).toLocaleString()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -472,8 +477,6 @@ export default function DetalleCliente({ params }) {
             </div>
           )}
         </div>
-
-      
       </div>
 
       {/* Modal de confirmación de eliminación */}
