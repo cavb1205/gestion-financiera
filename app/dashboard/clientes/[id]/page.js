@@ -40,7 +40,28 @@ export default function DetalleCliente({ params }) {
 
   const clienteId = params.id;
   // Calcular los totales financieros
+  console.log('creditos:', creditos);
   const resumenFinanciero = useMemo(() => {
+    if (creditos.message || creditos.length === 0) {
+      return {
+        totalCreditos: 0,
+        totalMontoNeto: 0,
+        totalPerdidas: 0,
+        totalIngresos: 0,
+        calificacion: 0,
+        estrellas: 0,
+        bloqueado: false,
+        creditosPagadosATiempo: 0,
+        creditosConAtraso: 0,
+        creditosPerdidos: 0,
+        creditosCompletados: 0,
+        promedioAtraso: "0.0",
+      };
+    }
+    else {
+
+    
+
     let totalCreditos = 0;
     let totalMontoNeto = 0;
     let totalPerdidas = 0;
@@ -127,6 +148,7 @@ export default function DetalleCliente({ params }) {
         ? (totalDiasAtraso / creditosConAtraso).toFixed(1) 
         : "0.0",
     };
+  }
   }, [creditos]);
 
   console.log("creditos:", creditos);
@@ -603,7 +625,7 @@ export default function DetalleCliente({ params }) {
             </button>
           </div>
 
-          {creditos.length === 0 ? (
+          {creditos.message ? (
             <div className="text-center py-8">
               <div className="bg-gray-100 rounded-full p-4 inline-block">
                 <FiDollarSign className="text-gray-400 text-2xl mx-auto" />

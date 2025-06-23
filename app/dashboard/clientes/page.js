@@ -166,7 +166,7 @@ export default function ClientesPage() {
           </div>
           
           <button 
-            onClick={() => router.push('/clientes/nuevo')}
+            onClick={() => router.push('/dashboard/clientes/crear')}
             className="mt-4 md:mt-0 flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
           >
             <FiPlus className="mr-2" />
