@@ -22,6 +22,7 @@ import {
   FiTrendingUp,
   FiStar,
   FiAlertCircle,
+  FiActivity,
 } from "react-icons/fi";
 import { FaStar, FaRegStar, FaBan } from "react-icons/fa";
 import { useAuth } from "../../../context/AuthContext";
@@ -48,6 +49,7 @@ export default function DetalleCliente({ params }) {
         totalMontoNeto: 0,
         totalPerdidas: 0,
         totalIngresos: 0,
+        utilidadNeta: 0,
         calificacion: 0,
         estrellas: 0,
         bloqueado: false,
@@ -56,6 +58,9 @@ export default function DetalleCliente({ params }) {
         creditosPerdidos: 0,
         creditosCompletados: 0,
         promedioAtraso: "0.0",
+        montoRecomendado: 0,
+        creditoVigente: false,
+        estadoCreditoVigente: null,
       };
     }
     else {
@@ -74,6 +79,13 @@ export default function DetalleCliente({ params }) {
     let creditosCompletados = 0;
     let totalDiasAtraso = 0;
 
+    // Variables para crédito vigente
+    let creditoVigente = false;
+    let estadoCreditoVigente = null;
+    let totalMontoCreditos = 0;
+
+
+
     creditos.forEach((credito) => {
       const monto = parseInt(credito.valor_venta) || 0;
       const saldo = parseInt(credito.saldo_actual) || 0;
@@ -81,6 +93,7 @@ export default function DetalleCliente({ params }) {
 
       totalCreditos += 1;
       totalMontoNeto += monto;
+      totalMontoCreditos += monto;
 
       // Calcular pérdidas (créditos vencidos con saldo pendiente)
       if (credito.estado_venta === "Perdida") {
@@ -103,7 +116,15 @@ export default function DetalleCliente({ params }) {
           creditosPagadosATiempo += 1;
         }
       }
+      // Detectar crédito vigente
+      if (credito.estado_venta === "Activo" || credito.estado_venta === "Vencido" || credito.estado_venta === "Atrasado") {
+        creditoVigente = true;
+        estadoCreditoVigente = credito.estado_venta;
+      }
     });
+
+    // Utilidad neta = Ingresos - Pérdidas
+    const utilidadNeta = totalIngresos - totalPerdidas;
 
     // Calcular calificación (0-100 puntos)
     let calificacion = 0;
@@ -132,11 +153,35 @@ export default function DetalleCliente({ params }) {
                   calificacion >= 30 ? 2 : 1;
     }
 
+    // Calcular monto recomendado para nuevo crédito
+    let montoRecomendado = 0;
+    if (!bloqueado && totalCreditos > 0) {
+      const promedioMonto = totalMontoCreditos / totalCreditos;
+      
+      // Factor de ajuste basado en calificación
+      let factor = 1;
+      if (calificacion >= 80) factor = 1.2; // Excelente historial
+      else if (calificacion >= 60) factor = 1.0; // Buen historial
+      else if (calificacion >= 40) factor = 0.8; // Historial regular
+      else factor = 0.5; // Mal historial
+      
+      montoRecomendado = Math.round(promedioMonto * factor);
+      
+      // Si el cliente tiene atrasos, reducir el monto
+      if (creditosConAtraso > 0) {
+        montoRecomendado = Math.round(montoRecomendado * 0.7);
+      }
+      
+      // Mínimo de $10,000 para no recomendar montos insignificantes
+      montoRecomendado = Math.max(10000, montoRecomendado);
+    }
+
     return {
       totalCreditos,
       totalMontoNeto,
       totalPerdidas,
       totalIngresos,
+      utilidadNeta,
       calificacion,
       estrellas,
       bloqueado,
@@ -147,6 +192,9 @@ export default function DetalleCliente({ params }) {
       promedioAtraso: creditosConAtraso > 0 
         ? (totalDiasAtraso / creditosConAtraso).toFixed(1) 
         : "0.0",
+      montoRecomendado,
+      creditoVigente,
+      estadoCreditoVigente,
     };
   }
   }, [creditos]);
@@ -543,68 +591,142 @@ export default function DetalleCliente({ params }) {
               De créditos completamente pagados
             </p>
           </div>
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-500">
+                Utilidad Neta
+              </h3>
+              <FiActivity className={resumenFinanciero.utilidadNeta >= 0 ? "text-green-600" : "text-red-600"} />
+            </div>
+            <p className={`text-2xl font-bold mt-2 ${
+              resumenFinanciero.utilidadNeta >= 0 ? "text-green-600" : "text-red-600"
+            }`}>
+              {resumenFinanciero.utilidadNeta.toLocaleString()}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Ingresos - Pérdidas
+            </p>
+          </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
+         {/* Nueva tarjeta de Monto Recomendado */}
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-500">Calificación</h3>
-              {resumenFinanciero.bloqueado ? (
-                <FaBan className="text-red-600" />
-              ) : (
-                <FiStar className="text-yellow-400" />
-              )}
+              <h3 className="text-sm font-medium text-gray-500">
+                Próximo Crédito Recomendado
+              </h3>
+              <FiTrendingUp className="text-indigo-600" />
             </div>
             <div className="mt-2">
               {resumenFinanciero.bloqueado ? (
-                <div className="text-center py-4">
-                  <div className="bg-red-100 rounded-full p-3 inline-block">
-                    <FaBan className="text-red-600 text-2xl" />
-                  </div>
-                  <p className="mt-3 font-bold text-red-600">CLIENTE BLOQUEADO</p>
-                  <p className="text-xs text-gray-600 mt-2">
-                    Tiene {resumenFinanciero.creditosPerdidos} crédito(s) perdido(s)
-                  </p>
-                </div>
+                <p className="text-center text-red-500 py-4">
+                  Cliente bloqueado - No se recomienda nuevo crédito
+                </p>
               ) : resumenFinanciero.totalCreditos > 0 ? (
                 <>
-                  <div className="flex justify-center mb-2">
-                    {[...Array(5)].map((_, i) => (
-                      i < resumenFinanciero.estrellas ? (
-                        <FaStar key={i} className="text-yellow-400 text-2xl mx-1" />
-                      ) : (
-                        <FaRegStar key={i} className="text-gray-300 text-2xl mx-1" />
-                      )
-                    ))}
-                  </div>
-                  <p className="text-center text-lg font-bold text-gray-800">
-                    {resumenFinanciero.calificacion.toFixed(1)}/100
+                  <p className="text-center text-2xl font-bold text-indigo-600">
+                    ${resumenFinanciero.montoRecomendado.toLocaleString()}
                   </p>
-                  <div className="mt-2 text-xs text-gray-600">
-                    <p className="flex items-center">
-                      <FiCheck className="text-green-500 mr-1" /> 
-                      {resumenFinanciero.creditosPagadosATiempo} pagos a tiempo
+                  <div className="mt-3 text-xs text-gray-600">
+                    <p className="flex items-center mb-1">
+                      <FiCheck className="text-green-500 mr-1" />
+                      <span>Basado en el historial de créditos</span>
                     </p>
-                    <p className="flex items-center">
-                      <FiAlertCircle className="text-yellow-500 mr-1" /> 
-                      {resumenFinanciero.creditosConAtraso} con atraso
-                    </p>
-                    <p className="flex items-center">
-                      <FiClock className="text-blue-500 mr-1" /> 
-                      {resumenFinanciero.promedioAtraso} días de atraso promedio
-                    </p>
-                    <p className="flex items-center">
-                      <FiCreditCard className="text-indigo-500 mr-1" /> 
-                      {resumenFinanciero.creditosCompletados} créditos completados
-                    </p>
+                    {resumenFinanciero.creditosConAtraso > 0 && (
+                      <p className="flex items-center text-yellow-600">
+                        <FiAlertCircle className="mr-1" />
+                        <span>Reducido por atrasos en pagos</span>
+                      </p>
+                    )}
                   </div>
                 </>
               ) : (
                 <p className="text-center text-gray-500 py-4">
-                  Sin créditos para calificar
+                  Sin historial para recomendar
                 </p>
               )}
             </div>
           </div>
+        
+          {/* Calificación del cliente */}              
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-500">Calificación</h3>
+            {resumenFinanciero.bloqueado ? (
+              <FaBan className="text-red-600" />
+            ) : (
+              <FiStar className="text-yellow-400" />
+            )}
+          </div>
+          <div className="mt-2">
+            {resumenFinanciero.bloqueado ? (
+              <div className="text-center py-4">
+                <div className="bg-red-100 rounded-full p-3 inline-block">
+                  <FaBan className="text-red-600 text-2xl" />
+                </div>
+                <p className="mt-3 font-bold text-red-600">CLIENTE BLOQUEADO</p>
+                <p className="text-xs text-gray-600 mt-2">
+                  Tiene {resumenFinanciero.creditosPerdidos} crédito(s) perdido(s)
+                </p>
+              </div>
+            ) : resumenFinanciero.totalCreditos > 0 ? (
+              <>
+                <div className="flex justify-center mb-2">
+                  {[...Array(5)].map((_, i) => (
+                    i < resumenFinanciero.estrellas ? (
+                      <FaStar key={i} className="text-yellow-400 text-2xl mx-1" />
+                    ) : (
+                      <FaRegStar key={i} className="text-gray-300 text-2xl mx-1" />
+                    )
+                  ))}
+                </div>
+                <p className="text-center text-lg font-bold text-gray-800">
+                  {resumenFinanciero.calificacion.toFixed(1)}/100
+                </p>
+                
+                {/* Estado de crédito vigente */}
+                {resumenFinanciero.creditoVigente && (
+                  <div className={`mt-3 p-2 rounded-lg text-center ${
+                    resumenFinanciero.estadoCreditoVigente === "Activo" 
+                      ? "bg-green-100 text-green-800" 
+                      : "bg-red-100 text-red-800"
+                  }`}>
+                    <p className="font-medium">
+                      {resumenFinanciero.estadoCreditoVigente === "Activo" 
+                        ? "Crédito vigente al día" 
+                        : `Crédito vigente ${resumenFinanciero.estadoCreditoVigente}`}
+                    </p>
+                  </div>
+                )}
+                
+                <div className="mt-2 text-xs text-gray-600">
+                  <p className="flex items-center">
+                    <FiCheck className="text-green-500 mr-1" /> 
+                    {resumenFinanciero.creditosPagadosATiempo} pagos a tiempo
+                  </p>
+                  <p className="flex items-center">
+                    <FiAlertCircle className="text-yellow-500 mr-1" /> 
+                    {resumenFinanciero.creditosConAtraso} con atraso
+                  </p>
+                  <p className="flex items-center">
+                    <FiClock className="text-blue-500 mr-1" /> 
+                    {resumenFinanciero.promedioAtraso} días de atraso promedio
+                  </p>
+                  <p className="flex items-center">
+                    <FiCreditCard className="text-indigo-500 mr-1" /> 
+                    {resumenFinanciero.creditosCompletados} créditos completados
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className="text-center text-gray-500 py-4">
+                Sin créditos para calificar
+              </p>
+            )}
+          </div>
+        </div>
+
+
         
         {/* Historial de créditos */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-8">

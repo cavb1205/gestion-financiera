@@ -225,7 +225,7 @@ export default function ClientesPage() {
                     <option value="Todos">Todos los estados</option>
                     <option value="Activo">Activo</option>
                     <option value="Inactivo">Inactivo</option>
-                    <option value="Moroso">Moroso</option>
+                    <option value="Bloqueado">Bloqueado</option>
                   </select>
                 </div>
                 
