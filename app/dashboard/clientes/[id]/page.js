@@ -464,7 +464,7 @@ export default function DetalleCliente({ params }) {
 
           <div className="mt-4 md:mt-0 flex space-x-3">
             <button
-              onClick={() => router.push(`/clientes/${clienteId}/editar`)}
+              onClick={() => router.push(`/dashboard/clientes/${clienteId}/editar`)}
               className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
             >
               <FiEdit className="mr-2" />
@@ -472,7 +472,7 @@ export default function DetalleCliente({ params }) {
             </button>
 
             <button
-              onClick={() => setShowDeleteConfirmation(true)}
+              onClick={() => router.push(`/dashboard/clientes/${clienteId}/eliminar`)}
               className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
             >
               <FiTrash2 className="mr-2" />
