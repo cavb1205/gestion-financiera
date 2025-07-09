@@ -87,11 +87,11 @@ export default function DashboardLayout({ children }) {
           </Link>
           
           <Link 
-            href="/dashboard/creditos"
-            className={`flex items-center w-full p-3 rounded-lg mb-2 ${isActive('/dashboard/creditos') ? 'bg-indigo-700' : 'hover:bg-indigo-700'}`}
+            href="/dashboard/ventas"
+            className={`flex items-center w-full p-3 rounded-lg mb-2 ${isActive('/dashboard/ventas') ? 'bg-indigo-700' : 'hover:bg-indigo-700'}`}
           >
             <FiDollarSign className="mr-3" />
-            Créditos
+            Ventas Activas
           </Link>
           
           <Link 
