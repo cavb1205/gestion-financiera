@@ -72,7 +72,7 @@ export default function DashboardLayout({ children }) {
         <nav className="flex-1 px-4 py-6">
           <Link 
             href="/dashboard"
-            className={`flex items-center w-full p-3 rounded-lg mb-2 ${isActive('/dashboard') && !isActive('/dashboard/clientes') ? 'bg-indigo-700' : 'hover:bg-indigo-700'}`}
+            className={`flex items-center w-full p-3 rounded-lg mb-2 ${isActive('/dashboard') && !isActive('/dashboard/clientes') && !isActive('/dashboard/ventas') ? 'bg-indigo-700' : 'hover:bg-indigo-700'}`}
           >
             <FiHome className="mr-3" />
             Dashboard

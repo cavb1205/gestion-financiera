@@ -2,6 +2,7 @@
 import { Inter } from 'next/font/google';
 import './globals.css'; // Asegúrate de que esta ruta a tu CSS global sea correcta
 import { AuthProvider } from './context/AuthContext';
+import { ToastContainer } from 'react-toastify';
 
 
 
@@ -22,6 +23,7 @@ export default function RootLayout({ children }) {
       <body>
         <AuthProvider>
           {children}
+           <ToastContainer position="bottom-right" />
         </AuthProvider>
       </body>
     </html>

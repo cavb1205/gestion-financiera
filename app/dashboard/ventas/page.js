@@ -277,7 +277,7 @@ export default function VentasPage() {
 
         {/* Filtros y búsqueda */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Buscar
@@ -311,36 +311,6 @@ export default function VentasPage() {
                 <option value="Vencido">Vencido</option>
               </select>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Saldo Mínimo
-              </label>
-              <input
-                type="number"
-                placeholder="Monto mínimo"
-                value={filters.montoMin}
-                onChange={(e) =>
-                  setFilters({ ...filters, montoMin: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Saldo Máximo
-              </label>
-              <input
-                type="number"
-                placeholder="Monto máximo"
-                value={filters.montoMax}
-                onChange={(e) =>
-                  setFilters({ ...filters, montoMax: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
           </div>
         </div>
 
@@ -350,12 +320,7 @@ export default function VentasPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    ID
-                  </th>
+                  
                   <th
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -392,12 +357,7 @@ export default function VentasPage() {
                   >
                     Días Atrasados
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Acciones
-                  </th>
+                  
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -417,9 +377,7 @@ export default function VentasPage() {
                       className="hover:bg-gray-50 cursor-pointer"
                       onClick={() => navigateToVentaDetail(venta.id)}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        #{venta.id}
-                      </td>
+                      
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center">
@@ -430,7 +388,8 @@ export default function VentasPage() {
                               {venta.cliente.nombres} {venta.cliente.apellidos}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {venta.cliente.telefono_principal || "Sin teléfono"}
+                              {venta.cliente.telefono_principal ||
+                                "Sin teléfono"}
                             </div>
                           </div>
                         </div>
@@ -476,17 +435,7 @@ export default function VentasPage() {
                           <span className="text-gray-500">En plazo</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 hover:text-indigo-900">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigateToVentaDetail(venta.id);
-                          }}
-                          className="font-medium"
-                        >
-                          Ver detalles
-                        </button>
-                      </td>
+                     
                     </tr>
                   ))
                 )}
