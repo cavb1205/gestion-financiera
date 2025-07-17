@@ -12,7 +12,8 @@ import {
   FiSettings, 
   FiBell,
   FiShoppingBag,
-  FiRefreshCw
+  FiRefreshCw,
+  FiTrendingDown
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import Link from 'next/link';
@@ -92,6 +93,13 @@ export default function DashboardLayout({ children }) {
           >
             <FiDollarSign className="mr-3" />
             Ventas Activas
+          </Link>
+          <Link 
+            href="/dashboard/gastos"
+            className={`flex items-center w-full p-3 rounded-lg mb-2 ${isActive('/dashboard/gastos') ? 'bg-indigo-700' : 'hover:bg-indigo-700'}`}
+          >
+            <FiTrendingDown className="mr-3" />
+            Gastos
           </Link>
           
           <Link 

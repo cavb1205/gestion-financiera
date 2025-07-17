@@ -34,7 +34,7 @@ export default function VentaDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [pagos, setPagos] = useState([]);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
 
   // Cargar datos de la venta y pagos
   useEffect(() => {
@@ -131,27 +131,7 @@ export default function VentaDetailPage() {
     }
   };
 
-  const handleDeleteVenta = async () => {
-    try {
-      // Aquí iría la llamada real al endpoint de eliminación
-      // await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/delete/`, {
-      //   method: "DELETE",
-      //   headers: {
-      //     Authorization: `Bearer ${token}`,
-      //   }
-      // });
-
-      // Simular eliminación exitosa
-      setTimeout(() => {
-        router.push("/dashboard/ventas");
-      }, 1000);
-    } catch (err) {
-      console.error("Error deleting sale:", err);
-      setError("Error al eliminar la venta");
-    } finally {
-      setShowDeleteConfirm(false);
-    }
-  };
+ 
 
   const totalPagado = pagos.reduce((sum, pago) => {
     const valor = parseFloat(pago.valor_recaudo) || 0;
@@ -258,7 +238,7 @@ export default function VentaDetailPage() {
                 Editar
               </button>
               <button
-                onClick={() => setShowDeleteConfirm(true)}
+                onClick={() => router.push(`/dashboard/ventas/${ventaId}/eliminar`)}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center"
               >
                 <FiTrash2 className="mr-2" />
@@ -557,7 +537,7 @@ export default function VentaDetailPage() {
                     return (
                       <tr key={pago.id}>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatShortDate(pago.fecha_recaudo)}
+                          {(pago.fecha_recaudo)}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                           {isVisitaFallida ? (
@@ -663,38 +643,7 @@ export default function VentaDetailPage() {
           </div>
         )}
 
-        {/* Confirmación de eliminación */}
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full">
-              <div className="text-center">
-                <FiAlertCircle className="mx-auto text-red-500 text-4xl mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  ¿Eliminar esta venta?
-                </h3>
-                <p className="text-gray-500 mb-4">
-                  Esta acción eliminará permanentemente la venta #{venta.id} y
-                  todos sus datos asociados.
-                </p>
-
-                <div className="flex justify-center space-x-4">
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleDeleteVenta}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                  >
-                    Sí, eliminar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+     
       </div>
     </div>
   );

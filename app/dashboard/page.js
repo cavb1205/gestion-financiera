@@ -2,38 +2,86 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { 
+import {
   FiShoppingBag,
   FiDollarSign,
-  FiBell,
   FiCreditCard,
   FiTrendingUp,
-  FiTrendingDown
+  FiTrendingDown,
+  FiCalendar,
+  FiRefreshCw,
+  FiPieChart,
+  FiBarChart2
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 
 export default function DashboardPage() {
-  const { selectedStore } = useAuth();
+  const { selectedStore, token } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [dataLoading, setDataLoading] = useState(true);
+  const [tienda, setTienda] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Función para obtener datos actualizados de la tienda
+  const fetchTiendaActualizada = async () => {
+    try {
+      if (!selectedStore || !token) return;
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/tiendas/detail/admin/${selectedStore.tienda.id}/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("No se pudieron cargar los datos de la tienda");
+      }
+
+      const tiendaData = await response.json();
+      setTienda(tiendaData);
+      return tiendaData;
+    } catch (error) {
+      console.error("Error al obtener la tienda actualizada:", error);
+    }
+  };
+
+  // Función para actualizar todos los datos del dashboard
+  const actualizarDashboard = async () => {
+    setRefreshing(true);
+    try {
+      const tiendaActualizada = await fetchTiendaActualizada();
+
+      // Simulamos la carga de datos del dashboard
+      setDashboardData({
+        financialData: [
+          { month: "Ene", ingresos: 4500000, gastos: 2800000 },
+          { month: "Feb", ingresos: 5200000, gastos: 3100000 },
+          { month: "Mar", ingresos: 4800000, gastos: 2950000 },
+          { month: "Abr", ingresos: 6100000, gastos: 3200000 },
+          { month: "May", ingresos: 5700000, gastos: 3300000 },
+          { month: "Jun", ingresos: 6300000, gastos: 3500000 },
+        ],
+      });
+    } catch (error) {
+      console.error("Error al actualizar el dashboard:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    if (selectedStore) {
-      // Simular carga de datos adicionales
-      setTimeout(() => {
-        setDashboardData({
-          financialData: [
-            { month: "Ene", ingresos: 4500000, gastos: 2800000 },
-            { month: "Feb", ingresos: 5200000, gastos: 3100000 },
-            { month: "Mar", ingresos: 4800000, gastos: 2950000 },
-            { month: "Abr", ingresos: 6100000, gastos: 3200000 },
-            { month: "May", ingresos: 5700000, gastos: 3300000 },
-            { month: "Jun", ingresos: 6300000, gastos: 3500000 },
-          ],
-        });
+    const cargarDatos = async () => {
+      if (selectedStore) {
+        setDataLoading(true);
+        await actualizarDashboard();
         setDataLoading(false);
-      }, 800);
-    }
+      }
+    };
+
+    cargarDatos();
   }, [selectedStore]);
 
   if (!selectedStore || dataLoading) {
@@ -45,137 +93,213 @@ export default function DashboardPage() {
     );
   }
 
-  // Datos financieros resumidos
-  const portfolioSummary = [
-    {
-      name: "Recaudos del día",
-      value: null,
-      amount: `$${selectedStore.tienda.recaudos_dia.toLocaleString()}`,
-      change: "+4.3%",
-      icon: <FiDollarSign className="text-green-500" />,
-    },
-    {
-      name: "Ventas netas mes",
-      value: null,
-      amount: `$${selectedStore.tienda.ventas_netas_mes.toLocaleString()}`,
-      change: "+3.1%",
-      icon: <FiTrendingUp className="text-blue-500" />,
-    },
-    {
-      name: "Gastos del mes",
-      value: null,
-      amount: `$${selectedStore.tienda.gastos_mes.toLocaleString()}`,
-      change: "-1.2%",
-      icon: <FiTrendingDown className="text-red-500" />,
-    },
-    {
-      name: "Utilidades del año",
-      value: null,
-      amount: `$${selectedStore.tienda.utilidades_ano.toLocaleString()}`,
-      change: "+2.5%",
-      icon: <FiCreditCard className="text-purple-500" />,
-    },
-  ];
-
-  // Formateador de fechas
-  const formatDate = (dateString) => {
-    const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
-    return new Date(dateString).toLocaleDateString('es-ES', options);
-  };
-
+  // Calcular utilidades mensuales
+  const utilidadesMes = tienda.tienda.ventas_netas_mes - tienda.tienda.gastos_mes;
+  
   return (
-    <>
+    <div className="min-h-screen bg-gray-50">
       {/* Encabezado de la tienda */}
-      <div className="mb-6 bg-white rounded-xl shadow-sm p-5">
+      <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="flex items-center">
             <FiShoppingBag className="text-indigo-600 text-2xl mr-3" />
             <h1 className="text-2xl font-bold text-gray-800">
-              {selectedStore.tienda.nombre}
+              {tienda.tienda.nombre}
               <span className="ml-2 text-indigo-600 text-sm bg-indigo-100 px-2 py-1 rounded-full">
-                ID: {selectedStore.tienda.id}
+                ID: {tienda.tienda.id}
               </span>
             </h1>
           </div>
-          <div className="mt-2 md:mt-0 flex flex-wrap gap-2">
+          
+          <div className="mt-2 md:mt-0 flex flex-wrap gap-2 items-center">
+            <button 
+              onClick={actualizarDashboard}
+              className="flex items-center text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full hover:bg-indigo-200 transition-colors"
+            >
+              <FiRefreshCw className={`mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+              Actualizar
+            </button>
+            
             <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
               <span className="font-medium">Caja:</span> $
-              {selectedStore.tienda.caja.toLocaleString()}
+              {tienda.tienda.caja.toLocaleString()}
             </div>
             <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
               <span className="font-medium">Inversión:</span> $
-              {selectedStore.tienda.inversion.toLocaleString()}
+              {tienda.tienda.inversion.toLocaleString()}
             </div>
             <div className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
               <span className="font-medium">Utilidades:</span> $
-              {selectedStore.tienda.utilidades.toLocaleString()}
+              {tienda.tienda.utilidades.toLocaleString()}
             </div>
           </div>
         </div>
         
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <span className="text-gray-500 block">Fecha registro:</span>
-            <span className="font-medium">{formatDate(selectedStore.tienda.fecha_registro)}</span>
-          </div>
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <span className="text-gray-500 block">Administrador:</span>
-            <span className="font-medium">{selectedStore.tienda.administrador}</span>
-          </div>
+        <div className="mt-4 grid grid-cols-2 md:grid-cols-2 gap-3 text-sm">
           <div className="bg-gray-50 p-3 rounded-lg">
             <span className="text-gray-500 block">Estado:</span>
-            <span className={`font-medium ${selectedStore.tienda.estado ? 'text-green-600' : 'text-red-600'}`}>
-              {selectedStore.tienda.estado ? 'Activo' : 'Inactivo'}
+            <span
+              className={`font-medium ${
+                tienda.tienda.estado ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {tienda.tienda.estado ? "Activo" : "Inactivo"}
             </span>
           </div>
           <div className="bg-gray-50 p-3 rounded-lg">
             <span className="text-gray-500 block">Pérdidas anuales:</span>
-            <span className="font-medium text-red-600">${selectedStore.tienda.perdidas_ano.toLocaleString()}</span>
+            <span className="font-medium text-red-600">
+              ${tienda.tienda.perdidas_ano.toLocaleString()}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Resumen financiero */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        {portfolioSummary.map((item, index) => (
-          <div
-            key={index}
-            className="bg-white rounded-xl shadow-sm p-5"
-          >
-            <div className="flex justify-between items-start">
+      {/* Resúmenes por período */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        {/* Resumen del Día */}
+        <div className="bg-white rounded-xl shadow-sm p-5 border-t-4 border-green-500">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900 flex items-center">
+              <FiCalendar className="mr-2 text-green-500" />
+              Resumen del Día
+            </h2>
+            <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+              Hoy
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-gray-500 text-sm font-medium">
-                  {item.name}
-                </h3>
-                <div className="mt-2">
-                  <span className="text-2xl font-bold text-gray-900">
-                    {item.amount}
-                  </span>
-                </div>
+                <h3 className="text-gray-500 text-sm">Recaudos del día</h3>
+                <p className="text-xl font-bold text-gray-900">
+                  ${tienda.tienda.recaudos_dia.toLocaleString()}
+                </p>
               </div>
-              
-              <div className={`p-2 rounded-lg ${index === 0 ? 'bg-green-100' : index === 1 ? 'bg-blue-100' : index === 2 ? 'bg-red-100' : 'bg-purple-100'}`}>
-                {item.icon}
+              <div className="p-2 bg-green-100 rounded-lg">
+                <FiDollarSign className="text-green-500 text-xl" />
               </div>
             </div>
-
-            {item.change && (
-              <div className="mt-3">
-                <span
-                  className={`text-xs px-2 py-1 rounded-full ${
-                    item.change.startsWith("+")
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {item.change}
-                </span>
+            
+            <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+              <div>
+                <h3 className="text-gray-500 text-sm">Ventas registradas</h3>
+                <p className="text-xl font-bold text-gray-900">
+                  12
+                </p>
               </div>
-            )}
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <FiTrendingUp className="text-blue-500 text-xl" />
+              </div>
+            </div>
           </div>
-        ))}
+        </div>
+        
+        {/* Resumen del Mes */}
+        <div className="bg-white rounded-xl shadow-sm p-5 border-t-4 border-blue-500">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900 flex items-center">
+              <FiBarChart2 className="mr-2 text-blue-500" />
+              Resumen del Mes
+            </h2>
+            <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+              Actual
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-gray-500 text-sm">Ventas netas</h3>
+                <p className="text-xl font-bold text-gray-900">
+                  ${tienda.tienda.ventas_netas_mes.toLocaleString()}
+                </p>
+              </div>
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <FiTrendingUp className="text-blue-500 text-xl" />
+              </div>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-gray-500 text-sm">Gastos</h3>
+                <p className="text-xl font-bold text-red-600">
+                  ${tienda.tienda.gastos_mes.toLocaleString()}
+                </p>
+              </div>
+              <div className="p-2 bg-red-100 rounded-lg">
+                <FiTrendingDown className="text-red-500 text-xl" />
+              </div>
+            </div>
+            
+            <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+              <div>
+                <h3 className="text-gray-500 text-sm">Utilidades</h3>
+                <p className={`text-xl font-bold ${utilidadesMes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  ${utilidadesMes.toLocaleString()}
+                </p>
+              </div>
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <FiCreditCard className="text-purple-500 text-xl" />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Resumen del Año */}
+        <div className="bg-white rounded-xl shadow-sm p-5 border-t-4 border-purple-500">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900 flex items-center">
+              <FiPieChart className="mr-2 text-purple-500" />
+              Resumen del Año
+            </h2>
+            <div className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
+              2024
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-gray-500 text-sm">Ventas netas</h3>
+                <p className="text-xl font-bold text-gray-900">
+                  ${tienda.tienda.ventas_netas_ano.toLocaleString()}
+                </p>
+              </div>
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <FiTrendingUp className="text-blue-500 text-xl" />
+              </div>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-gray-500 text-sm">Utilidades</h3>
+                <p className="text-xl font-bold text-green-600">
+                  ${tienda.tienda.utilidades_ano.toLocaleString()}
+                </p>
+              </div>
+              <div className="p-2 bg-green-100 rounded-lg">
+                <FiCreditCard className="text-green-500 text-xl" />
+              </div>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-gray-500 text-sm">Pérdidas</h3>
+                <p className="text-xl font-bold text-red-600">
+                  ${tienda.tienda.perdidas_ano.toLocaleString()}
+                </p>
+              </div>
+              <div className="p-2 bg-red-100 rounded-lg">
+                <FiTrendingDown className="text-red-500 text-xl" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
+      {/* Gráficos y detalles adicionales */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Gráfico de ingresos/gastos */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-5">
@@ -192,10 +316,7 @@ export default function DashboardPage() {
           <div className="h-64">
             <div className="flex items-end h-48 mt-6 space-x-4">
               {dashboardData?.financialData?.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex flex-col items-center flex-1"
-                >
+                <div key={index} className="flex flex-col items-center flex-1">
                   <div className="flex items-end h-40">
                     <div
                       className="w-full bg-indigo-200 rounded-t hover:bg-indigo-300 transition-colors"
@@ -230,88 +351,107 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Últimos movimientos */}
+        {/* Detalles financieros */}
         <div className="bg-white rounded-xl shadow-sm p-5">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-medium text-gray-900">
-              Resumen financiero
+              Detalles financieros
             </h2>
-            <FiBell className="text-gray-500" />
+            <FiCreditCard className="text-gray-500" />
           </div>
 
           <div className="space-y-4">
             <div className="flex justify-between items-center pb-3 border-b">
-              <span className="text-gray-500">Ingresos ventas finalizadas:</span>
-              <span className="font-medium text-green-600">${selectedStore.tienda.ingresos_ventas_finalizadas.toLocaleString()}</span>
+              <span className="text-gray-500">
+                Ingresos ventas finalizadas:
+              </span>
+              <span className="font-medium text-green-600">
+                ${tienda.tienda.ingresos_ventas_finalizadas.toLocaleString()}
+              </span>
             </div>
-            
+
             <div className="flex justify-between items-center pb-3 border-b">
               <span className="text-gray-500">Dinero por cobrar:</span>
-              <span className="font-medium text-blue-600">${selectedStore.tienda.dinero_x_cobrar.toLocaleString()}</span>
+              <span className="font-medium text-blue-600">
+                ${tienda.tienda.dinero_x_cobrar.toLocaleString()}
+              </span>
             </div>
-            
+
             <div className="flex justify-between items-center pb-3 border-b">
-              <span className="text-gray-500">Ventas netas año:</span>
-              <span className="font-medium text-green-400">${selectedStore.tienda.ventas_netas_ano.toLocaleString()}</span>
+              <span className="text-gray-500">Aportes del año:</span>
+              <span className="font-medium text-purple-600">
+                ${tienda.tienda.aportes_ano.toLocaleString()}
+              </span>
             </div>
-            
+
             <div className="flex justify-between items-center">
-              <span className="text-gray-500">Pérdidas año:</span>
-              <span className="font-medium text-red-600">${selectedStore.tienda.perdidas_ano.toLocaleString()}</span>
+              <span className="text-gray-500">Gastos del año:</span>
+              <span className="font-medium text-red-600">
+                ${tienda.tienda.gastos_ano.toLocaleString()}
+              </span>
             </div>
           </div>
-
-          
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-5">
+      {/* Resumen anual */}
+      <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">
-          Resumen anual
+          Balance Anual
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="border border-gray-200 rounded-lg p-4">
-            <h3 className="text-gray-500 text-sm font-medium mb-2">Aportes</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50">
+            <h3 className="text-gray-500 text-sm font-medium mb-2">Ventas netas</h3>
             <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold">${selectedStore.tienda.aportes_ano.toLocaleString()}</span>
-              <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                +2.3%
+              <span className="text-2xl font-bold">
+                ${tienda.tienda.ventas_netas_ano.toLocaleString()}
+              </span>
+              <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                +3.7%
               </div>
             </div>
           </div>
           
-          <div className="border border-gray-200 rounded-lg p-4">
-            <h3 className="text-gray-500 text-sm font-medium mb-2">Gastos</h3>
+          <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-green-50 to-teal-50">
+            <h3 className="text-gray-500 text-sm font-medium mb-2">
+              Utilidades
+            </h3>
             <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold text-red-600">${selectedStore.tienda.gastos_ano.toLocaleString()}</span>
-              <div className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">
-                -1.1%
-              </div>
-            </div>
-          </div>
-          
-          <div className="border border-gray-200 rounded-lg p-4">
-            <h3 className="text-gray-500 text-sm font-medium mb-2">Utilidades</h3>
-            <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold text-green-600">${selectedStore.tienda.utilidades_ano.toLocaleString()}</span>
+              <span className="text-2xl font-bold text-green-600">
+                ${tienda.tienda.utilidades_ano.toLocaleString()}
+              </span>
               <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
                 +4.2%
               </div>
             </div>
           </div>
           
-          <div className="border border-gray-200 rounded-lg p-4">
-            <h3 className="text-gray-500 text-sm font-medium mb-2">Ventas netas</h3>
+          <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-red-50 to-orange-50">
+            <h3 className="text-gray-500 text-sm font-medium mb-2">Gastos</h3>
             <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold">${selectedStore.tienda.ventas_netas_ano.toLocaleString()}</span>
-              <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
-                +3.7%
+              <span className="text-2xl font-bold text-red-600">
+                ${tienda.tienda.gastos_ano.toLocaleString()}
+              </span>
+              <div className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">
+                -1.1%
+              </div>
+            </div>
+          </div>
+          
+          <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-amber-50 to-yellow-50">
+            <h3 className="text-gray-500 text-sm font-medium mb-2">Aportes</h3>
+            <div className="flex justify-between items-center">
+              <span className="text-2xl font-bold">
+                ${tienda.tienda.aportes_ano.toLocaleString()}
+              </span>
+              <div className="bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-xs">
+                +2.3%
               </div>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

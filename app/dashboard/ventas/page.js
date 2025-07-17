@@ -395,9 +395,7 @@ export default function VentasPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(venta.fecha_venta).toLocaleDateString(
-                          "es-CL"
-                        )}
+                        {venta.fecha_venta}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatMoney(venta.valor_venta)}
