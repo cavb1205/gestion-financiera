@@ -12,28 +12,57 @@ import {
   FiEdit,
   FiChevronLeft,
   FiChevronRight,
+  FiTag,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { toast } from "react-toastify";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function GastosPage() {
   const { token, selectedStore } = useAuth();
   const [gastos, setGastos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [gastoToEdit, setGastoToEdit] = useState(null);
+  const [tiposGasto, setTiposGasto] = useState([]);
   const [filters, setFilters] = useState({
     fechaInicio: "",
     fechaFin: "",
-    minValor: "",
-    maxValor: "",
   });
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [gastoToDelete, setGastoToDelete] = useState(null); // Almacenar el gasto a eliminar
 
   // Paginación en el cliente
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const router = useRouter();
+
+  // Obtener tipos de gasto
+  const fetchTiposGasto = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/gastos/tipo/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al obtener los tipos de gasto");
+      }
+
+      const data = await response.json();
+      const tiposArray = Array.isArray(data) ? data : [];
+      setTiposGasto(tiposArray);
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error(error.message);
+    }
+  };
 
   // Obtener gastos
   const fetchGastos = async () => {
@@ -64,8 +93,47 @@ export default function GastosPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!gastoToDelete) return;
+    
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/gastos/${gastoToDelete.id}/delete/t/${selectedStore.tienda.id}/`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error detallado del backend:", errorData);
+        throw new Error(
+          errorData.detail ||
+            errorData.message ||
+            "Error al eliminar el gasto. Por favor, intente de nuevo."
+        );
+      }
+
+      toast.success("Gasto eliminado exitosamente");
+      // Actualizar la lista de gastos sin recargar toda la página
+      fetchGastos();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error(error.message);
+    } finally {
+      setIsDeleting(false);
+      setGastoToDelete(null); // Limpiar el gasto a eliminar
+    }
+  };
+
   useEffect(() => {
     if (selectedStore && token) {
+      fetchTiposGasto();
       fetchGastos();
     }
   }, [selectedStore, token]);
@@ -117,49 +185,6 @@ export default function GastosPage() {
     setCurrentPage(1);
   };
 
-  const handleCreateSuccess = () => {
-    setShowCreateForm(false);
-    fetchGastos();
-    toast.success("Gasto creado exitosamente");
-  };
-
-  const handleEditClick = (gasto) => {
-    setGastoToEdit(gasto);
-    setShowEditForm(true);
-  };
-
-  const handleEditSuccess = () => {
-    setShowEditForm(false);
-    fetchGastos();
-    toast.success("Gasto actualizado exitosamente");
-  };
-
-  const handleDelete = async (gastoId) => {
-    if (window.confirm("¿Estás seguro de eliminar este gasto?")) {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/gastos/${gastoId}/delete/`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("Error al eliminar el gasto");
-        }
-
-        toast.success("Gasto eliminado exitosamente");
-        fetchGastos();
-      } catch (error) {
-        console.error("Error:", error);
-        toast.error(error.message);
-      }
-    }
-  };
-
   if (!selectedStore) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -185,12 +210,12 @@ export default function GastosPage() {
           <h1 className="text-2xl font-bold text-gray-800">
             Gestión de Gastos
           </h1>
-          <button
-            onClick={() => setShowCreateForm(true)}
+          <Link
+            href="/dashboard/gastos/crear"
             className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
           >
             <FiPlus className="mr-2" /> Nuevo Gasto
-          </button>
+          </Link>
         </div>
 
         {/* Filtros */}
@@ -259,7 +284,9 @@ export default function GastosPage() {
               <h3 className="text-gray-500 text-sm font-medium">
                 Gastos Registrados
               </h3>
-              <p className="text-2xl font-bold text-blue-400">{filteredGastos.length}</p>
+              <p className="text-2xl font-bold text-blue-400">
+                {filteredGastos.length}
+              </p>
             </div>
           </div>
         </div>
@@ -296,7 +323,7 @@ export default function GastosPage() {
                   {currentItems.map((gasto) => (
                     <tr key={gasto.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(gasto.fecha)}
+                        {gasto.fecha}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {gasto.tipo_gasto.tipo_gasto}
@@ -308,14 +335,14 @@ export default function GastosPage() {
                         {gasto.comentario || "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => handleEditClick(gasto)}
+                        <Link
+                          href={`/dashboard/gastos/${gasto.id}/editar`}
                           className="text-indigo-600 hover:text-indigo-900 mr-3"
                         >
                           <FiEdit className="inline" />
-                        </button>
+                        </Link>
                         <button
-                          onClick={() => handleDelete(gasto.id)}
+                          onClick={() => setGastoToDelete(gasto)} // Guardar el gasto a eliminar
                           className="text-red-600 hover:text-red-900"
                         >
                           <FiTrash2 className="inline" />
@@ -433,375 +460,54 @@ export default function GastosPage() {
           </div>
         )}
 
-        {/* Modal para crear gasto */}
-        {showCreateForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <CreateGastoForm
-              onClose={() => setShowCreateForm(false)}
-              onSuccess={handleCreateSuccess}
-              tiendaId={selectedStore.tienda.id}
-              token={token}
-            />
+        {/* Modal de confirmación de eliminación */}
+        {gastoToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full">
+              <h2 className="text-xl font-bold text-gray-800 mb-4"> 
+                Confirmar Eliminación
+              </h2>
+              <p className="text-gray-600 mb-2">
+                ¿Estás seguro de que deseas eliminar este gasto?
+              </p>
+              <div className="bg-gray-50 p-4 rounded-lg mb-4 text-gray-500">
+                <p className="font-medium">Detalles del gasto:</p>
+                <ul className="list-disc pl-5 mt-2">
+                  <li>Tipo: {gastoToDelete.tipo_gasto.tipo_gasto}</li>
+                  <li>Fecha: {gastoToDelete.fecha}</li>
+                  <li>Valor: {formatCurrency(gastoToDelete.valor)}</li>
+                  <li>Comentario: {gastoToDelete.comentario || "Ninguno"}</li>
+                </ul>
+              </div>
+              <p className="text-red-500 font-medium mb-4">
+                Esta acción no se puede deshacer.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setGastoToDelete(null)}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                  disabled={isDeleting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                      Eliminando...
+                    </>
+                  ) : (
+                    "Eliminar"
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
-
-        {/* Modal para editar gasto */}
-        {showEditForm && gastoToEdit && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <EditGastoForm
-              gasto={gastoToEdit}
-              onClose={() => setShowEditForm(false)}
-              onSuccess={handleEditSuccess}
-              token={token}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Formulario para crear gasto
-function CreateGastoForm({ onClose, onSuccess, tiendaId, token }) {
-  const [formData, setFormData] = useState({
-    tipo_gasto: "",
-    fecha: new Date().toISOString().split("T")[0],
-    valor: "",
-    comentario: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/gastos/create/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            ...formData,
-            tienda: tiendaId,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.detail ||
-            errorData.message ||
-            "Error al crear el gasto. Por favor, intente de nuevo."
-        );
-      }
-
-      onSuccess();
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error(error.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-800">
-            Registrar Nuevo Gasto
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            &times;
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tipo de Gasto
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                name="tipo_gasto"
-                value={formData.tipo_gasto}
-                onChange={handleChange}
-                required
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Ej: Materiales, Transporte, etc."
-              />
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha
-            </label>
-            <div className="relative">
-              <input
-                type="date"
-                name="fecha"
-                value={formData.fecha}
-                onChange={handleChange}
-                required
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-              <FiCalendar className="absolute right-3 top-3.5 text-gray-400" />
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Valor
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                name="valor"
-                value={formData.valor}
-                onChange={handleChange}
-                required
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-              <FiDollarSign className="absolute left-3 top-3.5 text-gray-400" />
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Comentario
-            </label>
-            <div className="relative">
-              <textarea
-                name="comentario"
-                value={formData.comentario}
-                onChange={handleChange}
-                rows="3"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Descripción del gasto"
-              ></textarea>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="mr-3 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                  Guardando...
-                </>
-              ) : (
-                "Registrar Gasto"
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// Formulario para editar gasto
-function EditGastoForm({ gasto, onClose, onSuccess, token }) {
-  const [formData, setFormData] = useState({
-    tipo_gasto: "",
-    fecha: "",
-    valor: "",
-    comentario: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (gasto) {
-      setFormData({
-        tipo_gasto: gasto.tipo_gasto.tipo_gasto,
-        fecha: gasto.fecha,
-        valor: gasto.valor,
-        comentario: gasto.comentario || "",
-      });
-    }
-  }, [gasto]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/gastos/${gasto.id}/update/`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            tipo_gasto: formData.tipo_gasto,
-            fecha: formData.fecha,
-            valor: formData.valor,
-            comentario: formData.comentario,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.detail ||
-            errorData.message ||
-            "Error al actualizar el gasto. Por favor, intente de nuevo."
-        );
-      }
-
-      onSuccess();
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error(error.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-800">Editar Gasto</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            &times;
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tipo de Gasto
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                name="tipo_gasto"
-                value={formData.tipo_gasto}
-                onChange={handleChange}
-                required
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha
-            </label>
-            <div className="relative">
-              <input
-                type="date"
-                name="fecha"
-                value={formData.fecha}
-                onChange={handleChange}
-                required
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-              <FiCalendar className="absolute right-3 top-3.5 text-gray-400" />
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Valor
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                name="valor"
-                value={formData.valor}
-                onChange={handleChange}
-                required
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-              <FiDollarSign className="absolute left-3 top-3.5 text-gray-400" />
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Comentario
-            </label>
-            <div className="relative">
-              <textarea
-                name="comentario"
-                value={formData.comentario}
-                onChange={handleChange}
-                rows="3"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Descripción del gasto"
-              ></textarea>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="mr-3 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                  Guardando...
-                </>
-              ) : (
-                "Actualizar Gasto"
-              )}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );
