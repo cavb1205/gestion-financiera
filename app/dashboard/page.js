@@ -94,8 +94,8 @@ export default function DashboardPage() {
   }
 
   // Calcular utilidades mensuales
-  const utilidadesMes = tienda.tienda.ventas_netas_mes - tienda.tienda.gastos_mes;
-  
+  const utilidadesMes = (tienda.tienda.ventas_netas_mes * 0.2) - tienda.tienda.gastos_mes;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Encabezado de la tienda */}
@@ -235,7 +235,10 @@ export default function DashboardPage() {
             
             <div className="flex justify-between items-center pt-3 border-t border-gray-100">
               <div>
-                <h3 className="text-gray-500 text-sm">Utilidades</h3>
+                <h3 className="text-gray-500 text-sm">Utilidades por ventas</h3>
+                <span className="text-gray-500 text-xs">
+                  intereses - gastos
+                </span>
                 <p className={`text-xl font-bold ${utilidadesMes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   ${utilidadesMes.toLocaleString()}
                 </p>
