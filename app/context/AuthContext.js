@@ -21,6 +21,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('userProfile');
     localStorage.removeItem('tokenTimestamp');
     localStorage.removeItem('selectedStore');
+    localStorage.removeItem('noPago');
+    localStorage.removeItem('cliente');
     
     setToken(null);
     setUser(null);

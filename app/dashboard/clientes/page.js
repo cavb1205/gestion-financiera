@@ -340,7 +340,7 @@ export default function ClientesPage() {
                                 <FiEye size={18} />
                               </button>
                               <button
-                                onClick={() => router.push(`/clientes/${cliente.id}/editar`)}
+                                onClick={() => router.push(`/dashboard/clientes/${cliente.id}/editar`)}
                                 className="text-gray-600 hover:text-gray-900"
                                 title="Editar"
                               >

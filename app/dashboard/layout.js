@@ -167,6 +167,17 @@ export default function DashboardLayout({ children }) {
                 <FiTrendingDown className="mr-3" />
                 Gastos
               </Link>
+              <Link
+                href="/dashboard/liquidar"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/liquidar")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiDollarSign className="mr-3" />
+                Liquidación de Créditos
+              </Link>
 
               <Link
                 href="/dashboard/reportes"
