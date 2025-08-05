@@ -31,9 +31,24 @@ export default function LiquidarCreditosPage() {
 
   // Establecer fecha actual por defecto
   useEffect(() => {
-    const today = new Date();
-    const formattedDate = today.toISOString().split("T")[0];
-    setSelectedDate(formattedDate);
+    // Intentar obtener la fecha guardada del localStorage
+    const storedDate = localStorage.getItem("liquidarFecha");
+
+    // Si hay fecha guardada, usarla
+    if (storedDate) {
+      setSelectedDate(storedDate);
+    }
+    // Si no, establecer fecha actual
+    else {
+      const today = new Date();
+      const formattedDate = new Date(
+        today.getTime() - today.getTimezoneOffset() * 60000
+      )
+        .toISOString()
+        .split("T")[0];
+
+      setSelectedDate(formattedDate);
+    }
   }, []);
 
   // Obtener créditos para liquidar
@@ -74,6 +89,12 @@ export default function LiquidarCreditosPage() {
     fetchCreditos();
   }, [token, selectedStore, selectedDate]);
 
+  useEffect(() => {
+    if (selectedDate) {
+      localStorage.setItem("liquidarFecha", selectedDate);
+    }
+  }, [selectedDate]);
+
   // Paginación
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -87,6 +108,7 @@ export default function LiquidarCreditosPage() {
   const handleDateChange = (e) => {
     setSelectedDate(e.target.value);
     setCurrentPage(1);
+    localStorage.setItem("liquidarFecha", e.target.value);
   };
 
   const formatCurrency = (value) => {
@@ -94,6 +116,7 @@ export default function LiquidarCreditosPage() {
   };
 
   const handleAbonar = (credito) => {
+    console.log("Abonar crédito:", credito);
     setSelectedCredito(credito);
 
     // Calcular el valor a abonar (mínimo entre saldo actual y valor cuota)
@@ -102,23 +125,21 @@ export default function LiquidarCreditosPage() {
       parseFloat(credito.valor_cuota)
     );
 
+    console.log("Valor a abonar:", valorAbono);
+
     // Preparar el objeto de abono
     const abono = {
       fecha_recaudo: selectedDate,
       valor_recaudo: valorAbono,
+      saldo_actual: credito.saldo_actual,
       venta: credito.id,
       tienda: selectedStore.tienda.id,
     };
+    localStorage.setItem("abono", JSON.stringify(abono));
+    localStorage.setItem("cliente", JSON.stringify(credito.cliente));
 
     // Navegar a la página de pago con los datos necesarios
-    router.push({
-      pathname: `/dashboard/ventas/liquidar/pay`,
-      query: {
-        abono: JSON.stringify(abono),
-        cliente: JSON.stringify(credito.cliente),
-        saldoActual: credito.saldo_actual,
-      },
-    });
+    router.push(`/dashboard/liquidar/abonar`);
   };
 
   const handleReportarFalla = (credito) => {
@@ -136,18 +157,11 @@ export default function LiquidarCreditosPage() {
       },
     };
 
-    console.log("No Pago:", noPago);
-    localStorage.setItem(
-      "noPago",
-      JSON.stringify(noPago)
-    );
-    localStorage.setItem(
-      "cliente",
-      JSON.stringify(credito.cliente)
-    );
+    localStorage.setItem("noPago", JSON.stringify(noPago));
+    localStorage.setItem("cliente", JSON.stringify(credito.cliente));
 
     // Navegar a la página de reporte de falla
-    
+
     router.push(`/dashboard/liquidar/reportar`);
   };
 

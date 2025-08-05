@@ -47,7 +47,11 @@ export default function CrearGastoPage() {
 
         // Establecer la fecha actual al cargar
         const today = new Date();
-        const formattedDate = today.toISOString().split("T")[0];
+        const formattedDate = new Date(
+          today.getTime() - today.getTimezoneOffset() * 60000
+        )
+          .toISOString()
+          .split("T")[0];
         setFormData((prev) => ({ ...prev, fecha: formattedDate }));
       } catch (error) {
         console.error("Error:", error);

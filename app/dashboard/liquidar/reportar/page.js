@@ -69,9 +69,11 @@ export default function ReportarFallaPage() {
       },
     };
 
+    console.log("Enviando reporte de no pago:", updatedNoPago);
+
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/ventas/recaudo/`,
+        `${process.env.NEXT_PUBLIC_API_URL}/recaudos/create/nopay/t/${noPago.tienda}/`,
         {
           method: "POST",
           headers: {
@@ -81,14 +83,19 @@ export default function ReportarFallaPage() {
           body: JSON.stringify(updatedNoPago),
         }
       );
+      const responseData = await response.json();
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Error al reportar el no pago");
+        throw new Error(
+          responseData.detail ||
+            responseData.message ||
+            "Error al reportar el no pago"
+        );
       }
 
       // Limpiar localStorage después de enviar
       localStorage.removeItem("noPago");
+      localStorage.removeItem("cliente");
 
       toast.success("Reporte de no pago enviado correctamente.");
       router.push("/dashboard/liquidar");
@@ -132,10 +139,11 @@ export default function ReportarFallaPage() {
   // Opciones de tipo de falla
   const fallaOptions = [
     "Casa o Local Cerrado",
-    "Cliente no tiene dinero",
-    "Cliente no aparece",
-    "Cliente de viaje",
-    "Otro",
+    "Cliente no Tiene Dinero",
+    "Cliente de Viaje",
+    "Cliente no Aparece",
+    "Cliente Enfermo",
+    "Otro Motivo",
   ];
 
   return (
@@ -152,8 +160,10 @@ export default function ReportarFallaPage() {
 
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
           <div className="bg-red-500 p-4">
-            <h1 className="text-xl font-bold text-white flex items-center">
-              <FiAlertTriangle className="mr-2" /> Reportar No Pago a {cliente?.nombres || "Cliente Desconocido"}
+            <h1 className="text-xl font-bold text-white flex items-center capitalize">
+              <FiAlertTriangle className="mr-2" />
+              Reportar No Pago a{" "}
+              {cliente ? `${cliente.nombres} ${cliente.apellidos}` : "Cliente"}
             </h1>
           </div>
 
