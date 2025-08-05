@@ -13,6 +13,7 @@ import {
   FiX,
   FiClock,
   FiUser,
+  FiSearch
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -22,11 +23,13 @@ import { useRouter } from "next/navigation";
 export default function LiquidarCreditosPage() {
   const { token, selectedStore } = useAuth();
   const [creditos, setCreditos] = useState([]);
+  const [filteredCreditos, setFilteredCreditos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCredito, setSelectedCredito] = useState(null);
   const [itemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
 
   // Establecer fecha actual por defecto
@@ -75,8 +78,10 @@ export default function LiquidarCreditosPage() {
         // Asegurarnos de que siempre sea un array
         if (Array.isArray(data)) {
           setCreditos(data);
+          setFilteredCreditos(data); // Inicializar los créditos filtrados
         } else {
           setCreditos([]);
+          setFilteredCreditos([]);
         }
       } catch (error) {
         console.error("Error:", error);
@@ -95,11 +100,29 @@ export default function LiquidarCreditosPage() {
     }
   }, [selectedDate]);
 
+  // Filtrar créditos por nombre del cliente
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredCreditos(creditos);
+      setCurrentPage(1);
+      return;
+    }
+
+    const term = searchTerm.toLowerCase();
+    const filtered = creditos.filter(credito => {
+      const nombreCompleto = `${credito.cliente.nombres} ${credito.cliente.apellidos}`.toLowerCase();
+      return nombreCompleto.includes(term);
+    });
+
+    setFilteredCreditos(filtered);
+    setCurrentPage(1);
+  }, [searchTerm, creditos]);
+
   // Paginación
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = creditos.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(creditos.length / itemsPerPage);
+  const currentItems = filteredCreditos.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredCreditos.length / itemsPerPage);
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -109,6 +132,10 @@ export default function LiquidarCreditosPage() {
     setSelectedDate(e.target.value);
     setCurrentPage(1);
     localStorage.setItem("liquidarFecha", e.target.value);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
   };
 
   const formatCurrency = (value) => {
@@ -161,22 +188,21 @@ export default function LiquidarCreditosPage() {
     localStorage.setItem("cliente", JSON.stringify(credito.cliente));
 
     // Navegar a la página de reporte de falla
-
     router.push(`/dashboard/liquidar/reportar`);
   };
 
-  // Calcular totales
-  const totalRecaudar = creditos.reduce(
+  // Calcular totales basados en créditos filtrados
+  const totalRecaudar = filteredCreditos.reduce(
     (acc, credito) => acc + parseFloat(credito.valor_cuota),
     0
   );
 
-  const totalPendientes = creditos.reduce(
+  const totalPendientes = filteredCreditos.reduce(
     (acc, credito) => acc + parseFloat(credito.pagos_pendientes),
     0
   );
 
-  const totalRealizados = creditos.reduce(
+  const totalRealizados = filteredCreditos.reduce(
     (acc, credito) => acc + parseFloat(credito.pagos_realizados),
     0
   );
@@ -205,27 +231,48 @@ export default function LiquidarCreditosPage() {
           Liquidación de Créditos
         </h1>
 
-        {/* Filtro de fecha */}
+        {/* Filtro de fecha y búsqueda */}
         <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div className="mb-4 md:mb-0">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Seleccionar fecha de liquidación
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={handleDateChange}
-                  className="w-full p-2 border border-gray-300 rounded-md text-gray-500"
-                />
+          <div className="flex flex-col space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+              <div className="mb-4 md:mb-0 w-full md:w-1/2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Seleccionar fecha de liquidación
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={handleDateChange}
+                    className="w-full p-2 border border-gray-300 rounded-md text-gray-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center">
+                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                  {filteredCreditos.length} créditos
+                </span>
               </div>
             </div>
 
-            <div className="flex items-center mt-2 md:mt-0">
-              <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                {creditos.length} créditos
-              </span>
+            {/* Campo de búsqueda */}
+            <div className="w-full">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Buscar cliente
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Escribe el nombre del cliente..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  className="w-full pl-10 p-2 border border-gray-300 rounded-md text-gray-700"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FiSearch className="text-gray-400" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -252,21 +299,37 @@ export default function LiquidarCreditosPage() {
 
         {/* Lista de créditos - Versión móvil optimizada */}
         <div className="md:hidden space-y-3">
-          {creditos.length === 0 ? (
+          {filteredCreditos.length === 0 ? (
             <div className="bg-white rounded-xl p-6 text-center">
               <div className="bg-gray-100 inline-block p-4 rounded-full mb-4">
                 <FiDollarSign className="text-gray-400 text-3xl" />
               </div>
               <h3 className="text-lg font-medium text-gray-700 mb-2">
-                No hay créditos para liquidar
+                {searchTerm ? "No se encontraron créditos" : "No hay créditos para liquidar"}
               </h3>
               <p className="text-gray-500 mb-4">
-                Cambia la fecha o intenta de nuevo más tarde.
+                {searchTerm 
+                  ? "Intenta con otro nombre o cambia la fecha" 
+                  : "Cambia la fecha o intenta de nuevo más tarde."}
               </p>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="flex items-center justify-center mx-auto bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 mb-3"
+                >
+                  <FiRefreshCw className="mr-2" /> Limpiar búsqueda
+                </button>
+              )}
               <button
-                onClick={() =>
-                  setSelectedDate(new Date().toISOString().split("T")[0])
-                }
+                onClick={() => {
+                  const today = new Date();
+                  const formattedDate = new Date(
+                    today.getTime() - today.getTimezoneOffset() * 60000
+                  )
+                    .toISOString()
+                    .split("T")[0];
+                  setSelectedDate(formattedDate);
+                }}
                 className="flex items-center justify-center mx-auto bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
               >
                 <FiRefreshCw className="mr-2" /> Hoy
@@ -384,7 +447,7 @@ export default function LiquidarCreditosPage() {
           )}
 
           {/* Paginación móvil */}
-          {creditos.length > itemsPerPage && (
+          {filteredCreditos.length > itemsPerPage && (
             <div className="mt-4 flex justify-between">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
@@ -453,26 +516,43 @@ export default function LiquidarCreditosPage() {
 
           {/* Tabla de créditos escritorio */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {creditos.length === 0 ? (
+            {filteredCreditos.length === 0 ? (
               <div className="text-center py-12">
                 <div className="bg-gray-100 inline-block p-4 rounded-full mb-4">
                   <FiDollarSign className="text-gray-400 text-3xl" />
                 </div>
                 <h3 className="text-xl font-medium text-gray-700 mb-2">
-                  No hay créditos para liquidar
+                  {searchTerm ? "No se encontraron créditos" : "No hay créditos para liquidar"}
                 </h3>
                 <p className="text-gray-500 mb-4">
-                  No se encontraron créditos pendientes para la fecha
-                  seleccionada.
+                  {searchTerm 
+                    ? "Intenta con otro nombre o cambia la fecha" 
+                    : "No se encontraron créditos pendientes para la fecha seleccionada."}
                 </p>
-                <button
-                  onClick={() =>
-                    setSelectedDate(new Date().toISOString().split("T")[0])
-                  }
-                  className="flex items-center justify-center mx-auto bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
-                >
-                  <FiRefreshCw className="mr-2" /> Volver a hoy
-                </button>
+                <div className="flex justify-center space-x-3">
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="flex items-center justify-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+                    >
+                      <FiRefreshCw className="mr-2" /> Limpiar búsqueda
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      const today = new Date();
+                      const formattedDate = new Date(
+                        today.getTime() - today.getTimezoneOffset() * 60000
+                      )
+                        .toISOString()
+                        .split("T")[0];
+                      setSelectedDate(formattedDate);
+                    }}
+                    className="flex items-center justify-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+                  >
+                    <FiRefreshCw className="mr-2" /> Volver a hoy
+                  </button>
+                </div>
               </div>
             ) : (
               <>
@@ -601,7 +681,7 @@ export default function LiquidarCreditosPage() {
                 </div>
 
                 {/* Paginación escritorio */}
-                {creditos.length > itemsPerPage && (
+                {filteredCreditos.length > itemsPerPage && (
                   <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
                     <div className="flex-1 flex justify-between sm:hidden">
                       <button
@@ -637,10 +717,10 @@ export default function LiquidarCreditosPage() {
                           </span>{" "}
                           a{" "}
                           <span className="font-medium">
-                            {Math.min(indexOfLastItem, creditos.length)}
+                            {Math.min(indexOfLastItem, filteredCreditos.length)}
                           </span>{" "}
                           de{" "}
-                          <span className="font-medium">{creditos.length}</span>{" "}
+                          <span className="font-medium">{filteredCreditos.length}</span>{" "}
                           créditos
                         </p>
                       </div>

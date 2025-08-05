@@ -161,9 +161,7 @@ export default function PagarAbonoPage() {
                 type="number"
                 value={valorAbono}
                 onChange={(e) => setValorAbono(parseFloat(e.target.value) || 0)}
-                min="0"
                 max={maximoAbonable}
-                step="100"
                 className="w-full p-2 border border-gray-300 rounded-md text-gray-700"
               />
               <div className="mt-2 text-sm text-gray-600">
@@ -174,7 +172,7 @@ export default function PagarAbonoPage() {
 
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
                 <p className="text-blue-700 text-sm inline-flex items-center">
-                  <FaCalendar className="inline mr-1" />{" "} {abono.fecha_recaudo}
+                  <FaCalendar className="inline mr-1" /> {abono.fecha_recaudo}
                 </p>
               </div>
             </div>
