@@ -13,7 +13,7 @@ import {
   FiX,
   FiClock,
   FiUser,
-  FiSearch
+  FiSearch,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -23,6 +23,8 @@ import { useRouter } from "next/navigation";
 export default function LiquidarCreditosPage() {
   const { token, selectedStore } = useAuth();
   const [creditos, setCreditos] = useState([]);
+  const [recaudos, setRecaudos] = useState([]);
+  const [creditosActivos, setCreditosActivos] = useState([]);
   const [filteredCreditos, setFilteredCreditos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState("");
@@ -91,7 +93,69 @@ export default function LiquidarCreditosPage() {
       }
     };
 
+    const fetchCreditosActivos = async () => {
+      if (!token || !selectedStore || !selectedDate) return;
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/t/${selectedStore.tienda.id}/`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Error al obtener los créditos activos");
+        }
+
+        const data = await response.json();
+        // Asegurarnos de que siempre sea un array
+        if (Array.isArray(data)) {
+          setCreditosActivos(data);
+        } else {
+          setCreditos([]);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        toast.error(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchRecaudos = async () => {
+      if (!token || !selectedStore || !selectedDate) return;
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Error al obtener los recaudos");
+        }
+
+        const data = await response.json();
+        // Asegurarnos de que siempre sea un array
+        if (Array.isArray(data)) {
+          setRecaudos(data);
+        } else {
+          setRecaudos([]);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        toast.error(error.message);
+      }
+    };
+
     fetchCreditos();
+    fetchRecaudos();
+    fetchCreditosActivos();
   }, [token, selectedStore, selectedDate]);
 
   useEffect(() => {
@@ -109,8 +173,9 @@ export default function LiquidarCreditosPage() {
     }
 
     const term = searchTerm.toLowerCase();
-    const filtered = creditos.filter(credito => {
-      const nombreCompleto = `${credito.cliente.nombres} ${credito.cliente.apellidos}`.toLowerCase();
+    const filtered = creditos.filter((credito) => {
+      const nombreCompleto =
+        `${credito.cliente.nombres} ${credito.cliente.apellidos}`.toLowerCase();
       return nombreCompleto.includes(term);
     });
 
@@ -121,7 +186,10 @@ export default function LiquidarCreditosPage() {
   // Paginación
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredCreditos.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = filteredCreditos.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
   const totalPages = Math.ceil(filteredCreditos.length / itemsPerPage);
 
   const handlePageChange = (newPage) => {
@@ -139,7 +207,7 @@ export default function LiquidarCreditosPage() {
   };
 
   const formatCurrency = (value) => {
-    return `$${parseFloat(value).toLocaleString("es-CO")}`;
+    return `$${parseFloat(value).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
   };
 
   const handleAbonar = (credito) => {
@@ -192,18 +260,18 @@ export default function LiquidarCreditosPage() {
   };
 
   // Calcular totales basados en créditos filtrados
-  const totalRecaudar = filteredCreditos.reduce(
+  const totalRecaudar = creditosActivos.reduce(
     (acc, credito) => acc + parseFloat(credito.valor_cuota),
     0
   );
 
   const totalPendientes = filteredCreditos.reduce(
-    (acc, credito) => acc + parseFloat(credito.pagos_pendientes),
+    (acc, credito) => acc + parseFloat(credito.valor_cuota),
     0
   );
 
-  const totalRealizados = filteredCreditos.reduce(
-    (acc, credito) => acc + parseFloat(credito.pagos_realizados),
+  const totalRealizados = recaudos.reduce(
+    (acc, recaudo) => acc + parseFloat(recaudo.valor_recaudo),
     0
   );
 
@@ -288,12 +356,14 @@ export default function LiquidarCreditosPage() {
           <div className="bg-white rounded-lg p-3 shadow-sm">
             <p className="text-xs text-gray-500">Pendientes</p>
             <p className="font-bold text-orange-500">
-              ${totalPendientes.toFixed(0)}
+              {formatCurrency(totalPendientes)}
             </p>
           </div>
           <div className="bg-white rounded-lg p-3 shadow-sm">
             <p className="text-xs text-gray-500">Recaudado</p>
-            <p className="font-bold text-green-500">$999999</p>
+            <p className="font-bold text-green-500">
+              {formatCurrency(totalRealizados)}
+            </p>
           </div>
         </div>
 
@@ -305,11 +375,13 @@ export default function LiquidarCreditosPage() {
                 <FiDollarSign className="text-gray-400 text-3xl" />
               </div>
               <h3 className="text-lg font-medium text-gray-700 mb-2">
-                {searchTerm ? "No se encontraron créditos" : "No hay créditos para liquidar"}
+                {searchTerm
+                  ? "No se encontraron créditos"
+                  : "No hay créditos para liquidar"}
               </h3>
               <p className="text-gray-500 mb-4">
-                {searchTerm 
-                  ? "Intenta con otro nombre o cambia la fecha" 
+                {searchTerm
+                  ? "Intenta con otro nombre o cambia la fecha"
                   : "Cambia la fecha o intenta de nuevo más tarde."}
               </p>
               {searchTerm && (
@@ -500,16 +572,16 @@ export default function LiquidarCreditosPage() {
                 Pagos Pendientes
               </h3>
               <p className="text-2xl font-bold text-orange-500">
-                {totalPendientes.toFixed(0)}
+                {formatCurrency(totalPendientes)}
               </p>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm p-5">
               <h3 className="text-gray-500 text-sm font-medium mb-1">
-                Pagos Realizados
+                Recaudado
               </h3>
               <p className="text-2xl font-bold text-green-500">
-                {totalRealizados.toFixed(0)}
+                {formatCurrency(totalRealizados)}
               </p>
             </div>
           </div>
@@ -522,11 +594,13 @@ export default function LiquidarCreditosPage() {
                   <FiDollarSign className="text-gray-400 text-3xl" />
                 </div>
                 <h3 className="text-xl font-medium text-gray-700 mb-2">
-                  {searchTerm ? "No se encontraron créditos" : "No hay créditos para liquidar"}
+                  {searchTerm
+                    ? "No se encontraron créditos"
+                    : "No hay créditos para liquidar"}
                 </h3>
                 <p className="text-gray-500 mb-4">
-                  {searchTerm 
-                    ? "Intenta con otro nombre o cambia la fecha" 
+                  {searchTerm
+                    ? "Intenta con otro nombre o cambia la fecha"
                     : "No se encontraron créditos pendientes para la fecha seleccionada."}
                 </p>
                 <div className="flex justify-center space-x-3">
@@ -585,8 +659,11 @@ export default function LiquidarCreditosPage() {
                         <tr key={credito.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">
+                              <Link
+                                className="ml-4 hover:scale-105 transition-transform"
+                                href={`/dashboard/ventas/${credito.id}/`}
+                              >
+                                <div className="text-sm font-medium text-gray-900 capitalize">
                                   {credito.cliente.nombres}{" "}
                                   {credito.cliente.apellidos}
                                 </div>
@@ -596,7 +673,7 @@ export default function LiquidarCreditosPage() {
                                 <div className="text-xs text-gray-400">
                                   #{credito.id}
                                 </div>
-                              </div>
+                              </Link>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -720,7 +797,9 @@ export default function LiquidarCreditosPage() {
                             {Math.min(indexOfLastItem, filteredCreditos.length)}
                           </span>{" "}
                           de{" "}
-                          <span className="font-medium">{filteredCreditos.length}</span>{" "}
+                          <span className="font-medium">
+                            {filteredCreditos.length}
+                          </span>{" "}
                           créditos
                         </p>
                       </div>
