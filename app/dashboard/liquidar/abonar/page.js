@@ -57,7 +57,7 @@ export default function PagarAbonoPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (valorAbono <= 0) {
+    if (valorAbono <= 0 || " " === valorAbono || isNaN(valorAbono)) {
       toast.error("El valor a abonar debe ser mayor a cero.");
       return;
     }
@@ -160,7 +160,7 @@ export default function PagarAbonoPage() {
               <input
                 type="number"
                 value={valorAbono}
-                onChange={(e) => setValorAbono(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setValorAbono(parseFloat(e.target.value))}
                 max={maximoAbonable}
                 className="w-full p-2 border border-gray-300 rounded-md text-gray-700"
               />
