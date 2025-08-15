@@ -20,6 +20,7 @@ import {
   FiTrendingUp,
   FiTrendingDown,
   FiXCircle,
+  FiAlertTriangle,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import LoadingSpinner from "../../../components/LoadingSpinner";
@@ -34,7 +35,11 @@ export default function VentaDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [pagos, setPagos] = useState([]);
-  
+
+  // Estados para el modal de pérdida
+  const [showLossModal, setShowLossModal] = useState(false);
+  const [isSendingLoss, setIsSendingLoss] = useState(false);
+  const [lossError, setLossError] = useState(null);
 
   // Cargar datos de la venta y pagos
   useEffect(() => {
@@ -96,6 +101,47 @@ export default function VentaDetailPage() {
     }
   };
 
+  // Función para marcar como pérdida
+  const markAsLoss = async () => {
+    setIsSendingLoss(true);
+    setLossError(null);
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/perdida/`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al marcar como pérdida");
+      }
+
+      const data = await response.json();
+      console.log("Venta marcada como pérdida:", data);
+
+      // Actualizar estado localmente y cerrar modal
+      setVenta((prev) => ({
+        ...prev,
+        estado_venta: "Perdida",
+      }));
+      setShowLossModal(false);
+    } catch (err) {
+      console.error("Error al marcar como pérdida:", err);
+      setLossError(err.message);
+    } finally {
+      setIsSendingLoss(false);
+    }
+  };
+
   const formatMoney = (amount) => {
     return new Intl.NumberFormat("es-CL", {
       style: "currency",
@@ -130,8 +176,6 @@ export default function VentaDetailPage() {
         return "bg-gray-100 text-gray-800";
     }
   };
-
- 
 
   const totalPagado = pagos.reduce((sum, pago) => {
     const valor = parseFloat(pago.valor_recaudo) || 0;
@@ -187,6 +231,61 @@ export default function VentaDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-400">
+      {/* Modal de confirmación para marcar como pérdida */}
+      {showLossModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-start mb-4">
+                <FiAlertTriangle className="text-red-500 text-2xl mr-3 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Marcar crédito como pérdida
+                  </h3>
+                  <p className="text-gray-600 mt-2">
+                    ¿Estás seguro de marcar este crédito como pérdida? Esta
+                    acción es irreversible y se debe usar solo cuando el cliente
+                    ha desaparecido o es imposible recuperar el crédito.
+                  </p>
+                </div>
+              </div>
+
+              {lossError && (
+                <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4">
+                  {lossError}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowLossModal(false)}
+                  disabled={isSendingLoss}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={markAsLoss}
+                  disabled={isSendingLoss}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center"
+                >
+                  {isSendingLoss ? (
+                    <>
+                      <FiClock className="animate-spin mr-2" />
+                      Procesando...
+                    </>
+                  ) : (
+                    <>
+                      <FiAlertTriangle className="mr-2" />
+                      Confirmar como pérdida
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <button
@@ -199,8 +298,8 @@ export default function VentaDetailPage() {
 
         {/* Encabezado */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-around mb-4">
+            <div className="">
               <h1 className="text-2xl font-bold text-gray-900 flex items-center">
                 <FiCreditCard className="mr-2 text-indigo-600" />
                 Venta #{venta.id}
@@ -213,14 +312,14 @@ export default function VentaDetailPage() {
                 </span>
               </h1>
               <p className="text-gray-600 mt-1">
-                Crédito a {venta.cliente.nombres} {venta.cliente.apellidos} 
+                Crédito a {venta.cliente.nombres} {venta.cliente.apellidos}
                 <br />
                 <span className="text-gray-500 text-sm">
-                    {venta.fecha_venta}
+                  {venta.fecha_venta}
                 </span>
               </p>
             </div>
-            <div className="mt-4 md:mt-0 flex flex-wrap gap-2">
+            <div className="mt-4 md:mt-0 flex flex-wrap gap-2  ">
               <button
                 onClick={() => router.push(`/dashboard/ventas/${ventaId}/pago`)}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
@@ -238,12 +337,23 @@ export default function VentaDetailPage() {
                 Editar
               </button>
               <button
-                onClick={() => router.push(`/dashboard/ventas/${ventaId}/eliminar`)}
+                onClick={() =>
+                  router.push(`/dashboard/ventas/${ventaId}/eliminar`)
+                }
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center"
               >
                 <FiTrash2 className="mr-2" />
                 Eliminar
               </button>
+              {venta.estado_venta !== "Perdida" && (
+                <button
+                  onClick={() => setShowLossModal(true)}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center"
+                >
+                  <FiAlertTriangle className="mr-2" />
+                  Marcar como pérdida
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -330,30 +440,27 @@ export default function VentaDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
                 <p className="text-sm text-gray-500">Fecha de venta</p>
-                <p className="font-medium">{(venta.fecha_venta)}</p>
+                <p className="font-medium">{venta.fecha_venta}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Fecha de vencimiento</p>
-                <p className="font-medium">
-                  {(venta.fecha_vencimiento)}
-                </p>
+                <p className="font-medium">{venta.fecha_vencimiento}</p>
               </div>
-              { venta.dias_atrasados > 0  ? (
+              {venta.dias_atrasados > 0 ? (
                 <div>
-                    <p className="text-sm text-gray-500">Días atrasados</p>
-                    <p className="font-medium text-red-600">
+                  <p className="text-sm text-gray-500">Días atrasados</p>
+                  <p className="font-medium text-red-600">
                     {Math.round(venta.dias_atrasados)} días
-                    </p>
+                  </p>
                 </div>
-                ) : (
+              ) : (
                 <div>
                   <p className="text-sm text-gray-500">Días Adelantados</p>
                   <p className="font-medium text-green-600">
-                    {(Math.round(venta.dias_atrasados))*-1} días
+                    {Math.round(venta.dias_atrasados) * -1} días
                   </p>
                 </div>
-              )
-              }
+              )}
               <div>
                 <p className="text-sm text-gray-500">Pagos realizados</p>
                 <p className="font-medium">
@@ -537,7 +644,7 @@ export default function VentaDetailPage() {
                     return (
                       <tr key={pago.id}>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {(pago.fecha_recaudo)}
+                          {pago.fecha_recaudo}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                           {isVisitaFallida ? (
@@ -642,8 +749,6 @@ export default function VentaDetailPage() {
             </div>
           </div>
         )}
-
-     
       </div>
     </div>
   );

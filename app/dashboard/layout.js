@@ -16,6 +16,7 @@ import {
   FiTrendingDown,
   FiMenu,
   FiX,
+  FiPocket,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import Link from "next/link";
@@ -178,6 +179,17 @@ export default function DashboardLayout({ children }) {
                 <FiDollarSign className="mr-3" />
                 Liquidación de Créditos
               </Link>
+              <Link
+                href="/dashboard/recaudos"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/recaudos")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiPocket className="mr-3" />
+                Recaudos
+              </Link>
 
               <Link
                 href="/dashboard/reportes"
@@ -314,6 +326,17 @@ export default function DashboardLayout({ children }) {
             Liquidación de Créditos
           </Link>
           <Link
+            href="/dashboard/recaudos"
+            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+              isActive("/dashboard/recaudos")
+                ? "bg-indigo-700"
+                : "hover:bg-indigo-700"
+            }`}
+          >
+            <FiPocket className="mr-3" />
+            Recaudos
+          </Link>
+          <Link
             href="/dashboard/reportes"
             className={`flex items-center w-full p-3 rounded-lg mb-2 ${
               isActive("/dashboard/reportes")
@@ -342,8 +365,8 @@ export default function DashboardLayout({ children }) {
           <div className="flex items-center">
             <div className="bg-gray-200 border-2 border-dashed rounded-xl w-12 h-12" />
             <div className="ml-3">
-              <p className="font-medium">{profile?.trabajador || "Usuario"}</p>
-              <p className="text-sm text-indigo-300 flex items-center">
+              {/* <p className="font-medium">{profile?.trabajador || "Usuario"}</p> */}
+              <p className="text-md text-indigo-300 flex items-center">
                 <FiShoppingBag className="mr-1" />
                 {storeInfo?.nombre || selectedStore?.tienda.nombre || "Tienda"}
               </p>
@@ -355,7 +378,7 @@ export default function DashboardLayout({ children }) {
               className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-800 bg-white hover:bg-gray-100"
             >
               <FiRefreshCw className="mr-2" />
-              Cambiar tienda
+              Cambiar Ruta
             </button>
             <button
               onClick={logout}
