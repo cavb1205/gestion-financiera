@@ -215,7 +215,7 @@ export default function RecaudosPage() {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/recaudos/${editingRecaudo.id}/update/t/${selectedStore.tienda.id}/`,
         {
-          method: "PATCH",
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -328,6 +328,7 @@ export default function RecaudosPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4 text-blue-600">
+                {console.log(editingRecaudo)}
               Editar Recaudo
             </h2>
             <div className="mb-4">

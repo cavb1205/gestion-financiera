@@ -41,6 +41,32 @@ export default function VentaDetailPage() {
   const [isSendingLoss, setIsSendingLoss] = useState(false);
   const [lossError, setLossError] = useState(null);
 
+  const handleRegistrarPago = () => {
+    // Calcular el valor a abonar (mínimo entre saldo actual y valor cuota)
+    const valorAbono = Math.min(
+      parseFloat(venta.saldo_actual),
+      parseFloat(venta.valor_cuota)
+    );
+    const today = new Date();
+    const selectedDate = new Date(
+      today.getTime() - today.getTimezoneOffset() * 60000
+    )
+      .toISOString()
+      .split("T")[0];
+
+    // Preparar el objeto de abono
+    const abono = {
+      fecha_recaudo: selectedDate,
+      valor_recaudo: valorAbono,
+      saldo_actual: venta.saldo_actual,
+      venta: venta.id,
+      tienda: selectedStore.tienda.id,
+    };
+    localStorage.setItem("abono", JSON.stringify(abono));
+    localStorage.setItem("cliente", JSON.stringify(venta.cliente));
+    router.push(`/dashboard/liquidar/abonar`);
+  };
+
   // Cargar datos de la venta y pagos
   useEffect(() => {
     if (!loading && isAuthenticated && selectedStore) {
@@ -117,8 +143,6 @@ export default function VentaDetailPage() {
           },
         }
       );
-
-
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -321,7 +345,7 @@ export default function VentaDetailPage() {
             </div>
             <div className="mt-4 md:mt-0 flex flex-wrap gap-2  ">
               <button
-                onClick={() => router.push(`/dashboard/ventas/${ventaId}/pago`)}
+                onClick={handleRegistrarPago}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
               >
                 <FiPlus className="mr-2" />

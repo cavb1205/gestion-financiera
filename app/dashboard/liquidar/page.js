@@ -207,7 +207,9 @@ export default function LiquidarCreditosPage() {
   };
 
   const formatCurrency = (value) => {
-    return `$${parseFloat(value).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
+    return `$${parseFloat(value)
+      .toFixed(0)
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
   };
 
   const handleAbonar = (credito) => {
@@ -219,8 +221,6 @@ export default function LiquidarCreditosPage() {
       parseFloat(credito.saldo_actual),
       parseFloat(credito.valor_cuota)
     );
-
-    console.log("Valor a abonar:", valorAbono);
 
     // Preparar el objeto de abono
     const abono = {
