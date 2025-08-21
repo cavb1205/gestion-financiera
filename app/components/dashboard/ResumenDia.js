@@ -181,16 +181,6 @@ export default function ResumenDia({ tienda, loading = false }) {
             >
               ${utilidadDia.toLocaleString()}
             </p>
-            {margenUtilidad !== 0 && (
-              <span
-                className={`text-xs ${
-                  margenUtilidad >= 0 ? "text-green-500" : "text-red-500"
-                }`}
-              >
-                {margenUtilidad >= 0 ? "↑" : "↓"}{" "}
-                {Math.abs(margenUtilidad).toFixed(1)}%
-              </span>
-            )}
           </div>
           <div
             className={`p-2 rounded-lg ${
