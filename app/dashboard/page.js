@@ -1,7 +1,7 @@
 // app/dashboard/page.js
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   FiShoppingBag,
   FiDollarSign,
@@ -11,9 +11,10 @@ import {
   FiCalendar,
   FiRefreshCw,
   FiPieChart,
-  FiBarChart2
+  FiBarChart2,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
+import ResumenDia from "../components/dashboard/ResumenDia";
 
 export default function DashboardPage() {
   const { selectedStore, token } = useAuth();
@@ -94,7 +95,8 @@ export default function DashboardPage() {
   }
 
   // Calcular utilidades mensuales
-  const utilidadesMes = (tienda.tienda.ventas_netas_mes * 0.2) - tienda.tienda.gastos_mes;
+  const utilidadesMes =
+    tienda.tienda.ventas_netas_mes * 0.2 - tienda.tienda.gastos_mes;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -110,16 +112,18 @@ export default function DashboardPage() {
               </span>
             </h1>
           </div>
-          
+
           <div className="mt-2 md:mt-0 flex flex-wrap gap-2 items-center">
-            <button 
+            <button
               onClick={actualizarDashboard}
               className="flex items-center text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full hover:bg-indigo-200 transition-colors"
             >
-              <FiRefreshCw className={`mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+              <FiRefreshCw
+                className={`mr-1 ${refreshing ? "animate-spin" : ""}`}
+              />
               Actualizar
             </button>
-            
+
             <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
               <span className="font-medium">Caja:</span> $
               {tienda.tienda.caja.toLocaleString()}
@@ -134,7 +138,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-        
+
         <div className="mt-4 grid grid-cols-2 md:grid-cols-2 gap-3 text-sm">
           <div className="bg-gray-50 p-3 rounded-lg">
             <span className="text-gray-500 block">Estado:</span>
@@ -158,44 +162,17 @@ export default function DashboardPage() {
       {/* Resúmenes por período */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {/* Resumen del Día */}
-        <div className="bg-white rounded-xl shadow-sm p-5 border-t-4 border-green-500">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900 flex items-center">
-              <FiCalendar className="mr-2 text-green-500" />
-              Resumen del Día
-            </h2>
-            <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-              Hoy
+        <Suspense
+          fallback={
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600"></div>
+              <p className="ml-4 text-gray-600">Cargando resumen del día...</p>
             </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-gray-500 text-sm">Recaudos del día</h3>
-                <p className="text-xl font-bold text-gray-900">
-                  ${tienda.tienda.recaudos_dia.toLocaleString()}
-                </p>
-              </div>
-              <div className="p-2 bg-green-100 rounded-lg">
-                <FiDollarSign className="text-green-500 text-xl" />
-              </div>
-            </div>
-            
-            <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-              <div>
-                <h3 className="text-gray-500 text-sm">Ventas registradas</h3>
-                <p className="text-xl font-bold text-gray-900">
-                  12
-                </p>
-              </div>
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FiTrendingUp className="text-blue-500 text-xl" />
-              </div>
-            </div>
-          </div>
-        </div>
-        
+          }
+        >
+          <ResumenDia tienda={tienda} token={token} />
+        </Suspense>
+
         {/* Resumen del Mes */}
         <div className="bg-white rounded-xl shadow-sm p-5 border-t-4 border-blue-500">
           <div className="flex items-center justify-between mb-4">
@@ -207,7 +184,7 @@ export default function DashboardPage() {
               Actual
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <div>
@@ -220,7 +197,7 @@ export default function DashboardPage() {
                 <FiTrendingUp className="text-blue-500 text-xl" />
               </div>
             </div>
-            
+
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-gray-500 text-sm">Gastos</h3>
@@ -232,14 +209,18 @@ export default function DashboardPage() {
                 <FiTrendingDown className="text-red-500 text-xl" />
               </div>
             </div>
-            
+
             <div className="flex justify-between items-center pt-3 border-t border-gray-100">
               <div>
                 <h3 className="text-gray-500 text-sm">Utilidades por ventas</h3>
                 <span className="text-gray-500 text-xs">
                   intereses - gastos
                 </span>
-                <p className={`text-xl font-bold ${utilidadesMes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <p
+                  className={`text-xl font-bold ${
+                    utilidadesMes >= 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
                   ${utilidadesMes.toLocaleString()}
                 </p>
               </div>
@@ -249,7 +230,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-        
+
         {/* Resumen del Año */}
         <div className="bg-white rounded-xl shadow-sm p-5 border-t-4 border-purple-500">
           <div className="flex items-center justify-between mb-4">
@@ -261,7 +242,7 @@ export default function DashboardPage() {
               2024
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <div>
@@ -274,7 +255,7 @@ export default function DashboardPage() {
                 <FiTrendingUp className="text-blue-500 text-xl" />
               </div>
             </div>
-            
+
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-gray-500 text-sm">Utilidades</h3>
@@ -286,7 +267,7 @@ export default function DashboardPage() {
                 <FiCreditCard className="text-green-500 text-xl" />
               </div>
             </div>
-            
+
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-gray-500 text-sm">Pérdidas</h3>
@@ -405,7 +386,9 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50">
-            <h3 className="text-gray-500 text-sm font-medium mb-2">Ventas netas</h3>
+            <h3 className="text-gray-500 text-sm font-medium mb-2">
+              Ventas netas
+            </h3>
             <div className="flex justify-between items-center">
               <span className="text-2xl font-bold">
                 ${tienda.tienda.ventas_netas_ano.toLocaleString()}
@@ -415,7 +398,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-green-50 to-teal-50">
             <h3 className="text-gray-500 text-sm font-medium mb-2">
               Utilidades
@@ -429,7 +412,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-red-50 to-orange-50">
             <h3 className="text-gray-500 text-sm font-medium mb-2">Gastos</h3>
             <div className="flex justify-between items-center">
@@ -441,7 +424,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-amber-50 to-yellow-50">
             <h3 className="text-gray-500 text-sm font-medium mb-2">Aportes</h3>
             <div className="flex justify-between items-center">
