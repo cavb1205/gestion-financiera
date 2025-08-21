@@ -487,19 +487,19 @@ export default function VentaDetailPage() {
               )}
               <div>
                 <p className="text-sm text-gray-500">Pagos realizados</p>
-                <p className="font-medium">
+                <p className="font-medium text-green-500">
                   {Math.round(venta.pagos_realizados)} de {venta.cuotas}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total abonado</p>
-                <p className="font-medium">
+                <p className="font-bold text-green-600">
                   {formatMoney(venta.total_abonado)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Promedio de pago</p>
-                <p className="font-medium">
+                <p className="font-medium text-blue-600">
                   {formatMoney(venta.promedio_pago)}
                 </p>
               </div>
@@ -606,7 +606,7 @@ export default function VentaDetailPage() {
               Historial de pagos
             </h2>
             <button
-              onClick={() => router.push(`/dashboard/ventas/${ventaId}/pago`)}
+              onClick={handleRegistrarPago}
               className="px-3 py-1 bg-green-600 text-white rounded text-sm flex items-center"
             >
               <FiPlus className="mr-1" /> Nuevo pago
@@ -708,7 +708,9 @@ export default function VentaDetailPage() {
                               <button className="text-indigo-600 hover:text-indigo-900 mr-3">
                                 Editar
                               </button>
-                              <button className="text-red-600 hover:text-red-900">
+                              <button
+                                // onClick={handleEliminarPago} 
+                                className="text-red-600 hover:text-red-900">
                                 Eliminar
                               </button>
                             </>

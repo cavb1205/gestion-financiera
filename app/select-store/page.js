@@ -51,11 +51,13 @@ export default function SelectStorePage() {
     fetchStores();
   }, [token, router]);
 
-  const handleSelectStore = () => {
-    if (selectedStore) {
-      selectStore(selectedStore);
-      router.push("/dashboard");
+  const handleSelectStore = (store) => {
+    if (!store) {
+      return;
     }
+    selectStore(store);
+
+    router.push("/dashboard");
   };
 
   if (loading) {
@@ -110,7 +112,7 @@ export default function SelectStorePage() {
               className={`bg-white rounded-xl shadow-md overflow-hidden cursor-pointer transform transition-all hover:scale-105 ${
                 selectedStore?.id === store.id ? "ring-2 ring-indigo-500" : ""
               }`}
-              onClick={() => setSelectedStore(store)}
+              onClick={() => handleSelectStore(store)}
             >
               <div className="p-6">
                 <div className="flex items-start">

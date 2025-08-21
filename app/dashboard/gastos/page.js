@@ -84,7 +84,8 @@ export default function GastosPage() {
       }
 
       const data = await response.json();
-      setGastos(data);
+      const gastosArray = Array.isArray(data) ? data : [];
+      setGastos(gastosArray);
     } catch (error) {
       console.error("Error:", error);
       toast.error(error.message);
@@ -95,7 +96,7 @@ export default function GastosPage() {
 
   const handleDelete = async () => {
     if (!gastoToDelete) return;
-    
+
     setIsDeleting(true);
 
     try {
@@ -464,7 +465,7 @@ export default function GastosPage() {
         {gastoToDelete && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full">
-              <h2 className="text-xl font-bold text-gray-800 mb-4"> 
+              <h2 className="text-xl font-bold text-gray-800 mb-4">
                 Confirmar Eliminación
               </h2>
               <p className="text-gray-600 mb-2">
