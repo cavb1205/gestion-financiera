@@ -41,7 +41,7 @@ export default function DetalleCliente({ params }) {
 
   const clienteId = params.id;
   // Calcular los totales financieros
-  console.log('creditos:', creditos);
+  console.log("creditos:", creditos);
   const resumenFinanciero = useMemo(() => {
     if (creditos.message || creditos.length === 0) {
       return {
@@ -62,141 +62,151 @@ export default function DetalleCliente({ params }) {
         creditoVigente: false,
         estadoCreditoVigente: null,
       };
-    }
-    else {
+    } else {
+      let totalCreditos = 0;
+      let totalMontoNeto = 0;
+      let totalPerdidas = 0;
+      let totalIngresos = 0;
 
-    
+      // Variables para calificación
+      let creditosPagadosATiempo = 0;
+      let creditosConAtraso = 0;
+      let creditosPerdidos = 0;
+      let creditosCompletados = 0;
+      let totalDiasAtraso = 0;
 
-    let totalCreditos = 0;
-    let totalMontoNeto = 0;
-    let totalPerdidas = 0;
-    let totalIngresos = 0;
+      // Variables para crédito vigente
+      let creditoVigente = false;
+      let estadoCreditoVigente = null;
+      let totalMontoCreditos = 0;
 
-    // Variables para calificación
-    let creditosPagadosATiempo = 0;
-    let creditosConAtraso = 0;
-    let creditosPerdidos = 0;
-    let creditosCompletados = 0;
-    let totalDiasAtraso = 0;
+      creditos.forEach((credito) => {
+        const monto = parseInt(credito.valor_venta) || 0;
+        const saldo = parseInt(credito.saldo_actual) || 0;
+        const intereses = parseInt(credito.total_a_pagar) || 0;
 
-    // Variables para crédito vigente
-    let creditoVigente = false;
-    let estadoCreditoVigente = null;
-    let totalMontoCreditos = 0;
+        totalCreditos += 1;
+        totalMontoNeto += monto;
+        totalMontoCreditos += monto;
 
-
-
-    creditos.forEach((credito) => {
-      const monto = parseInt(credito.valor_venta) || 0;
-      const saldo = parseInt(credito.saldo_actual) || 0;
-      const intereses = parseInt(credito.total_a_pagar) || 0;
-
-      totalCreditos += 1;
-      totalMontoNeto += monto;
-      totalMontoCreditos += monto;
-
-      // Calcular pérdidas (créditos vencidos con saldo pendiente)
-      if (credito.estado_venta === "Perdida") {
-        totalPerdidas += saldo;
-        creditosPerdidos += 1;
-      }
-
-      // Calcular ingresos (solo créditos pagados)
-      if (credito.estado_venta === "Pagado") {
-        // Ingresos = Monto inicial + Intereses - Saldo actual (debería ser 0)
-
-        totalIngresos += intereses - monto;
-        creditosCompletados += 1;
-
-        // Calcular pagos a tiempo vs atrasados
-        if (credito.dias_atrasados > 0) {
-          creditosConAtraso += 1;
-          totalDiasAtraso += credito.dias_atrasados;
-        } else {
-          creditosPagadosATiempo += 1;
+        // Calcular pérdidas (créditos vencidos con saldo pendiente)
+        if (credito.estado_venta === "Perdida") {
+          totalPerdidas += saldo;
+          creditosPerdidos += 1;
         }
+
+        // Calcular ingresos (solo créditos pagados)
+        if (credito.estado_venta === "Pagado") {
+          // Ingresos = Monto inicial + Intereses - Saldo actual (debería ser 0)
+
+          totalIngresos += intereses - monto;
+          creditosCompletados += 1;
+
+          // Calcular pagos a tiempo vs atrasados
+          if (credito.dias_atrasados > 0) {
+            creditosConAtraso += 1;
+            totalDiasAtraso += credito.dias_atrasados;
+          } else {
+            creditosPagadosATiempo += 1;
+          }
+        }
+        // Detectar crédito vigente
+        if (
+          credito.estado_venta === "Activo" ||
+          credito.estado_venta === "Vencido" ||
+          credito.estado_venta === "Atrasado"
+        ) {
+          creditoVigente = true;
+          estadoCreditoVigente = credito.estado_venta;
+        }
+      });
+
+      // Utilidad neta = Ingresos - Pérdidas
+      const utilidadNeta = totalIngresos - totalPerdidas;
+
+      // Calcular calificación (0-100 puntos)
+      let calificacion = 0;
+      let estrellas = 0;
+      let bloqueado = creditosPerdidos > 0;
+
+      if (!bloqueado && totalCreditos > 0) {
+        // Base: Porcentaje de créditos pagados a tiempo (70% del puntaje)
+        const porcentajeATiempo =
+          (creditosPagadosATiempo / creditosCompletados) * 100 || 0;
+
+        // Penalización por días de atraso (máximo 30% de reducción)
+        const penalizacionAtraso = Math.min(30, totalDiasAtraso);
+
+        // Bonus por cantidad de créditos completados
+        const bonusExperiencia = Math.min(10, creditosCompletados);
+
+        // Cálculo final
+        calificacion = Math.max(
+          0,
+          Math.min(
+            100,
+            porcentajeATiempo * 0.7 - penalizacionAtraso + bonusExperiencia
+          )
+        );
+
+        // Convertir a estrellas (1-5)
+        estrellas =
+          calificacion >= 90
+            ? 5
+            : calificacion >= 70
+            ? 4
+            : calificacion >= 50
+            ? 3
+            : calificacion >= 30
+            ? 2
+            : 1;
       }
-      // Detectar crédito vigente
-      if (credito.estado_venta === "Activo" || credito.estado_venta === "Vencido" || credito.estado_venta === "Atrasado") {
-        creditoVigente = true;
-        estadoCreditoVigente = credito.estado_venta;
+
+      // Calcular monto recomendado para nuevo crédito
+      let montoRecomendado = 0;
+      if (!bloqueado && totalCreditos > 0) {
+        const promedioMonto = totalMontoCreditos / totalCreditos;
+
+        // Factor de ajuste basado en calificación
+        let factor = 1;
+        if (calificacion >= 80) factor = 1.2; // Excelente historial
+        else if (calificacion >= 60) factor = 1.0; // Buen historial
+        else if (calificacion >= 40) factor = 0.8; // Historial regular
+        else factor = 0.5; // Mal historial
+
+        montoRecomendado = Math.round(promedioMonto * factor);
+
+        // Si el cliente tiene atrasos, reducir el monto
+        if (creditosConAtraso > 0) {
+          montoRecomendado = Math.round(montoRecomendado * 0.7);
+        }
+
+        // Mínimo de $10,000 para no recomendar montos insignificantes
+        montoRecomendado = Math.max(10000, montoRecomendado);
       }
-    });
 
-    // Utilidad neta = Ingresos - Pérdidas
-    const utilidadNeta = totalIngresos - totalPerdidas;
-
-    // Calcular calificación (0-100 puntos)
-    let calificacion = 0;
-    let estrellas = 0;
-    let bloqueado = creditosPerdidos > 0;
-
-    if (!bloqueado && totalCreditos > 0) {
-      // Base: Porcentaje de créditos pagados a tiempo (70% del puntaje)
-      const porcentajeATiempo = (creditosPagadosATiempo / creditosCompletados) * 100 || 0;
-      
-      // Penalización por días de atraso (máximo 30% de reducción)
-      const penalizacionAtraso = Math.min(30, totalDiasAtraso);
-      
-      // Bonus por cantidad de créditos completados
-      const bonusExperiencia = Math.min(10, creditosCompletados);
-      
-      // Cálculo final
-      calificacion = Math.max(0, Math.min(100, 
-        (porcentajeATiempo * 0.7) - penalizacionAtraso + bonusExperiencia
-      ));
-      
-      // Convertir a estrellas (1-5)
-      estrellas = calificacion >= 90 ? 5 :
-                  calificacion >= 70 ? 4 :
-                  calificacion >= 50 ? 3 :
-                  calificacion >= 30 ? 2 : 1;
+      return {
+        totalCreditos,
+        totalMontoNeto,
+        totalPerdidas,
+        totalIngresos,
+        utilidadNeta,
+        calificacion,
+        estrellas,
+        bloqueado,
+        creditosPagadosATiempo,
+        creditosConAtraso,
+        creditosPerdidos,
+        creditosCompletados,
+        promedioAtraso:
+          creditosConAtraso > 0
+            ? (totalDiasAtraso / creditosConAtraso).toFixed(1)
+            : "0.0",
+        montoRecomendado,
+        creditoVigente,
+        estadoCreditoVigente,
+      };
     }
-
-    // Calcular monto recomendado para nuevo crédito
-    let montoRecomendado = 0;
-    if (!bloqueado && totalCreditos > 0) {
-      const promedioMonto = totalMontoCreditos / totalCreditos;
-      
-      // Factor de ajuste basado en calificación
-      let factor = 1;
-      if (calificacion >= 80) factor = 1.2; // Excelente historial
-      else if (calificacion >= 60) factor = 1.0; // Buen historial
-      else if (calificacion >= 40) factor = 0.8; // Historial regular
-      else factor = 0.5; // Mal historial
-      
-      montoRecomendado = Math.round(promedioMonto * factor);
-      
-      // Si el cliente tiene atrasos, reducir el monto
-      if (creditosConAtraso > 0) {
-        montoRecomendado = Math.round(montoRecomendado * 0.7);
-      }
-      
-      // Mínimo de $10,000 para no recomendar montos insignificantes
-      montoRecomendado = Math.max(10000, montoRecomendado);
-    }
-
-    return {
-      totalCreditos,
-      totalMontoNeto,
-      totalPerdidas,
-      totalIngresos,
-      utilidadNeta,
-      calificacion,
-      estrellas,
-      bloqueado,
-      creditosPagadosATiempo,
-      creditosConAtraso,
-      creditosPerdidos,
-      creditosCompletados,
-      promedioAtraso: creditosConAtraso > 0 
-        ? (totalDiasAtraso / creditosConAtraso).toFixed(1) 
-        : "0.0",
-      montoRecomendado,
-      creditoVigente,
-      estadoCreditoVigente,
-    };
-  }
   }, [creditos]);
 
   console.log("creditos:", creditos);
@@ -429,29 +439,35 @@ export default function DetalleCliente({ params }) {
                   {cliente.nombres} {cliente.apellidos}
                 </h1>
                 {/* Mostrar calificación como estrellas */}
-                 {/* Mostrar calificación como estrellas o bloqueado */}
-                  {resumenFinanciero.totalCreditos > 0 && (
-                    <div className="ml-3 flex items-center">
-                      {resumenFinanciero.bloqueado ? (
-                        <span className="flex items-center bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">
-                          <FaBan className="mr-1" /> BLOQUEADO
+                {/* Mostrar calificación como estrellas o bloqueado */}
+                {resumenFinanciero.totalCreditos > 0 && (
+                  <div className="ml-3 flex items-center">
+                    {resumenFinanciero.bloqueado ? (
+                      <span className="flex items-center bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">
+                        <FaBan className="mr-1" /> BLOQUEADO
+                      </span>
+                    ) : (
+                      <>
+                        {[...Array(5)].map((_, i) =>
+                          i < resumenFinanciero.estrellas ? (
+                            <FaStar
+                              key={i}
+                              className="text-yellow-400 text-sm"
+                            />
+                          ) : (
+                            <FaRegStar
+                              key={i}
+                              className="text-gray-300 text-sm"
+                            />
+                          )
+                        )}
+                        <span className="ml-1 text-xs text-gray-500">
+                          ({resumenFinanciero.calificacion.toFixed(1)})
                         </span>
-                      ) : (
-                        <>
-                          {[...Array(5)].map((_, i) => (
-                            i < resumenFinanciero.estrellas ? (
-                              <FaStar key={i} className="text-yellow-400 text-sm" />
-                            ) : (
-                              <FaRegStar key={i} className="text-gray-300 text-sm" />
-                            )
-                          ))}
-                          <span className="ml-1 text-xs text-gray-500">
-                            ({resumenFinanciero.calificacion.toFixed(1)})
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  )}
+                      </>
+                    )}
+                  </div>
+                )}
                 <div className="flex items-center mt-1">
                   {getStatusBadge(cliente.estado_cliente)}
                   <span className="ml-3 text-gray-500 text-sm">
@@ -464,7 +480,9 @@ export default function DetalleCliente({ params }) {
 
           <div className="mt-4 md:mt-0 flex space-x-3">
             <button
-              onClick={() => router.push(`/dashboard/clientes/${clienteId}/editar`)}
+              onClick={() =>
+                router.push(`/dashboard/clientes/${clienteId}/editar`)
+              }
               className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
             >
               <FiEdit className="mr-2" />
@@ -472,7 +490,9 @@ export default function DetalleCliente({ params }) {
             </button>
 
             <button
-              onClick={() => router.push(`/dashboard/clientes/${clienteId}/eliminar`)}
+              onClick={() =>
+                router.push(`/dashboard/clientes/${clienteId}/eliminar`)
+              }
               className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
             >
               <FiTrash2 className="mr-2" />
@@ -596,59 +616,67 @@ export default function DetalleCliente({ params }) {
               <h3 className="text-sm font-medium text-gray-500">
                 Utilidad Neta
               </h3>
-              <FiActivity className={resumenFinanciero.utilidadNeta >= 0 ? "text-green-600" : "text-red-600"} />
+              <FiActivity
+                className={
+                  resumenFinanciero.utilidadNeta >= 0
+                    ? "text-green-600"
+                    : "text-red-600"
+                }
+              />
             </div>
-            <p className={`text-2xl font-bold mt-2 ${
-              resumenFinanciero.utilidadNeta >= 0 ? "text-green-600" : "text-red-600"
-            }`}>
+            <p
+              className={`text-2xl font-bold mt-2 ${
+                resumenFinanciero.utilidadNeta >= 0
+                  ? "text-green-600"
+                  : "text-red-600"
+              }`}
+            >
               {resumenFinanciero.utilidadNeta.toLocaleString()}
             </p>
-            <p className="text-xs text-gray-500 mt-1">
-              Ingresos - Pérdidas
-            </p>
+            <p className="text-xs text-gray-500 mt-1">Ingresos - Pérdidas</p>
           </div>
         </div>
 
-         {/* Nueva tarjeta de Monto Recomendado */}
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-500">
-                Próximo Crédito Recomendado
-              </h3>
-              <FiTrendingUp className="text-indigo-600" />
-            </div>
-            <div className="mt-2">
-              {resumenFinanciero.bloqueado ? (
-                <p className="text-center text-red-500 py-4">
-                  Cliente bloqueado - No se recomienda nuevo crédito
-                </p>
-              ) : resumenFinanciero.totalCreditos > 0 ? (
-                <>
-                  <p className="text-center text-2xl font-bold text-indigo-600">
-                    ${resumenFinanciero.montoRecomendado.toLocaleString()}
-                  </p>
-                  <div className="mt-3 text-xs text-gray-600">
-                    <p className="flex items-center mb-1">
-                      <FiCheck className="text-green-500 mr-1" />
-                      <span>Basado en el historial de créditos</span>
-                    </p>
-                    {resumenFinanciero.creditosConAtraso > 0 && (
-                      <p className="flex items-center text-yellow-600">
-                        <FiAlertCircle className="mr-1" />
-                        <span>Reducido por atrasos en pagos</span>
-                      </p>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p className="text-center text-gray-500 py-4">
-                  Sin historial para recomendar
-                </p>
-              )}
-            </div>
+        {/* Nueva tarjeta de Monto Recomendado */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-500">
+              Próximo Crédito Recomendado
+            </h3>
+            <FiTrendingUp className="text-indigo-600" />
           </div>
-        
-          {/* Calificación del cliente */}              
+          <div className="mt-2">
+            {resumenFinanciero.bloqueado ? (
+              <p className="text-center text-red-500 py-4">
+                Cliente bloqueado - No se recomienda nuevo crédito
+              </p>
+            ) : resumenFinanciero.totalCreditos > 0 ? (
+              <>
+                <p className="text-center text-2xl font-bold text-indigo-600">
+                  ${resumenFinanciero.montoRecomendado.toLocaleString()}
+                </p>
+                <div className="mt-3 text-xs text-gray-600">
+                  <p className="flex items-center mb-1">
+                    <FiCheck className="text-green-500 mr-1" />
+                    <span>Basado en el historial de créditos</span>
+                  </p>
+                  {resumenFinanciero.creditosConAtraso > 0 && (
+                    <p className="flex items-center text-yellow-600">
+                      <FiAlertCircle className="mr-1" />
+                      <span>Reducido por atrasos en pagos</span>
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-center text-gray-500 py-4">
+                Sin historial para recomendar
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Calificación del cliente */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-500">Calificación</h3>
@@ -666,54 +694,63 @@ export default function DetalleCliente({ params }) {
                 </div>
                 <p className="mt-3 font-bold text-red-600">CLIENTE BLOQUEADO</p>
                 <p className="text-xs text-gray-600 mt-2">
-                  Tiene {resumenFinanciero.creditosPerdidos} crédito(s) perdido(s)
+                  Tiene {resumenFinanciero.creditosPerdidos} crédito(s)
+                  perdido(s)
                 </p>
               </div>
             ) : resumenFinanciero.totalCreditos > 0 ? (
               <>
                 <div className="flex justify-center mb-2">
-                  {[...Array(5)].map((_, i) => (
+                  {[...Array(5)].map((_, i) =>
                     i < resumenFinanciero.estrellas ? (
-                      <FaStar key={i} className="text-yellow-400 text-2xl mx-1" />
+                      <FaStar
+                        key={i}
+                        className="text-yellow-400 text-2xl mx-1"
+                      />
                     ) : (
-                      <FaRegStar key={i} className="text-gray-300 text-2xl mx-1" />
+                      <FaRegStar
+                        key={i}
+                        className="text-gray-300 text-2xl mx-1"
+                      />
                     )
-                  ))}
+                  )}
                 </div>
                 <p className="text-center text-lg font-bold text-gray-800">
                   {resumenFinanciero.calificacion.toFixed(1)}/100
                 </p>
-                
+
                 {/* Estado de crédito vigente */}
                 {resumenFinanciero.creditoVigente && (
-                  <div className={`mt-3 p-2 rounded-lg text-center ${
-                    resumenFinanciero.estadoCreditoVigente === "Activo" 
-                      ? "bg-green-100 text-green-800" 
-                      : "bg-red-100 text-red-800"
-                  }`}>
+                  <div
+                    className={`mt-3 p-2 rounded-lg text-center ${
+                      resumenFinanciero.estadoCreditoVigente === "Activo"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
                     <p className="font-medium">
-                      {resumenFinanciero.estadoCreditoVigente === "Activo" 
-                        ? "Crédito vigente al día" 
+                      {resumenFinanciero.estadoCreditoVigente === "Activo"
+                        ? "Crédito vigente al día"
                         : `Crédito vigente ${resumenFinanciero.estadoCreditoVigente}`}
                     </p>
                   </div>
                 )}
-                
+
                 <div className="mt-2 text-xs text-gray-600">
                   <p className="flex items-center">
-                    <FiCheck className="text-green-500 mr-1" /> 
+                    <FiCheck className="text-green-500 mr-1" />
                     {resumenFinanciero.creditosPagadosATiempo} pagos a tiempo
                   </p>
                   <p className="flex items-center">
-                    <FiAlertCircle className="text-yellow-500 mr-1" /> 
+                    <FiAlertCircle className="text-yellow-500 mr-1" />
                     {resumenFinanciero.creditosConAtraso} con atraso
                   </p>
                   <p className="flex items-center">
-                    <FiClock className="text-blue-500 mr-1" /> 
+                    <FiClock className="text-blue-500 mr-1" />
                     {resumenFinanciero.promedioAtraso} días de atraso promedio
                   </p>
                   <p className="flex items-center">
-                    <FiCreditCard className="text-indigo-500 mr-1" /> 
+                    <FiCreditCard className="text-indigo-500 mr-1" />
                     {resumenFinanciero.creditosCompletados} créditos completados
                   </p>
                 </div>
@@ -726,8 +763,6 @@ export default function DetalleCliente({ params }) {
           </div>
         </div>
 
-
-        
         {/* Historial de créditos */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -846,7 +881,9 @@ export default function DetalleCliente({ params }) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
-                          onClick={() => router.push(`/dashboard/ventas/${credito.id}`)}
+                          onClick={() =>
+                            router.push(`/dashboard/ventas/${credito.id}`)
+                          }
                           className="text-indigo-600 hover:text-indigo-900"
                         >
                           Ver detalles
