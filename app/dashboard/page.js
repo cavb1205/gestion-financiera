@@ -16,6 +16,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import ResumenDia from "../components/dashboard/ResumenDia";
 import ResumenMes from "../components/dashboard/ResumenMes";
+import ResumenAnual from "../components/dashboard/ResumenAnual";
 
 export default function DashboardPage() {
   const { selectedStore, token } = useAuth();
@@ -95,8 +96,6 @@ export default function DashboardPage() {
     );
   }
 
- 
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Encabezado de la tienda */}
@@ -166,57 +165,7 @@ export default function DashboardPage() {
 
         {/* Resumen del Mes */}
         <ResumenMes tienda={tienda} />
-
-        {/* Resumen del Año */}
-        <div className="bg-white rounded-xl shadow-sm p-5 border-t-4 border-purple-500">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900 flex items-center">
-              <FiPieChart className="mr-2 text-purple-500" />
-              Resumen del Año
-            </h2>
-            <div className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
-              2024
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-gray-500 text-sm">Ventas netas</h3>
-                <p className="text-xl font-bold text-gray-900">
-                  ${tienda.tienda.ventas_netas_ano.toLocaleString()}
-                </p>
-              </div>
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FiTrendingUp className="text-blue-500 text-xl" />
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-gray-500 text-sm">Utilidades</h3>
-                <p className="text-xl font-bold text-green-600">
-                  ${tienda.tienda.utilidades_ano.toLocaleString()}
-                </p>
-              </div>
-              <div className="p-2 bg-green-100 rounded-lg">
-                <FiCreditCard className="text-green-500 text-xl" />
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-gray-500 text-sm">Pérdidas</h3>
-                <p className="text-xl font-bold text-red-600">
-                  ${tienda.tienda.perdidas_ano.toLocaleString()}
-                </p>
-              </div>
-              <div className="p-2 bg-red-100 rounded-lg">
-                <FiTrendingDown className="text-red-500 text-xl" />
-              </div>
-            </div>
-          </div>
-        </div>
+        <ResumenAnual tienda={tienda} />
       </div>
 
       {/* Gráficos y detalles adicionales */}
