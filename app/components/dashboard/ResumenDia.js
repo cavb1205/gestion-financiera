@@ -14,6 +14,7 @@ import { useState } from "react";
 
 export default function ResumenDia({ tienda, loading = false }) {
   const [showTooltip, setShowTooltip] = useState(null);
+  console.log(tienda);
 
   // Calcular utilidad del día (20% de las ventas netas menos gastos)
   const utilidadDia = tienda
