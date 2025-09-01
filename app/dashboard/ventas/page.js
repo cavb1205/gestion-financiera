@@ -60,7 +60,8 @@ export default function VentasPage() {
       }
 
       const data = await response.json();
-      setVentas(data);
+      const ventasData = Array.isArray(data) ? data : [];
+      setVentas(ventasData);
       setIsLoading(false);
     } catch (err) {
       console.error("Error fetching sales:", err);

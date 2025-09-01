@@ -54,8 +54,9 @@ export default function ClientesPage() {
       }
 
       const data = await response.json();
-      setClientes(data);
-      setFilteredClientes(data);
+      const clientesData = Array.isArray(data) ? data : [];
+      setClientes(clientesData);
+      setFilteredClientes(clientesData);
     } catch (err) {
       setError(err.message || 'Error al cargar los clientes');
       console.error('Error fetching clients:', err);
