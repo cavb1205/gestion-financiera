@@ -24,6 +24,7 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import LoadingSpinner from "../../../components/LoadingSpinner";
+import EliminarRecaudo from "@/app/components/recaudos/EliminarRecaudo";
 
 export default function VentaDetailPage() {
   const router = useRouter();
@@ -40,6 +41,9 @@ export default function VentaDetailPage() {
   const [showLossModal, setShowLossModal] = useState(false);
   const [isSendingLoss, setIsSendingLoss] = useState(false);
   const [lossError, setLossError] = useState(null);
+  const [deletingRecaudo, setDeletingRecaudo] = useState(null);
+
+  const [refreshData, setRefreshData] = useState(false);
 
   const handleRegistrarPago = () => {
     // Calcular el valor a abonar (mínimo entre saldo actual y valor cuota)
@@ -67,12 +71,22 @@ export default function VentaDetailPage() {
     router.push(`/dashboard/liquidar/abonar`);
   };
 
+  const handleEliminarPago = (pago) => {
+    setDeletingRecaudo(pago);
+  };
+
+  // Función para manejar la eliminación exitosa
+  const handleRecaudoEliminado = () => {
+    setDeletingRecaudo(null);
+    setRefreshData((prev) => !prev); // Forzar recarga de datos
+  };
+
   // Cargar datos de la venta y pagos
   useEffect(() => {
     if (!loading && isAuthenticated && selectedStore) {
       fetchVenta();
     }
-  }, [loading, isAuthenticated, selectedStore]);
+  }, [loading, isAuthenticated, selectedStore, refreshData]);
 
   useEffect(() => {
     if (!loading && (!isAuthenticated || !selectedStore)) {
@@ -255,6 +269,13 @@ export default function VentaDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-400">
+      {deletingRecaudo && (
+        <EliminarRecaudo
+          deletingRecaudo={deletingRecaudo}
+          onEliminar={handleRecaudoEliminado}
+          onClose={() => setDeletingRecaudo(null)}
+        />
+      )}
       {/* Modal de confirmación para marcar como pérdida */}
       {showLossModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -709,8 +730,9 @@ export default function VentaDetailPage() {
                                 Editar
                               </button>
                               <button
-                                // onClick={handleEliminarPago} 
-                                className="text-red-600 hover:text-red-900">
+                                onClick={() => handleEliminarPago(pago)}
+                                className="text-red-600 hover:text-red-900"
+                              >
                                 Eliminar
                               </button>
                             </>
