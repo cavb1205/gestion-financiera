@@ -737,7 +737,10 @@ export default function VentaDetailPage() {
                               </button>
                             </>
                           ) : (
-                            <button className="text-gray-600 hover:text-gray-900">
+                            <button
+                              onClick={() => handleEliminarPago(pago)}
+                              className="text-gray-600 hover:text-gray-900"
+                            >
                               <FiXCircle className="inline mr-1" /> Eliminar
                               visita
                             </button>
