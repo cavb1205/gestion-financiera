@@ -12,11 +12,15 @@ import {
   FiRefreshCw,
   FiPieChart,
   FiBarChart2,
+  FiClock,
+  FiUsers,
+  FiCheckCircle,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import ResumenDia from "../components/dashboard/ResumenDia";
 import ResumenMes from "../components/dashboard/ResumenMes";
 import ResumenAnual from "../components/dashboard/ResumenAnual";
+import ResumenGeneral from "../components/dashboard/ResumenGeneral";
 
 export default function DashboardPage() {
   const { selectedStore, token } = useAuth();
@@ -263,66 +267,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Resumen anual */}
-      <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">
-          Balance Anual
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50">
-            <h3 className="text-gray-500 text-sm font-medium mb-2">
-              Ventas netas
-            </h3>
-            <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold">
-                ${tienda.tienda.ventas_netas_ano.toLocaleString()}
-              </span>
-              <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
-                +3.7%
-              </div>
-            </div>
-          </div>
-
-          <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-green-50 to-teal-50">
-            <h3 className="text-gray-500 text-sm font-medium mb-2">
-              Utilidades
-            </h3>
-            <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold text-green-600">
-                ${tienda.tienda.utilidades_ano.toLocaleString()}
-              </span>
-              <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                +4.2%
-              </div>
-            </div>
-          </div>
-
-          <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-red-50 to-orange-50">
-            <h3 className="text-gray-500 text-sm font-medium mb-2">Gastos</h3>
-            <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold text-red-600">
-                ${tienda.tienda.gastos_ano.toLocaleString()}
-              </span>
-              <div className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">
-                -1.1%
-              </div>
-            </div>
-          </div>
-
-          <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-amber-50 to-yellow-50">
-            <h3 className="text-gray-500 text-sm font-medium mb-2">Aportes</h3>
-            <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold">
-                ${tienda.tienda.aportes_ano.toLocaleString()}
-              </span>
-              <div className="bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-xs">
-                +2.3%
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Resumen general */}
+      <ResumenGeneral tienda={tienda} />
     </div>
   );
 }
