@@ -19,7 +19,7 @@ export default function ResumenMes({ tienda, loading = false }) {
   const [showTooltip, setShowTooltip] = useState(null);
   
   // Calcular utilidad bruta (20% de ventas netas)
-  const utilidadBruta = tienda ? tienda.tienda.ventas_netas_mes * 0.2 : 0;
+  const utilidadBruta = tienda ? tienda.tienda.utilidad_estimada_mes : 0;
   
   // Calcular utilidad del período (20% de ventas netas menos gastos y pérdidas)
   const utilidadPeriodo = tienda 
@@ -123,7 +123,7 @@ export default function ResumenMes({ tienda, loading = false }) {
                 <FiInfo className="text-gray-400 text-xs cursor-help" />
                 {showTooltip === 'ventas' && (
                   <div className="absolute left-0 bottom-full mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                    Total de ventas del mes después de descuentos y devoluciones.
+                    Total de ventas del mes.
                   </div>
                 )}
               </div>
@@ -168,7 +168,7 @@ export default function ResumenMes({ tienda, loading = false }) {
         <div className="flex justify-between items-center pt-3 border-t border-gray-100">
           <div>
             <h3 className="text-gray-500 text-sm flex items-center">
-              Utilidad bruta (20% de ventas)
+              Utilidad bruta (estimada)
               <div 
                 className="ml-1 relative"
                 onMouseEnter={() => setShowTooltip('utilidad-bruta')}
@@ -177,7 +177,7 @@ export default function ResumenMes({ tienda, loading = false }) {
                 <FiInfo className="text-gray-400 text-xs cursor-help" />
                 {showTooltip === 'utilidad-bruta' && (
                   <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                    Porción de las ventas destinada a cubrir gastos y generar utilidad (20% de las ventas netas).
+                    Porción de las ventas destinada a cubrir gastos y generar utilidad.
                   </div>
                 )}
               </div>
@@ -233,7 +233,7 @@ export default function ResumenMes({ tienda, loading = false }) {
                 <FiInfo className="text-gray-400 text-xs cursor-help" />
                 {showTooltip === 'utilidad-periodo' && (
                   <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                    Ganancia real generada este mes (20% de las ventas netas menos gastos y pérdidas).
+                    Ganancia real generada este mes (% de las ventas netas menos gastos y pérdidas).
                   </div>
                 )}
               </div>
