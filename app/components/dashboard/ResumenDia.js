@@ -18,7 +18,7 @@ export default function ResumenDia({ tienda, loading = false }) {
 
   // Calcular utilidad del día (20% de las ventas netas menos gastos)
   const utilidadDia = tienda
-    ? tienda.tienda.ventas_netas_dia * 0.2 - tienda.tienda.gastos_dia
+    ? tienda.tienda.utilidad_estimada_dia - tienda.tienda.gastos_dia
     : 0;
 
   // Ganancias retiradas por socios (utilidades registradas)
@@ -169,7 +169,7 @@ export default function ResumenDia({ tienda, loading = false }) {
         <div className="flex justify-between items-center pt-3 border-t border-gray-100">
           <div>
             <h3 className="text-gray-500 text-sm flex items-center">
-              Utilidad del día
+              Utilidad estimada del día
               <div
                 className="ml-1 relative"
                 onMouseEnter={() => setShowTooltip("utilidad-dia")}
@@ -178,8 +178,7 @@ export default function ResumenDia({ tienda, loading = false }) {
                 <FiInfo className="text-gray-400 text-xs cursor-help" />
                 {showTooltip === "utilidad-dia" && (
                   <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                    Ganancia real generada hoy (20% de las ventas netas menos
-                    gastos).
+                    Ganancia estimada generada hoy menos los gastos.
                   </div>
                 )}
               </div>
