@@ -4,6 +4,7 @@ import {
   FiDollarSign,
   FiTrendingUp,
   FiTrendingDown,
+  FiCreditCard,
 } from "react-icons/fi";
 import { Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
@@ -52,19 +53,26 @@ export default function GraficoDona({ data }) {
 
     // Colores profesionales para el gráfico
     const colors = {
-      utilidad: "rgba(16, 185, 129, 0.9)",      // Verde para utilidades
-      gastos: "rgba(239, 68, 68, 0.9)",         // Rojo para gastos
-      retiros: "rgba(139, 92, 246, 0.9)",       // Morado para retiros
-      perdidas: "rgba(220, 38, 38, 0.9)",       // Rojo oscuro para pérdidas
-      aportes: "rgba(59, 130, 246, 0.9)"        // Azul para aportes
+      utilidad: "rgba(16, 185, 129, 0.9)", // Verde para utilidades
+      gastos: "rgba(239, 68, 68, 0.9)", // Rojo para gastos
+      retiros: "rgba(139, 92, 246, 0.9)", // Morado para retiros
+      perdidas: "rgba(220, 38, 38, 0.9)", // Rojo oscuro para pérdidas
+      aportes: "rgba(59, 130, 246, 0.9)", // Azul para aportes
     };
 
     // Determinar la etiqueta de utilidad según la pestaña
-    const utilidadLabel = activeTab === "general" ? "Utilidad Real" : "Utilidad Estimada";
+    const utilidadLabel =
+      activeTab === "general" ? "Utilidad Real" : "Utilidad Estimada";
 
     // Datos para el gráfico de dona
     const chartDataConfig = {
-      labels: [utilidadLabel, "Gastos", "Retiros Socios", "Pérdidas", "Aportes"],
+      labels: [
+        utilidadLabel,
+        "Gastos",
+        "Retiros Socios",
+        "Pérdidas",
+        "Aportes",
+      ],
       datasets: [
         {
           data: [utilidad, gastos, retiros, perdidas, aportes],
@@ -73,14 +81,14 @@ export default function GraficoDona({ data }) {
             colors.gastos,
             colors.retiros,
             colors.perdidas,
-            colors.aportes
+            colors.aportes,
           ],
           borderColor: [
             "rgba(16, 185, 129, 1)",
             "rgba(239, 68, 68, 1)",
             "rgba(139, 92, 246, 1)",
             "rgba(220, 38, 38, 1)",
-            "rgba(59, 130, 246, 1)"
+            "rgba(59, 130, 246, 1)",
           ],
           borderWidth: 1,
         },
@@ -96,7 +104,7 @@ export default function GraficoDona({ data }) {
       beneficioNeto,
       ventasNetas,
       margen: utilidad > 0 ? (beneficioNeto / utilidad) * 100 : 0,
-      utilidadLabel
+      utilidadLabel,
     });
   }, [data, activeTab]);
 
@@ -121,9 +129,9 @@ export default function GraficoDona({ data }) {
           usePointStyle: true,
           padding: 20,
           font: {
-            size: 12
-          }
-        }
+            size: 12,
+          },
+        },
       },
       tooltip: {
         callbacks: {
@@ -143,7 +151,7 @@ export default function GraficoDona({ data }) {
   // Función para formatear números en millones o miles
   const formatCurrency = (value) => {
     if (!value && value !== 0) return "$0";
-    
+
     const numValue = parseFloat(value);
     if (numValue >= 1000000) {
       return "$" + (numValue / 1000000).toFixed(1) + "M";
@@ -163,8 +171,8 @@ export default function GraficoDona({ data }) {
         <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
           <button
             className={`px-3 py-1 text-sm rounded-md transition-colors ${
-              activeTab === "mes" 
-                ? "bg-white shadow-sm text-indigo-700 font-medium" 
+              activeTab === "mes"
+                ? "bg-white shadow-sm text-indigo-700 font-medium"
                 : "text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setActiveTab("mes")}
@@ -173,8 +181,8 @@ export default function GraficoDona({ data }) {
           </button>
           <button
             className={`px-3 py-1 text-sm rounded-md transition-colors ${
-              activeTab === "ano" 
-                ? "bg-white shadow-sm text-indigo-700 font-medium" 
+              activeTab === "ano"
+                ? "bg-white shadow-sm text-indigo-700 font-medium"
                 : "text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setActiveTab("ano")}
@@ -183,8 +191,8 @@ export default function GraficoDona({ data }) {
           </button>
           <button
             className={`px-3 py-1 text-sm rounded-md transition-colors ${
-              activeTab === "general" 
-                ? "bg-white shadow-sm text-indigo-700 font-medium" 
+              activeTab === "general"
+                ? "bg-white shadow-sm text-indigo-700 font-medium"
                 : "text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setActiveTab("general")}
@@ -213,7 +221,9 @@ export default function GraficoDona({ data }) {
 
           <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-500">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{chartData.utilidadLabel}:</span>
+              <span className="text-sm text-gray-600">
+                {chartData.utilidadLabel}:
+              </span>
               <span className="font-semibold text-green-700">
                 {formatCurrency(chartData.utilidad)}
               </span>
@@ -256,8 +266,8 @@ export default function GraficoDona({ data }) {
 
           <div
             className={`p-3 rounded-lg border-l-4 ${
-              chartData.beneficioNeto >= 0 
-                ? "bg-green-50 border-green-500" 
+              chartData.beneficioNeto >= 0
+                ? "bg-green-50 border-green-500"
                 : "bg-red-50 border-red-500"
             }`}
           >
@@ -293,41 +303,85 @@ export default function GraficoDona({ data }) {
       </div>
 
       {/* Información adicional */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-4 border-t border-gray-200">
-        <div className="bg-gray-50 p-3 rounded-lg">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Ventas Netas:</span>
-            <span className="font-semibold">
-              {formatCurrency(chartData.ventasNetas)}
-            </span>
+      <div className="mt-8 pt-6 border-t border-gray-200">
+  <h3 className="text-md font-semibold text-gray-700 mb-4 flex items-center">
+    <FiDollarSign className="mr-2 text-indigo-600" />
+    Situación de Liquidez
+  </h3>
+  
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {/* Liquidez Actual */}
+    <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200 shadow-sm">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center">
+          <div className="bg-green-100 p-2 rounded-full mr-3">
+            <FiDollarSign className="text-green-600 text-lg" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-600">Liquidez Actual</p>
+            <p className="text-xl font-bold text-green-700">
+              {(data.tienda.caja).toLocaleString()}
+            </p>
           </div>
         </div>
-
-        <div className="bg-gray-50 p-3 rounded-lg">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Inversión Total:</span>
-            <span className="font-semibold">
-              {formatCurrency(data.tienda.inversion)}
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-gray-50 p-3 rounded-lg">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Liquidez Actual:</span>
-            <span className="font-semibold">{formatCurrency(data.caja)}</span>
-          </div>
-        </div>
-
-        <div className="bg-gray-50 p-3 rounded-lg">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Por Cobrar:</span>
-            <span className="font-semibold">
-              {formatCurrency(data.tienda.dinero_x_cobrar)}
-            </span>
-          </div>
-        </div>
+        <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+          Disponible
+        </span>
       </div>
+      <div className="mt-3 pt-2 border-t border-green-200 border-dashed">
+        <p className="text-xs text-green-600">
+          Fondos inmediatamente disponibles para operaciones
+        </p>
+      </div>
+    </div>
+
+    {/* Por Cobrar */}
+    <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200 shadow-sm">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center">
+          <div className="bg-blue-100 p-2 rounded-full mr-3">
+            <FiCreditCard className="text-blue-600 text-lg" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-600">Por Cobrar</p>
+            <p className="text-xl font-bold text-blue-700">
+              {(data.tienda.dinero_x_cobrar).toLocaleString()}
+            </p>
+          </div>
+        </div>
+        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+          Pendiente
+        </span>
+      </div>
+      <div className="mt-3 pt-2 border-t border-blue-200 border-dashed">
+        <p className="text-xs text-blue-600">
+          Créditos activos pendientes de recaudo
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {/* Ratio de Liquidez */}
+  <div className="mt-4 bg-gray-50 p-3 rounded-lg">
+    <div className="flex items-center justify-between">
+      <span className="text-sm font-medium text-gray-700">Ratio de Liquidez</span>
+      <div className="flex items-center">
+        <div className="w-24 bg-gray-200 rounded-full h-2.5 mr-2">
+          <div 
+            className="bg-indigo-600 h-2.5 rounded-full" 
+            style={{ width: `${Math.min(100, (data.tienda.caja / (data.tienda.caja + data.tienda.dinero_x_cobrar)) * 100)}%` }}
+          ></div>
+        </div>
+        <span className="text-sm font-semibold text-indigo-700">
+          {((data.tienda.caja / (data.tienda.caja + data.tienda.dinero_x_cobrar)) * 100).toFixed(1)}%
+        </span>
+      </div>
+    </div>
+    <p className="text-xs text-gray-500 mt-1">
+      Porcentaje de liquidez inmediata frente al total de recursos
+    </p>
+  </div>
+</div>
     </div>
   );
 }
