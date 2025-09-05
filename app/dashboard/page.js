@@ -214,7 +214,7 @@ export default function DashboardPage() {
                         : "text-red-700"
                     }`}
                   >
-                    ${Math.abs(tienda.tienda.caja).toLocaleString()}
+                    ${(tienda.tienda.caja).toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     {tienda.tienda.caja >= 0
