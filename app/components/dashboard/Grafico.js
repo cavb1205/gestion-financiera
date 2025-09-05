@@ -311,26 +311,46 @@ export default function GraficoDona({ data }) {
   
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
     {/* Liquidez Actual */}
-    <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200 shadow-sm">
+    <div className={`p-4 rounded-lg border shadow-sm ${
+      data.tienda.caja >= 0 
+        ? "bg-gradient-to-r from-green-50 to-green-100 border-green-200" 
+        : "bg-gradient-to-r from-red-50 to-red-100 border-red-200"
+    }`}>
       <div className="flex items-start justify-between">
         <div className="flex items-center">
-          <div className="bg-green-100 p-2 rounded-full mr-3">
-            <FiDollarSign className="text-green-600 text-lg" />
+          <div className={`p-2 rounded-full mr-3 ${
+            data.tienda.caja >= 0 ? "bg-green-100" : "bg-red-100"
+          }`}>
+            <FiDollarSign className={`text-lg ${
+              data.tienda.caja >= 0 ? "text-green-600" : "text-red-600"
+            }`} />
           </div>
           <div>
             <p className="text-sm font-medium text-gray-600">Liquidez Actual</p>
-            <p className="text-xl font-bold text-green-700">
+            <p className={`text-xl font-bold ${
+              data.tienda.caja >= 0 ? "text-green-700" : "text-red-700"
+            }`}>
               {(data.tienda.caja).toLocaleString()}
             </p>
           </div>
         </div>
-        <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-          Disponible
+        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
+          data.tienda.caja >= 0 
+            ? "bg-green-100 text-green-800" 
+            : "bg-red-100 text-red-800"
+        }`}>
+          {data.tienda.caja >= 0 ? "Positiva" : "Negativa"}
         </span>
       </div>
-      <div className="mt-3 pt-2 border-t border-green-200 border-dashed">
-        <p className="text-xs text-green-600">
-          Fondos inmediatamente disponibles para operaciones
+      <div className={`mt-3 pt-2 border-t ${
+        data.tienda.caja >= 0 
+          ? "border-green-200 text-green-600" 
+          : "border-red-200 text-red-600"
+      } border-dashed`}>
+        <p className="text-xs">
+          {data.tienda.caja >= 0 
+            ? "Fondos inmediatamente disponibles para operaciones" 
+            : "Atención: La liquidez actual es negativa"}
         </p>
       </div>
     </div>
