@@ -29,6 +29,7 @@ import ResumenMes from "../components/dashboard/ResumenMes";
 import ResumenAnual from "../components/dashboard/ResumenAnual";
 import ResumenGeneral from "../components/dashboard/ResumenGeneral";
 import Grafico from "../components/dashboard/Grafico";
+import UltimosMovimientos from "../components/dashboard/UltimosMovimientos";
 
 export default function DashboardPage() {
   const { selectedStore, token } = useAuth();
@@ -214,7 +215,7 @@ export default function DashboardPage() {
                         : "text-red-700"
                     }`}
                   >
-                    ${(tienda.tienda.caja).toLocaleString()}
+                    ${tienda.tienda.caja.toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     {tienda.tienda.caja >= 0
@@ -316,6 +317,10 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Gráfico de ingresos/gastos */}
         <Grafico data={tienda} />
+      </div>
+      {/* Últimos movimientos - ocupa 1 columna */}
+      <div className="lg:col-span-1 mb-6">
+        <UltimosMovimientos tienda={tienda} />
       </div>
 
       {/* Resumen general */}
