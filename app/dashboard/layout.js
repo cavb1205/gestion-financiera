@@ -17,6 +17,9 @@ import {
   FiMenu,
   FiX,
   FiPocket,
+  FiPlusSquare,
+  FiCreditCard,
+  FiGitPullRequest,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import Link from "next/link";
@@ -144,6 +147,18 @@ export default function DashboardLayout({ children }) {
               >
                 <FiUser className="mr-3" />
                 Clientes
+              </Link>
+
+              <Link
+                href="/dashboard/aportes"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/aportes")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiDollarSign className="mr-3" />
+                Aportes
               </Link>
 
               <Link
@@ -290,6 +305,17 @@ export default function DashboardLayout({ children }) {
           >
             <FiUser className="mr-3" />
             Clientes
+          </Link>
+          <Link
+            href="/dashboard/aportes"
+            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+              isActive("/dashboard/aportes")
+                ? "bg-indigo-700"
+                : "hover:bg-indigo-700"
+            }`}
+          >
+            <FiDollarSign className="mr-3" />
+            Aportes
           </Link>
 
           <Link
