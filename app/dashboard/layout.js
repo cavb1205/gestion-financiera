@@ -17,9 +17,16 @@ import {
   FiMenu,
   FiX,
   FiPocket,
-  FiPlusSquare,
   FiCreditCard,
-  FiGitPullRequest,
+  FiShoppingCart,
+  FiCheckCircle,
+  FiTrendingUp,
+  FiFileText,
+  FiPieChart,
+  FiClipboard,
+  FiDollarSign as FiDollar,
+  FiUsers,
+  FiPackage
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import Link from "next/link";
@@ -32,11 +39,7 @@ export default function DashboardLayout({ children }) {
     useAuth();
   const [storeInfo, setStoreInfo] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Estado para controlar menú móvil
-
-  console.log("Store:", storeInfo);
-  console.log("autenticated:", isAuthenticated);
-  console.log("loading:", loading);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && (!isAuthenticated || !selectedStore)) {
@@ -49,7 +52,6 @@ export default function DashboardLayout({ children }) {
     }
   }, [loading, isAuthenticated, selectedStore, router]);
 
-  // Cerrar menú móvil al cambiar de ruta
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
@@ -62,7 +64,6 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  // Si no está autenticado o no tiene tienda después de la verificación
   if (!isAuthenticated || !selectedStore) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -71,7 +72,6 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  // Determinar la pestaña activa basada en la ruta
   const isActive = (path) => pathname.startsWith(path);
 
   return (
@@ -98,6 +98,8 @@ export default function DashboardLayout({ children }) {
             {isActive("/dashboard/reportes") && "Reportes"}
             {isActive("/dashboard/configuracion") && "Configuración"}
             {isActive("/dashboard/gastos") && "Gastos"}
+            {isActive("/dashboard/aportes") && "Aportes"}
+            {isActive("/dashboard/utilidades") && "Utilidades"}
           </h1>
         </div>
 
@@ -157,7 +159,7 @@ export default function DashboardLayout({ children }) {
                     : "hover:bg-indigo-700"
                 }`}
               >
-                <FiDollarSign className="mr-3" />
+                <FiDollar className="mr-3" />
                 Aportes
               </Link>
 
@@ -169,9 +171,10 @@ export default function DashboardLayout({ children }) {
                     : "hover:bg-indigo-700"
                 }`}
               >
-                <FiDollarSign className="mr-3" />
+                <FiShoppingCart className="mr-3" />
                 Ventas Activas
               </Link>
+              
               <Link
                 href="/dashboard/gastos"
                 className={`flex items-center w-full p-3 rounded-lg mb-2 ${
@@ -183,6 +186,19 @@ export default function DashboardLayout({ children }) {
                 <FiTrendingDown className="mr-3" />
                 Gastos
               </Link>
+              
+              <Link
+                href="/dashboard/utilidades"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/utilidades")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiTrendingUp className="mr-3" />
+                Utilidades
+              </Link>
+              
               <Link
                 href="/dashboard/liquidar"
                 className={`flex items-center w-full p-3 rounded-lg mb-2 ${
@@ -191,9 +207,10 @@ export default function DashboardLayout({ children }) {
                     : "hover:bg-indigo-700"
                 }`}
               >
-                <FiDollarSign className="mr-3" />
+                <FiCheckCircle className="mr-3" />
                 Liquidación de Créditos
               </Link>
+              
               <Link
                 href="/dashboard/recaudos"
                 className={`flex items-center w-full p-3 rounded-lg mb-2 ${
@@ -202,7 +219,7 @@ export default function DashboardLayout({ children }) {
                     : "hover:bg-indigo-700"
                 }`}
               >
-                <FiPocket className="mr-3" />
+                <FiPackage className="mr-3" />
                 Recaudos
               </Link>
 
@@ -306,6 +323,7 @@ export default function DashboardLayout({ children }) {
             <FiUser className="mr-3" />
             Clientes
           </Link>
+          
           <Link
             href="/dashboard/aportes"
             className={`flex items-center w-full p-3 rounded-lg mb-2 ${
@@ -314,7 +332,7 @@ export default function DashboardLayout({ children }) {
                 : "hover:bg-indigo-700"
             }`}
           >
-            <FiDollarSign className="mr-3" />
+            <FiDollar className="mr-3" />
             Aportes
           </Link>
 
@@ -326,9 +344,10 @@ export default function DashboardLayout({ children }) {
                 : "hover:bg-indigo-700"
             }`}
           >
-            <FiDollarSign className="mr-3" />
+            <FiShoppingCart className="mr-3" />
             Ventas Activas
           </Link>
+          
           <Link
             href="/dashboard/gastos"
             className={`flex items-center w-full p-3 rounded-lg mb-2 ${
@@ -340,6 +359,19 @@ export default function DashboardLayout({ children }) {
             <FiTrendingDown className="mr-3" />
             Gastos
           </Link>
+          
+          <Link
+            href="/dashboard/utilidades"
+            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+              isActive("/dashboard/utilidades")
+                ? "bg-indigo-700"
+                : "hover:bg-indigo-700"
+            }`}
+          >
+            <FiTrendingUp className="mr-3" />
+            Utilidades
+          </Link>
+          
           <Link
             href="/dashboard/liquidar"
             className={`flex items-center w-full p-3 rounded-lg mb-2 ${
@@ -348,9 +380,10 @@ export default function DashboardLayout({ children }) {
                 : "hover:bg-indigo-700"
             }`}
           >
-            <FiDollarSign className="mr-3" />
+            <FiCheckCircle className="mr-3" />
             Liquidación de Créditos
           </Link>
+          
           <Link
             href="/dashboard/recaudos"
             className={`flex items-center w-full p-3 rounded-lg mb-2 ${
@@ -359,9 +392,10 @@ export default function DashboardLayout({ children }) {
                 : "hover:bg-indigo-700"
             }`}
           >
-            <FiPocket className="mr-3" />
+            <FiPackage className="mr-3" />
             Recaudos
           </Link>
+          
           <Link
             href="/dashboard/reportes"
             className={`flex items-center w-full p-3 rounded-lg mb-2 ${
@@ -391,7 +425,6 @@ export default function DashboardLayout({ children }) {
           <div className="flex items-center">
             <div className="bg-gray-200 border-2 border-dashed rounded-xl w-12 h-12" />
             <div className="ml-3">
-              {/* <p className="font-medium">{profile?.trabajador || "Usuario"}</p> */}
               <p className="text-md text-indigo-300 flex items-center">
                 <FiShoppingBag className="mr-1" />
                 {storeInfo?.nombre || selectedStore?.tienda.nombre || "Tienda"}
@@ -425,13 +458,16 @@ export default function DashboardLayout({ children }) {
             <div className="flex items-center">
               <h1 className="text-xl font-semibold text-gray-800">
                 {isActive("/dashboard") && "Dashboard"}
-                {isActive("/dashboard/clientes") && "-Clientes"}
-                {isActive("/dashboard/creditos") && "-Créditos"}
-
-                {isActive("/dashboard/liquidar") && "-Liquidación de créditos"}
-                {isActive("/dashboard/reportes") && "-Reportes"}
-                {isActive("/dashboard/configuracion") && "-Configuración"}
-                {isActive("/dashboard/gastos") && "-Gastos"}
+                {isActive("/dashboard/clientes") && "Clientes"}
+                {isActive("/dashboard/creditos") && "Créditos"}
+                {isActive("/dashboard/aportes") && "Aportes"}
+                {isActive("/dashboard/ventas") && "Ventas Activas"}
+                {isActive("/dashboard/gastos") && "Gastos"}
+                {isActive("/dashboard/utilidades") && "Utilidades"}
+                {isActive("/dashboard/liquidar") && "Liquidación de Créditos"}
+                {isActive("/dashboard/recaudos") && "Recaudos"}
+                {isActive("/dashboard/reportes") && "Reportes"}
+                {isActive("/dashboard/configuracion") && "Configuración"}
               </h1>
             </div>
 
