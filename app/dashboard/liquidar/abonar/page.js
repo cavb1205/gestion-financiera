@@ -40,7 +40,7 @@ export default function PagarAbonoPage() {
       setCliente(parsedCliente);
       setSaldoActual(parseFloat(parsedAbono.saldo_actual)); // Valor inicial es el mínimo
       setValorAbono(parseFloat(parsedAbono.valor_recaudo)); // Mismo valor inicial
-      console.log("Abono cargado:", parsedAbono);
+
       // Calcular el máximo abonable (mínimo entre valor cuota y saldo actual)
       const maximo = parseFloat(parsedAbono.saldo_actual) || 0;
 
@@ -99,7 +99,7 @@ export default function PagarAbonoPage() {
       localStorage.removeItem("abono");
       localStorage.removeItem("cliente");
 
-      toast.success("Abono registrado correctamente.");
+      toast.success("Abono registrado correctamente.", { autoClose: 1000 });
       router.push("/dashboard/liquidar");
     } catch (error) {
       console.error("Error:", error);

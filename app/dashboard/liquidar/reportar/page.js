@@ -69,7 +69,7 @@ export default function ReportarFallaPage() {
       },
     };
 
-    console.log("Enviando reporte de no pago:", updatedNoPago);
+    
 
     try {
       const response = await fetch(
@@ -97,7 +97,7 @@ export default function ReportarFallaPage() {
       localStorage.removeItem("noPago");
       localStorage.removeItem("cliente");
 
-      toast.success("Reporte de no pago enviado correctamente.");
+      toast.success("Reporte de no pago enviado correctamente.", { autoClose: 1000 });
       router.push("/dashboard/liquidar");
     } catch (error) {
       console.error("Error:", error);
