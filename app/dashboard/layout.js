@@ -26,7 +26,11 @@ import {
   FiClipboard,
   FiDollarSign as FiDollar,
   FiUsers,
-  FiPackage
+  FiPackage,
+  
+  FiActivity,
+  FiCalendar,
+  FiTablet
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import Link from "next/link";
@@ -100,6 +104,7 @@ export default function DashboardLayout({ children }) {
             {isActive("/dashboard/gastos") && "Gastos"}
             {isActive("/dashboard/aportes") && "Aportes"}
             {isActive("/dashboard/utilidades") && "Utilidades"}
+            {isActive("/dashboard/sueldos") && "Cálculo de Sueldo"} {/* Nuevo */}
           </h1>
         </div>
 
@@ -197,6 +202,19 @@ export default function DashboardLayout({ children }) {
               >
                 <FiTrendingUp className="mr-3" />
                 Utilidades
+              </Link>
+
+              {/* Nuevo ítem de menú para Cálculo de Sueldo */}
+              <Link
+                href="/dashboard/sueldos"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/sueldos")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiTablet className="mr-3" />
+                Cálculo de Sueldo
               </Link>
               
               <Link
@@ -371,6 +389,19 @@ export default function DashboardLayout({ children }) {
             <FiTrendingUp className="mr-3" />
             Utilidades
           </Link>
+
+          {/* Nuevo ítem de menú para Cálculo de Sueldo */}
+          <Link
+            href="/dashboard/sueldos"
+            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+              isActive("/dashboard/sueldos")
+                ? "bg-indigo-700"
+                : "hover:bg-indigo-700"
+            }`}
+          >
+            <FiTablet className="mr-3" />
+            Cálculo de Sueldo
+          </Link>
           
           <Link
             href="/dashboard/liquidar"
@@ -464,6 +495,7 @@ export default function DashboardLayout({ children }) {
                 {isActive("/dashboard/ventas") && "Ventas Activas"}
                 {isActive("/dashboard/gastos") && "Gastos"}
                 {isActive("/dashboard/utilidades") && "Utilidades"}
+                {isActive("/dashboard/sueldos") && "Cálculo de Sueldo"} {/* Nuevo */}
                 {isActive("/dashboard/liquidar") && "Liquidación de Créditos"}
                 {isActive("/dashboard/recaudos") && "Recaudos"}
                 {isActive("/dashboard/reportes") && "Reportes"}
