@@ -143,7 +143,7 @@ const CalculoSueldo = ({ tienda, token }) => {
               type="date"
               value={fechaInicio}
               onChange={(e) => setFechaInicio(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+              className="w-full p-3 border text-gray-500 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
               required
             />
           </div>
@@ -156,7 +156,7 @@ const CalculoSueldo = ({ tienda, token }) => {
               type="date"
               value={fechaFin}
               onChange={(e) => setFechaFin(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+              className="w-full p-3 text-gray-500 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
               required
             />
           </div>
@@ -172,7 +172,7 @@ const CalculoSueldo = ({ tienda, token }) => {
               max="100"
               value={porcentaje}
               onChange={(e) => setPorcentaje(parseFloat(e.target.value))}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+              className="w-full p-3 border text-gray-500 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
               required
             />
           </div>

@@ -27,7 +27,6 @@ import {
   FiDollarSign as FiDollar,
   FiUsers,
   FiPackage,
-  
   FiActivity,
   FiCalendar,
   FiTablet
@@ -104,7 +103,7 @@ export default function DashboardLayout({ children }) {
             {isActive("/dashboard/gastos") && "Gastos"}
             {isActive("/dashboard/aportes") && "Aportes"}
             {isActive("/dashboard/utilidades") && "Utilidades"}
-            {isActive("/dashboard/sueldos") && "Cálculo de Sueldo"} {/* Nuevo */}
+            {isActive("/dashboard/sueldos") && "Cálculo de Sueldo"}
           </h1>
         </div>
 
@@ -123,13 +122,13 @@ export default function DashboardLayout({ children }) {
             className="fixed inset-0 bg-black bg-opacity-50"
             onClick={() => setIsMobileMenuOpen(false)}
           ></div>
-          <div className="relative w-64 h-full bg-indigo-800 text-white z-50">
-            <div className="p-6">
+          <div className="relative w-64 h-full bg-indigo-800 text-white z-50 flex flex-col">
+            <div className="p-6 flex-shrink-0">
               <h1 className="text-2xl font-bold">Cartera Financiera</h1>
               <p className="text-indigo-200 text-sm">Sistema de gestión</p>
             </div>
 
-            <nav className="flex-1 px-4 py-6">
+            <nav className="flex-1 px-4 py-4 overflow-y-auto">
               <Link
                 href="/dashboard"
                 className={`flex items-center w-full p-3 rounded-lg mb-2 ${
@@ -204,7 +203,6 @@ export default function DashboardLayout({ children }) {
                 Utilidades
               </Link>
 
-              {/* Nuevo ítem de menú para Cálculo de Sueldo */}
               <Link
                 href="/dashboard/sueldos"
                 className={`flex items-center w-full p-3 rounded-lg mb-2 ${
@@ -240,34 +238,10 @@ export default function DashboardLayout({ children }) {
                 <FiPackage className="mr-3" />
                 Recaudos
               </Link>
-
-              {/* <Link
-                href="/dashboard/reportes"
-                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
-                  isActive("/dashboard/reportes")
-                    ? "bg-indigo-700"
-                    : "hover:bg-indigo-700"
-                }`}
-              >
-                <FiBarChart2 className="mr-3" />
-                Reportes
-              </Link> */}
-
-              {/* <Link
-                href="/dashboard/configuracion"
-                className={`flex items-center w-full p-3 rounded-lg ${
-                  isActive("/dashboard/configuracion")
-                    ? "bg-indigo-700"
-                    : "hover:bg-indigo-700"
-                }`}
-              >
-                <FiSettings className="mr-3" />
-                Configuración
-              </Link> */}
             </nav>
 
-            <div className="p-4 border-t border-indigo-700">
-              <div className="flex items-center">
+            <div className="p-4 border-t border-indigo-700 flex-shrink-0">
+              <div className="flex items-center mb-3">
                 <div className="bg-gray-200 border-2 border-dashed rounded-xl w-12 h-12" />
                 <div className="ml-3">
                   <p className="font-medium">
@@ -281,7 +255,7 @@ export default function DashboardLayout({ children }) {
                   </p>
                 </div>
               </div>
-              <div className="mt-4 flex flex-col space-y-2">
+              <div className="flex flex-col space-y-2">
                 <button
                   onClick={() => {
                     router.push("/select-store");
@@ -309,13 +283,13 @@ export default function DashboardLayout({ children }) {
       )}
 
       {/* Sidebar para escritorio */}
-      <div className="hidden md:flex md:w-64 bg-indigo-800 text-white flex-col">
-        <div className="p-6">
+      <div className="hidden md:flex md:w-64 bg-indigo-800 text-white flex-col h-full">
+        <div className="p-6 flex-shrink-0">
           <h1 className="text-2xl font-bold">Cartera Financiera</h1>
           <p className="text-indigo-200 text-sm">Sistema de gestión</p>
         </div>
 
-        <nav className="flex-1 px-4 py-6">
+        <nav className="flex-1 px-4 py-4 overflow-y-auto">
           <Link
             href="/dashboard"
             className={`flex items-center w-full p-3 rounded-lg mb-2 ${
@@ -390,7 +364,6 @@ export default function DashboardLayout({ children }) {
             Utilidades
           </Link>
 
-          {/* Nuevo ítem de menú para Cálculo de Sueldo */}
           <Link
             href="/dashboard/sueldos"
             className={`flex items-center w-full p-3 rounded-lg mb-2 ${
@@ -426,34 +399,10 @@ export default function DashboardLayout({ children }) {
             <FiPackage className="mr-3" />
             Recaudos
           </Link>
-          
-          {/* <Link
-            href="/dashboard/reportes"
-            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
-              isActive("/dashboard/reportes")
-                ? "bg-indigo-700"
-                : "hover:bg-indigo-700"
-            }`}
-          >
-            <FiBarChart2 className="mr-3" />
-            Reportes
-          </Link> */}
-
-          {/* <Link
-            href="/dashboard/configuracion"
-            className={`flex items-center w-full p-3 rounded-lg ${
-              isActive("/dashboard/configuracion")
-                ? "bg-indigo-700"
-                : "hover:bg-indigo-700"
-            }`}
-          >
-            <FiSettings className="mr-3" />
-            Configuración
-          </Link> */}
         </nav>
 
-        <div className="p-4 border-t border-indigo-700">
-          <div className="flex items-center">
+        <div className="p-4 border-t border-indigo-700 flex-shrink-0">
+          <div className="flex items-center mb-3">
             <div className="bg-gray-200 border-2 border-dashed rounded-xl w-12 h-12" />
             <div className="ml-3">
               <p className="text-md text-indigo-300 flex items-center">
@@ -462,7 +411,7 @@ export default function DashboardLayout({ children }) {
               </p>
             </div>
           </div>
-          <div className="mt-4 flex flex-col space-y-2">
+          <div className="flex flex-col space-y-2">
             <button
               onClick={() => router.push("/select-store")}
               className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-800 bg-white hover:bg-gray-100"
@@ -495,7 +444,7 @@ export default function DashboardLayout({ children }) {
                 {isActive("/dashboard/ventas") && "Ventas Activas"}
                 {isActive("/dashboard/gastos") && "Gastos"}
                 {isActive("/dashboard/utilidades") && "Utilidades"}
-                {isActive("/dashboard/sueldos") && "Cálculo de Sueldo"} {/* Nuevo */}
+                {isActive("/dashboard/sueldos") && "Cálculo de Sueldo"}
                 {isActive("/dashboard/liquidar") && "Liquidación de Créditos"}
                 {isActive("/dashboard/recaudos") && "Recaudos"}
                 {isActive("/dashboard/reportes") && "Reportes"}
