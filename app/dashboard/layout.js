@@ -241,7 +241,7 @@ export default function DashboardLayout({ children }) {
                 Recaudos
               </Link>
 
-              <Link
+              {/* <Link
                 href="/dashboard/reportes"
                 className={`flex items-center w-full p-3 rounded-lg mb-2 ${
                   isActive("/dashboard/reportes")
@@ -251,9 +251,9 @@ export default function DashboardLayout({ children }) {
               >
                 <FiBarChart2 className="mr-3" />
                 Reportes
-              </Link>
+              </Link> */}
 
-              <Link
+              {/* <Link
                 href="/dashboard/configuracion"
                 className={`flex items-center w-full p-3 rounded-lg ${
                   isActive("/dashboard/configuracion")
@@ -263,7 +263,7 @@ export default function DashboardLayout({ children }) {
               >
                 <FiSettings className="mr-3" />
                 Configuración
-              </Link>
+              </Link> */}
             </nav>
 
             <div className="p-4 border-t border-indigo-700">
@@ -427,7 +427,7 @@ export default function DashboardLayout({ children }) {
             Recaudos
           </Link>
           
-          <Link
+          {/* <Link
             href="/dashboard/reportes"
             className={`flex items-center w-full p-3 rounded-lg mb-2 ${
               isActive("/dashboard/reportes")
@@ -437,9 +437,9 @@ export default function DashboardLayout({ children }) {
           >
             <FiBarChart2 className="mr-3" />
             Reportes
-          </Link>
+          </Link> */}
 
-          <Link
+          {/* <Link
             href="/dashboard/configuracion"
             className={`flex items-center w-full p-3 rounded-lg ${
               isActive("/dashboard/configuracion")
@@ -449,7 +449,7 @@ export default function DashboardLayout({ children }) {
           >
             <FiSettings className="mr-3" />
             Configuración
-          </Link>
+          </Link> */}
         </nav>
 
         <div className="p-4 border-t border-indigo-700">
