@@ -238,6 +238,29 @@ export default function DashboardLayout({ children }) {
                 <FiPackage className="mr-3" />
                 Recaudos
               </Link>
+              <Link
+                href="/dashboard/reportes/utilidad"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/reportes/utilidad")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiBarChart2 className="mr-3" />
+                Reportes
+              </Link>
+
+              {/* <Link
+                href="/dashboard/configuracion"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/configuracion")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiSettings className="mr-3" />
+                Configuración
+              </Link> */}
             </nav>
 
             <div className="p-4 border-t border-indigo-700 flex-shrink-0">
@@ -398,6 +421,17 @@ export default function DashboardLayout({ children }) {
           >
             <FiPackage className="mr-3" />
             Recaudos
+          </Link>
+          <Link
+            href="/dashboard/reportes/utilidad"
+            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+              isActive("/dashboard/reportes/utilidad")
+                ? "bg-indigo-700"
+                : "hover:bg-indigo-700"
+            }`}
+          >
+            <FiBarChart2 className="mr-3" />
+            Reportes
           </Link>
         </nav>
 
