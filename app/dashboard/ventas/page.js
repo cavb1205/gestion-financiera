@@ -131,7 +131,6 @@ export default function VentasPage() {
       {
         totalVentas: 0,
         saldoTotal: 0,
-        abonosTotal: 0,
         vencidas: 0,
         perdidas: 0,
       }
@@ -158,13 +157,13 @@ export default function VentasPage() {
   const getEstadoColor = (estado) => {
     switch (estado) {
       case "Vigente":
-        return "bg-green-100 text-green-800";
+        return "bg-green-200 text-green-800";
       case "Atrasado":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-200 text-yellow-800";
       case "Vencido":
-        return "bg-red-100 text-red-800";
+        return "bg-red-200 text-red-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-200 text-gray-800";
     }
   };
 
@@ -227,50 +226,46 @@ export default function VentasPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-sm p-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-gray-500 text-sm font-medium">
+              <h3 className="text-gray-800 text-sm font-semibold">
                 Total Ventas
               </h3>
               <FiShoppingBag className="text-indigo-500" />
             </div>
-            <p className="mt-1 text-2xl font-bold">{summary.totalVentas}</p>
+            <p className="mt-1 text-2xl font-bold text-blue-500">
+              {summary.totalVentas}
+            </p>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-gray-500 text-sm font-medium">Saldo Total</h3>
+              <h3 className="text-gray-800 text-sm font-semibold">
+                Saldo Total
+              </h3>
               <FiDollarSign className="text-green-500" />
             </div>
-            <p className="mt-1 text-2xl font-bold">
+            <p className="mt-1 text-2xl font-bold text-green-500">
               {formatMoney(summary.saldoTotal)}
             </p>
           </div>
+
           <div className="bg-white rounded-xl shadow-sm p-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-gray-500 text-sm font-medium">
-                Abonos Total
-              </h3>
-              <FiTrendingUp className="text-blue-500" />
-            </div>
-            <p className="mt-1 text-2xl font-bold">
-              {formatMoney(summary.abonosTotal)}
-            </p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-gray-500 text-sm font-medium">
+              <h3 className="text-gray-800 text-sm font-semibold">
                 Ventas Vencidas
               </h3>
               <FiClock className="text-red-500" />
             </div>
-            <p className="mt-1 text-2xl font-bold">{summary.vencidas}</p>
+            <p className="mt-1 text-2xl font-bold text-red-500">
+              {summary.vencidas}
+            </p>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-gray-500 text-sm font-medium">
+              <h3 className="text-gray-800 text-sm font-semibold">
                 Pérdidas Potenciales
               </h3>
-              <FiTrendingDown className="text-purple-500" />
+              <FiTrendingDown className="text-red-500" />
             </div>
-            <p className="mt-1 text-2xl font-bold">
+            <p className="mt-1 text-2xl font-bold text-red-500">
               {formatMoney(summary.perdidas)}
             </p>
           </div>
@@ -289,7 +284,7 @@ export default function VentasPage() {
                   placeholder="Cliente o ID de venta..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-600"
                 />
                 <FiSearch className="absolute left-3 top-3 text-gray-400" />
               </div>
@@ -304,7 +299,7 @@ export default function VentasPage() {
                 onChange={(e) =>
                   setFilters({ ...filters, estado: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-600"
               >
                 <option value="Todos">Todos</option>
                 <option value="Vigente">Vigente</option>
@@ -321,7 +316,6 @@ export default function VentasPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  
                   <th
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -358,7 +352,6 @@ export default function VentasPage() {
                   >
                     Días Atrasados
                   </th>
-                  
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -378,7 +371,6 @@ export default function VentasPage() {
                       className="hover:bg-gray-50 cursor-pointer"
                       onClick={() => navigateToVentaDetail(venta.id)}
                     >
-                      
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center">
@@ -434,7 +426,6 @@ export default function VentasPage() {
                           <span className="text-gray-500">En plazo</span>
                         )}
                       </td>
-                     
                     </tr>
                   ))
                 )}
@@ -490,7 +481,7 @@ export default function VentasPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="border border-gray-200 rounded-lg p-4">
                 <p className="text-gray-500">Valor Total de Ventas</p>
-                <p className="text-xl font-bold">
+                <p className="text-xl font-bold text-blue-600">
                   {formatMoney(
                     filteredVentas.reduce(
                       (sum, v) => sum + parseFloat(v.valor_venta),
@@ -515,7 +506,7 @@ export default function VentasPage() {
               </div>
               <div className="border border-gray-200 rounded-lg p-4">
                 <p className="text-gray-500">Total Abonado</p>
-                <p className="text-xl font-bold">
+                <p className="text-xl font-bold text-green-600">
                   {formatMoney(
                     filteredVentas.reduce(
                       (sum, v) => sum + parseFloat(v.total_abonado),
@@ -526,6 +517,7 @@ export default function VentasPage() {
               </div>
               <div className="border border-gray-200 rounded-lg p-4">
                 <p className="text-gray-500">Pérdidas Potenciales</p>
+
                 <p className="text-xl font-bold text-red-600">
                   {summary.perdidas > 0 ? formatMoney(summary.perdidas) : "N/A"}
                 </p>
