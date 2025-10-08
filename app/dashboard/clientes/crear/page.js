@@ -161,12 +161,7 @@ export default function CrearCliente() {
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6">
             <div className="flex items-center">
-              <div className="bg-white bg-opacity-20 p-3 rounded-full">
-                <FiUser className="text-white text-xl" />
-              </div>
-              <h1 className="ml-4 text-2xl font-bold text-white">
-                Nuevo Cliente
-              </h1>
+              <h1 className="text-2xl font-bold text-white">Nuevo Cliente</h1>
             </div>
             <p className="mt-2 text-indigo-100">
               Completa la información para registrar un nuevo cliente en{" "}
@@ -198,7 +193,7 @@ export default function CrearCliente() {
               </div>
             ) : (
               <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-500">
                   {/* Columna izquierda */}
                   <div>
                     <div className="mb-5">
@@ -426,17 +421,6 @@ export default function CrearCliente() {
                 </div>
               </form>
             )}
-          </div>
-        </div>
-
-        {/* Información de tienda */}
-        <div className="mt-6 bg-white rounded-lg shadow p-4 flex items-center">
-          <div className="bg-indigo-100 p-3 rounded-full">
-            <FiShield className="text-indigo-600" />
-          </div>
-          <div className="ml-4">
-            <p className="text-sm text-gray-500">Tienda actual</p>
-            <p className="font-medium">{selectedStore.tienda.nombre}</p>
           </div>
         </div>
       </div>
