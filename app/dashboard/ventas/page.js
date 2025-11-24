@@ -17,6 +17,7 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import Link from "next/link";
 
 export default function VentasPage() {
   const router = useRouter();
@@ -372,7 +373,7 @@ export default function VentasPage() {
                       onClick={() => navigateToVentaDetail(venta.id)}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
+                        <Link href={`/dashboard/ventas/${venta.id}`} className="flex items-center hover:scale-105 transition-transform">
                           <div className="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center">
                             <FiUser className="text-indigo-600" />
                           </div>
@@ -385,7 +386,7 @@ export default function VentasPage() {
                                 "Sin teléfono"}
                             </div>
                           </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {venta.fecha_venta}

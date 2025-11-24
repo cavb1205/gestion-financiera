@@ -19,6 +19,8 @@ import {
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import Link from "next/link";
+import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
+import EliminarRecaudo from "@/app/components/recaudos/EliminarRecaudo";
 
 export default function RecaudosPage() {
   const { token, selectedStore } = useAuth();
@@ -41,7 +43,6 @@ export default function RecaudosPage() {
   // Estados para modificación y eliminación
   const [editingRecaudo, setEditingRecaudo] = useState(null);
   const [deletingRecaudo, setDeletingRecaudo] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Establecer fecha inicial
@@ -202,115 +203,64 @@ export default function RecaudosPage() {
     setDeletingRecaudo(recaudo);
   };
 
-  // Guardar cambios de edición
-  const handleSaveEdit = async () => {
-    if (!editingRecaudo) return;
-    if (editingRecaudo.valor_recaudo <= 0) {
-      toast.error("El valor del recaudo debe ser mayor a 0");
-      return;
-    }
-    setIsSaving(true);
+  // Callback para cuando se edita un recaudo exitosamente
+  const handleRecaudoEditado = (updatedRecaudo) => {
+    // Actualizar estado local
+    setRecaudos((prev) =>
+      prev.map((r) => (r.id === updatedRecaudo.id ? updatedRecaudo : r))
+    );
 
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/recaudos/${editingRecaudo.id}/update/t/${selectedStore.tienda.id}/`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(editingRecaudo),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Error al actualizar el recaudo");
-      }
-
-      toast.success("Recaudo actualizado correctamente");
-
-      // Actualizar estado local
-      setRecaudos((prev) =>
-        prev.map((r) => (r.id === editingRecaudo.id ? editingRecaudo : r))
-      );
-
-      // Actualizar estadísticas y totales
-      const updatedTotal = recaudos.reduce(
-        (acc, r) =>
-          acc +
-          (r.id === editingRecaudo.id
-            ? parseFloat(editingRecaudo.valor_recaudo)
-            : parseFloat(r.valor_recaudo)),
-        0
-      );
-      setTotalRecaudado(updatedTotal);
-
-      setEditingRecaudo(null);
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error(error.message);
-    } finally {
-      setIsSaving(false);
-    }
+    // Actualizar estadísticas y totales
+    // Nota: Esto es una aproximación, lo ideal sería recargar los datos o tener el valor anterior
+    // Para simplificar y asegurar consistencia, recargamos los datos si es posible, 
+    // o recalculamos basándonos en el nuevo valor.
+    // Dado que el componente EditarRecaudo devuelve el objeto actualizado, podemos usarlo.
+    
+    // Recalcular todo el array es más seguro
+    const newRecaudos = recaudos.map((r) => (r.id === updatedRecaudo.id ? updatedRecaudo : r));
+    
+    const total = newRecaudos.reduce(
+      (acc, recaudo) => acc + parseFloat(recaudo.valor_recaudo || 0),
+      0
+    );
+    setTotalRecaudado(total);
+    
+    setEditingRecaudo(null);
+    toast.success("Recaudo actualizado correctamente");
   };
 
-  // Confirmar eliminación
-  const handleConfirmDelete = async () => {
+  // Callback para cuando se elimina un recaudo exitosamente
+  const handleRecaudoEliminado = () => {
+    // El componente EliminarRecaudo ya maneja la eliminación en la API
+    // Aquí solo actualizamos el estado local
+    
     if (!deletingRecaudo) return;
-    setIsDeleting(true);
 
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/recaudos/${deletingRecaudo.id}/delete/`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+    setRecaudos((prev) => prev.filter((r) => r.id !== deletingRecaudo.id));
+    
+    // Actualizar totales
+    const updatedTotal =
+      totalRecaudado - parseFloat(deletingRecaudo.valor_recaudo || 0);
+    setTotalRecaudado(updatedTotal);
+    setTotalRecaudos((prev) => prev - 1);
+    
+    // Actualizar estadísticas
+    const newRecaudos = recaudos.filter((r) => r.id !== deletingRecaudo.id);
+    const abonos = newRecaudos.filter((r) => parseFloat(r.valor_recaudo) > 0);
+    const fallas = newRecaudos.filter((r) => parseFloat(r.valor_recaudo) === 0);
+    const newTotal = newRecaudos.length;
 
-      if (!response.ok) {
-        throw new Error("Error al eliminar el recaudo");
-      }
+    setEstadisticas({
+      totalAbonos: abonos.length,
+      totalFallas: fallas.length,
+      porcentajeAbonos:
+        newTotal > 0 ? Math.round((abonos.length / newTotal) * 100) : 0,
+      porcentajeFallas:
+        newTotal > 0 ? Math.round((fallas.length / newTotal) * 100) : 0,
+    });
 
-      toast.success("Recaudo eliminado correctamente");
-
-      // Actualizar estado local
-      setRecaudos((prev) => prev.filter((r) => r.id !== deletingRecaudo.id));
-
-      // Actualizar totales
-      const updatedTotal =
-        totalRecaudado - parseFloat(deletingRecaudo.valor_recaudo || 0);
-      setTotalRecaudado(updatedTotal);
-
-      setTotalRecaudos((prev) => prev - 1);
-      setDeletingRecaudo(null);
-
-      // Actualizar estadísticas
-      const abonos = recaudos.filter(
-        (r) => r.id !== deletingRecaudo.id && parseFloat(r.valor_recaudo) > 0
-      );
-      const fallas = recaudos.filter(
-        (r) => r.id !== deletingRecaudo.id && parseFloat(r.valor_recaudo) === 0
-      );
-      const newTotal = recaudos.length - 1;
-
-      setEstadisticas({
-        totalAbonos: abonos.length,
-        totalFallas: fallas.length,
-        porcentajeAbonos:
-          newTotal > 0 ? Math.round((abonos.length / newTotal) * 100) : 0,
-        porcentajeFallas:
-          newTotal > 0 ? Math.round((fallas.length / newTotal) * 100) : 0,
-      });
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error(error.message);
-    } finally {
-      setIsDeleting(false);
-    }
+    setDeletingRecaudo(null);
+    // El toast lo muestra el componente
   };
 
   if (loading) {
@@ -325,107 +275,19 @@ export default function RecaudosPage() {
     <div className="min-h-screen bg-gray-50 p-4">
       {/* Modales para editar y eliminar */}
       {editingRecaudo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4 text-blue-600">
-                {console.log(editingRecaudo)}
-              Editar Recaudo
-            </h2>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha
-              </label>
-              <input
-                type="date"
-                value={editingRecaudo.fecha_recaudo}
-                onChange={(e) =>
-                  setEditingRecaudo({
-                    ...editingRecaudo,
-                    fecha_recaudo: e.target.value,
-                  })
-                }
-                className="w-full p-2 border border-gray-300 rounded-md text-gray-500"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Valor
-              </label>
-              <input
-                type="number"
-                value={editingRecaudo.valor_recaudo}
-                onChange={(e) =>
-                  setEditingRecaudo({
-                    ...editingRecaudo,
-                    valor_recaudo: e.target.value,
-                  })
-                }
-                className="w-full p-2 border border-gray-300 rounded-md text-gray-500"
-                min="0"
-              />
-            </div>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setEditingRecaudo(null)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveEdit}
-                disabled={isSaving}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-300"
-              >
-                {isSaving ? "Guardando..." : "Guardar Cambios"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <EditarRecaudo
+          editingRecaudo={editingRecaudo}
+          onEditar={handleRecaudoEditado}
+          onClose={() => setEditingRecaudo(null)}
+        />
       )}
 
       {deletingRecaudo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4 text-red-600">
-              Eliminar Recaudo
-            </h2>
-            <p className="mb-6 text-gray-600">
-              ¿Estás seguro de eliminar este recaudo? Esta acción no se puede
-              deshacer.
-            </p>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-              <div className="flex items-center">
-                <div className="bg-red-100 p-2 rounded-full mr-3">
-                  <FiTrash2 className="text-red-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-500">
-                    {deletingRecaudo.venta?.cliente?.nombres}{" "}
-                    {deletingRecaudo.venta?.cliente?.apellidos}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Valor: {formatCurrency(deletingRecaudo.valor_recaudo)}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setDeletingRecaudo(null)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-300"
-              >
-                {isDeleting ? "Eliminando..." : "Sí, Eliminar"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <EliminarRecaudo
+          deletingRecaudo={deletingRecaudo}
+          onEliminar={handleRecaudoEliminado}
+          onClose={() => setDeletingRecaudo(null)}
+        />
       )}
 
       <div className="max-w-7xl mx-auto">

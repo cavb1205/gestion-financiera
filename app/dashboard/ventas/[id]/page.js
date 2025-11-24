@@ -25,6 +25,7 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import EliminarRecaudo from "@/app/components/recaudos/EliminarRecaudo";
+import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
 
 export default function VentaDetailPage() {
   const router = useRouter();
@@ -42,6 +43,7 @@ export default function VentaDetailPage() {
   const [isSendingLoss, setIsSendingLoss] = useState(false);
   const [lossError, setLossError] = useState(null);
   const [deletingRecaudo, setDeletingRecaudo] = useState(null);
+  const [editingRecaudo, setEditingRecaudo] = useState(null);
 
   const [refreshData, setRefreshData] = useState(false);
 
@@ -75,10 +77,19 @@ export default function VentaDetailPage() {
     setDeletingRecaudo(pago);
   };
 
+  const handleEditarPago = (pago) => {
+    setEditingRecaudo(pago);
+  }
+
   // Función para manejar la eliminación exitosa
   const handleRecaudoEliminado = () => {
     setDeletingRecaudo(null);
     setRefreshData((prev) => !prev); // Forzar recarga de datos
+  };
+
+  const handleRecaudoEditado = () => {
+    setEditingRecaudo(null);
+    setRefreshData((prev) => !prev);
   };
 
   // Cargar datos de la venta y pagos
@@ -269,6 +280,13 @@ export default function VentaDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-400">
+      {editingRecaudo && (
+        <EditarRecaudo
+          editingRecaudo={editingRecaudo}
+          onEditar={handleRecaudoEditado}
+          onClose={() => setEditingRecaudo(null)}
+        />
+      )}
       {deletingRecaudo && (
         <EliminarRecaudo
           deletingRecaudo={deletingRecaudo}
@@ -726,7 +744,10 @@ export default function VentaDetailPage() {
                         <td className="px-4 py-4 whitespace-nowrap text-sm">
                           {valorRecaudo > 0 ? (
                             <>
-                              <button className="text-indigo-600 hover:text-indigo-900 mr-3">
+                              <button
+                                onClick={() => handleEditarPago(pago)}
+                                className="text-indigo-600 hover:text-indigo-900 mr-3"
+                              >
                                 Editar
                               </button>
                               <button
@@ -739,9 +760,9 @@ export default function VentaDetailPage() {
                           ) : (
                             <button
                               onClick={() => handleEliminarPago(pago)}
-                              className="text-gray-600 hover:text-gray-900"
+                              className="text-gray-600 hover:text-red-600"
                             >
-                              <FiXCircle className="inline mr-1" /> Eliminar
+                              <FiXCircle className="inline mr-1 hover:text-red-600" /> Eliminar
                               visita
                             </button>
                           )}
