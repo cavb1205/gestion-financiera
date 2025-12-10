@@ -39,28 +39,33 @@ export const AuthProvider = ({ children }) => {
 
   // Función para verificar y cargar la autenticación
   const loadAuthData = useCallback(() => {
-    const storedToken = localStorage.getItem('authToken');
-    const storedUser = localStorage.getItem('userData');
-    const storedProfile = localStorage.getItem('userProfile');
-    const storedStore = localStorage.getItem('selectedStore');
-    const tokenTimestamp = localStorage.getItem('tokenTimestamp');
-    
-    if (!storedToken || !storedUser || !storedProfile || !tokenTimestamp) {
-      setLoading(false);
-      return false;
-    }
-
-    const now = new Date().getTime();
-    const tokenAge = now - parseInt(tokenTimestamp, 10);
-    const tokenExpired = tokenAge > 60 * 60 * 1000; // 60 minutos
-    
-    if (tokenExpired) {
-      clearAuth();
-      setLoading(false);
-      return false;
-    }
-
     try {
+      const storedToken = localStorage.getItem('authToken');
+      const storedUser = localStorage.getItem('userData');
+      const storedProfile = localStorage.getItem('userProfile');
+      const storedStore = localStorage.getItem('selectedStore');
+      const tokenTimestamp = localStorage.getItem('tokenTimestamp');
+      
+      if (!storedToken || !storedUser || !storedProfile || !tokenTimestamp) {
+        setLoading(false);
+        return false;
+      }
+
+      const now = new Date().getTime();
+      const tokenAge = now - parseInt(tokenTimestamp, 10);
+      const tokenExpired = tokenAge > 60 * 60 * 1000; // 60 minutos
+      
+      if (tokenExpired) {
+        console.log('Token expirado al cargar, limpiando sesión');
+        clearAuth();
+        setLoading(false);
+        // Solo redirigir si no estamos ya en login
+        if (window.location.pathname !== '/login') {
+             router.push('/login');
+        }
+        return false;
+      }
+
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
       setProfile(JSON.parse(storedProfile));
@@ -69,36 +74,51 @@ export const AuthProvider = ({ children }) => {
         setSelectedStore(JSON.parse(storedStore));
       }
       
-      // Programar verificación de expiración
-      const timeLeft = 60 * 60 * 1000 - tokenAge;
-      setTimeout(logout, timeLeft);
+      // Programar expiración basada en el tiempo restante real
+      const timeLeft = Math.max(0, 60 * 60 * 1000 - tokenAge);
+      console.log(`Token válido, expira en ${Math.round(timeLeft / 60000)} minutos`);
       
-      return true;
+      // Limpiar timeout anterior si existe (aunque en este contexto es nuevo)
+      const timeoutId = setTimeout(() => {
+        console.log('Token expirado por timeout');
+        logout();
+      }, timeLeft);
+      
+      return () => clearTimeout(timeoutId); // Cleanup en un useEffect si fuera necesario, pero aquí es difícil retornar
     } catch (error) {
       console.error('Error parsing auth data:', error);
       clearAuth();
+      setLoading(false);
       return false;
     }
-  }, [clearAuth, logout]);
+  }, [clearAuth, logout, router]);
 
   useEffect(() => {
     // Solo se ejecuta en el cliente
     if (typeof window === 'undefined') {
-      setLoading(false);
       return;
     }
 
     // Intentar cargar los datos de autenticación
-    const authLoaded = loadAuthData();
+    loadAuthData();
+    setLoading(false);
     
-    // Si no se cargaron datos, marcamos loading como false
-    if (!authLoaded) {
-      setLoading(false);
-    } else {
-      // Si se cargaron datos, ya estamos autenticados
-      setLoading(false);
-    }
-  }, [loadAuthData]);
+    // Intervalo para verificar expiración periódicamente (por si el timeout falla o el usuario hiberna la PC)
+    const intervalId = setInterval(() => {
+        const tokenTimestamp = localStorage.getItem('tokenTimestamp');
+        if (tokenTimestamp) {
+            const now = new Date().getTime();
+            const tokenAge = now - parseInt(tokenTimestamp, 10);
+             if (tokenAge > 60 * 60 * 1000) {
+                console.log('Token expirado detectado por intervalo');
+                logout();
+            }
+        }
+    }, 60000); // Verificar cada minuto
+
+    return () => clearInterval(intervalId);
+
+  }, [loadAuthData, logout]);
 
   const login = useCallback((data) => {
     localStorage.setItem('authToken', data.token);
