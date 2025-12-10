@@ -192,10 +192,14 @@ export default function VentaDetailPage() {
   };
 
   const formatMoney = (amount) => {
+    const val = parseFloat(amount);
+    const hasDecimals = val % 1 !== 0;
+
     return new Intl.NumberFormat("es-CL", {
       style: "currency",
       currency: "CLP",
-      minimumFractionDigits: 0,
+      minimumFractionDigits: hasDecimals ? 2 : 0,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 

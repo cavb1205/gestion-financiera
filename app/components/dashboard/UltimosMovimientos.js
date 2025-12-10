@@ -13,7 +13,10 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 
+import { useRouter } from "next/navigation";
+
 const UltimosMovimientos = ({ tienda }) => {
+  const router = useRouter();
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -380,7 +383,12 @@ const UltimosMovimientos = ({ tienda }) => {
             {movimientos.map((movimiento) => (
               <div
                 key={`${movimiento.tipo}-${movimiento.id}`}
-                className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                onClick={() => {
+                  if (movimiento.tipo === "venta") {
+                    router.push(`/dashboard/ventas/${movimiento.id}`);
+                  }
+                }}
+                className={`flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer`}
               >
                 <div className="flex items-center space-x-3">
                   <div
