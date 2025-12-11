@@ -130,6 +130,18 @@ export default function NuevaVentaPage() {
     return `${year}-${month}-${day}`;
   };
 
+  const formatMoney = (amount) => {
+    const val = parseFloat(amount) || 0;
+    const hasDecimals = val % 1 !== 0;
+
+    return new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
+      minimumFractionDigits: hasDecimals ? 2 : 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -435,10 +447,7 @@ export default function NuevaVentaPage() {
                   <FiDollarSign className="text-indigo-600" />
                 </div>
                 <p className="text-2xl font-bold text-gray-900">
-                  $
-                  {calcularTotalAPagar().toLocaleString("es-CL", {
-                    maximumFractionDigits: 0,
-                  })}
+                  {formatMoney(calcularTotalAPagar())}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
                   (Valor venta + {formData.interes}% interés)
@@ -453,10 +462,7 @@ export default function NuevaVentaPage() {
                   <FiCalendar className="text-green-600" />
                 </div>
                 <p className="text-2xl font-bold text-gray-900">
-                  $
-                  {calcularValorCuota().toLocaleString("es-CL", {
-                    maximumFractionDigits: 0,
-                  })}
+                  {formatMoney(calcularValorCuota())}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
                   {formData.cuotas} cuotas

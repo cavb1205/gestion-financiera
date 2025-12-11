@@ -32,6 +32,7 @@ export default function EditarCliente() {
     telefono_principal: "",
     telefono_opcional: "",
     direccion: "",
+    estado_cliente: "Activo",
   });
   
   const [errors, setErrors] = useState({});
@@ -82,6 +83,7 @@ export default function EditarCliente() {
         telefono_principal: data.telefono_principal || "",
         telefono_opcional: data.telefono_opcional || "",
         direccion: data.direccion || "",
+        estado_cliente: data.estado_cliente || "Activo",
       });
       
       setIsLoading(false);
@@ -421,6 +423,27 @@ export default function EditarCliente() {
                           {errors.direccion}
                         </p>
                       )}
+                    </div>
+
+                    <div className="mb-5">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Estado del Cliente <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
+                        <div className="pl-4 text-gray-400">
+                          <FiShield />
+                        </div>
+                        <select
+                          name="estado_cliente"
+                          value={formData.estado_cliente}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2 focus:outline-none bg-white"
+                        >
+                          <option value="Activo">Activo</option>
+                          <option value="Inactivo">Inactivo</option>
+                          <option value="Bloqueado">Bloqueado</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>

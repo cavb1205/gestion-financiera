@@ -122,13 +122,26 @@ export default function CrearCliente() {
         // Mapear errores del backend a campos específicos
         const backendErrors = {};
         Object.keys(errorData).forEach((field) => {
-          backendErrors[field] = Array.isArray(errorData[field])
+          let errorMessage = Array.isArray(errorData[field])
             ? errorData[field].join(", ")
             : errorData[field];
+            
+          // Mejorar mensaje para error de identificación duplicada
+          if (field === 'identificacion' && 
+             (errorMessage.includes('unique') || errorMessage.includes('exists') || errorMessage.includes('ya existe'))) {
+            errorMessage = "Ya existe un cliente registrado con esta identificación. Por favor verifique el número o busque el cliente en la lista.";
+            
+            // También mostrar un mensaje global para que sea más evidente
+            setSubmitError("No se pudo crear el cliente: La identificación ya está registrada.");
+          }
+          
+          backendErrors[field] = errorMessage;
         });
 
         setErrors(backendErrors);
-        throw new Error("Error en la validación del servidor");
+        if (!submitError) { // Solo lanzar error genérico si no pusimos uno específico
+             throw new Error("Por favor revise los errores en el formulario");
+        }
       }
 
       // Éxito
