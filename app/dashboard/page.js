@@ -140,8 +140,13 @@ export default function DashboardPage() {
 
   // Calcular días restantes para la membresía
   const calcularDiasRestantes = (fechaVencimiento) => {
+    if (!fechaVencimiento) return Number.MAX_SAFE_INTEGER; // Asumir no expirado si no hay fecha aún
+    
     const hoy = new Date();
     const vencimiento = new Date(fechaVencimiento);
+    
+    if (isNaN(vencimiento.getTime())) return Number.MAX_SAFE_INTEGER; // Fecha inválida
+
     const diffTime = vencimiento - hoy;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
@@ -159,6 +164,7 @@ export default function DashboardPage() {
 
   const isExpired = estadoMembresia === "expired";
 
+  
   if (isExpired) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -343,7 +349,7 @@ export default function DashboardPage() {
                     Membresía
                   </h3>
                   <p className="text-lg font-bold text-gray-800">
-                    {tienda.membresia.nombre}
+                    {tienda.membresia?.nombre}
                   </p>
                   <p className="text-xs mt-1">
                     <span className="text-gray-500">Estado: </span>
@@ -374,7 +380,9 @@ export default function DashboardPage() {
                     : "bg-red-100 text-red-800"
                 }`}
               >
-                {diasRestantesMembresia > 0
+                {diasRestantesMembresia > 10000 
+                  ? "Verificando..." 
+                  : diasRestantesMembresia > 0
                   ? `${diasRestantesMembresia} días`
                   : "Expirada"}
               </div>
@@ -405,3 +413,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
