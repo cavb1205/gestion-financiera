@@ -120,7 +120,7 @@ export default function DashboardPage() {
     };
 
     cargarDatos();
-  }, [selectedStore?.tienda?.id]); // Solo recargar si cambia el ID de la tienda seleccionada
+  }, [selectedStore.tienda.id]); // Solo recargar si cambia el ID de la tienda seleccionada
 
   if (!selectedStore || (dataLoading && !tienda)) {
     return (
