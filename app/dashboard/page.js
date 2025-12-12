@@ -120,6 +120,7 @@ export default function DashboardPage() {
     };
 
     cargarDatos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore.tienda.id]); // Solo recargar si cambia el ID de la tienda seleccionada
 
   if (!selectedStore || (dataLoading && !tienda)) {
@@ -177,7 +178,7 @@ export default function DashboardPage() {
               Membresía Expirada
             </h2>
             <p className="text-red-600 font-medium">
-              La cuenta de "{tienda.tienda.nombre}" ha expirado.
+              La cuenta de &quot;{tienda.tienda.nombre}&quot; ha expirado.
             </p>
           </div>
           <div className="p-6">
