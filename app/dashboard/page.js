@@ -32,7 +32,7 @@ import Grafico from "../components/dashboard/Grafico";
 import UltimosMovimientos from "../components/dashboard/UltimosMovimientos";
 
 export default function DashboardPage() {
-  const { selectedStore, token } = useAuth();
+  const { selectedStore, token, updateStoreData } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [tienda, setTienda] = useState(null);
@@ -59,6 +59,12 @@ export default function DashboardPage() {
 
       const tiendaData = await response.json();
       setTienda(tiendaData);
+      
+      // Actualizar el contexto con la información más reciente (importante para el layout)
+      if (updateStoreData) {
+          updateStoreData(tiendaData);
+      }
+      
       return tiendaData;
     } catch (error) {
       console.error("Error al obtener la tienda actualizada:", error);
@@ -95,25 +101,41 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const cargarDatos = async () => {
-      if (selectedStore) {
+      if (selectedStore?.tienda?.id) {
         setDataLoading(true);
+        // Usar los datos de selectedStore como inicialización rápida para evitar pantalla de carga infinita si la API falla o tarda
+        if (!tienda) {
+            setTienda({
+                tienda: selectedStore.tienda,
+                membresia: selectedStore.membresia,
+                fecha_vencimiento: selectedStore.fecha_vencimiento,
+                // Valores por defecto seguros para evitar crash
+                estado: "Activo" 
+            });
+        }
+        
         await actualizarDashboard();
         setDataLoading(false);
       }
     };
 
     cargarDatos();
-  }, [selectedStore]);
+  }, [selectedStore?.tienda?.id]); // Solo recargar si cambia el ID de la tienda seleccionada
 
-  if (!selectedStore || dataLoading) {
+  if (!selectedStore || (dataLoading && !tienda)) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
           <p className="ml-4 text-gray-600 mt-3">Cargando dashboard...</p>
         </div>
       </div>
     );
+  }
+
+  // Protección adicional contra crashes si tienda es null
+  if (!tienda) {
+      return null; // O un estado de error
   }
 
   // Calcular días restantes para la membresía
@@ -134,6 +156,61 @@ export default function DashboardPage() {
       : diasRestantesMembresia > 0
       ? "warning"
       : "expired";
+
+  const isExpired = estadoMembresia === "expired";
+
+  if (isExpired) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden text-center">
+          <div className="bg-red-50 p-6">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+              <FiAlertTriangle className="h-8 w-8 text-red-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Membresía Expirada
+            </h2>
+            <p className="text-red-600 font-medium">
+              La cuenta de "{tienda.tienda.nombre}" ha expirado.
+            </p>
+          </div>
+          <div className="p-6">
+            <p className="text-gray-600 mb-6">
+              Tu plan <strong>{tienda.membresia?.nombre}</strong> venció el{" "}
+              {new Date(tienda.fecha_vencimiento).toLocaleDateString()}. Para
+              seguir disfrutando de todas las funcionalidades, por favor
+              actualiza tu membresía ahora.
+            </p>
+            
+            <div className="space-y-3">
+              <button 
+                onClick={() => window.open(`https://wa.me/573136706939?text=Hola,%20quisiera%20renovar%20mi%20membresía%20premim%20para%20la%20tienda%20${tienda.tienda.nombre} (ID: ${tienda.tienda.id})`, '_blank')}
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition-colors flex items-center justify-center"
+              >
+                <FiRefreshCw className="mr-2" />
+                Renovar Membresía
+              </button>
+              
+              <button
+                onClick={actualizarDashboard}
+                disabled={refreshing}
+                className="w-full py-3 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center"
+              >
+                <FiRefreshCw className={`mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                Comprobar estado
+              </button>
+            </div>
+            
+            <div className="mt-6 pt-6 border-t border-gray-100">
+               <p className="text-sm text-gray-500">
+                 ¿Necesitas ayuda? Contacta a soporte
+               </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-8">

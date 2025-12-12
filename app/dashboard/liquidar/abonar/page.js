@@ -57,12 +57,14 @@ export default function PagarAbonoPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (valorAbono <= 0 || " " === valorAbono || isNaN(valorAbono)) {
+    const valorNumerico = parseFloat(valorAbono);
+
+    if (!valorNumerico || valorNumerico <= 0) {
       toast.error("El valor a abonar debe ser mayor a cero.");
       return;
     }
 
-    if (valorAbono > maximoAbonable) {
+    if (valorNumerico > maximoAbonable) {
       toast.error(
         `El valor máximo a abonar es ${formatCurrency(maximoAbonable)}`
       );
@@ -74,7 +76,7 @@ export default function PagarAbonoPage() {
     // Actualizar el objeto abono con el valor ingresado
     const abonoToSend = {
       ...abono,
-      valor_recaudo: valorAbono,
+      valor_recaudo: valorNumerico,
     };
 
     try {
@@ -160,7 +162,7 @@ export default function PagarAbonoPage() {
               <input
                 type="number"
                 value={valorAbono}
-                onChange={(e) => setValorAbono(parseFloat(e.target.value))}
+                onChange={(e) => setValorAbono(e.target.value)}
                 max={maximoAbonable}
                 className="w-full p-2 border border-gray-300 rounded-md text-gray-700"
               />

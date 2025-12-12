@@ -55,9 +55,27 @@ export default function DashboardLayout({ children }) {
     }
   }, [loading, isAuthenticated, selectedStore, router]);
 
+  const [isExpired, setIsExpired] = useState(false);
+
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (selectedStore) {
+      const vencimiento = new Date(selectedStore.fecha_vencimiento);
+      const hoy = new Date();
+      const diffTime = vencimiento - hoy;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const expired = diffDays <= 0;
+      setIsExpired(expired);
+
+      // Si está expirado y no estamos en dashboard, redirigir
+      if (expired && pathname !== '/dashboard' && !pathname.includes('/select-store')) {
+         router.push('/dashboard');
+      }
+    }
+  }, [selectedStore, pathname, router]);
 
   if (loading) {
     return (
@@ -128,7 +146,7 @@ export default function DashboardLayout({ children }) {
               <p className="text-indigo-200 text-sm">Sistema de gestión</p>
             </div>
 
-            <nav className="flex-1 px-4 py-4 overflow-y-auto">
+            <nav className={`flex-1 px-4 py-4 overflow-y-auto ${isExpired ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
               <Link
                 href="/dashboard"
                 className={`flex items-center w-full p-3 rounded-lg mb-2 ${
@@ -137,7 +155,7 @@ export default function DashboardLayout({ children }) {
                   !isActive("/dashboard/ventas")
                     ? "bg-indigo-700"
                     : "hover:bg-indigo-700"
-                }`}
+                } ${isExpired ? 'pointer-events-auto' : ''}`}
               >
                 <FiHome className="mr-3" />
                 Dashboard
@@ -312,128 +330,128 @@ export default function DashboardLayout({ children }) {
           <p className="text-indigo-200 text-sm">Sistema de gestión</p>
         </div>
 
-        <nav className="flex-1 px-4 py-4 overflow-y-auto">
-          <Link
-            href="/dashboard"
-            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
-              isActive("/dashboard") &&
-              !isActive("/dashboard/clientes") &&
-              !isActive("/dashboard/ventas")
-                ? "bg-indigo-700"
-                : "hover:bg-indigo-700"
-            }`}
-          >
-            <FiHome className="mr-3" />
-            Dashboard
-          </Link>
+            <nav className={`flex-1 px-4 py-4 overflow-y-auto ${isExpired ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+              <Link
+                href="/dashboard"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard") &&
+                  !isActive("/dashboard/clientes") &&
+                  !isActive("/dashboard/ventas")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                } ${isExpired ? 'pointer-events-auto' : ''}`} 
+              >
+                <FiHome className="mr-3" />
+                Dashboard
+              </Link>
 
-          <Link
-            href="/dashboard/clientes"
-            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
-              isActive("/dashboard/clientes")
-                ? "bg-indigo-700"
-                : "hover:bg-indigo-700"
-            }`}
-          >
-            <FiUser className="mr-3" />
-            Clientes
-          </Link>
-          
-          <Link
-            href="/dashboard/aportes"
-            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
-              isActive("/dashboard/aportes")
-                ? "bg-indigo-700"
-                : "hover:bg-indigo-700"
-            }`}
-          >
-            <FiDollar className="mr-3" />
-            Aportes
-          </Link>
+              <Link
+                href="/dashboard/clientes"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/clientes")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiUser className="mr-3" />
+                Clientes
+              </Link>
+              
+              <Link
+                href="/dashboard/aportes"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/aportes")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiDollar className="mr-3" />
+                Aportes
+              </Link>
 
-          <Link
-            href="/dashboard/ventas"
-            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
-              isActive("/dashboard/ventas")
-                ? "bg-indigo-700"
-                : "hover:bg-indigo-700"
-            }`}
-          >
-            <FiShoppingCart className="mr-3" />
-            Ventas Activas
-          </Link>
-          
-          <Link
-            href="/dashboard/gastos"
-            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
-              isActive("/dashboard/gastos")
-                ? "bg-indigo-700"
-                : "hover:bg-indigo-700"
-            }`}
-          >
-            <FiTrendingDown className="mr-3" />
-            Gastos
-          </Link>
-          
-          <Link
-            href="/dashboard/utilidades"
-            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
-              isActive("/dashboard/utilidades")
-                ? "bg-indigo-700"
-                : "hover:bg-indigo-700"
-            }`}
-          >
-            <FiTrendingUp className="mr-3" />
-            Utilidades
-          </Link>
+              <Link
+                href="/dashboard/ventas"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/ventas")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiShoppingCart className="mr-3" />
+                Ventas Activas
+              </Link>
+              
+              <Link
+                href="/dashboard/gastos"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/gastos")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiTrendingDown className="mr-3" />
+                Gastos
+              </Link>
+              
+              <Link
+                href="/dashboard/utilidades"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/utilidades")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiTrendingUp className="mr-3" />
+                Utilidades
+              </Link>
 
-          <Link
-            href="/dashboard/sueldos"
-            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
-              isActive("/dashboard/sueldos")
-                ? "bg-indigo-700"
-                : "hover:bg-indigo-700"
-            }`}
-          >
-            <FiTablet className="mr-3" />
-            Cálculo de Sueldo
-          </Link>
-          
-          <Link
-            href="/dashboard/liquidar"
-            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
-              isActive("/dashboard/liquidar")
-                ? "bg-indigo-700"
-                : "hover:bg-indigo-700"
-            }`}
-          >
-            <FiCheckCircle className="mr-3" />
-            Liquidación de Créditos
-          </Link>
-          
-          <Link
-            href="/dashboard/recaudos"
-            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
-              isActive("/dashboard/recaudos")
-                ? "bg-indigo-700"
-                : "hover:bg-indigo-700"
-            }`}
-          >
-            <FiPackage className="mr-3" />
-            Recaudos
-          </Link>
-          <Link
-            href="/dashboard/reportes/utilidad"
-            className={`flex items-center w-full p-3 rounded-lg mb-2 ${
-              isActive("/dashboard/reportes/utilidad")
-                ? "bg-indigo-700"
-                : "hover:bg-indigo-700"
-            }`}
-          >
-            <FiBarChart2 className="mr-3" />
-            Reportes
-          </Link>
-        </nav>
+              <Link
+                href="/dashboard/sueldos"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/sueldos")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiTablet className="mr-3" />
+                Cálculo de Sueldo
+              </Link>
+              
+              <Link
+                href="/dashboard/liquidar"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/liquidar")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiCheckCircle className="mr-3" />
+                Liquidación de Créditos
+              </Link>
+              
+              <Link
+                href="/dashboard/recaudos"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/recaudos")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiPackage className="mr-3" />
+                Recaudos
+              </Link>
+              <Link
+                href="/dashboard/reportes/utilidad"
+                className={`flex items-center w-full p-3 rounded-lg mb-2 ${
+                  isActive("/dashboard/reportes/utilidad")
+                    ? "bg-indigo-700"
+                    : "hover:bg-indigo-700"
+                }`}
+              >
+                <FiBarChart2 className="mr-3" />
+                Reportes
+              </Link>
+            </nav>
 
         <div className="p-4 border-t border-indigo-700 flex-shrink-0">
           <div className="flex items-center mb-3">

@@ -141,6 +141,16 @@ export const AuthProvider = ({ children }) => {
     setSelectedStore(store);
   }, []);
 
+  const updateStoreData = useCallback((newData) => {
+    setSelectedStore(prev => {
+        if (!prev) return null;
+        // Fusionar datos nuevos (ej: fecha_vencimiento actualizada) preservando la estructura
+        const updated = { ...prev, ...newData };
+        localStorage.setItem('selectedStore', JSON.stringify(updated));
+        return updated;
+    });
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -152,6 +162,7 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         selectStore,
+        updateStoreData,
         isAuthenticated: !!token,
       }}
     >
