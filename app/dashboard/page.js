@@ -139,12 +139,33 @@ export default function DashboardPage() {
       return null; // O un estado de error
   }
 
+  // Formatear fecha sin desfase de zona horaria
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    // Ajustar la fecha agregando el offset de la zona horaria para que se muestre tal cual viene (UTC)
+    // Esto evita que una fecha como '2025-12-22' se muestre como '2025-12-21' en zonas horarias occidentales
+    const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+    const offsetDate = new Date(date.getTime() + userTimezoneOffset);
+    return offsetDate.toLocaleDateString();
+  };
+
   // Calcular días restantes para la membresía
   const calcularDiasRestantes = (fechaVencimiento) => {
     if (!fechaVencimiento) return Number.MAX_SAFE_INTEGER; // Asumir no expirado si no hay fecha aún
     
+    // Asumimos formato YYYY-MM-DD que es el estándar de la API para fechas
+    // Usamos split para asegurar que trabajamos con la fecha local, sin interpretación UTC automática del navegador
+    const parts = fechaVencimiento.split('-');
+    if (parts.length !== 3) return Number.MAX_SAFE_INTEGER; // Formato no reconocido, asumimos safe
+    
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Meses en JS son 0-11
+    const day = parseInt(parts[2], 10);
+    
+    // Configurar vencimiento al FINAL del día local (23:59:59)
+    const vencimiento = new Date(year, month, day, 23, 59, 59);
     const hoy = new Date();
-    const vencimiento = new Date(fechaVencimiento);
     
     if (isNaN(vencimiento.getTime())) return Number.MAX_SAFE_INTEGER; // Fecha inválida
 
@@ -184,7 +205,7 @@ export default function DashboardPage() {
           <div className="p-6">
             <p className="text-gray-600 mb-6">
               Tu plan <strong>{tienda.membresia?.nombre}</strong> venció el{" "}
-              {new Date(tienda.fecha_vencimiento).toLocaleDateString()}. Para
+              {formatDate(tienda.fecha_vencimiento)}. Para
               seguir disfrutando de todas las funcionalidades, por favor
               actualiza tu membresía ahora.
             </p>
@@ -368,7 +389,7 @@ export default function DashboardPage() {
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     Vence:{" "}
-                    {new Date(tienda.fecha_vencimiento).toLocaleDateString()}
+                    {formatDate(tienda.fecha_vencimiento)}
                   </p>
                 </div>
               </div>
