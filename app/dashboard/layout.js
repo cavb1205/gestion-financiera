@@ -63,11 +63,22 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     if (selectedStore) {
-      const vencimiento = new Date(selectedStore.fecha_vencimiento);
+      // Ajuste de Zona Horaria: Crear fecha local 00:00 basada en la fecha UTC parseada
+      const fechaBase = new Date(selectedStore.fecha_vencimiento);
+      const vencimiento = new Date(
+        fechaBase.getUTCFullYear(),
+        fechaBase.getUTCMonth(),
+        fechaBase.getUTCDate()
+      );
+
       const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      
       const diffTime = vencimiento - hoy;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const expired = diffDays <= 0;
+      
+      // Permitimos el acceso hasta el final del día de vencimiento (diffDays >= 0)
+      const expired = diffDays < 0;
       setIsExpired(expired);
 
       // Si está expirado y no estamos en dashboard, redirigir
