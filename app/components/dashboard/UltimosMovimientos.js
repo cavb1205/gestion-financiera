@@ -291,45 +291,22 @@ const UltimosMovimientos = ({ tienda }) => {
 
   if (cargando) {
     return (
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Últimos Movimientos
-          </h2>
-          <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-indigo-600"></div>
+      <div className="glass rounded-[2rem] p-8 border-indigo-500/10">
+        <div className="flex justify-between items-center mb-8">
+          <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-xl w-48 animate-pulse"></div>
+          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-full w-24 animate-pulse"></div>
         </div>
-
-        {/* Selector de período */}
-        <div className="flex bg-gray-100 p-1 rounded-lg mb-4">
-          <button
-            className={`px-3 py-1 text-xs rounded-md ${
-              periodo === "semana" ? "bg-white shadow-sm" : "text-gray-500"
-            }`}
-            onClick={() => setPeriodo("semana")}
-          >
-            Semana
-          </button>
-          <button
-            className={`px-3 py-1 text-xs rounded-md ${
-              periodo === "mes" ? "bg-white shadow-sm" : "text-gray-500"
-            }`}
-            onClick={() => setPeriodo("mes")}
-          >
-            Mes
-          </button>
-        </div>
-
         <div className="space-y-4">
-          {[1, 2, 3, 4, 5].map((item) => (
-            <div key={item} className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
-                <div>
-                  <div className="h-4 bg-gray-200 rounded w-32 mb-2 animate-pulse"></div>
-                  <div className="h-3 bg-gray-200 rounded w-24 animate-pulse"></div>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex justify-between items-center p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50 animate-pulse">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-800"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-lg w-32"></div>
+                  <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-lg w-20"></div>
                 </div>
               </div>
-              <div className="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
+              <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded-lg w-24"></div>
             </div>
           ))}
         </div>
@@ -337,94 +314,87 @@ const UltimosMovimientos = ({ tienda }) => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Últimos Movimientos
-          </h2>
-        </div>
-        <div className="text-center py-8">
-          <p className="text-red-500 mb-4">Error: {error}</p>
-          <button
-            onClick={cargarMovimientos}
-            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center mx-auto"
-          >
-            <FiRefreshCw className="mr-1" /> Reintentar
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-gray-800">
-          Movimientos últimos 7 días
-        </h2>
-        <button
+    <div className="glass rounded-[2.5rem] p-8 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 border-indigo-500/10 group">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
+        <div>
+          <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-3">
+            <div className="p-2.5 bg-indigo-500/10 rounded-2xl group-hover:scale-110 transition-transform">
+              <FiCalendar className="text-indigo-600 dark:text-indigo-400" />
+            </div>
+            Stream de Actividad
+          </h2>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-1 ml-1">Últimos Eventos Operativos</p>
+        </div>
+        
+        <button 
           onClick={cargarMovimientos}
-          className="text-indigo-600 hover:text-indigo-800 text-sm flex items-center"
+          className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl shadow-slate-200/20 dark:shadow-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400"
         >
-          <FiRefreshCw className="mr-1" /> Actualizar
+          <FiRefreshCw className={`transition-transform duration-700 ${cargando ? 'animate-spin' : 'group-hover:rotate-180'}`} />
+          Sincronizar
         </button>
       </div>
 
       {movimientos.length === 0 ? (
-        <div className="text-center py-8">
-          <FiCalendar className="text-gray-400 text-3xl mx-auto mb-3" />
-          <p className="text-gray-500">No hay movimientos en este período</p>
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-20 h-20 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center mb-6 border border-slate-100 dark:border-slate-800">
+            <FiCalendar className="text-4xl text-slate-300" />
+          </div>
+          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Sin registros recientes</p>
         </div>
       ) : (
-        <>
-          <div className="space-y-4">
-            {movimientos.map((movimiento) => (
-              <div
-                key={`${movimiento.tipo}-${movimiento.id}`}
-                onClick={() => {
-                  if (movimiento.tipo === "venta") {
-                    router.push(`/dashboard/ventas/${movimiento.id}`);
-                  }
-                }}
-                className={`flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer`}
-              >
-                <div className="flex items-center space-x-3">
-                  <div
-                    className={`p-2 rounded-lg ${obtenerColorTipo(
-                      movimiento.tipo
-                    )}`}
-                  >
-                    {obtenerIcono(movimiento.tipo)}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-800 text-sm">
-                      {movimiento.descripcion}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {obtenerTextoAmigable(movimiento.fecha)}
-                    </p>
-                  </div>
+        <div className="space-y-3">
+          {movimientos.map((movimiento, idx) => (
+            <div
+              key={`${movimiento.tipo}-${movimiento.id}-${idx}`}
+              onClick={() => movimiento.tipo === "venta" && router.push(`/dashboard/ventas/${movimiento.id}`)}
+              className="flex items-center justify-between p-4 rounded-[1.75rem] hover:bg-white dark:hover:bg-slate-800/80 hover:shadow-xl hover:shadow-indigo-500/5 border border-transparent hover:border-indigo-500/10 transition-all cursor-pointer group/item"
+            >
+              <div className="flex items-center gap-5">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl transition-all group-hover/item:scale-110 ${
+                  movimiento.tipo === 'venta' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' :
+                  movimiento.tipo === 'gasto' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400' :
+                  movimiento.tipo === 'aporte' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' :
+                  'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400'
+                }`}>
+                  {obtenerIcono(movimiento.tipo)}
                 </div>
-                <div
-                  className={`flex items-center ${
-                    movimiento.monto < 0 ? "text-red-600" : "text-green-600"
-                  }`}
-                >
-                  {movimiento.monto < 0 ? (
-                    <FiMinus className="mr-1" />
-                  ) : (
-                    <FiPlus className="mr-1" />
-                  )}
-                  <span className="font-semibold text-sm">
-                    ${Math.abs(movimiento.monto).toLocaleString()}
-                  </span>
+                <div>
+                  <h4 className="text-sm font-black text-slate-800 dark:text-white line-clamp-1 group-hover/item:text-indigo-600 transition-colors">
+                    {movimiento.descripcion}
+                  </h4>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg ${
+                      movimiento.tipo === 'venta' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' :
+                      movimiento.tipo === 'gasto' ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300' :
+                      movimiento.tipo === 'aporte' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' :
+                      'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
+                    }`}>
+                      {movimiento.tipo}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 italic">
+                      {obtenerTextoAmigable(movimiento.fecha)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </>
+
+              <div className="text-right">
+                <p className={`text-lg font-black tracking-tighter ${
+                  movimiento.monto < 0 ? 'text-rose-600' : 'text-emerald-600 dark:text-emerald-400'
+                }`}>
+                  {movimiento.monto < 0 ? '-' : '+'}${Math.abs(movimiento.monto).toLocaleString()}
+                </p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">USD Consolidado</p>
+              </div>
+            </div>
+          ))}
+          
+          <button className="w-full mt-6 py-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 hover:border-indigo-500/30 transition-all">
+            Ver Todo el Historial
+          </button>
+        </div>
       )}
     </div>
   );

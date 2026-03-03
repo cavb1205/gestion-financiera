@@ -1,8 +1,9 @@
 // app/layout.js
 import { Inter } from 'next/font/google';
 import './globals.css'; // Asegúrate de que esta ruta a tu CSS global sea correcta
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from '@/app/context/AuthContext';
 import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { Analytics } from "@vercel/analytics/next"
 
 
@@ -21,10 +22,15 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
-      <body>
+      <body className={inter.className}>
         <AuthProvider>
           {children}
-           <ToastContainer position="bottom-right" />
+           <ToastContainer 
+             position="bottom-right"
+             theme="dark"
+             toastClassName="glass-toast shadow-2xl overflow-hidden cursor-pointer"
+             bodyClassName="p-0 m-0"
+           />
           <Analytics />
         </AuthProvider>
       </body>

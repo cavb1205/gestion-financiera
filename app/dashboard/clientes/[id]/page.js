@@ -23,8 +23,13 @@ import {
   FiStar,
   FiAlertCircle,
   FiActivity,
+  FiMapPin,
+  FiShield,
+  FiPieChart,
+  FiBarChart2,
+  FiTarget
 } from "react-icons/fi";
-import { FaStar, FaRegStar, FaBan } from "react-icons/fa";
+import { FaStar, FaRegStar, FaBan, FaSkullCrossbones } from "react-icons/fa";
 import { useAuth } from "../../../context/AuthContext";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import ErrorMessage from "../../../components/ErrorMessage";
@@ -61,6 +66,7 @@ export default function DetalleCliente({ params }) {
         montoRecomendado: 0,
         creditoVigente: false,
         estadoCreditoVigente: null,
+        beneficioNeto: 0,
       };
     } else {
       let totalCreditos = 0;
@@ -110,9 +116,9 @@ export default function DetalleCliente({ params }) {
             creditosPagadosATiempo += 1;
           }
         }
-        // Detectar crédito vigente
+        // Detectar crédito vigente (cualquier estado que no sea Pagado o Perdida)
         if (
-          credito.estado_venta === "Activo" ||
+          credito.estado_venta === "Vigente" ||
           credito.estado_venta === "Vencido" ||
           credito.estado_venta === "Atrasado"
         ) {
@@ -123,6 +129,7 @@ export default function DetalleCliente({ params }) {
 
       // Utilidad neta = Ingresos - Pérdidas
       const utilidadNeta = totalIngresos - totalPerdidas;
+      const beneficioNeto = utilidadNeta;
 
       // Calcular calificación (0-100 puntos)
       let calificacion = 0;
@@ -205,6 +212,7 @@ export default function DetalleCliente({ params }) {
         montoRecomendado,
         creditoVigente,
         estadoCreditoVigente,
+        beneficioNeto,
       };
     }
   }, [creditos]);
@@ -299,64 +307,46 @@ export default function DetalleCliente({ params }) {
   const getStatusBadge = (status) => {
     switch (status) {
       case "Activo":
-        return (
-          <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-            Activo
-          </span>
-        );
+        return <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg flex items-center gap-1.5 w-fit">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          Activo
+        </span>;
       case "Inactivo":
-        return (
-          <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm">
-            Inactivo
-          </span>
-        );
+        return <span className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg flex items-center gap-1.5 w-fit">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+          Inactivo
+        </span>;
       case "Moroso":
-        return (
-          <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm">
-            Moroso
-          </span>
-        );
+        return <span className="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg flex items-center gap-1.5 w-fit">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-bounce"></span>
+          Moroso
+        </span>;
+      case "Bloqueado":
+        return <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg flex items-center gap-1.5 w-fit">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+          Bloqueado
+        </span>;
       default:
-        return (
-          <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm">
-            {status}
-          </span>
-        );
+        return <span className="bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg flex items-center gap-1.5 w-fit leading-none">
+          {status}
+        </span>;
     }
   };
 
   const getCreditStatus = (status) => {
     switch (status) {
-      case "Activo":
-        return (
-          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-            Activo
-          </span>
-        );
+      case "Vigente":
+        return <span className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-800/30">Vigente</span>;
       case "Pagado":
-        return (
-          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
-            Pagado
-          </span>
-        );
+        return <span className="text-[10px] font-black uppercase tracking-[0.15em] text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2.5 py-1 rounded-lg border border-indigo-100 dark:border-indigo-800/30">Liquidado</span>;
       case "Vencido":
-        return (
-          <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">
-            Vencido
-          </span>
-        );
-      case "Renegociado":
-        return (
-          <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
-            Renegociado
-          </span>
-        );
+        return <span className="text-[10px] font-black uppercase tracking-[0.15em] text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 px-2.5 py-1 rounded-lg border border-rose-100 dark:border-rose-800/30">Vencido</span>;
+      case "Atrasado":
+        return <span className="text-[10px] font-black uppercase tracking-[0.15em] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1 rounded-lg border border-amber-100 dark:border-amber-800/30">Atrasado</span>;
+      case "Perdida":
+        return <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-900 dark:text-white bg-slate-200 dark:bg-slate-700 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-600">Castigado</span>;
       default:
-        return (
-          <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs">
-            {status}
-          </span>
-        );
+        return <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{status}</span>;
     }
   };
 
@@ -376,7 +366,7 @@ export default function DetalleCliente({ params }) {
         throw new Error("Error al eliminar el cliente");
       }
 
-      router.push("/clientes");
+      router.push("/dashboard/clientes");
     } catch (err) {
       setError(err.message || "Error al eliminar el cliente");
       console.error("Error deleting client:", err);
@@ -391,12 +381,13 @@ export default function DetalleCliente({ params }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-        <p className="mt-4 text-gray-600">Cargando detalles del cliente...</p>
+      <div className="min-h-[400px] flex flex-col items-center justify-center bg-transparent">
+        <LoadingSpinner />
+        <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Auditando Historial Crediticio</p>
       </div>
     );
   }
+
 
   if (error) {
     return <ErrorMessage message={error} onRetry={fetchCliente} />;
@@ -418,525 +409,382 @@ export default function DetalleCliente({ params }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Encabezado */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <div>
+    <div className="min-h-screen bg-transparent pb-20">
+      <div className="w-full">
+
+        {/* Encabezado Principal */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-12 gap-8">
+          <div className="flex items-start gap-6">
             <button
               onClick={() => router.push("/dashboard/clientes")}
-              className="flex items-center text-indigo-600 hover:text-indigo-800 mb-4"
+              className="mt-2 p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 transition-all shadow-sm"
             >
-              <FiArrowLeft className="mr-2" /> Volver a clientes
+              <FiArrowLeft size={20} />
             </button>
 
-            <div className="flex items-center">
-              <div className="bg-indigo-100 p-3 rounded-full">
-                <FiUser className="text-indigo-600 text-2xl" />
+            <div>
+              <div className="flex flex-wrap items-center gap-3 mb-2">
+                 <div className="bg-indigo-600 p-2.5 rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none">
+                    <FiUser className="text-white text-xl" />
+                 </div>
+                 {getStatusBadge(cliente.estado_cliente)}
+                 {resumenFinanciero.bloqueado && (
+                   <span className="bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg flex items-center gap-2">
+                     <FaSkullCrossbones /> Riesgo Crítico
+                   </span>
+                 )}
               </div>
-              <div className="ml-4">
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {cliente.nombres} {cliente.apellidos}
-                </h1>
-                {/* Mostrar calificación como estrellas */}
-                {/* Mostrar calificación como estrellas o bloqueado */}
-                {resumenFinanciero.totalCreditos > 0 && (
-                  <div className="ml-3 flex items-center">
-                    {resumenFinanciero.bloqueado ? (
-                      <span className="flex items-center bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">
-                        <FaBan className="mr-1" /> BLOQUEADO
-                      </span>
-                    ) : (
-                      <>
-                        {[...Array(5)].map((_, i) =>
-                          i < resumenFinanciero.estrellas ? (
-                            <FaStar
-                              key={i}
-                              className="text-yellow-400 text-sm"
-                            />
-                          ) : (
-                            <FaRegStar
-                              key={i}
-                              className="text-gray-300 text-sm"
-                            />
-                          )
-                        )}
-                        <span className="ml-1 text-xs text-gray-500">
-                          ({resumenFinanciero.calificacion.toFixed(1)})
-                        </span>
-                      </>
-                    )}
-                  </div>
-                )}
-                <div className="flex items-center mt-1">
-                  {getStatusBadge(cliente.estado_cliente)}
-                  <span className="ml-3 text-gray-500 text-sm">
-                    Registrado el {formatDate(cliente.fecha_creacion)}
-                  </span>
-                </div>
+              <h1 className="text-4xl font-black text-slate-800 dark:text-white tracking-tight leading-none mb-4">
+                {cliente.nombres} {cliente.apellidos}
+              </h1>
+              <div className="flex items-center gap-6 text-slate-400 font-bold text-xs uppercase tracking-[0.15em]">
+                 <span className="flex items-center gap-2">
+                    <FiShield className="text-indigo-500" /> ID: {cliente.identificacion}
+                 </span>
+                 <span className="flex items-center gap-2">
+                    <FiCalendar className="text-indigo-500" /> Miembro desde {formatDate(cliente.fecha_creacion)}
+                 </span>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 md:mt-0 flex space-x-3">
-            <button
-              onClick={() =>
-                router.push(`/dashboard/clientes/${clienteId}/editar`)
-              }
-              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-            >
-              <FiEdit className="mr-2" />
-              Editar
-            </button>
-
-            <button
-              onClick={() =>
-                router.push(`/dashboard/clientes/${clienteId}/eliminar`)
-              }
-              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-            >
-              <FiTrash2 className="mr-2" />
-              Eliminar
-            </button>
+          <div className="flex items-center gap-3">
+             <button
+                onClick={() => router.push(`/dashboard/clientes/${clienteId}/editar`)}
+                className="flex-1 lg:flex-none flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-2xl"
+              >
+                <FiEdit size={16} />
+                Modificar Perfil
+              </button>
+              <button
+                onClick={() => router.push(`/dashboard/clientes/${clienteId}/eliminar`)}
+                className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl hover:bg-rose-100 transition-all border border-rose-100 dark:border-rose-900/30"
+              >
+                <FiTrash2 size={20} />
+              </button>
           </div>
         </div>
 
-        {/* Información del cliente */}
-        <div className="mb-5">
-          {/* Información personal */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <FiUser className="mr-2 text-indigo-600" />
-              Información del Cliente
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
+        {/* Malla de Indicadores Financieros */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
+           {/* Card: Calificación */}
+          <div className="lg:col-span-2 glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-8">
                 <div>
-                  <p className="text-sm font-bold text-gray-800">
-                    Identificación
-                  </p>
-                  <p className="font-medium text-gray-500">
-                    {cliente.identificacion}
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Score Crediticio</p>
+                  <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Análisis de Confianza</h3>
+                </div>
+                {resumenFinanciero.bloqueado ? (
+                  <div className="bg-rose-100 dark:bg-rose-900/40 p-3 rounded-2xl">
+                    <FaBan className="text-rose-600 text-2xl" />
+                  </div>
+                ) : (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-2xl">
+                    <FiStar className="text-amber-500 text-2xl fill-amber-500" />
+                  </div>
+                )}
+              </div>
+
+              {resumenFinanciero.totalCreditos > 0 ? (
+                <div className="space-y-6">
+                  <div className="flex items-end gap-3">
+                    <span className={`text-6xl font-black tracking-tighter leading-none ${resumenFinanciero.bloqueado ? 'text-rose-600' : 'text-slate-900 dark:text-white'}`}>
+                      {resumenFinanciero.calificacion.toFixed(0)}
+                    </span>
+                    <span className="text-xl font-black text-slate-300 mb-2">/100</span>
+                  </div>
+                  
+                  <div className="flex gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className={`h-2.5 flex-1 rounded-full transition-all duration-1000 ${
+                        i < resumenFinanciero.estrellas 
+                          ? (resumenFinanciero.estrellas > 3 ? 'bg-emerald-500' : 'bg-amber-500')
+                          : 'bg-slate-100 dark:bg-slate-800'
+                      }`} />
+                    ))}
+                  </div>
+
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                    {resumenFinanciero.bloqueado ? "Cliente con historial de pérdidas" : "Basado en comportamiento de pago"}
                   </p>
                 </div>
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-800">
-                  Teléfono Principal
-                </p>
-                <p className="font-medium text-gray-500">
-                  {formatPhone(cliente.telefono_principal)}
-                </p>
-              </div>
-              {cliente.telefono_opcional && (
-                <div>
-                  <p className="text-sm font-bold text-gray-800">
-                    Teléfono Opcional
-                  </p>
-                  <p className="font-medium text-gray-500">
-                    {formatPhone(cliente.telefono_opcional)}
-                  </p>
+              ) : (
+                <div className="py-10 text-center">
+                   <FiActivity className="mx-auto text-4xl text-slate-200 mb-2" />
+                   <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Sin historial previo</p>
                 </div>
               )}
-              <div>
-                <p className="text-sm font-bold text-gray-800">
-                  Nombre del Negocio
-                </p>
-                <p className="font-medium text-gray-500">
-                  {cliente.nombre_local}
-                </p>
+            </div>
+            {/* Decorative background circle */}
+            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-500/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
+          </div>
+
+          <div className="space-y-4 lg:col-span-3">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 h-full">
+              <div className="glass p-5 rounded-[2rem] border-white/60 dark:border-slate-800 flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-4">
+                   <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl">
+                      <FiPieChart size={20} />
+                   </div>
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cartera</span>
+                </div>
+                <div>
+                   <p className="text-xl font-black text-slate-800 dark:text-white tracking-tight">{resumenFinanciero.totalCreditos}</p>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Créditos Totales</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-bold text-gray-800">Dirección</p>
-                <p className="font-medium text-gray-500">{cliente.direccion}</p>
+
+              <div className="glass p-5 rounded-[2rem] border-white/60 dark:border-slate-800 flex flex-col justify-between group">
+                <div className="flex items-center justify-between mb-4">
+                   <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform">
+                      <FiTrendingUp size={20} />
+                   </div>
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-emerald-500">Rendimiento</span>
+                </div>
+                <div>
+                   <p className="text-xl font-black text-emerald-600 tracking-tight">${resumenFinanciero.totalIngresos.toLocaleString()}</p>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Intereses Cobrados</p>
+                </div>
+              </div>
+
+              <div className="glass p-5 rounded-[2rem] border-white/60 dark:border-slate-800 flex flex-col justify-between group">
+                <div className="flex items-center justify-between mb-4">
+                   <div className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl group-hover:scale-110 transition-transform">
+                      <FiTrendingDown size={20} />
+                   </div>
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-rose-500">Exposición</span>
+                </div>
+                <div>
+                   <p className="text-xl font-black text-rose-600 tracking-tight">${resumenFinanciero.totalPerdidas.toLocaleString()}</p>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Capital Perdido</p>
+                </div>
+              </div>
+
+              <div className={`glass p-5 rounded-[2rem] border-white/60 dark:border-slate-800 flex flex-col justify-between group relative overflow-hidden`}>
+                <div className="flex items-center justify-between mb-4">
+                   <div className={`p-2.5 ${resumenFinanciero.beneficioNeto >= 0 ? 'bg-indigo-600 text-white' : 'bg-rose-600 text-white'} rounded-xl transition-all shadow-lg`}>
+                      <FiDollarSign size={20} />
+                   </div>
+                   <span className={`text-[9px] font-black uppercase tracking-widest ${resumenFinanciero.beneficioNeto >= 0 ? 'text-indigo-500' : 'text-rose-500'}`}>
+                     {resumenFinanciero.beneficioNeto >= 0 ? 'Beneficio Neto' : 'Pérdida Total'}
+                   </span>
+                </div>
+                <div>
+                   <p className={`text-xl font-black tracking-tight ${resumenFinanciero.beneficioNeto >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                     ${Math.abs(resumenFinanciero.beneficioNeto).toLocaleString()}
+                   </p>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                     {resumenFinanciero.beneficioNeto >= 0 ? 'Ganancia Real' : 'Déficit Acumulado'}
+                   </p>
+                </div>
+                {/* Visual feedback glow */}
+                <div className={`absolute -right-5 -bottom-5 w-16 h-16 ${resumenFinanciero.beneficioNeto >= 0 ? 'bg-indigo-500/10' : 'bg-rose-500/10'} rounded-full blur-xl animate-pulse`}></div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Resumen financiero */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-500">
-                Total Créditos
-              </h3>
-              <FiCreditCard className="text-indigo-600" />
-            </div>
-            <p className="text-2xl font-bold mt-2 text-gray-500">
-              {resumenFinanciero.totalCreditos}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              Todos los créditos asignados
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-500">Monto Neto</h3>
-              <FiDollarSign className="text-green-600" />
-            </div>
-            <p className="text-2xl font-bold mt-2 text-gray-500">
-              {resumenFinanciero.totalMontoNeto.toLocaleString()}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              Suma de todos los créditos
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-500">Pérdidas</h3>
-              <FiTrendingDown className="text-red-600" />
-            </div>
-            <p className="text-2xl font-bold mt-2 text-red-400">
-              {resumenFinanciero.totalPerdidas.toLocaleString()}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              Créditos vencidos no recuperados
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-500">
-                Ingresos por Créditos
-              </h3>
-              <FiTrendingUp className="text-green-600" />
-            </div>
-            <p className="text-2xl font-bold mt-2 text-green-600">
-              {resumenFinanciero.totalIngresos.toLocaleString()}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              De créditos completamente pagados
-            </p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-500">
-                Utilidad Neta
-              </h3>
-              <FiActivity
-                className={
-                  resumenFinanciero.utilidadNeta >= 0
-                    ? "text-green-600"
-                    : "text-red-600"
-                }
-              />
-            </div>
-            <p
-              className={`text-2xl font-bold mt-2 ${
-                resumenFinanciero.utilidadNeta >= 0
-                  ? "text-green-600"
-                  : "text-red-600"
-              }`}
-            >
-              {resumenFinanciero.utilidadNeta.toLocaleString()}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Ingresos - Pérdidas</p>
-          </div>
-        </div>
-
-        {/* Nueva tarjeta de Monto Recomendado */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-500">
-              Próximo Crédito Recomendado
-            </h3>
-            <FiTrendingUp className="text-indigo-600" />
-          </div>
-          <div className="mt-2">
-            {resumenFinanciero.bloqueado ? (
-              <p className="text-center text-red-500 py-4">
-                Cliente bloqueado - No se recomienda nuevo crédito
-              </p>
-            ) : resumenFinanciero.totalCreditos > 0 ? (
-              <>
-                <p className="text-center text-2xl font-bold text-indigo-600">
-                  ${resumenFinanciero.montoRecomendado.toLocaleString()}
-                </p>
-                <div className="mt-3 text-xs text-gray-600">
-                  <p className="flex items-center mb-1">
-                    <FiCheck className="text-green-500 mr-1" />
-                    <span>Basado en el historial de créditos</span>
-                  </p>
-                  {resumenFinanciero.creditosConAtraso > 0 && (
-                    <p className="flex items-center text-yellow-600">
-                      <FiAlertCircle className="mr-1" />
-                      <span>Reducido por atrasos en pagos</span>
-                    </p>
-                  )}
-                </div>
-              </>
-            ) : (
-              <p className="text-center text-gray-500 py-4">
-                Sin historial para recomendar
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Calificación del cliente */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-500">Calificación</h3>
-            {resumenFinanciero.bloqueado ? (
-              <FaBan className="text-red-600" />
-            ) : (
-              <FiStar className="text-yellow-400" />
-            )}
-          </div>
-          <div className="mt-2">
-            {resumenFinanciero.bloqueado ? (
-              <div className="text-center py-4">
-                <div className="bg-red-100 rounded-full p-3 inline-block">
-                  <FaBan className="text-red-600 text-2xl" />
-                </div>
-                <p className="mt-3 font-bold text-red-600">CLIENTE BLOQUEADO</p>
-                <p className="text-xs text-gray-600 mt-2">
-                  Tiene {resumenFinanciero.creditosPerdidos} crédito(s)
-                  perdido(s)
-                </p>
-              </div>
-            ) : resumenFinanciero.totalCreditos > 0 ? (
-              <>
-                <div className="flex justify-center mb-2">
-                  {[...Array(5)].map((_, i) =>
-                    i < resumenFinanciero.estrellas ? (
-                      <FaStar
-                        key={i}
-                        className="text-yellow-400 text-2xl mx-1"
-                      />
-                    ) : (
-                      <FaRegStar
-                        key={i}
-                        className="text-gray-300 text-2xl mx-1"
-                      />
-                    )
-                  )}
-                </div>
-                <p className="text-center text-lg font-bold text-gray-800">
-                  {resumenFinanciero.calificacion.toFixed(1)}/100
-                </p>
-
-                {/* Estado de crédito vigente */}
-                {resumenFinanciero.creditoVigente && (
-                  <div
-                    className={`mt-3 p-2 rounded-lg text-center ${
-                      resumenFinanciero.estadoCreditoVigente === "Activo"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    <p className="font-medium">
-                      {resumenFinanciero.estadoCreditoVigente === "Activo"
-                        ? "Crédito vigente al día"
-                        : `Crédito vigente ${resumenFinanciero.estadoCreditoVigente}`}
-                    </p>
+        {/* Grid de Secciones de Detalle */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Columna Izquierda: Información y Sugerencias */}
+          <div className="lg:col-span-4 space-y-8">
+            <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+               <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-6 bg-indigo-500 rounded-full"></div>
+                  <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Datos Maestros</h3>
+               </div>
+               
+               <div className="space-y-8">
+                  <div className="flex items-start gap-4">
+                     <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400">
+                        <FiHome size={18} />
+                     </div>
+                     <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Local Comercial</p>
+                        <p className="text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">{cliente.nombre_local || "Ubicación Personal"}</p>
+                     </div>
                   </div>
-                )}
 
-                <div className="mt-2 text-xs text-gray-600">
-                  <p className="flex items-center">
-                    <FiCheck className="text-green-500 mr-1" />
-                    {resumenFinanciero.creditosPagadosATiempo} pagos a tiempo
-                  </p>
-                  <p className="flex items-center">
-                    <FiAlertCircle className="text-yellow-500 mr-1" />
-                    {resumenFinanciero.creditosConAtraso} con atraso
-                  </p>
-                  <p className="flex items-center">
-                    <FiClock className="text-blue-500 mr-1" />
-                    {resumenFinanciero.promedioAtraso} días de atraso promedio
-                  </p>
-                  <p className="flex items-center">
-                    <FiCreditCard className="text-indigo-500 mr-1" />
-                    {resumenFinanciero.creditosCompletados} créditos completados
-                  </p>
-                </div>
-              </>
-            ) : (
-              <p className="text-center text-gray-500 py-4">
-                Sin créditos para calificar
-              </p>
+                  <div className="flex items-start gap-4">
+                     <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400">
+                        <FiPhone size={18} />
+                     </div>
+                     <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Contacto Telefónico</p>
+                        <p className="text-sm font-black text-slate-700 dark:text-slate-200">{formatPhone(cliente.telefono_principal)}</p>
+                        {cliente.telefono_opcional && <p className="text-[11px] font-bold text-slate-400 mt-1">{formatPhone(cliente.telefono_opcional)}</p>}
+                     </div>
+                  </div>
+
+                  <div className="flex items-start gap-4">
+                     <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400">
+                        <FiMapPin size={18} />
+                     </div>
+                     <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Referencia Domiciliaria</p>
+                        <p className="text-sm font-black text-slate-700 dark:text-slate-200">{cliente.direccion}</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            {/* Smart Recommendation Card */}
+            {!resumenFinanciero.bloqueado && resumenFinanciero.totalCreditos > 0 && (
+              <div className="bg-slate-900 dark:bg-indigo-600 rounded-[2.5rem] p-10 text-white relative overflow-hidden group">
+                 <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-6">
+                       <FiTarget className="text-indigo-400" size={24} />
+                       <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-200">Recomendación IA</span>
+                    </div>
+                    <p className="text-slate-400 text-sm font-bold mb-2">Cupo Sugerido de Inversión:</p>
+                    <div className="flex items-end gap-2 mb-8">
+                       <span className="text-5xl font-black tracking-tighter">${resumenFinanciero.montoRecomendado.toLocaleString()}</span>
+                       <span className="text-indigo-400 font-bold mb-2 tracking-widest uppercase text-[10px]">COP</span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                       <div className="flex items-center gap-3 p-3 bg-white/10 rounded-xl border border-white/5">
+                          <FiCheck className="text-emerald-400" />
+                          <span className="text-[11px] font-bold">Historial de cumplimiento sólido</span>
+                       </div>
+                       {resumenFinanciero.creditoVigente && (
+                          <div className="flex items-center gap-3 p-3 bg-white/10 rounded-xl border border-white/5">
+                             <FiAlertCircle className="text-amber-400" />
+                             <span className="text-[11px] font-bold">Cuenta con crédito vigente</span>
+                          </div>
+                       )}
+                    </div>
+                 </div>
+                 {/* Decorative spheres */}
+                 <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-white/5 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-1000"></div>
+              </div>
             )}
           </div>
-        </div>
 
-        {/* Historial de créditos */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <FiCreditCard className="mr-2 text-indigo-600" />
-              Historial de Créditos
-            </h2>
-
-            <button
-              onClick={() =>
-                router.push(`/clientes/${clienteId}/nuevo-credito`)
-              }
-              className="mt-4 md:mt-0 flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-            >
-              <FiPlus className="mr-2" />
-              Nuevo Crédito
-            </button>
+          {/* Columna Derecha: Historial y Métricas Detalladas */}
+          <div className="lg:col-span-8 space-y-8">
+            <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800">
+               <div className="p-8 pb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                     <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm text-indigo-600">
+                        <FiBarChart2 size={24} />
+                     </div>
+                     <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Historial Transaccional</h3>
+                  </div>
+                  
+                  <button
+                    onClick={() => router.push(`/dashboard/ventas/nueva?clienteId=${clienteId}`)}
+                    className="flex items-center gap-2 px-6 py-3 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                  >
+                    <FiPlus size={18} />
+                    Apertura Crédito
+                  </button>
+               </div>
+               <div className="p-0 overflow-hidden">
+                  {creditos.message || !creditos.length ? (
+                    <div className="py-20 text-center px-8">
+                       <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                          <FiDollarSign size={32} className="text-slate-300" />
+                       </div>
+                       <h4 className="text-lg font-black text-slate-800 dark:text-white mb-2 tracking-tight">Sin registros financieros</h4>
+                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest max-w-[240px] mx-auto leading-relaxed">
+                          Este usuario no posee operaciones activas o históricas en el sistema.
+                       </p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-100 dark:border-slate-800/50">
+                            <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Referencia</th>
+                            <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Inversión</th>
+                            <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Vencimiento</th>
+                            <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Balance</th>
+                            <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estado</th>
+                            <th className="px-8 py-5 text-right"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800/30">
+                          {creditos.map((credito) => (
+                            <tr key={credito.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all cursor-pointer">
+                              <td className="px-8 py-6">
+                                <div className="flex items-center gap-3">
+                                   <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                   <span className="text-sm font-black text-slate-700 dark:text-slate-300 tracking-tight">Operación #{credito.id.toString().padStart(4, "0")}</span>
+                                </div>
+                              </td>
+                              <td className="px-8 py-6">
+                                <span className="text-sm font-black text-slate-900 dark:text-white">${parseInt(credito.valor_venta).toLocaleString()}</span>
+                              </td>
+                              <td className="px-8 py-6">
+                                <span className="text-xs font-bold text-slate-500">{formatDate(credito.fecha_vencimiento)}</span>
+                              </td>
+                              <td className="px-8 py-6 font-mono text-xs font-black text-indigo-600 dark:text-indigo-400">
+                                ${parseInt(credito.saldo_actual).toLocaleString()}
+                              </td>
+                              <td className="px-8 py-6">
+                                {getCreditStatus(credito.estado_venta)}
+                              </td>
+                              <td className="px-8 py-6 text-right">
+                                <button
+                                  onClick={() => router.push(`/dashboard/ventas/${credito.id}`)}
+                                  className="p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                                >
+                                   <FiArrowLeft size={16} className="rotate-180" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+               </div>
+            </div>
           </div>
-
-          {creditos.message ? (
-            <div className="text-center py-8">
-              <div className="bg-gray-100 rounded-full p-4 inline-block">
-                <FiDollarSign className="text-gray-400 text-2xl mx-auto" />
-              </div>
-              <p className="mt-4 text-gray-600">
-                Este cliente no tiene créditos registrados
-              </p>
-              <button
-                onClick={() =>
-                  router.push(`/clientes/${clienteId}/nuevo-credito`)
-                }
-                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-              >
-                Crear primer crédito
-              </button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Crédito
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Monto
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Fecha Inicio
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Fecha Vencimiento
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Saldo Pendiente
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Estado
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {creditos.map((credito) => (
-                    <tr key={credito.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          CR-{credito.id.toString().padStart(4, "0")}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          ${parseInt(credito.valor_venta).toLocaleString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {formatDate(credito.fecha_venta)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {formatDate(credito.fecha_vencimiento)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          ${parseInt(credito.saldo_actual).toLocaleString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getCreditStatus(credito.estado_venta)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() =>
-                            router.push(`/dashboard/ventas/${credito.id}`)
-                          }
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          Ver detalles
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Modal de confirmación de eliminación */}
+      {/* Modern Confirmation Modal */}
       {showDeleteConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Confirmar eliminación
-              </h3>
-              <button
-                onClick={() => setShowDeleteConfirmation(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <FiX size={20} />
-              </button>
-            </div>
-
-            <p className="text-gray-600 mb-6">
-              ¿Estás seguro de que deseas eliminar permanentemente a{" "}
-              <span className="font-semibold">
-                {cliente.nombres} {cliente.apellidos}
-              </span>
-              ? Esta acción no se puede deshacer.
-            </p>
-
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowDeleteConfirmation(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Confirmar eliminación
-              </button>
-            </div>
-          </div>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-6 animate-in fade-in duration-300">
+           <div className="glass max-w-md w-full rounded-[2.5rem] border-white/60 dark:border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+              <div className="bg-rose-600 p-8 text-white relative overflow-hidden">
+                 <div className="relative z-10 flex items-center gap-4">
+                    <div className="bg-white/20 p-3 rounded-2xl">
+                       <FiAlertCircle size={28} />
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-1">Confirmación Requerida</p>
+                       <h3 className="text-xl font-black tracking-tight leading-tight">Eliminar Registro Maestro</h3>
+                    </div>
+                 </div>
+                 <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
+              </div>
+              
+              <div className="p-10 bg-white/80 dark:bg-slate-900">
+                 <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-relaxed mb-10">
+                    ¿Está completamente seguro de eliminar a <span className="font-black text-slate-800 dark:text-white underline decoration-rose-500/30">{cliente.nombres} {cliente.apellidos}</span>? 
+                    Esta acción purgará todo el historial transaccional asociado de forma irreversible.
+                 </p>
+                 
+                 <div className="grid grid-cols-2 gap-4">
+                    <button
+                      onClick={() => setShowDeleteConfirmation(false)}
+                      className="px-6 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="px-6 py-4 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-rose-200 dark:shadow-none hover:scale-105 transition-all"
+                    >
+                      Confirmar Purga
+                    </button>
+                 </div>
+              </div>
+           </div>
         </div>
       )}
     </div>

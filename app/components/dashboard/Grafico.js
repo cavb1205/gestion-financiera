@@ -162,246 +162,178 @@ export default function GraficoDona({ data }) {
   };
 
   return (
-    <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-          <FiPieChart className="mr-2 text-indigo-600" />
-          Resumen Financiero
-        </h2>
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-          <button
-            className={`px-3 py-1 text-sm rounded-md transition-colors ${
-              activeTab === "mes"
-                ? "bg-white shadow-sm text-indigo-700 font-medium"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("mes")}
-          >
-            Mes
-          </button>
-          <button
-            className={`px-3 py-1 text-sm rounded-md transition-colors ${
-              activeTab === "ano"
-                ? "bg-white shadow-sm text-indigo-700 font-medium"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("ano")}
-          >
-            Año
-          </button>
-          <button
-            className={`px-3 py-1 text-sm rounded-md transition-colors ${
-              activeTab === "general"
-                ? "bg-white shadow-sm text-indigo-700 font-medium"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("general")}
-          >
-            General
-          </button>
+    <div className="lg:col-span-2 glass rounded-[2.5rem] p-8 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(79,70,229,0.1)] border-indigo-500/10 group">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
+        <div>
+          <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-3">
+            <div className="p-2.5 bg-indigo-500/10 rounded-2xl">
+              <FiPieChart className="text-indigo-600 dark:text-indigo-400 group-hover:rotate-12 transition-transform" />
+            </div>
+            Inteligencia Financiera
+          </h2>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-1 ml-1">Análisis de Rendimiento</p>
+        </div>
+        
+        <div className="flex p-1.5 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-md rounded-[1.25rem] border border-slate-200/50 dark:border-slate-700/50 self-end sm:self-auto">
+          {["mes", "ano", "general"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${
+                activeTab === tab
+                  ? "bg-white dark:bg-slate-700 shadow-xl shadow-indigo-500/10 text-indigo-600 dark:text-indigo-300 scale-105"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              }`}
+            >
+              {tab === "ano" ? "Año" : tab}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Gráfico de dona */}
-        <div className="h-72">
-          <Doughnut data={chartData.chartData} options={options} />
-        </div>
-
-        {/* Información detallada */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-gray-700">
-            Resumen{" "}
-            {activeTab === "mes"
-              ? "del Mes"
-              : activeTab === "ano"
-              ? "del Año"
-              : "General"}
-          </h3>
-
-          <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">
-                {chartData.utilidadLabel}:
-              </span>
-              <span className="font-semibold text-green-700">
-                {formatCurrency(chartData.utilidad)}
-              </span>
-            </div>
-            {activeTab !== "general" && (
-              <div className="text-xs text-gray-500 mt-1">
-                Proyección basada en ventas activas
-              </div>
-            )}
-          </div>
-
-          <div className="bg-red-50 p-3 rounded-lg border-l-4 border-red-500">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Gastos:</span>
-              <span className="font-semibold text-red-700">
-                {formatCurrency(chartData.gastos)}
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-purple-50 p-3 rounded-lg border-l-4 border-purple-500">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Retiros Socios:</span>
-              <span className="font-semibold text-purple-700">
-                {formatCurrency(chartData.retiros)}
-              </span>
-            </div>
-          </div>
-
-          {chartData.perdidas > 0 && (
-            <div className="bg-red-100 p-3 rounded-lg border-l-4 border-red-700">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Pérdidas:</span>
-                <span className="font-semibold text-red-800">
-                  {formatCurrency(chartData.perdidas)}
-                </span>
-              </div>
-            </div>
-          )}
-
-          <div
-            className={`p-3 rounded-lg border-l-4 ${
-              chartData.beneficioNeto >= 0
-                ? "bg-green-50 border-green-500"
-                : "bg-red-50 border-red-500"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Beneficio Neto:</span>
-              <span
-                className={`font-semibold ${
-                  chartData.beneficioNeto >= 0
-                    ? "text-green-700"
-                    : "text-red-700"
-                }`}
-              >
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
+        {/* Chart Viewport */}
+        <div className="lg:col-span-2 relative min-h-[300px] flex items-center justify-center">
+          <div className="w-full h-full absolute inset-0 bg-indigo-500/5 blur-[80px] rounded-full pointer-events-none"></div>
+          <div className="relative w-full h-[320px]">
+            <Doughnut 
+              data={chartData.chartData} 
+              options={{
+                ...options,
+                cutout: '75%',
+                plugins: {
+                  ...options.plugins,
+                  legend: { display: false }
+                }
+              }} 
+            />
+            {/* Center Summary */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Utilidad</span>
+              <span className={`text-2xl font-black ${chartData.beneficioNeto >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
                 {formatCurrency(chartData.beneficioNeto)}
               </span>
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              Margen: {chartData.margen.toFixed(1)}%
+              <span className="text-[9px] font-black px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500 mt-1">
+                {chartData.margen.toFixed(1)}% Margen
+              </span>
             </div>
           </div>
+        </div>
 
-          {chartData.beneficioNeto >= 0 ? (
-            <div className="flex items-center text-green-600 text-sm">
-              <FiTrendingUp className="mr-1" />
-              <span>Rentabilidad positiva</span>
-            </div>
-          ) : (
-            <div className="flex items-center text-red-600 text-sm">
-              <FiTrendingDown className="mr-1" />
-              <span>Rentabilidad negativa</span>
-            </div>
-          )}
+        {/* Detailed Metrics Panel */}
+        <div className="lg:col-span-3 space-y-3">
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Desglose de Operación</p>
+           
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+             <div className="p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50 hover:border-indigo-500/20 transition-colors">
+               <div className="flex justify-between items-center mb-1">
+                 <span className="text-[10px] font-bold text-slate-500 uppercase">Input Total</span>
+                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+               </div>
+               <p className="text-xl font-black text-slate-800 dark:text-white">{formatCurrency(chartData.utilidad)}</p>
+               <span className="text-[9px] font-bold text-slate-400 uppercase">{chartData.utilidadLabel}</span>
+             </div>
+
+             <div className="p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50">
+               <div className="flex justify-between items-center mb-1">
+                 <span className="text-[10px] font-bold text-slate-500 uppercase">Egresos</span>
+                 <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+               </div>
+               <p className="text-xl font-black text-slate-800 dark:text-white">{formatCurrency(chartData.gastos)}</p>
+               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Costos Operativos</span>
+             </div>
+
+             <div className="p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50">
+               <div className="flex justify-between items-center mb-1">
+                 <span className="text-[10px] font-bold text-slate-500 uppercase">Retiros</span>
+                 <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+               </div>
+               <p className="text-xl font-black text-slate-800 dark:text-white">{formatCurrency(chartData.retiros)}</p>
+               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Distribución Socios</span>
+             </div>
+
+             <div className={`p-4 rounded-2xl border transition-all ${
+               chartData.beneficioNeto >= 0 
+                 ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-500/20' 
+                 : 'bg-rose-50/30 dark:bg-rose-950/20 border-rose-500/20'
+             }`}>
+               <div className="flex justify-between items-center mb-1">
+                 <span className="text-[10px] font-bold text-slate-500 uppercase">Spread</span>
+                 <FiTrendingUp className={chartData.beneficioNeto >= 0 ? 'text-emerald-500' : 'text-rose-500'} />
+               </div>
+               <p className={`text-xl font-black ${chartData.beneficioNeto >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
+                 {formatCurrency(chartData.beneficioNeto)}
+               </p>
+               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Beneficio Neto Real</span>
+             </div>
+           </div>
+
+           {/* Inversion Highlights */}
+           <div className="mt-6 flex items-center justify-between p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-800/50">
+              <div className="flex items-center gap-3">
+                <FiDollarSign className="text-indigo-600" />
+                <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">Inversión / Aportes</span>
+              </div>
+              <p className="text-lg font-black text-slate-800 dark:text-white">{formatCurrency(chartData.aportes)}</p>
+           </div>
         </div>
       </div>
 
-      {/* Información adicional */}
-      <div className="mt-8 pt-6 border-t border-gray-200">
-  <h3 className="text-md font-semibold text-gray-700 mb-4 flex items-center">
-    <FiDollarSign className="mr-2 text-indigo-600" />
-    Situación de Liquidez
-  </h3>
-  
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    {/* Liquidez Actual */}
-    <div className={`p-4 rounded-lg border shadow-sm ${
-      data.tienda.caja >= 0 
-        ? "bg-gradient-to-r from-green-50 to-green-100 border-green-200" 
-        : "bg-gradient-to-r from-red-50 to-red-100 border-red-200"
-    }`}>
-      <div className="flex items-start justify-between">
-        <div className="flex items-center">
-          <div className={`p-2 rounded-full mr-3 ${
-            data.tienda.caja >= 0 ? "bg-green-100" : "bg-red-100"
-          }`}>
-            <FiDollarSign className={`text-lg ${
-              data.tienda.caja >= 0 ? "text-green-600" : "text-red-600"
-            }`} />
+      {/* Liquidity Grid Header */}
+      <div className="mt-16 pt-8 border-t border-slate-100 dark:border-slate-800/50">
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 text-center sm:text-left">Gestión de Liquidez Instantánea</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="relative overflow-hidden p-6 rounded-[2rem] bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-800/20 group/card">
+            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover/card:scale-125 transition-transform duration-700">
+              <FiDollarSign className="text-8xl text-emerald-600" />
+            </div>
+            <div className="relative">
+              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block mb-2">Efectivo en Caja</span>
+              <p className="text-4xl font-black text-slate-800 dark:text-white mb-2">{(data.tienda.caja).toLocaleString()}</p>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[9px] font-black text-emerald-700 dark:text-emerald-300 uppercase">Status: Operativo</span>
+                <span className="text-[10px] font-bold text-slate-400 italic">Fondos disponibles</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-600">Liquidez Actual</p>
-            <p className={`text-xl font-bold ${
-              data.tienda.caja >= 0 ? "text-green-700" : "text-red-700"
-            }`}>
-              {(data.tienda.caja).toLocaleString()}
-            </p>
-          </div>
-        </div>
-        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
-          data.tienda.caja >= 0 
-            ? "bg-green-100 text-green-800" 
-            : "bg-red-100 text-red-800"
-        }`}>
-          {data.tienda.caja >= 0 ? "Positiva" : "Negativa"}
-        </span>
-      </div>
-      <div className={`mt-3 pt-2 border-t ${
-        data.tienda.caja >= 0 
-          ? "border-green-200 text-green-600" 
-          : "border-red-200 text-red-600"
-      } border-dashed`}>
-        <p className="text-xs">
-          {data.tienda.caja >= 0 
-            ? "Fondos inmediatamente disponibles para operaciones" 
-            : "Atención: La liquidez actual es negativa"}
-        </p>
-      </div>
-    </div>
 
-    {/* Por Cobrar */}
-    <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center">
-          <div className="bg-blue-100 p-2 rounded-full mr-3">
-            <FiCreditCard className="text-blue-600 text-lg" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-600">Por Cobrar</p>
-            <p className="text-xl font-bold text-blue-700">
-              {(data.tienda.dinero_x_cobrar).toLocaleString()}
-            </p>
+          <div className="relative overflow-hidden p-6 rounded-[2rem] bg-indigo-50/50 dark:bg-indigo-950/10 border border-indigo-100 dark:border-indigo-800/20 group/card">
+            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover/card:scale-125 transition-transform duration-700">
+              <FiCreditCard className="text-8xl text-indigo-600" />
+            </div>
+            <div className="relative">
+              <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-2">Cartera x Cobrar</span>
+              <p className="text-4xl font-black text-slate-800 dark:text-white mb-2">{(data.tienda.dinero_x_cobrar).toLocaleString()}</p>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-[9px] font-black text-indigo-700 dark:text-indigo-300 uppercase">Flujo Pendiente</span>
+                <span className="text-[10px] font-bold text-slate-400 italic">Créditos en curso</span>
+              </div>
+            </div>
           </div>
         </div>
-        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-          Pendiente
-        </span>
-      </div>
-      <div className="mt-3 pt-2 border-t border-blue-200 border-dashed">
-        <p className="text-xs text-blue-600">
-          Créditos activos pendientes de recaudo
-        </p>
-      </div>
-    </div>
-  </div>
 
-  {/* Ratio de Liquidez */}
-  <div className="mt-4 bg-gray-50 p-3 rounded-lg">
-    <div className="flex items-center justify-between">
-      <span className="text-sm font-medium text-gray-700">Ratio de Liquidez</span>
-      <div className="flex items-center">
-        <div className="w-24 bg-gray-200 rounded-full h-2.5 mr-2">
-          <div 
-            className="bg-indigo-600 h-2.5 rounded-full" 
-            style={{ width: `${Math.min(100, (data.tienda.caja / (data.tienda.caja + data.tienda.dinero_x_cobrar)) * 100)}%` }}
-          ></div>
+        {/* Liquidity Ratio Analysis */}
+        <div className="mt-8 p-6 rounded-[2rem] bg-slate-50/50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Índice de Liquidez Inmediata</span>
+              <p className="text-xs text-slate-400">Proporción de efectivo frente a activos totales de corto plazo</p>
+            </div>
+            <div className="text-right">
+              <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
+                {((data.tienda.caja / (data.tienda.caja + data.tienda.dinero_x_cobrar)) * 100).toFixed(1)}%
+              </span>
+            </div>
+          </div>
+          <div className="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden p-1 border border-slate-300 dark:border-slate-700">
+            <div 
+              className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-1000" 
+              style={{ width: `${Math.min(100, (data.tienda.caja / (data.tienda.caja + data.tienda.dinero_x_cobrar)) * 100)}%` }}
+            ></div>
+          </div>
         </div>
-        <span className="text-sm font-semibold text-indigo-700">
-          {((data.tienda.caja / (data.tienda.caja + data.tienda.dinero_x_cobrar)) * 100).toFixed(1)}%
-        </span>
       </div>
-    </div>
-    <p className="text-xs text-gray-500 mt-1">
-      Porcentaje de liquidez inmediata frente al total de recursos
-    </p>
-  </div>
-</div>
     </div>
   );
 }

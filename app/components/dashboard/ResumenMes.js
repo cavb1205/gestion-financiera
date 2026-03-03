@@ -86,350 +86,103 @@ export default function ResumenMes({ tienda, loading = false }) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-5 border-t-4 border-blue-500">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-medium text-gray-900 flex items-center">
-          <FiBarChart2 className="mr-2 text-blue-500" />
-          Resumen del Mes
-          <div 
-            className="ml-2 relative"
-            onMouseEnter={() => setShowTooltip('resumen')}
-            onMouseLeave={() => setShowTooltip(null)}
-          >
-            <FiInfo className="text-gray-400 text-sm cursor-help" />
-            {showTooltip === 'resumen' && (
-              <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                Resumen financiero del mes actual. Incluye ingresos, gastos, utilidad generada, pérdidas y distribución a socios.
-              </div>
-            )}
-          </div>
-        </h2>
-        <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs capitalize">
+    <div className="glass rounded-[2rem] p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10 border-blue-500/10 group h-full">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+            <FiBarChart2 className="text-blue-500 group-hover:scale-110 transition-transform" />
+            Ventas del Mes
+          </h2>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Rendimiento Mensual</p>
+        </div>
+        <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tighter">
           {obtenerNombreMes()}
         </div>
       </div>
 
-      <div className="space-y-4">
-        {/* Ventas netas del mes */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-gray-500 text-sm flex items-center">
-              Ventas netas
-              <div 
-                className="ml-1 relative"
-                onMouseEnter={() => setShowTooltip('ventas')}
-                onMouseLeave={() => setShowTooltip(null)}
-              >
-                <FiInfo className="text-gray-400 text-xs cursor-help" />
-                {showTooltip === 'ventas' && (
-                  <div className="absolute left-0 bottom-full mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                    Total de ventas del mes.
-                  </div>
-                )}
-              </div>
+      <div className="space-y-6">
+        {/* Main Monthly Sales KPI */}
+        <div className="relative p-5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-800/50">
+          <div className="flex justify-between items-start mb-1">
+            <h3 className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+              Ventas Netas Totales
             </h3>
-            <p className="text-xl font-bold text-blue-600">
-              ${tienda.tienda.ventas_netas_mes?.toLocaleString() || "0"}
-            </p>
+            <FiTrendingUp className="text-blue-500 text-lg" />
           </div>
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <FiTrendingUp className="text-blue-500 text-xl" />
-          </div>
+          <p className="text-3xl font-black text-slate-800 dark:text-white">
+            ${tienda.tienda.ventas_netas_mes?.toLocaleString() || "0"}
+          </p>
         </div>
 
-        {/* Gastos del mes */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-gray-500 text-sm flex items-center">
-              Gastos operativos
-              <div 
-                className="ml-1 relative"
-                onMouseEnter={() => setShowTooltip('gastos')}
-                onMouseLeave={() => setShowTooltip(null)}
-              >
-                <FiInfo className="text-gray-400 text-xs cursor-help" />
-                {showTooltip === 'gastos' && (
-                  <div className="absolute left-0 bottom-full mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                    Costos operativos y gastos incurridos durante el mes.
-                  </div>
-                )}
-              </div>
-            </h3>
-            <p className="text-xl font-bold text-red-600">
+        {/* Secondary Metrics Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/50">
+            <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Egresos</span>
+            <p className="text-lg font-black text-rose-600 dark:text-rose-400">
               ${tienda.tienda.gastos_mes?.toLocaleString() || "0"}
             </p>
           </div>
-          <div className="p-2 bg-red-100 rounded-lg">
-            <FiTrendingDown className="text-red-500 text-xl" />
-          </div>
-        </div>
-
-        {/* Utilidad bruta (20% de ventas) */}
-        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-          <div>
-            <h3 className="text-gray-500 text-sm flex items-center">
-              Utilidad bruta (estimada)
-              <div 
-                className="ml-1 relative"
-                onMouseEnter={() => setShowTooltip('utilidad-bruta')}
-                onMouseLeave={() => setShowTooltip(null)}
-              >
-                <FiInfo className="text-gray-400 text-xs cursor-help" />
-                {showTooltip === 'utilidad-bruta' && (
-                  <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                    Porción de las ventas destinada a cubrir gastos y generar utilidad.
-                  </div>
-                )}
-              </div>
-            </h3>
-            <p className="text-xl font-bold text-green-600">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/50">
+            <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">U. Bruta</span>
+            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">
               ${utilidadBruta.toLocaleString()}
             </p>
           </div>
-          <div className="p-2 bg-green-100 rounded-lg">
-            <FiDollarSign className="text-green-500 text-xl" />
+        </div>
+
+        {/* Net Profit Core Area */}
+        <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-br from-indigo-50 to-emerald-50 dark:from-indigo-950/20 dark:to-emerald-950/20 border border-emerald-100 dark:border-emerald-800/40">
+            <div>
+              <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest block mb-1">Utilidad Neta</span>
+              <p className={`text-2xl font-black ${utilidadPeriodo >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
+                ${utilidadPeriodo.toLocaleString()}
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Margen</span>
+              <span className={`text-sm font-black px-2 py-1 rounded-lg ${utilidadPeriodo >= 0 ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                {Math.abs(margenUtilidad).toFixed(1)}%
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Pérdidas del mes (solo si son mayores a 0) */}
-        {tienda.tienda.perdidas_mes > 0 && (
-          <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-            <div>
-              <h3 className="text-gray-500 text-sm flex items-center">
-                Pérdidas del mes
-                <div 
-                  className="ml-1 relative"
-                  onMouseEnter={() => setShowTooltip('perdidas')}
-                  onMouseLeave={() => setShowTooltip(null)}
-                >
-                  <FiInfo className="text-gray-400 text-xs cursor-help" />
-                  {showTooltip === 'perdidas' && (
-                    <div className="absolute left-0 bottom-full mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                      Pérdidas registradas durante el mes.
-                    </div>
-                  )}
-                </div>
-              </h3>
-              <p className="text-xl font-bold text-red-600">
-                ${tienda.tienda.perdidas_mes.toLocaleString()}
-              </p>
-            </div>
-            <div className="p-2 bg-red-100 rounded-lg">
-              <FiAlertTriangle className="text-red-500 text-xl" />
+        {/* Financial Distribution Bar */}
+        <div className="space-y-4 pt-4">
+          <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            <span>Distribución Mensual</span>
+            <div className="flex gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
             </div>
           </div>
-        )}
-
-        {/* Utilidad del período (profit real generado) */}
-        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-          <div>
-            <h3 className="text-gray-500 text-sm flex items-center">
-              Utilidad neta del período
-              <div 
-                className="ml-1 relative"
-                onMouseEnter={() => setShowTooltip('utilidad-periodo')}
-                onMouseLeave={() => setShowTooltip(null)}
-              >
-                <FiInfo className="text-gray-400 text-xs cursor-help" />
-                {showTooltip === 'utilidad-periodo' && (
-                  <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                    Ganancia real generada este mes (% de las ventas netas menos gastos y pérdidas).
-                  </div>
-                )}
-              </div>
-            </h3>
-            <p className={`text-xl font-bold ${utilidadPeriodo >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ${utilidadPeriodo.toLocaleString()}
-            </p>
-            {margenUtilidad !== 0 && (
-              <span className={`text-xs ${margenUtilidad >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                Margen: {Math.abs(margenUtilidad).toFixed(1)}%
-              </span>
-            )}
-          </div>
-          <div className={`p-2 rounded-lg ${utilidadPeriodo >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
-            <FiCalendar className="text-green-500 text-xl" />
-          </div>
-        </div>
-
-        {/* Ganancias retiradas por socios (solo si son mayores a 0) */}
-        {gananciasRetiradas > 0 && (
-          <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-            <div>
-              <h3 className="text-gray-500 text-sm flex items-center">
-                Distribución a socios
-                <div 
-                  className="ml-1 relative"
-                  onMouseEnter={() => setShowTooltip('distribucion')}
-                  onMouseLeave={() => setShowTooltip(null)}
-                >
-                  <FiInfo className="text-gray-400 text-xs cursor-help" />
-                  {showTooltip === 'distribucion' && (
-                    <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                      Ganancias retiradas del sistema por los socios este mes.
-                    </div>
-                  )}
-                </div>
-              </h3>
-              <p className="text-xl font-bold text-purple-600">
-                ${gananciasRetiradas.toLocaleString()}
-              </p>
-              <span className="text-xs text-purple-500">
-                Retiros realizados
-              </span>
-            </div>
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <FiUsers className="text-purple-500 text-xl" />
-            </div>
-          </div>
-        )}
-
-        {/* Diferencia entre ganancias retiradas y utilidad del período (solo si hay retiros) */}
-        {gananciasRetiradas > 0 && (
-          <div className="pt-3 border-t border-gray-100">
-            <h3 className="text-gray-500 text-sm mb-2 flex items-center">
-              Balance de distribución
-              <div 
-                className="ml-1 relative"
-                onMouseEnter={() => setShowTooltip('balance')}
-                onMouseLeave={() => setShowTooltip(null)}
-              >
-                <FiInfo className="text-gray-400 text-xs cursor-help" />
-                {showTooltip === 'balance' && (
-                  <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                    Comparación entre la utilidad generada y lo retirado por socios.
-                    Valor positivo significa que hay utilidad disponible.
-                  </div>
-                )}
-              </div>
-            </h3>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Disponible:</span>
-              <span className={`text-sm font-semibold ${diferencia >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {diferencia >= 0 ? '+' : ''}${Math.abs(diferencia).toLocaleString()}
-              </span>
-            </div>
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-sm text-gray-600">
-                {diferencia >= 0 ? 'Porcentaje disponible' : 'Déficit'}:
-              </span>
-              <span className={`text-sm font-semibold ${diferencia >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {diferencia >= 0 ? '+' : ''}{Math.abs(porcentajeDiferencia).toFixed(1)}%
-              </span>
-            </div>
-            {diferencia < 0 && (
-              <div className="mt-2 p-2 bg-yellow-100 rounded-md">
-                <p className="text-xs text-yellow-800">
-                  ⚠️ Se retiró más de la utilidad generada
-                </p>
-              </div>
-            )}
-            {diferencia >= 0 && (
-              <div className="mt-2 p-2 bg-green-100 rounded-md">
-                <p className="text-xs text-green-800">
-                  ✓ Utilidad retirada dentro de lo generado
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Aportes del mes (solo si son mayores a 0) */}
-        {tienda.tienda.aportes_mes > 0 && (
-          <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-            <div>
-              <h3 className="text-gray-500 text-sm flex items-center">
-                Aportes de capital
-                <div 
-                  className="ml-1 relative"
-                  onMouseEnter={() => setShowTooltip('aportes')}
-                  onMouseLeave={() => setShowTooltip(null)}
-              >
-                  <FiInfo className="text-gray-400 text-xs cursor-help" />
-                  {showTooltip === 'aportes' && (
-                    <div className="absolute left-0 bottom-full mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                      Inyecciones de capital realizadas durante el mes.
-                    </div>
-                  )}
-                </div>
-              </h3>
-              <p className="text-xl font-bold text-indigo-600">
-                ${tienda.tienda.aportes_mes.toLocaleString()}
-              </p>
-            </div>
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <FiDollarSign className="text-indigo-500 text-xl" />
-            </div>
-          </div>
-        )}
-
-        {/* Resumen visual de proporciones - ACTUALIZADO */}
-        <div className="pt-3 border-t border-gray-100">
-          <h3 className="text-gray-500 text-sm mb-2 flex items-center">
-            Distribución Financiera Mensual
-            <div 
-              className="ml-1 relative"
-              onMouseEnter={() => setShowTooltip('distribucion-financiera')}
-              onMouseLeave={() => setShowTooltip(null)}
-            >
-              <FiInfo className="text-gray-400 text-xs cursor-help" />
-              {showTooltip === 'distribucion-financiera' && (
-                <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                  Proporción entre gastos, pérdidas y utilidad respecto a los recursos totales del mes.
-                </div>
-              )}
-            </div>
-          </h3>
-
-          {/* Barra de progreso que muestra gastos, pérdidas y utilidad */}
           {totalDistribucion > 0 ? (
-            <>
-              <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div
-                  className="bg-red-500 h-2 rounded-full"
-                  style={{
-                    width: `${porcentajeGastos}%`,
-                  }}
-                  title="Gastos"
-                ></div>
-                <div
-                  className="bg-orange-500 h-2 rounded-full -mt-2"
-                  style={{
-                    width: `${porcentajePerdidas}%`,
-                    marginLeft: `${porcentajeGastos}%`
-                  }}
-                  title="Pérdidas"
-                ></div>
-                <div
-                  className="bg-green-500 h-2 rounded-full -mt-2"
-                  style={{
-                    width: `${porcentajeUtilidad}%`,
-                    marginLeft: `${porcentajeGastos + porcentajePerdidas}%`
-                  }}
-                  title="Utilidad"
-                ></div>
+            <div className="space-y-4">
+              <div className="h-6 w-full bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl flex overflow-hidden p-1.5 border border-white/50 dark:border-slate-700/50 backdrop-blur-sm">
+                <div className="bg-rose-500 rounded-lg h-full transition-all duration-1000 shadow-[0_0_15px_rgba(239,68,68,0.3)]" style={{ width: `${porcentajeGastos}%` }}></div>
+                <div className="bg-orange-400 rounded-lg h-full transition-all duration-1000 mx-1 shadow-[0_0_15px_rgba(251,146,60,0.3)]" style={{ width: `${porcentajePerdidas}%` }}></div>
+                <div className="bg-emerald-500 rounded-lg h-full transition-all duration-1000 shadow-[0_0_15px_rgba(16,185,129,0.3)]" style={{ width: `${porcentajeUtilidad}%` }}></div>
               </div>
-
-              <div className="grid grid-cols-3 gap-2 text-xs text-gray-500 mt-2">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-red-400 mr-1 rounded-sm"></div>
-                  <span>Gastos: {porcentajeGastos.toFixed(1)}%</span>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-3 bg-white/40 dark:bg-slate-900/40 rounded-2xl border border-white/60 dark:border-slate-800/50">
+                  <p className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">Gastos</p>
+                  <p className="text-sm font-black text-slate-800 dark:text-white">{porcentajeGastos.toFixed(0)}%</p>
                 </div>
-                {tienda.tienda.perdidas_mes > 0 && (
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-orange-400 mr-1 rounded-sm"></div>
-                    <span>Pérdidas: {porcentajePerdidas.toFixed(1)}%</span>
-                  </div>
-                )}
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-green-400 mr-1 rounded-sm"></div>
-                  <span>Utilidad: {porcentajeUtilidad.toFixed(1)}%</span>
+                <div className="p-3 bg-white/40 dark:bg-slate-900/40 rounded-2xl border border-white/60 dark:border-slate-800/50">
+                  <p className="text-[9px] font-black text-orange-400 uppercase tracking-tighter">Pérdidas</p>
+                  <p className="text-sm font-black text-slate-800 dark:text-white">{porcentajePerdidas.toFixed(0)}%</p>
+                </div>
+                <div className="p-3 bg-white/40 dark:bg-slate-900/40 rounded-2xl border border-white/60 dark:border-slate-800/50">
+                  <p className="text-[9px] font-black text-emerald-500 uppercase tracking-tighter">Utilidad</p>
+                  <p className="text-sm font-black text-slate-800 dark:text-white">{porcentajeUtilidad.toFixed(0)}%</p>
                 </div>
               </div>
-            </>
+            </div>
           ) : (
-            <div className="text-center text-gray-500 text-sm py-2">
-              No hay datos financieros registrados para este mes
+            <div className="text-center py-6 bg-white/20 dark:bg-slate-900/40 rounded-[2rem] border border-dashed border-slate-200 dark:border-slate-800 backdrop-blur-md">
+               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">Análisis Pendiente</span>
             </div>
           )}
         </div>

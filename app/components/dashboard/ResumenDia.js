@@ -9,7 +9,7 @@ import {
   FiInfo,
   FiCreditCard,
   FiUsers,
-  FiCalculator,
+  FiActivity,
 } from "react-icons/fi";
 import { useState } from "react";
 
@@ -59,214 +59,115 @@ export default function ResumenDia({ tienda, loading = false }) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-5 border-t-4 border-green-500 relative">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-medium text-gray-900 flex items-center">
-          <FiCalendar className="mr-2 text-green-500" />
-          Resumen del Día
-          <div
-            className="ml-2 relative"
-            onMouseEnter={() => setShowTooltip("resumen")}
-            onMouseLeave={() => setShowTooltip(null)}
-          >
-            <FiInfo className="text-gray-400 text-sm cursor-help" />
-            {showTooltip === "resumen" && (
-              <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                Resumen financiero del día actual. Incluye ingresos, gastos,
-                utilidad generada y distribución a socios.
-              </div>
-            )}
-          </div>
-        </h2>
-        <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-          Hoy {new Date().toLocaleDateString("es-ES")}
+    <div className="glass rounded-[2rem] p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-500/10 border-emerald-500/10 group">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+            <FiCalendar className="text-emerald-500 group-hover:scale-110 transition-transform" />
+            Flujo del Día
+          </h2>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Control de Caja</p>
+        </div>
+        <div className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tighter">
+          {new Date().toLocaleDateString("es-ES", { day: '2-digit', month: 'short' })}
         </div>
       </div>
 
-      <div className="space-y-4">
-        {/* Recaudos del día */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-gray-500 text-sm flex items-center">
-              Recaudos del día
-              <div
-                className="ml-1 relative"
-                onMouseEnter={() => setShowTooltip("recaudos")}
-                onMouseLeave={() => setShowTooltip(null)}
-              >
-                <FiInfo className="text-gray-400 text-xs cursor-help" />
-                {showTooltip === "recaudos" && (
-                  <div className="absolute left-0 bottom-full mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                    Dinero recibido en efectivo y transferencias hoy.
-                  </div>
-                )}
-              </div>
+      <div className="space-y-6">
+        {/* Recaudos del día - Main KPI */}
+        <div className="relative p-6 rounded-[2rem] bg-gradient-to-br from-emerald-500/10 to-teal-500/5 dark:from-emerald-500/20 dark:to-teal-500/10 border border-emerald-500/20 group/item overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-3xl rounded-full -mr-16 -mt-16 group-hover/item:scale-150 transition-transform duration-700"></div>
+          <div className="relative flex justify-between items-start mb-2">
+            <h3 className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              Recaudos en Caja
+              <FiInfo className="text-[10px] opacity-50 cursor-help" />
             </h3>
-            <p className="text-xl font-bold text-green-600">
-              ${tienda.tienda.recaudos_dia?.toLocaleString() || "0"}
-            </p>
+            <div className="p-2 bg-emerald-500/20 rounded-xl">
+              <FiDollarSign className="text-emerald-600 dark:text-emerald-400 text-lg" />
+            </div>
           </div>
-          <div className="p-2 bg-green-100 rounded-lg">
-            <FiDollarSign className="text-green-500 text-xl" />
+          <p className="text-3xl font-black text-slate-800 dark:text-white relative">
+            ${tienda.tienda.recaudos_dia?.toLocaleString() || "0"}
+          </p>
+          <div className="absolute bottom-4 right-6 opacity-20 group-hover/item:opacity-40 transition-opacity">
+            <FiTrendingUp size={48} className="text-emerald-500" />
           </div>
         </div>
 
-        {/* Ventas netas */}
-        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-          <div>
-            <h3 className="text-gray-500 text-sm flex items-center">
-              Ventas netas
-              <div
-                className="ml-1 relative"
-                onMouseEnter={() => setShowTooltip("ventas")}
-                onMouseLeave={() => setShowTooltip(null)}
-              >
-                <FiInfo className="text-gray-400 text-xs cursor-help" />
-                {showTooltip === "ventas" && (
-                  <div className="absolute left-0 bottom-full mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                    Total de ventas después de descuentos y devoluciones.
-                  </div>
-                )}
+        {/* Financial Flow Section */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-5 rounded-[1.75rem] bg-white/40 dark:bg-slate-900/40 border border-white/60 dark:border-slate-800/50 backdrop-blur-md">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-blue-500/10 rounded-xl">
+                <FiTrendingUp className="text-blue-600 dark:text-blue-400 text-xs" />
               </div>
-            </h3>
-            <p className="text-xl font-bold text-blue-600">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ventas</span>
+            </div>
+            <p className="text-xl font-black text-slate-800 dark:text-slate-100">
               ${tienda.tienda.ventas_netas_dia?.toLocaleString() || "0"}
             </p>
           </div>
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <FiTrendingUp className="text-blue-500 text-xl" />
-          </div>
-        </div>
 
-        {/* Gastos */}
-        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-          <div>
-            <h3 className="text-gray-500 text-sm flex items-center">
-              Gastos operativos
-              <div
-                className="ml-1 relative"
-                onMouseEnter={() => setShowTooltip("gastos")}
-                onMouseLeave={() => setShowTooltip(null)}
-              >
-                <FiInfo className="text-gray-400 text-xs cursor-help" />
-                {showTooltip === "gastos" && (
-                  <div className="absolute left-0 bottom-full mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                    Costos operativos y gastos incurridos hoy.
-                  </div>
-                )}
+          <div className="p-5 rounded-[1.75rem] bg-white/40 dark:bg-slate-900/40 border border-white/60 dark:border-slate-800/50 backdrop-blur-md">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-rose-500/10 rounded-xl">
+                <FiTrendingDown className="text-rose-600 dark:text-rose-400 text-xs" />
               </div>
-            </h3>
-            <p className="text-xl font-bold text-red-600">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Gastos</span>
+            </div>
+            <p className="text-xl font-black text-slate-800 dark:text-slate-100">
               ${tienda.tienda.gastos_dia?.toLocaleString() || "0"}
             </p>
           </div>
-          <div className="p-2 bg-red-100 rounded-lg">
-            <FiTrendingDown className="text-red-500 text-xl" />
-          </div>
         </div>
 
-        {/* Utilidad del día (profit real generado) */}
-        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-          <div>
-            <h3 className="text-gray-500 text-sm flex items-center">
-              Utilidad estimada del día
-              <div
-                className="ml-1 relative"
-                onMouseEnter={() => setShowTooltip("utilidad-dia")}
-                onMouseLeave={() => setShowTooltip(null)}
-              >
-                <FiInfo className="text-gray-400 text-xs cursor-help" />
-                {showTooltip === "utilidad-dia" && (
-                  <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                    Ganancia estimada generada hoy menos los gastos.
-                  </div>
+        {/* Profit Highlights */}
+        <div className="pt-8 border-t border-slate-200/50 dark:border-slate-800/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Spread Diario</h3>
+              <div className="flex items-baseline gap-2">
+                <p className={`text-3xl font-black ${utilidadDia >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"}`}>
+                  ${utilidadDia.toLocaleString()}
+                </p>
+                {margenUtilidad !== 0 && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${margenUtilidad >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"}`}>
+                    {margenUtilidad >= 0 ? '+' : ''}{margenUtilidad.toFixed(1)}%
+                  </span>
                 )}
               </div>
-            </h3>
-            <p
-              className={`text-xl font-bold ${
-                utilidadDia >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              ${utilidadDia.toLocaleString()}
-            </p>
-            {margenUtilidad !== 0 && (
-              <span
-                className={`text-xs ${
-                  margenUtilidad >= 0 ? "text-green-500" : "text-red-500"
-                }`}
-              >
-                Margen: {Math.abs(margenUtilidad).toFixed(1)}%
-              </span>
-            )}
-          </div>
-          <div
-            className={`p-2 rounded-lg ${
-              utilidadDia >= 0 ? "bg-green-100" : "bg-red-100"
-            }`}
-          >
-            <FiCalendar className="text-green-500 text-xl" />
+            </div>
+            <div className={`p-4 rounded-[1.5rem] ${utilidadDia >= 0 ? "bg-emerald-500" : "bg-rose-500"} shadow-xl ${utilidadDia >= 0 ? "shadow-emerald-500/30" : "shadow-rose-500/30"} scale-110`}>
+              <FiActivity className="text-white text-xl" />
+            </div>
           </div>
         </div>
 
-        {/* Ganancias retiradas por socios (solo si son mayores a 0) */}
-        {gananciasRetiradas > 0 && (
-          <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-            <div>
-              <h3 className="text-gray-500 text-sm flex items-center">
-                Distribución a socios
-                <div
-                  className="ml-1 relative"
-                  onMouseEnter={() => setShowTooltip("distribucion")}
-                  onMouseLeave={() => setShowTooltip(null)}
-                >
-                  <FiInfo className="text-gray-400 text-xs cursor-help" />
-                  {showTooltip === "distribucion" && (
-                    <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                      Ganancias retiradas del sistema por los socios hoy.
-                    </div>
-                  )}
+        {/* Secondary Operations */}
+        {(gananciasRetiradas > 0 || tienda.tienda.aportes_dia > 0) && (
+          <div className="flex flex-col gap-3 mt-6">
+            {gananciasRetiradas > 0 && (
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-purple-500/5 dark:bg-purple-900/20 border border-purple-500/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 bg-purple-500/20 rounded-lg">
+                    <FiUsers className="text-purple-600 dark:text-purple-400 text-sm" />
+                  </div>
+                  <span className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest">Payout Socios</span>
                 </div>
-              </h3>
-              <p className="text-xl font-bold text-purple-600">
-                ${gananciasRetiradas.toLocaleString()}
-              </p>
-              <span className="text-xs text-purple-500">
-                Retiros realizados
-              </span>
-            </div>
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <FiUsers className="text-purple-500 text-xl" />
-            </div>
-          </div>
-        )}
-
-        {/* Aportes del día (solo si son mayores a 0) */}
-        {tienda.tienda.aportes_dia > 0 && (
-          <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-            <div>
-              <h3 className="text-gray-500 text-sm flex items-center">
-                Aportes de capital
-                <div
-                  className="ml-1 relative"
-                  onMouseEnter={() => setShowTooltip("aportes")}
-                  onMouseLeave={() => setShowTooltip(null)}
-                >
-                  <FiInfo className="text-gray-400 text-xs cursor-help" />
-                  {showTooltip === "aportes" && (
-                    <div className="absolute left-0 bottom-full mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                      Inyecciones de capital realizadas hoy.
-                    </div>
-                  )}
+                <span className="text-sm font-black text-purple-600 dark:text-purple-300">-${gananciasRetiradas.toLocaleString()}</span>
+              </div>
+            )}
+            {tienda.tienda.aportes_dia > 0 && (
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-indigo-500/5 dark:bg-indigo-900/20 border border-indigo-500/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 bg-indigo-500/20 rounded-lg">
+                    <FiCreditCard className="text-indigo-600 dark:text-indigo-400 text-sm" />
+                  </div>
+                  <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">Inyección K</span>
                 </div>
-              </h3>
-              <p className="text-xl font-bold text-indigo-600">
-                ${tienda.tienda.aportes_dia.toLocaleString()}
-              </p>
-            </div>
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <FiCreditCard className="text-indigo-500 text-xl" />
-            </div>
+                <span className="text-sm font-black text-indigo-600 dark:text-indigo-300">+${tienda.tienda.aportes_dia.toLocaleString()}</span>
+              </div>
+            )}
           </div>
         )}
       </div>

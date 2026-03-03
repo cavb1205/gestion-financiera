@@ -1,4 +1,4 @@
-// app/aportes/page.js
+// app/dashboard/aportes/page.js
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,13 +14,20 @@ import {
   FiSearch,
   FiChevronLeft,
   FiChevronRight,
+  FiActivity,
+  FiClock,
+  FiPieChart,
+  FiArrowUpRight,
 } from "react-icons/fi";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import EliminarAporte from "@/app/components/aportes/EliminarAporte";
 import { toast } from "react-toastify";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 export default function AportesPage() {
-  const { selectedStore, token } = useAuth();
+  const router = useRouter();
+  const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
   const [aportes, setAportes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -52,7 +59,7 @@ export default function AportesPage() {
       const data = await response.json();
       const aportesData = Array.isArray(data) ? data : [];
       setAportes(aportesData);
-      setCurrentPage(1); // Reset a la primera página al cargar nuevos datos
+      setCurrentPage(1); 
     } catch (err) {
       setError(err.message);
       console.error("Error al obtener aportes:", err);
@@ -80,7 +87,6 @@ export default function AportesPage() {
         throw new Error("No se pudo eliminar el aporte");
       }
 
-      // Actualizar la lista de aportes
       setAportes(aportes.filter((aporte) => aporte.id !== aporteAEliminar.id));
       toast.success("Aporte eliminado correctamente");
       setAporteAEliminar(null);
@@ -98,22 +104,17 @@ export default function AportesPage() {
     }
   }, [selectedStore, token]);
 
-  // Filtrado de aportes
   const filteredAportes = aportes.filter(
     (aporte) =>
       aporte.trabajador.trabajador
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      aporte.comentario.toLowerCase().includes(searchTerm.toLowerCase())
+      (aporte.comentario && aporte.comentario.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Cálculo de la paginación
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentAportes = filteredAportes.slice(
-    indexOfFirstItem,
-    indexOfLastItem
-  );
+  const currentAportes = filteredAportes.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredAportes.length / itemsPerPage);
 
   const totalAportes = filteredAportes.reduce(
@@ -130,222 +131,175 @@ export default function AportesPage() {
     setCurrentPage(1);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">Aportes</h1>
-            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-indigo-600"></div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="h-64 flex items-center justify-center">
-              <p className="text-gray-500">Cargando aportes...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (authLoading || loading) return <LoadingSpinner />;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Aportes</h1>
-            <p className="text-gray-500 mt-1">
-              Gestión de aportes de capital para {selectedStore?.tienda?.nombre}
-            </p>
+    <div className="min-h-screen bg-transparent pb-12">
+      <div className="w-full">
+
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-6">
+          <div className="flex items-center gap-5">
+            <div className="bg-indigo-600 p-4 rounded-[1.5rem] shadow-xl shadow-indigo-200 dark:shadow-none">
+               <FiPieChart className="text-white text-3xl" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Inyección de Capital</h1>
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">
+                Fondos de Inversión • <span className="text-indigo-500">{selectedStore?.tienda?.nombre}</span>
+              </p>
+            </div>
           </div>
-          <div className="mt-4 md:mt-0 flex space-x-2">
-            <button
+          
+          <div className="flex items-center gap-3">
+            <button 
               onClick={fetchAportes}
-              className="flex items-center bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-200 transition-colors"
+              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm"
             >
-              <FiRefreshCw className="mr-2" />
-              Actualizar
+              <FiRefreshCw size={20} className={loading ? "animate-spin" : ""} />
             </button>
-            <Link
+            <Link 
               href="/dashboard/aportes/crear"
-              className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+              className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all"
             >
-              <FiPlus className="mr-2" />
-              Nuevo Aporte
+              <FiPlus size={20} />
+              Registrar Aporte
             </Link>
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center">
-              <div className="text-red-600 mr-2">
-                <FiDollarSign />
+        {/* Metrics Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl">
+                  <FiDollarSign size={24} />
+                </div>
+                <div className="flex items-center gap-1 text-emerald-500 font-bold text-xs bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg">
+                   <FiArrowUpRight /> Total
+                </div>
               </div>
-              <p className="text-red-600">{error}</p>
+              <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 select-all">
+                ${totalAportes.toLocaleString()}
+              </p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Capital Total Inyectado</p>
             </div>
-            <button
-              onClick={fetchAportes}
-              className="text-red-600 text-sm font-medium mt-2"
-            >
-              Reintentar
-            </button>
+            <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
           </div>
-        )}
 
-        {/* Resumen */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="flex items-center">
-              <div className="bg-blue-100 p-2 rounded-lg mr-3">
-                <FiDollarSign className="text-blue-600 text-xl" />
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 rounded-2xl">
+                  <FiActivity size={24} />
+                </div>
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Registros</span>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Total Aportes</p>
-                <p className="text-xl font-bold text-gray-800">
-                  ${totalAportes.toLocaleString()}
-                </p>
-              </div>
+              <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
+                {filteredAportes.length}
+              </p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Operaciones Realizadas</p>
             </div>
+            <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-slate-500/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="flex items-center">
-              <div className="bg-green-100 p-2 rounded-lg mr-3">
-                <FiUser className="text-green-600 text-xl" />
+
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-2xl">
+                  <FiClock size={24} />
+                </div>
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Historial</span>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Total Registros</p>
-                <p className="text-xl font-bold text-gray-800">
-                  {filteredAportes.length}
-                </p>
-              </div>
+              <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
+                {filteredAportes.length > 0
+                  ? new Date(filteredAportes[0].fecha).toLocaleDateString()
+                  : "N/A"}
+              </p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Último Movimiento</p>
             </div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="flex items-center">
-              <div className="bg-purple-100 p-2 rounded-lg mr-3">
-                <FiCalendar className="text-purple-600 text-xl" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Último Aporte</p>
-                <p className="text-xl font-bold text-gray-800">
-                  {filteredAportes.length > 0
-                    ? new Date(filteredAportes[0].fecha).toLocaleDateString()
-                    : "N/A"}
-                </p>
-              </div>
-            </div>
+            <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
           </div>
         </div>
 
-        {/* Búsqueda y Filtros */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
-            <div className="flex-1">
-              <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar por trabajador o comentario..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+        {/* Search & Table Section */}
+        <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none">
+          <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-transparent">
+            <div className="relative flex-1 group">
+              <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                <FiSearch size={20} />
               </div>
-            </div>
-            <div className="flex space-x-2">
-              <select
-                className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                value={itemsPerPage}
-                onChange={handleItemsPerPageChange}
-              >
-                <option value="5">5 por página</option>
-                <option value="10">10 por página</option>
-                <option value="25">25 por página</option>
-                <option value="50">50 por página</option>
-              </select>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Filtrar por inversionista o descripción de aporte..."
+                className="block w-full pl-14 pr-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[15px] font-medium text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-inner"
+              />
             </div>
           </div>
-        </div>
 
-        {/* Tabla de Aportes */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fecha
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trabajador
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Valor
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Comentario
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
+          <div className="overflow-x-auto overflow-y-hidden">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-slate-50/50 dark:bg-slate-800/20 p-4">
+                  <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha</th>
+                  <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Origen de Fondos</th>
+                  <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Valor Inyectado</th>
+                  <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Comentarios</th>
+                  <th className="px-4 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Gestión</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {currentAportes.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center">
-                      <div className="text-gray-400 mb-2">
-                        <FiDollarSign className="text-3xl mx-auto" />
+                    <td colSpan="5" className="px-8 py-24 text-center">
+                      <div className="bg-slate-50 dark:bg-slate-800/50 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                        <FiDollarSign className="text-4xl text-slate-200" />
                       </div>
-                      <p className="text-gray-500">
-                        {searchTerm
-                          ? "No se encontraron aportes con esos criterios"
-                          : "No hay aportes registrados"}
-                      </p>
+                      <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest">Sin resultados</h3>
+                      <p className="text-sm font-bold text-slate-400 mt-2">No se encontraron movimientos registrados.</p>
                     </td>
                   </tr>
                 ) : (
                   currentAportes.map((aporte) => (
-                    <tr key={aporte.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {new Date(aporte.fecha).toLocaleDateString()}
+                    <tr key={aporte.id} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
+                      <td className="px-4 py-6 whitespace-nowrap">
+                        <div className="flex items-center gap-2 text-slate-500">
+                          <FiCalendar className="text-slate-300" />
+                          <span className="text-xs font-bold">{new Date(aporte.fecha).toLocaleDateString()}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="bg-blue-100 p-2 rounded-full mr-3">
-                            <FiUser className="text-blue-600 text-sm" />
+                      <td className="px-4 py-6 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 font-black text-xs uppercase">
+                            {aporte.trabajador.trabajador.charAt(0)}
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {aporte.trabajador.trabajador}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {aporte.trabajador.identificacion}
-                            </div>
+                            <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{aporte.trabajador.trabajador}</p>
+                            <p className="text-[10px] font-bold text-slate-400">ID: {aporte.trabajador.identificacion}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-green-600">
+                      <td className="px-6 py-6 whitespace-nowrap text-right">
+                        <p className="text-base font-black text-indigo-600 dark:text-indigo-400 tracking-tighter leading-none mb-1">
                           ${parseFloat(aporte.valor).toLocaleString()}
-                        </div>
+                        </p>
+                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.1em]">Capital Activo</p>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs truncate">
-                          {aporte.comentario}
-                        </div>
+                      <td className="px-4 py-6">
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 max-w-xs line-clamp-2 italic leading-relaxed">
+                          "{aporte.comentario || 'Sin observaciones adicionales'}"
+                        </p>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <td className="px-4 py-6 whitespace-nowrap">
                         <div className="flex justify-center">
                           <button
                             onClick={() => setAporteAEliminar(aporte)}
-                            className="text-red-600 hover:text-red-900"
+                            className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all border border-rose-100 dark:border-rose-900/30 group/btn"
                           >
-                            <FiTrash2 className="text-lg" />
+                            <FiTrash2 className="text-lg group-hover/btn:scale-110" />
                           </button>
                         </div>
                       </td>
@@ -356,73 +310,76 @@ export default function AportesPage() {
             </table>
           </div>
 
-          {/* Paginación */}
+          {/* Pagination & Stats Footer */}
           {filteredAportes.length > 0 && (
-            <div className="bg-white px-6 py-4 border-t border-gray-200">
-              <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
-                <div className="text-sm text-gray-700">
-                  Mostrando{" "}
-                  <span className="font-medium">{indexOfFirstItem + 1}</span> a{" "}
-                  <span className="font-medium">
-                    {Math.min(indexOfLastItem, filteredAportes.length)}
-                  </span>{" "}
-                  de{" "}
-                  <span className="font-medium">{filteredAportes.length}</span>{" "}
-                  resultados
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <FiChevronLeft className="mr-1" />
-                    Anterior
-                  </button>
+            <div className="p-8 bg-slate-50/50 dark:bg-slate-900/40 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                 <div className="flex items-center gap-4">
+                   <select
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-widest focus:ring-2 focus:ring-indigo-500/20"
+                    value={itemsPerPage}
+                    onChange={handleItemsPerPageChange}
+                   >
+                    <option value="5">Mostrar 5</option>
+                    <option value="10">Mostrar 10</option>
+                    <option value="25">Mostrar 25</option>
+                   </select>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
+                      Mostrando {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredAportes.length)} de {filteredAportes.length}
+                   </p>
+                 </div>
 
-                  {/* Números de página */}
-                  <div className="hidden md:flex space-x-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (page) => (
+                 <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm"
+                    >
+                      <FiChevronLeft size={20} />
+                    </button>
+                    
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                         <button
                           key={page}
                           onClick={() => handlePageChange(page)}
-                          className={`px-3 py-1.5 border rounded-md text-sm font-medium ${
+                          className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${
                             currentPage === page
-                              ? "border-indigo-500 bg-indigo-500 text-white"
-                              : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                              ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-lg"
+                              : "text-slate-400 hover:bg-white dark:hover:bg-slate-800"
                           }`}
                         >
                           {page}
                         </button>
-                      )
-                    )}
-                  </div>
+                      ))}
+                    </div>
 
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Siguiente
-                    <FiChevronRight className="ml-1" />
-                  </button>
-                </div>
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm"
+                    >
+                      <FiChevronRight size={20} />
+                    </button>
+                 </div>
               </div>
             </div>
           )}
-          {/* Modal de Confirmación */}
+        </div>
+
+        {/* Modal de Confirmación */}
+        {aporteAEliminar && (
           <EliminarAporte
             isOpen={!!aporteAEliminar}
             onClose={() => setAporteAEliminar(null)}
             onConfirm={handleEliminarAporte}
-            title="Confirmar eliminación"
-            message={`¿Estás seguro de que deseas eliminar el aporte de ${aporteAEliminar?.trabajador?.trabajador} por valor de $${aporteAEliminar?.valor}?`}
-            confirmText="Eliminar"
+            title="Revocar Inyección"
+            message={`¿Está seguro que desea eliminar este aporte de capital de ${aporteAEliminar?.trabajador?.trabajador} por valor de $${parseFloat(aporteAEliminar?.valor).toLocaleString()}? Esta acción afectará el balance de caja.`}
+            confirmText="Sí, Revocar Fondos"
             cancelText="Cancelar"
             isLoading={eliminando}
           />
-        </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-// app/dashboard/utilidades/nuevo/page.js
+// app/dashboard/utilidades/crear/page.js
 "use client";
 
 import { useState, useEffect } from "react";
@@ -13,12 +13,17 @@ import {
   FiSave,
   FiUsers,
   FiDollarSign,
+  FiShield,
+  FiInfo,
+  FiActivity,
+  FiArrowUpRight,
 } from "react-icons/fi";
 import Link from "next/link";
 import { toast } from "react-toastify";
+import LoadingSpinner from "@/app/components/LoadingSpinner";
 
 export default function NuevaUtilidadPage() {
-  const { selectedStore, token } = useAuth();
+  const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [loadingTrabajadores, setLoadingTrabajadores] = useState(true);
@@ -37,6 +42,7 @@ export default function NuevaUtilidadPage() {
     const fetchTrabajadores = async () => {
       try {
         if (!selectedStore || !token) return;
+        setLoadingTrabajadores(true);
 
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/trabajadores/t/${selectedStore.tienda.id}/`,
@@ -47,16 +53,12 @@ export default function NuevaUtilidadPage() {
           }
         );
 
-        if (!response.ok) {
-          throw new Error("Error al cargar los trabajadores");
-        }
+        if (!response.ok) throw new Error("Error al cargar los trabajadores");
 
         const data = await response.json();
-        const trabajadoresData = Array.isArray(data) ? data : [];
-        setTrabajadores(trabajadoresData);
+        setTrabajadores(Array.isArray(data) ? data : []);
       } catch (err) {
         setError(err.message);
-        console.error("Error al obtener trabajadores:", err);
       } finally {
         setLoadingTrabajadores(false);
       }
@@ -67,27 +69,18 @@ export default function NuevaUtilidadPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.trabajador) {
+       toast.error("Seleccione un beneficiario.");
+       return;
+    }
     setLoading(true);
-    setError(null);
 
     try {
-      // Validaciones
-      if (!formData.trabajador) {
-        throw new Error("Debe seleccionar un trabajador");
-      }
-
-      if (!formData.valor || parseFloat(formData.valor) <= 0) {
-        throw new Error("El valor debe ser mayor a cero");
-      }
-
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/utilidades/create/t/${selectedStore.tienda.id}/`,
         {
@@ -108,219 +101,196 @@ export default function NuevaUtilidadPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Error al crear la utilidad");
+        throw new Error(errorData.message || "Error al registrar distribución.");
       }
 
-      // Redirigir a la lista de utilidades con mensaje de éxito
-      toast.success("Utilidad creada correctamente");
+      toast.success("Reparto de utilidad sincronizado.");
       router.push("/dashboard/utilidades");
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const formatMoney = (amount) => {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+    }).format(amount || 0);
+  };
+
+  if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
+
   if (loadingTrabajadores) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center mb-6">
-            <Link
-              href="/dashboard/utilidades"
-              className="flex items-center text-indigo-600 hover:text-indigo-800 mr-4 font-medium"
-            >
-              <FiArrowLeft className="mr-1" />
-              Volver
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-800">Nueva Utilidad</h1>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex justify-center items-center h-64">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="mt-4 text-gray-500">Cargando trabajadores...</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="min-h-[400px] flex flex-col items-center justify-center bg-transparent">
+        <LoadingSpinner />
+        <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Auditando Nómina de Colaboradores</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center mb-6">
-          <Link
-            href="/dashboard/utilidades"
-            className="flex items-center text-indigo-600 hover:text-indigo-800 mr-4 font-medium"
-          >
-            <FiArrowLeft className="mr-1" />
-            Volver
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-800">Nueva Utilidad</h1>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-600">{error}</p>
-          </div>
-        )}
-
-        {/* Formulario */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Campo Trabajador */}
+    <div className="min-h-screen bg-transparent pb-12">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-6">
+          <div className="flex items-center gap-5">
+            <button
+              onClick={() => router.push("/dashboard/utilidades")}
+              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-emerald-600 transition-all shadow-sm group"
+            >
+              <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+            </button>
             <div>
-              <label className="block text-base font-semibold text-gray-800 mb-3">
-                Trabajador *
-              </label>
-              <div className="relative">
-                <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
-                <select
-                  name="trabajador"
-                  value={formData.trabajador}
-                  onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 appearance-none text-base"
-                  required
-                >
-                  <option value="">Seleccione un trabajador</option>
-                  {trabajadores.map((trabajador) => (
-                    <option key={trabajador.id} value={trabajador.id}>
-                      {trabajador.trabajador} - {trabajador.identificacion}
-                    </option>
-                  ))}
-                </select>
-                <FiUsers className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
-              </div>
-              <p className="text-sm text-gray-600 mt-2">
-                {trabajadores.length} trabajadores disponibles
+              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none uppercase">Registro de Utilidad</h1>
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
+                Giro Operativo • <span className="text-emerald-500">{selectedStore?.tienda?.nombre}</span>
               </p>
             </div>
-
-            {/* Campo Fecha */}
-            <div>
-              <label className="block text-base font-semibold text-gray-800 mb-3">
-                Fecha *
-              </label>
-              <div className="relative">
-                <FiCalendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
-                <input
-                  type="date"
-                  name="fecha"
-                  value={formData.fecha}
-                  onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 text-base"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Campo Valor */}
-            <div>
-              <label className="block text-base font-semibold text-gray-800 mb-3">
-                Valor *
-              </label>
-              <div className="relative">
-                <FiDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
-                <input
-                  type="number"
-                  name="valor"
-                  value={formData.valor}
-                  onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 text-base"
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0.01"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Campo Comentario */}
-            <div>
-              <label className="block text-base font-semibold text-gray-800 mb-3">
-                Comentario
-              </label>
-              <div className="relative">
-                <FiFileText className="absolute left-3 top-3 text-gray-500 text-lg" />
-                <textarea
-                  name="comentario"
-                  value={formData.comentario}
-                  onChange={handleChange}
-                  rows={4}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 text-base"
-                  placeholder="Descripción de la utilidad (opcional)"
-                />
-              </div>
-            </div>
-
-            {/* Información de la tienda (solo visual) */}
-            <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-100">
-              <h3 className="text-base font-semibold text-indigo-800 mb-3">
-                Información de la Tienda
-              </h3>
-              <div className="grid grid-cols-2 gap-4 text-base">
-                <div>
-                  <p className="text-indigo-600">Tienda:</p>
-                  <p className="font-medium text-indigo-800">
-                    {selectedStore?.tienda?.nombre}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-indigo-600">ID:</p>
-                  <p className="font-medium text-indigo-800">
-                    {selectedStore?.tienda?.id}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-6 border-t border-gray-200">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center justify-center w-full bg-indigo-600 text-white px-4 py-4 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base font-semibold shadow-md"
-              >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
-                ) : (
-                  <>
-                    <FiSave className="mr-2 text-lg" />
-                    Crear Utilidad
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
 
-        {/* Información adicional */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-5">
-          <h3 className="text-base font-semibold text-blue-800 mb-3">
-            Información importante
-          </h3>
-          <ul className="text-base text-blue-700 space-y-2">
-            <li className="flex items-start">
-              <span className="text-blue-800 mr-2">•</span>
-              Los campos marcados con{" "}
-              <span className="font-semibold mx-1">*</span> son obligatorios
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-800 mr-2">•</span>
-              El valor de la utilidad debe ser mayor a cero
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-800 mr-2">•</span>
-              La fecha por defecto es la actual, pero puede modificarla
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-800 mr-2">•</span>
-              La utilidad se asociará automáticamente a esta tienda
-            </li>
-          </ul>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-8">
+            <div className="glass p-8 md:p-12 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl relative overflow-hidden">
+               <div className="relative z-10">
+                  <form onSubmit={handleSubmit} className="space-y-10">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Trabajador */}
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Colaborador Beneficiario *</label>
+                           <div className="relative group">
+                              <select
+                                name="trabajador"
+                                value={formData.trabajador}
+                                onChange={handleChange}
+                                required
+                                className="w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all cursor-pointer appearance-none shadow-inner"
+                              >
+                                <option value="">Seleccione Beneficiario</option>
+                                {trabajadores.map((t) => (
+                                  <option key={t.id} value={t.id}>{t.trabajador} • {t.identificacion}</option>
+                                ))}
+                              </select>
+                              <FiUser size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-focus-within:text-emerald-500" />
+                           </div>
+                        </div>
+
+                        {/* Fecha */}
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Fecha de Reparto *</label>
+                           <div className="relative group">
+                              <input
+                                type="date"
+                                name="fecha"
+                                value={formData.fecha}
+                                onChange={handleChange}
+                                required
+                                className="w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-inner"
+                              />
+                           </div>
+                        </div>
+
+                        {/* Valor */}
+                        <div className="md:col-span-2 space-y-2">
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Monto a Distribuir *</label>
+                           <div className="relative group">
+                              <FiDollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
+                              <input
+                                type="number"
+                                name="valor"
+                                value={formData.valor}
+                                onChange={handleChange}
+                                required
+                                min="0.01"
+                                step="any"
+                                placeholder="0.00"
+                                className="w-full pl-14 pr-6 py-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-3xl text-[24px] font-black text-slate-800 dark:text-white placeholder:text-slate-200 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-inner"
+                              />
+                           </div>
+                        </div>
+
+                        {/* Comentario */}
+                        <div className="md:col-span-2 space-y-2">
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Descripción del Giro</label>
+                           <textarea
+                             name="comentario"
+                             value={formData.comentario}
+                             onChange={handleChange}
+                             rows="4"
+                             className="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-[2rem] text-[15px] font-bold text-slate-800 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-inner resize-none outline-none"
+                             placeholder="¿Por qué o para qué se emite este pago? (Opcional)"
+                           ></textarea>
+                        </div>
+                     </div>
+
+                     <div className="flex flex-col md:flex-row items-center justify-end gap-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => router.push("/dashboard/utilidades")}
+                          className="w-full md:w-auto px-10 py-5 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-600 transition-all"
+                        >
+                          Cancelar Reparto
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="w-full md:w-auto flex items-center justify-center gap-4 px-16 py-5 bg-slate-900 dark:bg-emerald-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                        >
+                          {loading ? (
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          ) : (
+                            <>
+                              <FiSave size={20} />
+                              Confirmar Giro
+                            </>
+                          )}
+                        </button>
+                     </div>
+                  </form>
+               </div>
+               
+               <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px]"></div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-4 space-y-10">
+             <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden relative group">
+                <div className="relative z-10">
+                   <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl flex items-center justify-center mb-8 shadow-sm">
+                      <FiActivity size={32} />
+                   </div>
+                   <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none mb-4 uppercase">Estado Operativo</h2>
+                   <p className="text-xs font-bold text-slate-400 mb-8 leading-relaxed uppercase tracking-tighter">
+                      Las distribuciones de utilidad son consideradas egresos especiales que impactan la rentabilidad neta de la sucursal.
+                   </p>
+
+                   <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-8 border border-slate-100 dark:border-slate-800 space-y-6">
+                      <div className="space-y-1">
+                         <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">Carga Neta al Ejercicio</p>
+                         <p className="text-2xl font-black text-emerald-600 tracking-tighter shadow-emerald-100">
+                            {formatMoney(formData.valor)}
+                         </p>
+                      </div>
+                      <div className="flex items-center gap-3 text-emerald-500 bg-emerald-50 dark:bg-emerald-900/10 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
+                         <FiShield className="shrink-0" />
+                         <p className="text-[9px] font-black uppercase tracking-widest">Protocolo Antifraude Activo</p>
+                      </div>
+                   </div>
+                </div>
+                <div className="absolute -right-10 top-20 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl"></div>
+             </div>
+
+             <div className="px-8 flex items-start gap-4 opacity-50">
+                <FiInfo className="text-slate-400 shrink-0 mt-1" />
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                   Todo reparto de capital debe estar alineado con los estados financieros del cierre parcial. Verifique sus flujos antes de confirmar.
+                </p>
+             </div>
+          </div>
         </div>
       </div>
     </div>

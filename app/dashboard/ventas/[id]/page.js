@@ -21,11 +21,17 @@ import {
   FiTrendingDown,
   FiXCircle,
   FiAlertTriangle,
+  FiActivity,
+  FiShield,
+  FiArrowUpRight,
+  FiMapPin,
+  FiPhone,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import EliminarRecaudo from "@/app/components/recaudos/EliminarRecaudo";
 import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
+import { toast } from "react-toastify";
 
 export default function VentaDetailPage() {
   const router = useRouter();
@@ -48,19 +54,13 @@ export default function VentaDetailPage() {
   const [refreshData, setRefreshData] = useState(false);
 
   const handleRegistrarPago = () => {
-    // Calcular el valor a abonar (mínimo entre saldo actual y valor cuota)
     const valorAbono = Math.min(
       parseFloat(venta.saldo_actual),
       parseFloat(venta.valor_cuota)
     );
     const today = new Date();
-    const selectedDate = new Date(
-      today.getTime() - today.getTimezoneOffset() * 60000
-    )
-      .toISOString()
-      .split("T")[0];
+    const selectedDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split("T")[0];
 
-    // Preparar el objeto de abono
     const abono = {
       fecha_recaudo: selectedDate,
       valor_recaudo: valorAbono,
@@ -73,26 +73,6 @@ export default function VentaDetailPage() {
     router.push(`/dashboard/liquidar/abonar`);
   };
 
-  const handleEliminarPago = (pago) => {
-    setDeletingRecaudo(pago);
-  };
-
-  const handleEditarPago = (pago) => {
-    setEditingRecaudo(pago);
-  }
-
-  // Función para manejar la eliminación exitosa
-  const handleRecaudoEliminado = () => {
-    setDeletingRecaudo(null);
-    setRefreshData((prev) => !prev); // Forzar recarga de datos
-  };
-
-  const handleRecaudoEditado = () => {
-    setEditingRecaudo(null);
-    setRefreshData((prev) => !prev);
-  };
-
-  // Cargar datos de la venta y pagos
   useEffect(() => {
     if (!loading && isAuthenticated && selectedStore) {
       fetchVenta();
@@ -108,83 +88,47 @@ export default function VentaDetailPage() {
   const fetchVenta = async () => {
     try {
       setIsLoading(true);
+      const ventaResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      // Obtener datos de la venta
-      const ventaResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!ventaResponse.ok) {
-        throw new Error("No se pudo cargar la información de la venta");
-      }
-
+      if (!ventaResponse.ok) throw new Error("No se pudo cargar la información de la venta");
       const ventaData = await ventaResponse.json();
       setVenta(ventaData);
 
-      // Obtener pagos de la venta
-      const pagosResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const pagosResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      if (!pagosResponse.ok) {
-        throw new Error("No se pudieron cargar los pagos de la venta");
-      }
-
+      if (!pagosResponse.ok) throw new Error("No se pudieron cargar los pagos de la venta");
       const pagosData = await pagosResponse.json();
       setPagos(Array.isArray(pagosData) ? pagosData : []);
 
       setIsLoading(false);
     } catch (err) {
-      console.error("Error fetching data:", err);
       setError(err.message);
-      setPagos([]); // Asegurarse de que pagos sea un array vacío
       setIsLoading(false);
     }
   };
 
-  // Función para marcar como pérdida
   const markAsLoss = async () => {
     setIsSendingLoss(true);
     setLossError(null);
-
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/perdida/`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/perdida/`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Error al marcar como pérdida");
       }
 
-      const data = await response.json();
-      console.log("Venta marcada como pérdida:", data);
-
-      // Actualizar estado localmente y cerrar modal
-      setVenta((prev) => ({
-        ...prev,
-        estado_venta: "Perdida",
-      }));
+      toast.success("Venta marcada como pérdida");
+      setRefreshData(prev => !prev);
       setShowLossModal(false);
     } catch (err) {
-      console.error("Error al marcar como pérdida:", err);
       setLossError(err.message);
     } finally {
       setIsSendingLoss(false);
@@ -192,62 +136,38 @@ export default function VentaDetailPage() {
   };
 
   const formatMoney = (amount) => {
-    const val = parseFloat(amount);
-    const hasDecimals = val % 1 !== 0;
-
-    return new Intl.NumberFormat("es-CL", {
+    return new Intl.NumberFormat("es-CO", {
       style: "currency",
-      currency: "CLP",
-      minimumFractionDigits: hasDecimals ? 2 : 0,
-      maximumFractionDigits: 2,
+      currency: "COP",
+      minimumFractionDigits: 0,
     }).format(amount);
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("es-CL", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const formatShortDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("es-CL");
-  };
-
-  const getEstadoColor = (estado) => {
+  const getStatusBadge = (estado) => {
     switch (estado) {
-      case "Activo":
-        return "bg-green-100 text-green-800";
+      case "Vigente":
+        return <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-emerald-200 dark:border-emerald-800">Vigente</span>;
       case "Vencido":
-        return "bg-red-100 text-red-800";
+        return <span className="px-3 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-rose-200 dark:border-rose-800">Vencido</span>;
       case "Pagado":
-        return "bg-blue-100 text-blue-800";
+        return <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-indigo-200 dark:border-indigo-800">Pagado</span>;
       case "Perdida":
-        return "bg-purple-100 text-purple-800";
+        return <span className="px-3 py-1 bg-slate-900 text-white dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest rounded-full border border-slate-700">Perdida</span>;
       default:
-        return "bg-gray-100 text-gray-800";
+        return <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-full">{estado}</span>;
     }
   };
 
-  const totalPagado = pagos.reduce((sum, pago) => {
-    const valor = parseFloat(pago.valor_recaudo) || 0;
-    return valor > 0 ? sum + valor : sum;
-  }, 0);
+  const totalPagado = pagos.reduce((sum, pago) => sum + (parseFloat(pago.valor_recaudo) || 0), 0);
+  const progresoPago = venta ? (totalPagado / parseFloat(venta.total_a_pagar)) * 100 : 0;
 
-  const progresoPago = venta
-    ? (totalPagado / parseFloat(venta.total_a_pagar)) * 100
-    : 0;
-
-  if (loading || !isAuthenticated || !selectedStore) {
-    return <LoadingSpinner />;
-  }
+  if (loading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-        <p className="ml-4 text-gray-600">Cargando detalles de la venta...</p>
+      <div className="min-h-[400px] flex flex-col items-center justify-center bg-transparent">
+        <LoadingSpinner />
+        <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Cargando Hoja de Ruta del Crédito</p>
       </div>
     );
   }
@@ -255,27 +175,13 @@ export default function VentaDetailPage() {
   if (error || !venta) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-red-50 rounded-xl p-6 text-center">
-          <FiAlertCircle className="mx-auto text-red-500 text-4xl mb-4" />
-          <h2 className="text-xl font-bold text-red-700 mb-2">
-            Error al cargar la venta
-          </h2>
-          <p className="text-gray-600 mb-4">
-            {error || "No se encontró información de la venta"}
-          </p>
-          <div className="flex justify-center gap-3">
-            <button
-              onClick={fetchVenta}
-              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-            >
-              Reintentar
-            </button>
-            <button
-              onClick={() => router.push("/dashboard/ventas")}
-              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-            >
-              Volver a ventas
-            </button>
+        <div className="glass p-12 text-center rounded-[2.5rem] border-rose-100 dark:border-rose-900/30 shadow-2xl">
+          <FiAlertCircle className="mx-auto text-rose-500 text-5xl mb-6" />
+          <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Error de Sincronización</h2>
+          <p className="text-slate-400 font-bold mb-8 uppercase text-xs tracking-widest">{error || "Información no disponible"}</p>
+          <div className="flex justify-center gap-4">
+            <button onClick={fetchVenta} className="px-8 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Reintentar</button>
+            <button onClick={() => router.push("/dashboard/ventas")} className="px-8 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest border border-slate-200 dark:border-slate-700">Ir a Ventas</button>
           </div>
         </div>
       </div>
@@ -283,548 +189,307 @@ export default function VentaDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-400">
-      {editingRecaudo && (
-        <EditarRecaudo
-          editingRecaudo={editingRecaudo}
-          onEditar={handleRecaudoEditado}
-          onClose={() => setEditingRecaudo(null)}
-        />
-      )}
-      {deletingRecaudo && (
-        <EliminarRecaudo
-          deletingRecaudo={deletingRecaudo}
-          onEliminar={handleRecaudoEliminado}
-          onClose={() => setDeletingRecaudo(null)}
-        />
-      )}
-      {/* Modal de confirmación para marcar como pérdida */}
+    <div className="min-h-screen bg-transparent pb-12">
+      {editingRecaudo && <EditarRecaudo editingRecaudo={editingRecaudo} onEditar={() => {setEditingRecaudo(null); setRefreshData(p=>!p)}} onClose={() => setEditingRecaudo(null)} />}
+      {deletingRecaudo && <EliminarRecaudo deletingRecaudo={deletingRecaudo} onEliminar={() => {setDeletingRecaudo(null); setRefreshData(p=>!p)}} onClose={() => setDeletingRecaudo(null)} />}
+
+      {/* Modal Perdida */}
       {showLossModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-start mb-4">
-                <FiAlertTriangle className="text-red-500 text-2xl mr-3 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">
-                    Marcar crédito como pérdida
-                  </h3>
-                  <p className="text-gray-600 mt-2">
-                    ¿Estás seguro de marcar este crédito como pérdida? Esta
-                    acción es irreversible y se debe usar solo cuando el cliente
-                    ha desaparecido o es imposible recuperar el crédito.
-                  </p>
-                </div>
-              </div>
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-6">
+          <div className="glass max-w-md w-full rounded-[2.5rem] border-white/20 p-10 shadow-2xl">
+            <div className="text-center">
+               <div className="w-20 h-20 bg-rose-500 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-rose-200">
+                  <FiAlertTriangle size={40} />
+               </div>
+               <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight mb-4 uppercase">¿Activar Proceso de Pérdida?</h3>
+               <p className="text-sm font-bold text-slate-400 leading-relaxed mb-8">
+                 Esta acción cerrará el crédito permanentemente sin posibilidad de recupero. El saldo se registrará como pérdida neta del ejercicio.
+               </p>
+            </div>
 
-              {lossError && (
-                <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4">
-                  {lossError}
-                </div>
-              )}
+            {lossError && <div className="bg-rose-50 p-4 rounded-xl text-rose-600 text-[10px] font-black uppercase mb-6">{lossError}</div>}
 
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  onClick={() => setShowLossModal(false)}
-                  disabled={isSendingLoss}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={markAsLoss}
-                  disabled={isSendingLoss}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center"
-                >
-                  {isSendingLoss ? (
-                    <>
-                      <FiClock className="animate-spin mr-2" />
-                      Procesando...
-                    </>
-                  ) : (
-                    <>
-                      <FiAlertTriangle className="mr-2" />
-                      Confirmar como pérdida
-                    </>
-                  )}
-                </button>
-              </div>
+            <div className="flex flex-col gap-3">
+              <button onClick={markAsLoss} disabled={isSendingLoss} className="w-full py-5 bg-rose-600 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all">
+                {isSendingLoss ? "Procesando..." : "Confirmar Pérdida"}
+              </button>
+              <button onClick={() => setShowLossModal(false)} disabled={isSendingLoss} className="w-full py-5 bg-transparent text-slate-400 font-bold text-xs uppercase tracking-widest">Cancelar Proceso</button>
             </div>
           </div>
         </div>
       )}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <button
-            onClick={() => router.push("/dashboard/ventas")}
-            className="flex items-center text-indigo-600 hover:text-indigo-800 font-medium"
-          >
-            <FiArrowLeft className="mr-2" /> Volver a ventas
-          </button>
-        </div>
 
-        {/* Encabezado */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-around mb-4">
-            <div className="">
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-                <FiCreditCard className="mr-2 text-indigo-600" />
-                Venta #{venta.id}
-                <span
-                  className={`ml-3 text-xs px-2 py-1 rounded-full ${getEstadoColor(
-                    venta.estado_venta
-                  )}`}
-                >
-                  {venta.estado_venta}
-                </span>
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Crédito a {venta.cliente.nombres} {venta.cliente.apellidos}
-                <br />
-                <span className="text-gray-500 text-sm">
-                  {venta.fecha_venta}
-                </span>
+      <div className="w-full">
+
+        {/* Header con Contexto */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-6">
+          <div className="flex items-center gap-5">
+            <button onClick={() => router.push("/dashboard/ventas")} className="p-4 bg-white dark:bg-slate-900 text-slate-400 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group">
+              <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+            </button>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Contrato #{venta.id}</h1>
+                {getStatusBadge(venta.estado_venta)}
+              </div>
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">
+                Ficha Técnica de Crédito Direto • <span className="text-indigo-500">{selectedStore?.tienda?.nombre}</span>
               </p>
             </div>
-            <div className="mt-4 md:mt-0 flex flex-wrap gap-2  ">
-              <button
-                onClick={handleRegistrarPago}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
-              >
-                <FiPlus className="mr-2" />
-                Registrar pago
-              </button>
-              <button
-                onClick={() =>
-                  router.push(`/dashboard/ventas/${ventaId}/editar`)
-                }
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center"
-              >
-                <FiEdit className="mr-2" />
-                Editar
-              </button>
-              <button
-                onClick={() =>
-                  router.push(`/dashboard/ventas/${ventaId}/eliminar`)
-                }
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center"
-              >
-                <FiTrash2 className="mr-2" />
-                Eliminar
-              </button>
-              {venta.estado_venta !== "Perdida" && (
-                <button
-                  onClick={() => setShowLossModal(true)}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center"
-                >
-                  <FiAlertTriangle className="mr-2" />
-                  Marcar como pérdida
-                </button>
-              )}
-            </div>
           </div>
-        </div>
-
-        {/* Resumen financiero */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <div className="flex justify-between items-center">
-              <h3 className="text-gray-500 text-sm font-medium">
-                Valor de la venta
-              </h3>
-              <FiDollarSign className="text-indigo-500" />
-            </div>
-            <p className="mt-2 text-2xl font-bold text-green-600">
-              {formatMoney(venta.valor_venta)}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <div className="flex justify-between items-center">
-              <h3 className="text-gray-500 text-sm font-medium">
-                Total a pagar
-              </h3>
-              <FiBarChart2 className="text-green-500" />
-            </div>
-            <p className="mt-2 text-2xl font-bold text-green-600">
-              {formatMoney(venta.total_a_pagar)}
-            </p>
-            <div className="mt-1 text-sm text-gray-500 flex items-center">
-              <FiPercent className="mr-1" />
-              Interés: {venta.interes}%
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <div className="flex justify-between items-center">
-              <h3 className="text-gray-500 text-sm font-medium">
-                Saldo actual
-              </h3>
-              {parseFloat(venta.saldo_actual) > 0 ? (
-                <FiTrendingDown className="text-red-500" />
-              ) : (
-                <FiTrendingUp className="text-green-500" />
-              )}
-            </div>
-            <p
-              className={`mt-2 text-2xl font-bold ${
-                parseFloat(venta.saldo_actual) > 0
-                  ? "text-red-600"
-                  : "text-green-600"
-              }`}
-            >
-              {formatMoney(venta.saldo_actual)}
-            </p>
-            <div className="mt-1 text-sm text-gray-500">
-              {Math.round(venta.pagos_pendientes)} pagos pendientes
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <div className="flex justify-between items-center">
-              <h3 className="text-gray-500 text-sm font-medium">
-                Valor de cuota
-              </h3>
-              <FiCreditCard className="text-blue-500" />
-            </div>
-            <p className="mt-2 text-2xl font-bold text-green-600">
-              {formatMoney(venta.valor_cuota)}
-            </p>
-            <div className="mt-1 text-sm text-gray-500">
-              {venta.cuotas} cuotas · {venta.plazo}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          {/* Información del crédito */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <FiCreditCard className="mr-2 text-indigo-600" />
-              Detalles del crédito
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <p className="text-sm text-gray-500">Fecha de venta</p>
-                <p className="font-medium">{venta.fecha_venta}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Fecha de vencimiento</p>
-                <p className="font-medium">{venta.fecha_vencimiento}</p>
-              </div>
-              {venta.dias_atrasados > 0 ? (
-                <div>
-                  <p className="text-sm text-gray-500">Días atrasados</p>
-                  <p className="font-medium text-red-600">
-                    {Math.round(venta.dias_atrasados)} días
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-sm text-gray-500">Días Adelantados</p>
-                  <p className="font-medium text-green-600">
-                    {Math.round(venta.dias_atrasados) * -1} días
-                  </p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-gray-500">Pagos realizados</p>
-                <p className="font-medium text-green-500">
-                  {Math.round(venta.pagos_realizados)} de {venta.cuotas}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Total abonado</p>
-                <p className="font-bold text-green-600">
-                  {formatMoney(venta.total_abonado)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Promedio de pago</p>
-                <p className="font-medium text-blue-600">
-                  {formatMoney(venta.promedio_pago)}
-                </p>
-              </div>
-              <div className="md:col-span-2">
-                <p className="text-sm text-gray-500">Comentarios</p>
-                <p className="font-medium">
-                  {venta.comentario || "Sin comentarios"}
-                </p>
-              </div>
-            </div>
-
-            <h3 className="text-md font-medium text-gray-900 mb-3">
-              Progreso del pago
-            </h3>
-            <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
-              <div
-                className="bg-indigo-600 h-4 rounded-full"
-                style={{ width: `${progresoPago}%` }}
-              ></div>
-            </div>
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>{formatMoney(totalPagado)}</span>
-              <span>{progresoPago.toFixed(1)}%</span>
-              <span>{formatMoney(venta.total_a_pagar)}</span>
-            </div>
-          </div>
-
-          {/* Información del cliente */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <FiUser className="mr-2 text-indigo-600" />
-              Información del cliente
-            </h2>
-
-            <div className="flex items-start mb-4">
-              <div className="bg-indigo-100 p-3 rounded-full">
-                <FiUser className="text-indigo-600 text-xl" />
-              </div>
-              <div className="ml-4">
-                <h3 className="font-medium text-lg">
-                  {venta.cliente.nombres} {venta.cliente.apellidos}
-                </h3>
-                <p className="text-gray-600">{venta.cliente.identificacion}</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm text-gray-500">Negocio</p>
-                <p className="font-medium">
-                  {venta.cliente.nombre_local || "No especificado"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">Teléfono principal</p>
-                <p className="font-medium">
-                  {venta.cliente.telefono_principal}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">Teléfono opcional</p>
-                <p className="font-medium">
-                  {venta.cliente.telefono_opcional || "No especificado"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">Dirección</p>
-                <p className="font-medium">{venta.cliente.direccion}</p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">Estado del cliente</p>
-                <span
-                  className={`px-2 py-1 text-xs rounded-full ${
-                    venta.cliente.estado_cliente === "Activo"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {venta.cliente.estado_cliente}
-                </span>
-              </div>
-
-              <button
-                onClick={() =>
-                  router.push(`/dashboard/clientes/${venta.cliente.id}`)
-                }
-                className="mt-4 w-full py-2 text-center text-indigo-600 hover:bg-indigo-50 rounded-lg text-sm font-medium"
-              >
-                Ver perfil completo del cliente
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Historial de pagos */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium text-gray-900 flex items-center">
-              <FiCheckCircle className="mr-2 text-green-600" />
-              Historial de pagos
-            </h2>
-            <button
-              onClick={handleRegistrarPago}
-              className="px-3 py-1 bg-green-600 text-white rounded text-sm flex items-center"
-            >
-              <FiPlus className="mr-1" /> Nuevo pago
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <button onClick={handleRegistrarPago} className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 transition-all flex items-center gap-2">
+              <FiPlus size={18} /> Registrar Abono
+            </button>
+            <button onClick={() => router.push(`/dashboard/ventas/${ventaId}/editar`)} className="px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
+              <FiEdit size={18} /> Editar
+            </button>
+            <button onClick={() => setShowLossModal(true)} className="px-6 py-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm border border-rose-100 dark:border-rose-900/30 hover:bg-rose-100 transition-all flex items-center gap-2">
+              <FiAlertTriangle size={18} /> Pérdida
             </button>
           </div>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Fecha
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Tipo
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Valor
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Detalles
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {!pagos || pagos.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan="5"
-                      className="px-4 py-4 text-center text-sm text-gray-500"
-                    >
-                      No se han registrado pagos para esta venta
-                    </td>
-                  </tr>
-                ) : (
-                  pagos.map((pago) => {
-                    const valorRecaudo = parseFloat(pago.valor_recaudo);
-                    const isVisitaFallida =
-                      valorRecaudo === 0 && pago.visita_blanco;
-
-                    return (
-                      <tr key={pago.id}>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {pago.fecha_recaudo}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                          {isVisitaFallida ? (
-                            <span className="text-red-600">Visita fallida</span>
-                          ) : (
-                            "Pago"
-                          )}
-                        </td>
-                        <td
-                          className={`px-4 py-4 whitespace-nowrap text-sm font-medium ${
-                            valorRecaudo > 0
-                              ? "text-green-600"
-                              : "text-gray-500"
-                          }`}
-                        >
-                          {formatMoney(valorRecaudo)}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-500">
-                          {isVisitaFallida ? (
-                            <div>
-                              <p>
-                                <strong>Falla:</strong>{" "}
-                                {pago.visita_blanco.tipo_falla}
-                              </p>
-                              <p>
-                                {pago.visita_blanco.comentario ||
-                                  "Sin comentarios"}
-                              </p>
-                            </div>
-                          ) : (
-                            "Pago registrado"
-                          )}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm">
-                          {valorRecaudo > 0 ? (
-                            <>
-                              <button
-                                onClick={() => handleEditarPago(pago)}
-                                className="text-indigo-600 hover:text-indigo-900 mr-3"
-                              >
-                                Editar
-                              </button>
-                              <button
-                                onClick={() => handleEliminarPago(pago)}
-                                className="text-red-600 hover:text-red-900"
-                              >
-                                Eliminar
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() => handleEliminarPago(pago)}
-                              className="text-gray-600 hover:text-red-600"
-                            >
-                              <FiXCircle className="inline mr-1 hover:text-red-600" /> Eliminar
-                              visita
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {pagos && pagos.length > 0 && (
-            <div className="mt-4 flex justify-between items-center">
-              <p className="text-sm text-gray-700">
-                Mostrando {pagos.length} registros
-              </p>
-              <div className="flex items-center">
-                <span className="text-sm text-gray-500 mr-2">
-                  Pagos totales: {formatMoney(totalPagado)}
-                </span>
-                <button className="px-3 py-1 text-indigo-600 hover:bg-indigo-50 rounded text-sm">
-                  Exportar
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Resumen de pérdidas (solo si es aplicable) */}
-        {venta.estado_venta === "Vencido" && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <FiAlertCircle className="h-8 w-8 text-red-400" />
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-red-800">
-                  Pérdida potencial
-                </h3>
-                <div className="mt-2 text-red-700">
-                  <p>
-                    Esta venta está marcada como vencida con{" "}
-                    {Math.round(venta.dias_atrasados)} días de atraso.
-                  </p>
-                  <p className="mt-2 font-bold">
-                    Pérdida estimada: {formatMoney(venta.perdida)}
-                  </p>
-                </div>
-                <div className="mt-4">
-                  <button className="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700">
-                    Gestionar recuperación
-                  </button>
-                </div>
-              </div>
-            </div>
+        {/* Resumen Financiero Top Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+             <div className="flex justify-between items-start mb-4">
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl"><FiDollarSign size={24} /></div>
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Valor Venta</span>
+             </div>
+             <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 select-all">{formatMoney(venta.valor_venta)}</p>
+             <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md inline-block">Capital Neto</p>
           </div>
-        )}
+
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+             <div className="flex justify-between items-start mb-4">
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl"><FiBarChart2 size={24} /></div>
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Total a recaudar</span>
+             </div>
+             <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 select-all">{formatMoney(venta.total_a_pagar)}</p>
+             <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Interés {venta.interes}% Incluido</p>
+          </div>
+
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+             <div className="flex justify-between items-start mb-4">
+                <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl"><FiTrendingDown size={24} /></div>
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Saldo Actual</span>
+             </div>
+             <p className={`text-3xl font-black tracking-tighter mb-1 select-all ${parseFloat(venta.saldo_actual) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+               {formatMoney(venta.saldo_actual)}
+             </p>
+             <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">{Math.round(venta.pagos_pendientes)} Cuotas Pendientes</p>
+          </div>
+
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+             <div className="flex justify-between items-start mb-4">
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl"><FiCreditCard size={24} /></div>
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Valor Cuota</span>
+             </div>
+             <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 select-all">{formatMoney(venta.valor_cuota)}</p>
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{venta.cuotas} Cuotas Fijas</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          
+          {/* Main Info Card */}
+          <div className="lg:col-span-8 space-y-10">
+             <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+                <div className="flex items-center gap-4 mb-10 border-b border-slate-100 dark:border-slate-800 pb-6">
+                   <div className="p-3 bg-indigo-500 text-white rounded-2xl shadow-xl shadow-indigo-100"><FiShield size={24} /></div>
+                   <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase">Datos del Contrato</h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-12 mb-12">
+                   <div className="space-y-1">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Apertura</p>
+                      <p className="text-sm font-black text-slate-700 dark:text-slate-200">{venta.fecha_venta}</p>
+                   </div>
+                   <div className="space-y-1">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Estimada Cierre</p>
+                      <p className="text-sm font-black text-slate-700 dark:text-slate-200">{venta.fecha_vencimiento}</p>
+                   </div>
+                   <div className="space-y-1">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado de Mora</p>
+                      <p className={`text-sm font-black ${venta.dias_atrasados > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                         {venta.dias_atrasados > 0 ? `${Math.round(venta.dias_atrasados)} Días de Atraso` : `${Math.round(venta.dias_atrasados)*-1} Días Adelantado`}
+                      </p>
+                   </div>
+                   <div className="space-y-1">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Eficiencia de Recaudo</p>
+                      <p className="text-sm font-black text-indigo-600">{Math.round(venta.pagos_realizados)} de {venta.cuotas} Cuotas Liq.</p>
+                   </div>
+                   <div className="space-y-1">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Promedio Abono Diario</p>
+                      <p className="text-sm font-black text-slate-700 dark:text-slate-200">{formatMoney(venta.promedio_pago)}</p>
+                   </div>
+                   <div className="space-y-1">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Plazo Original</p>
+                      <p className="text-sm font-black text-slate-700 dark:text-slate-200 uppercase">{venta.plazo}</p>
+                   </div>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-700 group">
+                   <div className="flex justify-between items-end mb-4">
+                      <div>
+                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Progreso de Amortización</p>
+                         <h3 className="text-2xl font-black text-indigo-600 tracking-tighter">{progresoPago.toFixed(1)}% Completo</h3>
+                      </div>
+                      <p className="text-xs font-black text-slate-300 uppercase tracking-widest">{formatMoney(totalPagado)} / {formatMoney(venta.total_a_pagar)}</p>
+                   </div>
+                   <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden p-0.5 border border-slate-100 dark:border-slate-800">
+                      <div 
+                         className="h-full bg-indigo-600 rounded-full shadow-lg shadow-indigo-200 dark:shadow-none transition-all duration-1000"
+                         style={{ width: `${progresoPago}%` }}
+                      ></div>
+                   </div>
+                </div>
+
+                <div className="mt-10 pt-6 border-t border-slate-50 dark:border-slate-800">
+                   <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Comentarios Operativos</p>
+                   <p className="text-xs font-bold text-slate-500 italic leading-relaxed">"{venta.comentario || "Sin notas adicionales registradas en este contrato."}"</p>
+                </div>
+             </div>
+
+             {/* Historial de Pagos Section */}
+             <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl">
+                <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
+                   <div className="flex items-center gap-3">
+                      <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-xl"><FiActivity size={20} /></div>
+                      <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Bitácora de Recaudos</h2>
+                   </div>
+                   <button onClick={handleRegistrarPago} className="px-5 py-2.5 bg-slate-900 dark:bg-slate-800 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2">
+                      <FiPlus /> Nuevo Registro
+                   </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                   <table className="w-full">
+                      <thead>
+                         <tr className="bg-slate-50/50 dark:bg-slate-800/30">
+                            <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</th>
+                            <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Concepto</th>
+                            <th className="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Abono</th>
+                            <th className="px-8 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Acciones</th>
+                         </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                         {pagos.length === 0 ? (
+                           <tr>
+                              <td colSpan="4" className="px-8 py-20 text-center">
+                                 <FiActivity className="mx-auto text-4xl text-slate-200 mb-4" />
+                                 <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Sin registros de pago vinculados</p>
+                              </td>
+                           </tr>
+                         ) : (
+                           pagos.map(pago => {
+                             const valor = parseFloat(pago.valor_recaudo);
+                             const isFallida = valor === 0 && pago.visita_blanco;
+                             return (
+                               <tr key={pago.id} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
+                                  <td className="px-8 py-5 whitespace-nowrap text-xs font-bold text-slate-500">{pago.fecha_recaudo}</td>
+                                  <td className="px-8 py-5">
+                                     {isFallida ? (
+                                       <div className="flex flex-col">
+                                          <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Visita Fallida</span>
+                                          <span className="text-[9px] text-slate-400 italic mt-0.5 truncate max-w-[150px]">{pago.visita_blanco.tipo_falla}: {pago.visita_blanco.comentario}</span>
+                                       </div>
+                                     ) : (
+                                       <span className="text-[11px] font-black text-indigo-600 uppercase tracking-widest">Abono Ordinario</span>
+                                     )}
+                                  </td>
+                                  <td className="px-8 py-5 text-right">
+                                     <span className={`text-sm font-black ${valor > 0 ? 'text-emerald-600' : 'text-slate-300'}`}>{formatMoney(valor)}</span>
+                                  </td>
+                                  <td className="px-8 py-5 text-center">
+                                     <div className="flex items-center justify-center gap-3">
+                                        {valor > 0 && <button onClick={()=>setEditingRecaudo(pago)} className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-indigo-600 transition-colors"><FiEdit size={14} /></button>}
+                                        <button onClick={()=>setDeletingRecaudo(pago)} className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-rose-600 transition-colors"><FiTrash2 size={14} /></button>
+                                     </div>
+                                  </td>
+                               </tr>
+                             )
+                           })
+                         )}
+                      </tbody>
+                   </table>
+                </div>
+             </div>
+          </div>
+
+          {/* Sidebar Area: Client Snapshot */}
+          <div className="lg:col-span-4 space-y-10">
+             <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+                <div className="flex items-center gap-4 mb-10 border-b border-slate-100 dark:border-slate-800 pb-6">
+                   <div className="p-3 bg-indigo-500 text-white rounded-2xl shadow-xl shadow-indigo-100"><FiUser size={24} /></div>
+                   <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase">Titularización</h2>
+                </div>
+
+                <div className="flex flex-col items-center text-center mb-10">
+                   <div className="w-24 h-24 bg-indigo-50 dark:bg-slate-800 border-4 border-white dark:border-slate-900 rounded-[2.5rem] flex items-center justify-center text-4xl text-indigo-500 font-black shadow-2xl mb-6">
+                      {venta.cliente.nombres.charAt(0)}
+                   </div>
+                   <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none mb-1">{venta.cliente.nombres} {venta.cliente.apellidos}</h3>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{venta.cliente.identificacion}</p>
+                   <div className="mt-4">{venta.cliente.estado_cliente === "Activo" ? <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">Solvente</span> : <span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-rose-100">Bloqueado</span>}</div>
+                </div>
+
+                <div className="space-y-6 mb-10">
+                   <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                      <div className="p-2 bg-white dark:bg-slate-700 text-slate-400 rounded-xl shadow-sm"><FiMapPin size={18} /></div>
+                      <div className="flex-1 truncate">
+                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ub icación</p>
+                         <p className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate">{venta.cliente.direccion}</p>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                      <div className="p-2 bg-white dark:bg-slate-700 text-slate-400 rounded-xl shadow-sm"><FiPhone size={18} /></div>
+                      <div>
+                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Contacto Directo</p>
+                         <p className="text-xs font-bold text-slate-600 dark:text-slate-300">{venta.cliente.telefono_principal}</p>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                      <div className="p-2 bg-white dark:bg-slate-700 text-slate-400 rounded-xl shadow-sm"><FiShield size={18} /></div>
+                      <div>
+                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Razon Social</p>
+                         <p className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tighter">{venta.cliente.nombre_local || "S/N"}</p>
+                      </div>
+                   </div>
+                </div>
+
+                <button 
+                  onClick={() => router.push(`/dashboard/clientes/${venta.cliente.id}`)}
+                  className="w-full py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 group"
+                >
+                  Expediente Completo <FiArrowUpRight className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                </button>
+             </div>
+
+             <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 bg-indigo-600 text-white relative overflow-hidden group">
+                <div className="relative z-10">
+                   <h3 className="text-xl font-black uppercase tracking-tight mb-4">Cartera Proyectada</h3>
+                   <div className="space-y-4">
+                      <div className="flex justify-between items-end border-b border-white/10 pb-4">
+                         <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Capital de Giro</span>
+                         <span className="text-lg font-black">{formatMoney(venta.valor_venta)}</span>
+                      </div>
+                      <div className="flex justify-between items-end border-b border-white/10 pb-4">
+                         <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Utilidad Bruta</span>
+                         <span className="text-lg font-black text-emerald-300">+{formatMoney(parseFloat(venta.total_a_pagar) - parseFloat(venta.valor_venta))}</span>
+                      </div>
+                      <div className="flex justify-between items-end pt-2">
+                         <span className="text-[10px] font-black uppercase tracking-widest opacity-60 text-indigo-200">Total Recupero</span>
+                         <span className="text-2xl font-black">{formatMoney(venta.total_a_pagar)}</span>
+                      </div>
+                   </div>
+                </div>
+                <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000"></div>
+             </div>
+          </div>
+        </div>
       </div>
     </div>
   );

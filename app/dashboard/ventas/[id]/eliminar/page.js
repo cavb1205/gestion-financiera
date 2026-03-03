@@ -11,7 +11,9 @@ import {
   FiUser,
   FiAlertTriangle,
   FiLock,
-  FiXCircle
+  FiXCircle,
+  FiShield,
+  FiInfo,
 } from "react-icons/fi";
 import { useAuth } from "../../../../context/AuthContext";
 import LoadingSpinner from "../../../../components/LoadingSpinner";
@@ -44,57 +46,32 @@ export default function EliminarVentaPage() {
   const fetchVenta = async () => {
     try {
       setIsLoading(true);
-      
-      // Obtener venta por ID
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      if (!response.ok) {
-        throw new Error("No se pudieron cargar los datos de la venta");
-      }
-
+      if (!response.ok) throw new Error("No se pudieron cargar los datos de la venta");
       const venta = await response.json();
       
-      // Verificar si tiene pagos
-      const pagosResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const pagosResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       let pagos = [];
-      if (pagosResponse.ok) {
-        pagos = await pagosResponse.json();
-      }
-
-      const tienePagos = pagos.length > 0;
-      setHasPagos(tienePagos);
+      if (pagosResponse.ok) pagos = await pagosResponse.json();
+      
+      setHasPagos(pagos.length > 0);
       setVentaData(venta);
       setIsLoading(false);
     } catch (err) {
-      console.error("Error fetching venta:", err);
       setError(err.message);
       setIsLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!selectedStore || !selectedStore.id) {
-      toast.error("No se ha seleccionado una tienda");
-      return;
-    }
-    
     if (hasPagos) {
-      toast.error("No se puede eliminar una venta con pagos registrados");
+      toast.error("Restricción de Integridad: No es posible eliminar ventas con recaudos activos.");
       return;
     }
     
@@ -102,230 +79,176 @@ export default function EliminarVentaPage() {
     setError("");
     
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/delete/t/${selectedStore.tienda.id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/delete/t/${selectedStore.tienda.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.log("Error deleting sale:", errorData);
         throw new Error(errorData.detail || errorData.message || "Error al eliminar la venta");
       }
-      if (response.status === 204) {
-        console.log("Venta eliminada exitosamente");
-      }
 
-      toast.success("Venta eliminada exitosamente!");
+      toast.success("¡Contrato removido del sistema!");
       router.push("/dashboard/ventas");
-      
     } catch (err) {
-      console.error("Error deleting sale:", err);
-      setError(err.message || "Error al eliminar la venta");
-      toast.error(err.message || "Error al eliminar la venta");
+      setError(err.message);
+      toast.error(err.message);
     } finally {
       setIsDeleting(false);
     }
   };
 
-  if (loading || !isAuthenticated || !selectedStore) {
-    return <LoadingSpinner />;
-  }
+  const formatMoney = (amount) => {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  if (loading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
-        <p className="ml-4 text-gray-800">Cargando datos de la venta...</p>
+      <div className="min-h-[400px] flex flex-col items-center justify-center bg-transparent">
+        <LoadingSpinner />
+        <p className="mt-4 text-[10px] font-black text-rose-400 uppercase tracking-[0.2em] animate-pulse">Auditando Dependencias del Contrato</p>
       </div>
     );
   }
 
-  // Formatear fecha
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('es-ES', options);
-  };
-
-  // Calcular total a pagar
-  const calcularTotalAPagar = () => {
-    if (!ventaData) return 0;
-    const valorVenta = parseFloat(ventaData.valor_venta) || 0;
-    const interesDecimal = parseFloat(ventaData.interes) / 100;
-    return valorVenta * (1 + interesDecimal);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <button
-            onClick={() => router.push(`/dashboard/ventas/${ventaId}`)}
-            className="flex items-center text-indigo-800 hover:text-indigo-900 font-medium"
-          >
-            <FiArrowLeft className="mr-2" /> Volver a detalle de venta
-          </button>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-100">
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <FiTrash2 className="mr-2 text-red-700" />
-            Eliminar Venta a Crédito #{ventaId}
-          </h1>
-          <p className="text-gray-800 mt-2">
-            Esta acción eliminará permanentemente esta venta a crédito y todos sus datos asociados
-          </p>
+    <div className="min-h-screen bg-transparent pb-12">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-6">
+          <div className="flex items-center gap-5">
+            <button
+              onClick={() => router.push(`/dashboard/ventas/${ventaId}`)}
+              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-rose-600 transition-all shadow-sm group"
+            >
+              <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none uppercase">Depuración de Contrato</h1>
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
+                Remoción Permanente • <span className="text-rose-500">ID #{ventaId}</span>
+              </p>
+            </div>
+          </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center">
-              <FiAlertTriangle className="text-red-700 mr-2" />
-              <p className="text-red-800 font-medium">{error}</p>
-            </div>
+          <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl p-4 mb-8 flex items-center gap-3">
+             <FiShield className="text-rose-600" />
+             <p className="text-rose-700 dark:text-rose-400 text-sm font-bold uppercase tracking-tight">{error}</p>
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-100">
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Confirmar Eliminación</h2>
-            <div className="p-3 bg-red-100 rounded-full">
-              <FiAlertTriangle className="text-red-700 text-2xl" />
+        <div className="glass p-10 md:p-14 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl relative overflow-hidden">
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-6 mb-12">
+               <div className="w-20 h-20 bg-rose-500 text-white rounded-[2rem] flex items-center justify-center shadow-2xl shadow-rose-200 dark:shadow-none animate-pulse">
+                  <FiAlertTriangle size={36} />
+               </div>
+               <div>
+                  <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">Confirmar Acción Destructiva</h2>
+                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Sincronización Crítica de Datos</p>
+               </div>
             </div>
-          </div>
 
-          {hasPagos ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
-              <div className="flex items-start">
-                <FiLock className="text-yellow-600 mr-3 text-xl mt-0.5" />
-                <div>
-                  <h3 className="font-medium text-yellow-900 text-lg mb-2">Eliminación restringida</h3>
-                  <p className="text-yellow-800 mb-3">
-                    Esta venta no puede ser eliminada porque tiene pagos registrados asociados.
-                  </p>
-                  <p className="text-yellow-800">
-                    Para eliminar esta venta, primero debe eliminar todos los pagos asociados.
-                  </p>
-                </div>
+            {hasPagos ? (
+              <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-3xl p-8 mb-10">
+                 <div className="flex items-start gap-4">
+                    <FiLock className="text-amber-600 mt-1 shrink-0" size={24} />
+                    <div className="space-y-2">
+                       <h3 className="text-base font-black text-amber-900 dark:text-amber-400 uppercase tracking-tight">Acción Denegada por Trazabilidad</h3>
+                       <p className="text-sm font-bold text-amber-700/80 dark:text-amber-500 leading-relaxed uppercase tracking-tighter">
+                         Este contrato posee recaudos históricos. Eliminarlo generaría una inconsistencia en los libros contables. Si desea proceder, debe anular manualmente cada abono vinculado primero.
+                       </p>
+                    </div>
+                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
-              <div className="flex items-start">
-                <FiAlertTriangle className="text-red-700 mr-3 text-xl mt-0.5" />
-                <div>
-                  <h3 className="font-medium text-red-900 text-lg mb-2">¿Estás seguro que deseas eliminar esta venta?</h3>
-                  <p className="text-red-800">
-                    Esta acción es irreversible. Todos los datos asociados a esta venta serán eliminados permanentemente.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Resumen de la Venta */}
-          <div className="border border-gray-200 rounded-lg p-6 mb-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <FiUser className="mr-2 text-indigo-700" />
-              Resumen de la Venta
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-gray-700 mb-1">Cliente</p>
-                  <p className="font-medium text-gray-900">
-                    {ventaData?.cliente?.nombres} {ventaData?.cliente?.apellidos}
-                  </p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-700 mb-1">Fecha de venta</p>
-                  <p className="font-medium text-gray-900">
-                    <FiCalendar className="inline mr-2 text-gray-600" />
-                    {ventaData ? formatDate(ventaData.fecha_venta) : "N/A"}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-gray-700 mb-1">Valor de venta</p>
-                  <p className="font-medium text-gray-900">
-                    <FiDollarSign className="inline mr-2 text-gray-600" />
-                    ${ventaData?.valor_venta?.toLocaleString("es-CL") || "0"}
-                  </p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-700 mb-1">Total a pagar</p>
-                  <p className="font-medium text-gray-900">
-                    <FiDollarSign className="inline mr-2 text-gray-600" />
-                    ${calcularTotalAPagar().toLocaleString("es-CL", { maximumFractionDigits: 0 })}
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            {ventaData?.comentario && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <p className="text-sm text-gray-700 mb-1">Comentarios</p>
-                <p className="text-gray-900 italic">{ventaData.comentario}</p>
+            ) : (
+              <div className="bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/30 rounded-3xl p-8 mb-10">
+                 <div className="flex items-start gap-4">
+                    <FiInfo className="text-rose-600 mt-1 shrink-0" size={24} />
+                    <div className="space-y-2">
+                       <h3 className="text-base font-black text-rose-900 dark:text-rose-400 uppercase tracking-tight">Advertencia de Eliminación</h3>
+                       <p className="text-sm font-bold text-rose-700/80 dark:text-rose-500 leading-relaxed uppercase tracking-tighter">
+                         Al confirmar, se eliminará toda la proyección de cuotas y registros del contrato. Esta operación es <span className="underline decoration-2">irreversible</span>.
+                       </p>
+                    </div>
+                 </div>
               </div>
             )}
-          </div>
 
-          {/* Botones de acción */}
-          <div className="flex justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => router.push(`/dashboard/ventas/${ventaId}`)}
-              className="px-6 py-3 bg-gray-300 text-gray-900 rounded-lg hover:bg-gray-400 font-medium"
-            >
-              Cancelar
-            </button>
-            
-            <button
-              type="button"
-              onClick={handleDelete}
-              className={`px-6 py-3 bg-red-700 text-white rounded-lg hover:bg-red-800 font-medium flex items-center ${
-                hasPagos ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-              disabled={isDeleting || hasPagos}
-            >
-              {isDeleting ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                  Eliminando...
-                </>
-              ) : (
-                <>
-                  <FiTrash2 className="mr-2" />
-                  Eliminar Venta
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center">
-            <FiXCircle className="text-red-700 mr-3 text-xl" />
-            <div>
-              <h3 className="font-medium text-gray-900">Consecuencias de eliminar una venta</h3>
-              <ul className="mt-2 text-gray-800 list-disc pl-5 space-y-1">
-                <li>La venta será eliminada permanentemente de la base de datos</li>
-                <li>No podrás recuperar esta información en el futuro</li>
-                <li>Los registros asociados a esta venta también serán eliminados</li>
-                <li>Esta acción afectará los reportes y estadísticas financieras</li>
-              </ul>
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-8 mb-12">
+               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 border-b border-slate-100 dark:border-slate-700 pb-4">Snapshot del Objeto</h3>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-1">
+                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Titular</p>
+                     <p className="text-lg font-black text-slate-800 dark:text-white leading-tight">
+                        {ventaData?.cliente?.nombres} {ventaData?.cliente?.apellidos}
+                     </p>
+                  </div>
+                  <div className="space-y-1">
+                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Apertura</p>
+                     <p className="text-lg font-black text-slate-800 dark:text-white leading-tight">
+                        {ventaData?.fecha_venta}
+                     </p>
+                  </div>
+                  <div className="space-y-1">
+                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Capital Base</p>
+                     <p className="text-lg font-black text-slate-800 dark:text-white leading-tight">
+                        {formatMoney(ventaData?.valor_venta)}
+                     </p>
+                  </div>
+                  <div className="space-y-1">
+                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Plan Contratado</p>
+                     <p className="text-lg font-black text-slate-800 dark:text-white leading-tight uppercase">
+                        {ventaData?.cuotas} Cuotas @ {ventaData?.interes}%
+                     </p>
+                  </div>
+               </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row items-center justify-end gap-6">
+               <button
+                 type="button"
+                 onClick={() => router.push(`/dashboard/ventas/${ventaId}`)}
+                 className="w-full md:w-auto px-10 py-5 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-600 transition-all"
+               >
+                 Abortar Operación
+               </button>
+               <button
+                 type="button"
+                 onClick={handleDelete}
+                 disabled={isDeleting || hasPagos}
+                 className="w-full md:w-auto flex items-center justify-center gap-4 px-16 py-5 bg-rose-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl shadow-rose-200 dark:shadow-none hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100"
+               >
+                 {isDeleting ? (
+                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                 ) : (
+                   <>
+                     <FiTrash2 size={20} />
+                     Eliminar Definitivamente
+                   </>
+                 )}
+               </button>
             </div>
           </div>
+
+          <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-rose-500/5 rounded-full blur-[100px]"></div>
+        </div>
+
+        <div className="mt-10 flex items-center gap-4 px-8 opacity-40">
+           <FiShield className="text-slate-400 shrink-0" />
+           <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-relaxed">
+             Protocolo de seguridad activo: La remoción de registros está auditada para prevenir fugas de información financiera en {selectedStore?.tienda?.nombre}.
+           </p>
         </div>
       </div>
     </div>

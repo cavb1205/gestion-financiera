@@ -196,316 +196,192 @@ export default function EditarCliente() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-gray-100 text-gray-700">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
+    <div className="min-h-screen bg-transparent pb-12">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center gap-4 mb-10">
           <button
             onClick={() => router.push("/dashboard/clientes")}
-            className="flex items-center text-indigo-600 hover:text-indigo-800 font-medium"
+            className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 transition-all shadow-sm"
           >
-            <FiArrowLeft className="mr-2" /> Volver a clientes
+            <FiArrowLeft size={20} />
           </button>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Editar Expediente</h1>
+            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-tight">Actualización de Registro Maestro</p>
+          </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6">
-            <div className="flex items-center">
-              <div className="bg-white bg-opacity-20 p-3 rounded-full">
-                <FiUser className="text-white text-xl" />
+        <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none">
+          <div className="bg-slate-900 dark:bg-indigo-600 p-8 text-white relative overflow-hidden">
+            <div className="relative z-10 flex items-center gap-5">
+              <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-md">
+                 <FiEdit className="text-3xl text-white" />
               </div>
-              <h1 className="ml-4 text-2xl font-bold text-white">
-                Editar Cliente
-              </h1>
+              <div>
+                <p className="text-xs font-black text-white/60 uppercase tracking-[0.3em] mb-1">Modificación de Datos</p>
+                <h2 className="text-2xl font-black tracking-tight">{formData.nombres} {formData.apellidos}</h2>
+              </div>
             </div>
-            <p className="mt-2 text-indigo-100">
-              Actualiza la información del cliente en {selectedStore.tienda.nombre}
-            </p>
+            {/* Decorative element */}
+            <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
           </div>
 
-          <div className="p-6">
+          <div className="p-8 md:p-12 bg-white/40 dark:bg-transparent">
             {submitError && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-center text-red-700">
-                  <FiX className="mr-2 flex-shrink-0" />
-                  <p>{submitError}</p>
+              <div className="mb-8 p-5 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl flex items-start gap-4">
+                <div className="bg-rose-100 dark:bg-rose-900/40 p-2 rounded-lg">
+                   <FiX className="text-rose-600" />
                 </div>
+                <p className="text-sm font-bold text-rose-700 dark:text-rose-400">{submitError}</p>
               </div>
             )}
 
             {success ? (
-              <div className="py-12 text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
-                  <FiCheck className="text-green-600 text-2xl" />
+              <div className="py-20 text-center flex flex-col items-center">
+                <div className="w-24 h-24 rounded-[2rem] bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-8 relative">
+                   <div className="absolute inset-0 bg-emerald-400 rounded-[2rem] animate-ping opacity-20"></div>
+                   <FiCheck className="text-emerald-600 text-4xl relative z-10" />
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
-                  ¡Cliente actualizado con éxito!
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2 tracking-tight">
+                  ¡Actualización Exitosa!
                 </h2>
-                <p className="text-gray-600">
-                  Redirigiendo a la lista de clientes...
+                <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
+                  Guardando cambios en el servidor central...
                 </p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-500">
-                  {/* Columna izquierda */}
-                  <div>
-                    <div className="mb-5">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Identificación <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
+              <form onSubmit={handleSubmit} className="space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                  {/* Sección Personal */}
+                  <div className="space-y-8">
+                    <div className="flex items-center gap-3 mb-2">
+                       <FiShield className="text-indigo-500" />
+                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Datos de Identidad</span>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Identificación</label>
                         <input
                           type="text"
                           name="identificacion"
                           value={formData.identificacion}
                           onChange={handleChange}
-                          placeholder="Ej: 13.386.262-5"
-                          className={`w-full px-4 py-2 border  ${
-                            errors.identificacion
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          } rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 `}
+                          className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.identificacion ? 'border-rose-300' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
                         />
-                        {errors.identificacion && (
-                          <p className="mt-1 text-sm text-red-600">
-                            {errors.identificacion}
-                          </p>
-                        )}
                       </div>
-                    </div>
 
-                    <div className="mb-5">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Nombres <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          name="nombres"
-                          value={formData.nombres}
-                          onChange={handleChange}
-                          placeholder="Ej: Juan Carlos"
-                          className={`w-full px-4 py-2 border ${
-                            errors.nombres
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          } rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                        />
-                        {errors.nombres && (
-                          <p className="mt-1 text-sm text-red-600">
-                            {errors.nombres}
-                          </p>
-                        )}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres</label>
+                          <input
+                            type="text"
+                            name="nombres"
+                            value={formData.nombres}
+                            onChange={handleChange}
+                            className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.nombres ? 'border-rose-300' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos</label>
+                          <input
+                            type="text"
+                            name="apellidos"
+                            value={formData.apellidos}
+                            onChange={handleChange}
+                            className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.apellidos ? 'border-rose-300' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                          />
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="mb-5">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Apellidos <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          name="apellidos"
-                          value={formData.apellidos}
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 tracking-widest">Estado Operacional</label>
+                        <select
+                          name="estado_cliente"
+                          value={formData.estado_cliente}
                           onChange={handleChange}
-                          placeholder="Ej: Pérez López"
-                          className={`w-full px-4 py-2 border ${
-                            errors.apellidos
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          } rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                        />
-                        {errors.apellidos && (
-                          <p className="mt-1 text-sm text-red-600">
-                            {errors.apellidos}
-                          </p>
-                        )}
+                          className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none"
+                        >
+                          <option value="Activo">Activo ✅</option>
+                          <option value="Inactivo">Inactivo ❌</option>
+                          <option value="Bloqueado">Bloqueado 🚫</option>
+                        </select>
                       </div>
                     </div>
                   </div>
 
-                  {/* Columna derecha */}
-                  <div>
-                    <div className="mb-5">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Nombre del Negocio
-                      </label>
-                      <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
-                        <div className="pl-4 text-gray-400">
-                          <FiHome />
-                        </div>
+                  {/* Sección Ubicación/Negocio */}
+                  <div className="space-y-8">
+                     <div className="flex items-center gap-3 mb-2">
+                       <FiHome className="text-indigo-500" />
+                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Negocio y Contacto</span>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Establecimiento</label>
                         <input
                           type="text"
                           name="nombre_local"
                           value={formData.nombre_local}
                           onChange={handleChange}
-                          placeholder="Ej: Tienda El Buen Precio"
-                          className="w-full px-4 py-2 focus:outline-none"
+                          className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
                         />
                       </div>
-                    </div>
 
-                    <div className="mb-5">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Teléfono Principal{" "}
-                        <span className="text-red-500">*</span>
-                      </label>
-                      <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
-                        <div className="pl-4 text-gray-400">
-                          <FiPhone />
-                        </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono Principal</label>
                         <input
                           type="tel"
                           name="telefono_principal"
                           value={formData.telefono_principal}
                           onChange={handleChange}
-                          placeholder="Ej: +56912345678"
-                          className={`w-full px-4 py-2 focus:outline-none ${
-                            errors.telefono_principal ? "border-red-500" : ""
-                          }`}
+                          className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.telefono_principal ? 'border-rose-300' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
                         />
                       </div>
-                      {errors.telefono_principal && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.telefono_principal}
-                        </p>
-                      )}
-                    </div>
 
-                    <div className="mb-5">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Teléfono Opcional
-                      </label>
-                      <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
-                        <div className="pl-4 text-gray-400">
-                          <FiPhone />
-                        </div>
-                        <input
-                          type="tel"
-                          name="telefono_opcional"
-                          value={formData.telefono_opcional}
-                          onChange={handleChange}
-                          placeholder="Ej: +56223456789"
-                          className={`w-full px-4 py-2 focus:outline-none ${
-                            errors.telefono_opcional ? "border-red-500" : ""
-                          }`}
-                        />
-                      </div>
-                      {errors.telefono_opcional && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.telefono_opcional}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="mb-5">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Dirección <span className="text-red-500">*</span>
-                      </label>
-                      <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
-                        <div className="pl-4 text-gray-400">
-                          <FiMapPin />
-                        </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección Exacta</label>
                         <input
                           type="text"
                           name="direccion"
                           value={formData.direccion}
                           onChange={handleChange}
-                          placeholder="Ej: Av. Principal 1234"
-                          className={`w-full px-4 py-2 focus:outline-none ${
-                            errors.direccion ? "border-red-500" : ""
-                          }`}
+                          className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.direccion ? 'border-rose-300' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
                         />
-                      </div>
-                      {errors.direccion && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.direccion}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="mb-5">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Estado del Cliente <span className="text-red-500">*</span>
-                      </label>
-                      <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
-                        <div className="pl-4 text-gray-400">
-                          <FiShield />
-                        </div>
-                        <select
-                          name="estado_cliente"
-                          value={formData.estado_cliente}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2 focus:outline-none bg-white"
-                        >
-                          <option value="Activo">Activo</option>
-                          <option value="Inactivo">Inactivo</option>
-                          <option value="Bloqueado">Bloqueado</option>
-                        </select>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end">
+                <div className="pt-10 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-4">
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/clientes")}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    className="px-10 py-4 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
                   >
-                    Cancelar
+                    Descartar Cambios
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="ml-3 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center"
+                    className="px-12 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-slate-200 dark:shadow-none disabled:opacity-50"
                   >
                     {isSubmitting ? (
                       <>
-                        <svg
-                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Guardando...
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Procesando...
                       </>
                     ) : (
                       <>
-                        <FiSave className="mr-2" />
-                        Actualizar Cliente
+                        <FiSave size={18} />
+                        Guardar Cambios
                       </>
                     )}
                   </button>
                 </div>
               </form>
             )}
-          </div>
-        </div>
-
-        {/* Información de tienda */}
-        <div className="mt-6 bg-white rounded-lg shadow p-4 flex items-center">
-          <div className="bg-indigo-100 p-3 rounded-full">
-            <FiShield className="text-indigo-600" />
-          </div>
-          <div className="ml-4">
-            <p className="text-sm text-gray-500">Tienda actual</p>
-            <p className="font-medium">{selectedStore.tienda.nombre}</p>
           </div>
         </div>
       </div>

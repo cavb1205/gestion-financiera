@@ -11,12 +11,16 @@ import {
   FiArrowLeft,
   FiSave,
   FiUsers,
+  FiPackage,
+  FiShield,
+  FiInfo,
 } from "react-icons/fi";
 import Link from "next/link";
 import { toast } from "react-toastify";
+import LoadingSpinner from "../../../components/LoadingSpinner";
 
 export default function NuevoAportePage() {
-  const { selectedStore, token } = useAuth();
+  const { selectedStore, token, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [loadingTrabajadores, setLoadingTrabajadores] = useState(true);
@@ -30,7 +34,6 @@ export default function NuevoAportePage() {
     comentario: "",
   });
 
-  // Obtener lista de trabajadores
   useEffect(() => {
     const fetchTrabajadores = async () => {
       try {
@@ -77,7 +80,6 @@ export default function NuevoAportePage() {
     setError(null);
 
     try {
-      // Validaciones
       if (!formData.trabajador) {
         throw new Error("Debe seleccionar un trabajador");
       }
@@ -97,7 +99,7 @@ export default function NuevoAportePage() {
           body: JSON.stringify({
             fecha: formData.fecha,
             valor: formData.valor,
-            comentario: formData.commentario,
+            comentario: formData.comentario,
             trabajador: formData.trabajador,
             tienda: selectedStore.tienda.id,
           }),
@@ -109,211 +111,202 @@ export default function NuevoAportePage() {
         throw new Error(errorData.message || "Error al crear el aporte");
       }
 
-      // Redirigir a la lista de aportes con mensaje de éxito
-      toast.success("Aporte creado correctamente");
+      toast.success("Inyección de capital registrada correctamente");
       router.push("/dashboard/aportes");
     } catch (err) {
       setError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loadingTrabajadores) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center mb-6">
-            <Link
-              href="/dashboard/aportes"
-              className="flex items-center text-indigo-600 hover:text-indigo-800 mr-4 font-medium"
-            >
-              <FiArrowLeft className="mr-1" />
-              Volver
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-900">Nuevo Aporte</h1>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex justify-center items-center h-64">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Cargando trabajadores...</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (authLoading || loadingTrabajadores) return <LoadingSpinner />;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-transparent pb-12">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex items-center mb-8">
-          <Link
-            href="/dashboard/aportes"
-            className="flex items-center text-indigo-600 hover:text-indigo-800 mr-4 font-medium"
-          >
-            <FiArrowLeft className="mr-1" />
-            Volver a Aportes
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Nuevo Aporte</h1>
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
+          <div className="flex items-center gap-5">
+            <button
+              onClick={() => router.back()}
+              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
+            >
+              <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Nueva Inyección</h1>
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
+                Registro de Capital • <span className="text-indigo-500">{selectedStore?.tienda?.nombre}</span>
+              </p>
+            </div>
+          </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-700 font-medium">{error}</p>
+          <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl p-4 mb-8 flex items-center gap-3">
+             <FiShield className="text-rose-600" />
+             <p className="text-rose-700 dark:text-rose-400 text-sm font-bold uppercase tracking-tight">{error}</p>
           </div>
         )}
 
-        {/* Formulario */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Campo Trabajador */}
-            <div>
-              <label className="block text-base font-semibold text-gray-800 mb-3">
-                Trabajador *
-              </label>
-              <div className="relative">
-                <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
-                <select
-                  name="trabajador"
-                  value={formData.trabajador}
-                  onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 appearance-none text-base"
-                  required
-                >
-                  <option value="">Seleccione un trabajador</option>
-                  {trabajadores.map((trabajador) => (
-                    <option key={trabajador.id} value={trabajador.id}>
-                      {trabajador.trabajador} - {trabajador.identificacion}
-                    </option>
-                  ))}
-                </select>
-                <FiUsers className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
-              </div>
-              <p className="text-sm text-gray-600 mt-2">
-                {trabajadores.length} trabajadores disponibles
-              </p>
-            </div>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Form Side */}
+          <div className="lg:col-span-12">
+            <div className="glass p-8 md:p-12 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl">
+              <form onSubmit={handleSubmit} className="space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                  {/* Left Column: Origin & Value */}
+                  <div className="space-y-8">
+                    <div className="flex items-center gap-3 mb-2 px-1">
+                       <FiUsers className="text-indigo-500" />
+                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Procedencia de Fondos</span>
+                    </div>
 
-            {/* Campo Fecha */}
-            <div>
-              <label className="block text-base font-semibold text-gray-800 mb-3">
-                Fecha *
-              </label>
-              <div className="relative">
-                <FiCalendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
-                <input
-                  type="date"
-                  name="fecha"
-                  value={formData.fecha}
-                  onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 text-base"
-                  required
-                />
-              </div>
-            </div>
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Inversionista / Trabajador *</label>
+                        <div className="relative group">
+                          <FiUser className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
+                          <select
+                            name="trabajador"
+                            value={formData.trabajador}
+                            onChange={handleChange}
+                            className="w-full pl-14 pr-12 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none"
+                            required
+                          >
+                            <option value="">Seleccione el responsable...</option>
+                            {trabajadores.map((trabajador) => (
+                              <option key={trabajador.id} value={trabajador.id}>
+                                {trabajador.trabajador} ({trabajador.identificacion})
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">
+                             <FiUsers size={18} />
+                          </div>
+                        </div>
+                      </div>
 
-            {/* Campo Valor */}
-            <div>
-              <label className="block text-base font-semibold text-gray-800 mb-3">
-                Valor *
-              </label>
-              <div className="relative">
-                <FiDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg" />
-                <input
-                  type="number"
-                  name="valor"
-                  value={formData.valor}
-                  onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 text-base"
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0.01"
-                  required
-                />
-              </div>
-            </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Monto a Inyectar *</label>
+                        <div className="relative group">
+                          <FiDollarSign className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
+                          <input
+                            type="number"
+                            name="valor"
+                            value={formData.valor}
+                            onChange={handleChange}
+                            placeholder="0.00"
+                            step="0.00"
+                            min="0.01"
+                            className="w-full pl-14 pr-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-inner"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-            {/* Campo Comentario */}
-            <div>
-              <label className="block text-base font-semibold text-gray-800 mb-3">
-                Comentario
-              </label>
-              <div className="relative">
-                <FiFileText className="absolute left-3 top-3 text-gray-500 text-lg" />
-                <textarea
-                  name="comentario"
-                  value={formData.comentario}
-                  onChange={handleChange}
-                  rows={4}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 text-base"
-                  placeholder="Descripción del aporte (opcional)"
-                />
-              </div>
-            </div>
+                  {/* Right Column: Context */}
+                  <div className="space-y-8">
+                    <div className="flex items-center gap-3 mb-2 px-1">
+                       <FiCalendar className="text-indigo-500" />
+                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Contexto de Operación</span>
+                    </div>
 
-            {/* Información de la tienda (solo visual) */}
-            <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-100">
-              <h3 className="text-base font-semibold text-indigo-800 mb-3">
-                Información de la Tienda
-              </h3>
-              <div className="grid grid-cols-2 gap-4 text-base">
-                <div>
-                  <p className="text-indigo-600">Tienda:</p>
-                  <p className="font-medium text-indigo-800">{selectedStore?.tienda?.nombre}</p>
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha de Registro *</label>
+                        <input
+                          type="date"
+                          name="fecha"
+                          value={formData.fecha}
+                          onChange={handleChange}
+                          className="w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Descripción del Movimiento</label>
+                        <div className="relative group">
+                          <FiFileText className="absolute left-5 top-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
+                          <textarea
+                            name="comentario"
+                            value={formData.comentario}
+                            onChange={handleChange}
+                            rows={3}
+                            placeholder="Justificación del aporte (ej: Fondo para nuevos créditos)"
+                            className="w-full pl-14 pr-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all resize-none shadow-inner"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-indigo-600">ID:</p>
-                  <p className="font-medium text-indigo-800">{selectedStore?.tienda?.id}</p>
+
+                {/* Info Box */}
+                <div className="p-8 bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/10 rounded-[2rem] flex flex-col md:flex-row items-center gap-6">
+                   <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-500/20">
+                      <FiPackage size={28} />
+                   </div>
+                   <div className="flex-1 text-center md:text-left">
+                      <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">Impacto en Disponibilidad</h4>
+                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Este capital se sumará inmediatamente al fondo operativo de <span className="text-indigo-600 dark:text-indigo-400">{selectedStore?.tienda?.nombre}</span>. 
+                        
+                      </p>
+                   </div>
+                   <div className="shrink-0 flex items-center gap-4 border-l border-slate-200 dark:border-slate-800 pl-6 hidden md:flex">
+                      <div className="text-right">
+                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Caja Referencia</p>
+                         <p className="text-sm font-black text-indigo-600">ID #{selectedStore?.tienda?.id}</p>
+                      </div>
+                   </div>
                 </div>
-              </div>
-            </div>
 
-            <div className="pt-6 border-t border-gray-200">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center justify-center w-full bg-indigo-600 text-white px-4 py-4 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base font-semibold shadow-md"
-              >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
-                ) : (
-                  <>
-                    <FiSave className="mr-2 text-lg" />
-                    Crear Aporte
-                  </>
-                )}
-              </button>
+                {/* Actions */}
+                <div className="flex flex-col md:flex-row items-center justify-end gap-4 pt-8 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => router.back()}
+                    className="w-full md:w-auto px-10 py-4.5 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-600 transition-all"
+                  >
+                    Descartar Registro
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full md:w-auto flex items-center justify-center gap-3 px-12 py-4.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
+                  >
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                    ) : (
+                      <>
+                        <FiSave size={20} />
+                        Confirmar Inyección
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
-        </div>
+          </div>
 
-        {/* Información adicional */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-5">
-          <h3 className="text-base font-semibold text-blue-800 mb-3">
-            Información importante
-          </h3>
-          <ul className="text-base text-blue-700 space-y-2">
-            <li className="flex items-start">
-              <span className="text-blue-800 mr-2">•</span>
-              Los campos marcados con <span className="font-semibold mx-1">*</span> son obligatorios
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-800 mr-2">•</span>
-              El valor del aporte debe ser mayor a cero
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-800 mr-2">•</span>
-              La fecha por defecto es la actual, pero puede modificarla
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-800 mr-2">•</span>
-              El aporte se asociará automáticamente a esta tienda
-            </li>
-          </ul>
+          {/* Guidelines Sidebar (Optional, but helps aesthetic) */}
+          <div className="lg:col-span-12 mt-4">
+             <div className="flex items-center gap-4 bg-white/40 dark:bg-slate-900/40 p-6 rounded-[2rem] border border-white/60 dark:border-slate-800">
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-xl">
+                   <FiInfo size={20} />
+                </div>
+                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed uppercase tracking-tight">
+                   El sistema registrará automáticamente al usuario <span className="text-indigo-500">{formData.trabajador ? trabajadores.find(t => t.id == formData.trabajador)?.trabajador : '...'}</span> como responsable del aporte.
+                </p>
+             </div>
+          </div>
         </div>
       </div>
     </div>

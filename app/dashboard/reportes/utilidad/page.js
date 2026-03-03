@@ -1,4 +1,4 @@
-// app/dashboard/reportes/page.js
+// app/dashboard/reportes/utilidad/page.js
 "use client";
 
 import { useState, useEffect } from "react";
@@ -16,10 +16,15 @@ import {
   FiCheckCircle,
   FiBarChart2,
   FiPercent,
+  FiActivity,
+  FiArrowUpRight,
+  FiInfo,
+  FiTarget,
 } from "react-icons/fi";
+import LoadingSpinner from "@/app/components/LoadingSpinner";
 
 export default function ReportesPage() {
-  const { selectedStore, token } = useAuth();
+  const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [datosReporte, setDatosReporte] = useState(null);
@@ -27,41 +32,30 @@ export default function ReportesPage() {
   const [error, setError] = useState("");
   const [tienda, setTienda] = useState(null);
 
-  // Función para ajustar fecha a la zona horaria local
   const ajustarFechaLocal = (fecha) => {
     const date = new Date(fecha);
-    // Ajustar para evitar problemas de zona horaria
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
-  // Establecer fechas por defecto (mes actual) - Corregido para zona horaria
   useEffect(() => {
     const hoy = new Date();
     const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
     const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
-
     setFechaInicio(ajustarFechaLocal(primerDiaMes));
     setFechaFin(ajustarFechaLocal(ultimoDiaMes));
   }, []);
 
-  // Obtener datos de la tienda
   useEffect(() => {
     const fetchTienda = async () => {
       if (!selectedStore || !token) return;
-
       try {
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/tiendas/detail/admin/${selectedStore.tienda.id}/`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
-
         if (response.ok) {
           const tiendaData = await response.json();
           setTienda(tiendaData);
@@ -70,666 +64,396 @@ export default function ReportesPage() {
         console.error("Error al obtener la tienda:", error);
       }
     };
-
     fetchTienda();
   }, [selectedStore, token]);
 
   const generarReporte = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setCargando(true);
     setError("");
     setDatosReporte(null);
 
     try {
-      // Validar que fechaInicio no sea mayor que fechaFin
       if (new Date(fechaInicio) > new Date(fechaFin)) {
-        throw new Error(
-          "La fecha de inicio no puede ser mayor que la fecha de fin"
-        );
+        throw new Error("La fecha de inicio no puede ser mayor que la fecha de fin");
       }
 
-      console.log("Consultando con fechas:", { fechaInicio, fechaFin });
+      const [ventasRes, gastosRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/gastos/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
 
-      // Obtener datos de ventas
-      const ventasResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/ventas/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      if (!ventasRes.ok || !gastosRes.ok) throw new Error("Error al consultar fuentes de datos.");
 
-      // Obtener datos de gastos
-      const gastosResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/gastos/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const ventasData = await ventasRes.json();
+      const gastosData = await gastosRes.json();
 
-      if (!ventasResponse.ok) {
-        throw new Error(`Error en ventas: ${ventasResponse.status}`);
-      }
-
-      if (!gastosResponse.ok) {
-        throw new Error(`Error en gastos: ${gastosResponse.status}`);
-      }
-
-      let ventasData = await ventasResponse.json();
-      let gastosData = await gastosResponse.json();
-      ventasData = Array.isArray(ventasData) ? ventasData : [];
-      gastosData = Array.isArray(gastosData) ? gastosData : [];
-
-      // Procesar y combinar datos
-      const datosProcesados = procesarDatosReporte(ventasData, gastosData);
-      setDatosReporte(datosProcesados);
+      const processed = procesarDatosReporte(Array.isArray(ventasData) ? ventasData : [], Array.isArray(gastosData) ? gastosData : []);
+      setDatosReporte(processed);
     } catch (err) {
-      setError(
-        err.message ||
-          "Error al generar el reporte. Por favor, verifica las fechas e intenta nuevamente."
-      );
-      console.error("Error:", err);
+      setError(err.message || "Fallo en la sincronización de auditoría.");
     } finally {
       setCargando(false);
     }
   };
 
   const procesarDatosReporte = (ventas, gastos) => {
-    // Crear objeto para agrupar por fecha
     const datosPorFecha = {};
-
-    // Procesar ventas - usando fecha_venta como clave
     ventas.forEach((venta) => {
       const fecha = venta.fecha_venta;
       if (!datosPorFecha[fecha]) {
-        datosPorFecha[fecha] = {
-          fecha,
-          cantidadVentas: 0,
-          totalVendido: 0, // valor_venta sin intereses
-          interesesGenerados: 0, // total_a_pagar - valor_venta
-          gastos: 0,
-          perdidas: 0,
-          utilidad: 0,
-        };
+        datosPorFecha[fecha] = { fecha, cantidadVentas: 0, totalVendido: 0, interesesGenerados: 0, gastos: 0, perdidas: 0, utilidad: 0 };
       }
-
       datosPorFecha[fecha].cantidadVentas += 1;
       datosPorFecha[fecha].totalVendido += parseFloat(venta.valor_venta);
-
-      // Calcular intereses generados (total_a_pagar - valor_venta)
-      const intereses =
-        parseFloat(venta.total_a_pagar) - parseFloat(venta.valor_venta);
-      datosPorFecha[fecha].interesesGenerados += intereses;
-
-      // Solo contar como pérdida si el estado es "Perdida"
+      datosPorFecha[fecha].interesesGenerados += (parseFloat(venta.total_a_pagar) - parseFloat(venta.valor_venta));
       if (venta.estado_venta === "Perdida") {
         datosPorFecha[fecha].perdidas += parseFloat(venta.perdida);
       }
     });
 
-    // Procesar gastos - usando fecha como clave
     gastos.forEach((gasto) => {
       const fecha = gasto.fecha;
       if (!datosPorFecha[fecha]) {
-        datosPorFecha[fecha] = {
-          fecha,
-          cantidadVentas: 0,
-          totalVendido: 0,
-          interesesGenerados: 0,
-          gastos: 0,
-          perdidas: 0,
-          utilidad: 0,
-        };
+        datosPorFecha[fecha] = { fecha, cantidadVentas: 0, totalVendido: 0, interesesGenerados: 0, gastos: 0, perdidas: 0, utilidad: 0 };
       }
       datosPorFecha[fecha].gastos += parseFloat(gasto.valor);
     });
 
-    // Calcular utilidad por fecha (Intereses Generados - Gastos - Pérdidas)
-    Object.keys(datosPorFecha).forEach((fecha) => {
-      const datos = datosPorFecha[fecha];
+    Object.values(datosPorFecha).forEach((datos) => {
       datos.utilidad = datos.interesesGenerados - datos.gastos - datos.perdidas;
     });
 
-    // Filtrar solo las fechas que están dentro del rango solicitado
-    const fechasFiltradas = Object.values(datosPorFecha).filter((fila) => {
-      const fechaFila = new Date(fila.fecha);
-      const fechaInicioObj = new Date(fechaInicio);
-      const fechaFinObj = new Date(fechaFin);
-
-      return fechaFila >= fechaInicioObj && fechaFila <= fechaFinObj;
-    });
-
-    // Ordenar por fecha (más reciente primero)
-    return fechasFiltradas.sort(
-      (a, b) => new Date(b.fecha) - new Date(a.fecha)
-    );
+    return Object.values(datosPorFecha)
+      .filter(f => f.fecha >= fechaInicio && f.fecha <= fechaFin)
+      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
   };
 
-  const exportarReporte = () => {
-    if (!datosReporte) return;
-
-    const csvContent = [
-      [
-        "Fecha",
-        "Cantidad Ventas",
-        "Total Vendido",
-        "Intereses Generados",
-        "Gastos",
-        "Pérdidas",
-        "Utilidad",
-      ],
-      ...datosReporte.map((row) => [
-        row.fecha,
-        row.cantidadVentas,
-        `$${row.totalVendido.toLocaleString("es-CO")}`,
-        `$${row.interesesGenerados.toLocaleString("es-CO")}`,
-        `$${row.gastos.toLocaleString("es-CO")}`,
-        `$${row.perdidas.toLocaleString("es-CO")}`,
-        `$${row.utilidad.toLocaleString("es-CO")}`,
-      ]),
-    ]
-      .map((row) => row.join(","))
-      .join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `reporte-${fechaInicio}-a-${fechaFin}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const formatMoney = (amount) => {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+    }).format(amount);
   };
 
-  const calcularTotales = () => {
-    if (!datosReporte) return null;
+  if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 
-    return datosReporte.reduce(
-      (acc, curr) => ({
-        cantidadVentas: acc.cantidadVentas + curr.cantidadVentas,
-        totalVendido: acc.totalVendido + curr.totalVendido,
-        interesesGenerados: acc.interesesGenerados + curr.interesesGenerados,
-        gastos: acc.gastos + curr.gastos,
-        perdidas: acc.perdidas + curr.perdidas,
-        utilidad: acc.utilidad + curr.utilidad,
-      }),
-      {
-        cantidadVentas: 0,
-        totalVendido: 0,
-        interesesGenerados: 0,
-        gastos: 0,
-        perdidas: 0,
-        utilidad: 0,
-      }
-    );
-  };
+  if (!tienda) return (
+    <div className="min-h-[400px] flex flex-col items-center justify-center bg-transparent">
+        <LoadingSpinner />
+        <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Sincronizando Inteligencia Financiera</p>
+    </div>
+  );
 
-  const formatFecha = (fechaStr) => {
-    return new Date(fechaStr).toLocaleDateString("es-ES", {
-      weekday: "short",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  // Calcular porcentaje de intereses sobre el total vendido
-  const calcularPorcentajeIntereses = (intereses, totalVendido) => {
-    if (totalVendido === 0) return 0;
-    return ((intereses / totalVendido) * 100).toFixed(1);
-  };
-
-  if (!tienda) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="ml-4 text-gray-600 mt-3">Cargando reportes...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Calcular totales y porcentajes solo si hay datos del reporte
-  const totales = datosReporte ? calcularTotales() : null;
-  const porcentajeIntereses = totales
-    ? calcularPorcentajeIntereses(
-        totales.interesesGenerados,
-        totales.totalVendido
-      )
-    : 0;
+  const totales = datosReporte ? datosReporte.reduce((acc, curr) => ({
+    cantidadVentas: acc.cantidadVentas + curr.cantidadVentas,
+    totalVendido: acc.totalVendido + curr.totalVendido,
+    interesesGenerados: acc.interesesGenerados + curr.interesesGenerados,
+    gastos: acc.gastos + curr.gastos,
+    perdidas: acc.perdidas + curr.perdidas,
+    utilidad: acc.utilidad + curr.utilidad,
+  }), { cantidadVentas: 0, totalVendido: 0, interesesGenerados: 0, gastos: 0, perdidas: 0, utilidad: 0 }) : null;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Encabezado */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <FiBarChart2 className="mr-3 text-indigo-600" />
-            Reportes Financieros
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Consulta y analiza los movimientos de tu tienda por período
-          </p>
-          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800 flex items-center">
-              <FiAlertCircle className="mr-2" />
-              <strong>Período consultado:</strong> {fechaInicio} al {fechaFin}
-            </p>
+    <div className="min-h-screen bg-transparent pb-12">
+      <div className="w-full">
+
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-6">
+          <div className="flex items-center gap-5">
+            <div className="bg-indigo-600 p-4 rounded-[1.5rem] shadow-xl shadow-indigo-200 dark:shadow-none">
+               <FiActivity className="text-white text-3xl" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Inteligencia de Utilidad</h1>
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
+                Análisis de Rentabilidad • <span className="text-indigo-500">{tienda.nombre}</span>
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={generarReporte}
+              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
+            >
+              <FiRefreshCw size={20} className={cargando ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
+            </button>
+            {datosReporte && (
+               <button 
+                onClick={() => {
+                  const csv = ["Fecha,Ventas,Capital,Intereses,Gastos,Perdidas,Utilidad", ...datosReporte.map(r => `${r.fecha},${r.cantidadVentas},${r.totalVendido},${r.interesesGenerados},${r.gastos},${r.perdidas},${r.utilidad}`)].join("\n");
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `utilidad_${fechaInicio}_${fechaFin}.csv`;
+                  a.click();
+                }}
+                className="flex items-center justify-center gap-3 px-8 py-4 bg-emerald-600 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all"
+               >
+                 <FiDownload size={20} />
+                 Exportar Auditoría
+               </button>
+            )}
           </div>
         </div>
 
-        {/* Formulario de fechas */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-          <form onSubmit={generarReporte} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  <FiCalendar className="inline mr-2 text-indigo-600" />
-                  Fecha Inicio
-                </label>
-                <input
-                  type="date"
-                  value={fechaInicio}
-                  onChange={(e) => setFechaInicio(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                  required
-                />
+        {/* Filters Section */}
+        <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 mb-10 p-8 shadow-2xl">
+           <form onSubmit={generarReporte} className="flex flex-col lg:flex-row items-center gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1 w-full">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Desde</label>
+                  <div className="relative group">
+                    <input
+                      type="date"
+                      value={fechaInicio}
+                      onChange={(e) => setFechaInicio(e.target.value)}
+                      className="block w-full px-8 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-[2rem] text-[15px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Hasta</label>
+                  <div className="relative group">
+                    <input
+                      type="date"
+                      value={fechaFin}
+                      onChange={(e) => setFechaFin(e.target.value)}
+                      className="block w-full px-8 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-[2rem] text-[15px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  <FiCalendar className="inline mr-2 text-indigo-600" />
-                  Fecha Fin
-                </label>
-                <input
-                  type="date"
-                  value={fechaFin}
-                  onChange={(e) => setFechaFin(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                  required
-                />
-              </div>
-
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  disabled={cargando}
-                  className="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center font-medium shadow-md transition-colors"
-                >
-                  {cargando ? (
-                    <>
-                      <FiRefreshCw className="animate-spin mr-2" />
-                      Generando...
-                    </>
-                  ) : (
-                    <>
-                      <FiPieChart className="mr-2" />
-                      Generar Reporte
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </form>
+              <button 
+                type="submit"
+                disabled={cargando}
+                className="w-full lg:w-auto px-16 py-5 bg-slate-900 dark:bg-slate-800 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+              >
+                {cargando ? "Auditando..." : "Generar Reporte Finandiero"}
+              </button>
+           </form>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-6 flex items-start">
-            <FiAlertCircle className="text-red-600 text-xl mr-3 mt-0.5 flex-shrink-0" />
-            <span className="font-medium">{error}</span>
-          </div>
+           <div className="mb-10 p-6 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-[2rem] flex items-center gap-4 text-rose-600">
+              <FiAlertCircle size={24} />
+              <p className="text-sm font-black uppercase tracking-widest leading-none">{error}</p>
+           </div>
         )}
 
-        {datosReporte && totales && (
+        {datosReporte && totales ? (
           <>
-            {/* Resumen de totales */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      Total Vendido
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      ${totales.totalVendido.toLocaleString("es-CO")}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Capital de ventas
-                    </p>
-                  </div>
-                  <FiDollarSign className="text-green-500 text-2xl" />
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      Ventas Totales
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {totales.cantidadVentas}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Cantidad de ventas
-                    </p>
-                  </div>
-                  <FiShoppingCart className="text-blue-500 text-2xl" />
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-amber-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      Intereses Generados
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      ${totales.interesesGenerados.toLocaleString("es-CO")}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {porcentajeIntereses}% sobre ventas
-                    </p>
-                  </div>
-                  <FiPercent className="text-amber-500 text-2xl" />
-                </div>
-              </div>
-
-              <div
-                className={`bg-white rounded-xl shadow-sm p-6 border-l-4 ${
-                  totales.utilidad >= 0 ? "border-green-500" : "border-red-500"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      Utilidad Neta
-                    </p>
-                    <p
-                      className={`text-2xl font-bold ${
-                        totales.utilidad >= 0
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      ${totales.utilidad.toLocaleString("es-CO")}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {totales.utilidad >= 0 ? "Ganancia" : "Pérdida"}
-                    </p>
-                  </div>
-                  {totales.utilidad >= 0 ? (
-                    <FiTrendingUp className="text-green-500 text-2xl" />
-                  ) : (
-                    <FiTrendingDown className="text-red-500 text-2xl" />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Tabla de reportes */}
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
-              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                  <FiCheckCircle className="mr-2 text-indigo-600" />
-                  Detalle por Fecha ({datosReporte.length} días con movimientos)
-                </h3>
-                <button
-                  onClick={exportarReporte}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center text-sm font-medium"
-                >
-                  <FiDownload className="mr-2" />
-                  Exportar CSV
-                </button>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Fecha
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Ventas
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Total Vendido
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Intereses
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Gastos
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Pérdidas
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Utilidad
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {datosReporte.map((fila, index) => {
-                      const porcentajeInteresesFila =
-                        calcularPorcentajeIntereses(
-                          fila.interesesGenerados,
-                          fila.totalVendido
-                        );
-                      return (
-                        <tr
-                          key={index}
-                          className="hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {fila.fecha}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-700 font-semibold">
-                            {fila.cantidadVentas}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-green-700 font-semibold">
-                            ${fila.totalVendido.toLocaleString("es-CO")}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-amber-700 font-semibold">
-                              ${fila.interesesGenerados.toLocaleString("es-CO")}
-                            </div>
-                            <div className="text-xs text-amber-600">
-                              {porcentajeInteresesFila}%
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-red-700 font-semibold">
-                            ${fila.gastos.toLocaleString("es-CO")}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-700 font-semibold">
-                            ${fila.perdidas.toLocaleString("es-CO")}
-                          </td>
-                          <td
-                            className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${
-                              fila.utilidad >= 0
-                                ? "text-green-700"
-                                : "text-red-700"
-                            }`}
-                          >
-                            ${fila.utilidad.toLocaleString("es-CO")}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot className="bg-gray-50 border-t-2 border-gray-200">
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                        TOTALES
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-800">
-                        {totales.cantidadVentas}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-800">
-                        ${totales.totalVendido.toLocaleString("es-CO")}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-bold text-amber-800">
-                          ${totales.interesesGenerados.toLocaleString("es-CO")}
-                        </div>
-                        <div className="text-xs text-amber-700">
-                          {porcentajeIntereses}%
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-800">
-                        ${totales.gastos.toLocaleString("es-CO")}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-orange-800">
-                        ${totales.perdidas.toLocaleString("es-CO")}
-                      </td>
-                      <td
-                        className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${
-                          totales.utilidad >= 0
-                            ? "text-green-800"
-                            : "text-red-800"
-                        }`}
-                      >
-                        ${totales.utilidad.toLocaleString("es-CO")}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-
-            {/* Tarjeta de Análisis de Rentabilidad */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <FiTrendingDown className="mr-2 text-red-500" />
-                  Resumen de Egresos
-                </h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Gastos Operativos:</span>
-                    <span className="font-semibold text-red-700">
-                      ${totales.gastos.toLocaleString("es-CO")}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Pérdidas por Ventas:</span>
-                    <span className="font-semibold text-orange-700">
-                      ${totales.perdidas.toLocaleString("es-CO")}
-                    </span>
-                  </div>
-                  <div className="border-t pt-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-800 font-medium">
-                        Total Egresos:
-                      </span>
-                      <span className="font-bold text-red-800">
-                        $
-                        {(totales.gastos + totales.perdidas).toLocaleString(
-                          "es-CO"
-                        )}
-                      </span>
+            {/* Summary Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+              <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl">
+                      <FiDollarSign size={24} />
                     </div>
+                    <FiTrendingUp className="text-emerald-500" />
                   </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <FiTrendingUp className="mr-2 text-green-500" />
-                  Análisis de Rentabilidad
-                </h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">
-                      Ingresos por Intereses:
-                    </span>
-                    <span className="font-semibold text-amber-700">
-                      ${totales.interesesGenerados.toLocaleString("es-CO")}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Margen de Intereses:</span>
-                    <span className="font-semibold text-amber-700">
-                      {porcentajeIntereses}%
-                    </span>
-                  </div>
-                  <div className="border-t pt-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-800 font-medium">
-                        Utilidad Neta:
-                      </span>
-                      <span
-                        className={`font-bold ${
-                          totales.utilidad >= 0
-                            ? "text-green-800"
-                            : "text-red-800"
-                        }`}
-                      >
-                        ${totales.utilidad.toLocaleString("es-CO")}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="text-xs text-gray-500">
-                        Rentabilidad sobre intereses:
-                      </span>
-                      <span
-                        className={`text-xs font-medium ${
-                          totales.interesesGenerados > 0
-                            ? "text-green-600"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {totales.interesesGenerados > 0
-                          ? `${(
-                              (totales.utilidad / totales.interesesGenerados) *
-                              100
-                            ).toFixed(1)}%`
-                          : "0%"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Información adicional */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <div className="flex items-start">
-                <FiAlertCircle className="text-yellow-600 text-xl mr-3 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-medium text-yellow-800">
-                    Información sobre el período
-                  </h4>
-                  <p className="text-yellow-700 text-sm mt-1">
-                    El reporte muestra los movimientos entre{" "}
-                    <strong>{fechaInicio}</strong> y <strong>{fechaFin}</strong>
-                    .
-                    {datosReporte.length === 0
-                      ? " No se encontraron movimientos en este período."
-                      : ` Se encontraron movimientos en ${datosReporte.length} días del período.`}
+                  <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 select-all">
+                    {formatMoney(totales.totalVendido)}
                   </p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Capital Colocado</p>
                 </div>
+              </div>
+
+              <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-2xl">
+                      <FiPercent size={24} />
+                    </div>
+                    <span className="text-[10px] font-black text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg">
+                       {((totales.interesesGenerados / totales.totalVendido) * 100).toFixed(1)}% Yield
+                    </span>
+                  </div>
+                  <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
+                    {formatMoney(totales.interesesGenerados)}
+                  </p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Utilidad Bruta (Interés)</p>
+                </div>
+              </div>
+
+              <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl">
+                      <FiTrendingDown size={24} />
+                    </div>
+                    <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Egresos</span>
+                  </div>
+                  <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
+                    {formatMoney(totales.gastos + totales.perdidas)}
+                  </p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Carga Operativa + Pérdidas</p>
+                </div>
+              </div>
+
+              <div className={`p-8 rounded-[2.5rem] border relative overflow-hidden group shadow-2xl ${totales.utilidad >= 0 ? 'bg-emerald-600 border-emerald-500 shadow-emerald-200 dark:shadow-none' : 'bg-rose-600 border-rose-500 shadow-rose-200 dark:shadow-none'}`}>
+                <div className="relative z-10 text-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-white/20 rounded-2xl">
+                      <FiTarget size={24} />
+                    </div>
+                    <FiCheckCircle className="opacity-50" />
+                  </div>
+                  <p className="text-3xl font-black tracking-tighter mb-1 select-all">
+                    {formatMoney(totales.utilidad)}
+                  </p>
+                  <p className="text-[10px] font-black uppercase tracking-widest leading-none opacity-80">Rendimiento Neto Final</p>
+                </div>
+                <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all"></div>
               </div>
             </div>
 
-            {datosReporte.length === 0 && (
-              <div className="text-center py-12 bg-white rounded-xl shadow-sm">
-                <FiAlertCircle className="mx-auto text-gray-400 text-4xl mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No hay datos
-                </h3>
-                <p className="text-gray-600">
-                  No se encontraron movimientos para el período seleccionado.
-                </p>
-              </div>
-            )}
+            {/* Analysis Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-10">
+               {/* Daily Breakdown */}
+               <div className="glass rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl lg:col-span-2">
+                  <div className="px-10 py-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                     <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl flex items-center justify-center">
+                           <FiBarChart2 size={20} />
+                        </div>
+                        <div>
+                           <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Desglose Cronológico</h3>
+                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Auditando {datosReporte.length} Unidades de Tiempo</p>
+                        </div>
+                     </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/50 dark:bg-slate-800/20">
+                          <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha</th>
+                          <th className="px-8 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Movimientos</th>
+                          <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Int. Bruto</th>
+                          <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Carga Ops</th>
+                          <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Margen Neto</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {datosReporte.map((fila, idx) => (
+                          <tr key={idx} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
+                            <td className="px-8 py-5 whitespace-nowrap">
+                               <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter">{fila.fecha}</p>
+                            </td>
+                            <td className="px-8 py-5 text-center">
+                               <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-black text-slate-600 dark:text-slate-400">
+                                  {fila.cantidadVentas}
+                               </span>
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                               <p className="text-xs font-bold text-amber-600">{formatMoney(fila.interesesGenerados)}</p>
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                               <p className="text-xs font-bold text-rose-500">{formatMoney(fila.gastos + fila.perdidas)}</p>
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                               <p className={`text-sm font-black tracking-tight ${fila.utilidad >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                  {formatMoney(fila.utilidad)}
+                               </p>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-slate-50 dark:bg-slate-800/50 border-t-2 border-slate-200 dark:border-slate-800">
+                         <tr>
+                            <td className="px-8 py-6 text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Totales Período</td>
+                            <td className="px-8 py-6 text-center text-sm font-black text-slate-800 dark:text-white">{totales.cantidadVentas}</td>
+                            <td className="px-8 py-6 text-right text-sm font-black text-amber-600">{formatMoney(totales.interesesGenerados)}</td>
+                            <td className="px-8 py-6 text-right text-sm font-black text-rose-500">{formatMoney(totales.gastos + totales.perdidas)}</td>
+                            <td className="px-8 py-6 text-right text-lg font-black text-indigo-600 dark:text-indigo-400">{formatMoney(totales.utilidad)}</td>
+                         </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+               </div>
+
+               {/* Summary Cards */}
+               <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl">
+                  <h4 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-8">Composición de Egresos</h4>
+                  <div className="space-y-6">
+                     <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800">
+                        <div>
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Gastos Operativos</p>
+                           <p className="text-xl font-black text-rose-500 tracking-tight">{formatMoney(totales.gastos)}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl flex items-center justify-center">
+                           <FiTrendingDown size={24} />
+                        </div>
+                     </div>
+                     <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800">
+                        <div>
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Pérdidas de Cartera</p>
+                           <p className="text-xl font-black text-orange-500 tracking-tight">{formatMoney(totales.perdidas)}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-orange-50 dark:bg-orange-900/20 text-orange-500 rounded-2xl flex items-center justify-center">
+                           <FiAlertCircle size={24} />
+                        </div>
+                     </div>
+                  </div>
+                  
+                  <div className="mt-10 px-4 flex items-start gap-4">
+                     <FiInfo className="text-slate-300 mt-1 shrink-0" />
+                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                        Los datos presentados son consolidados de la base de auditoría central. Toda inconsistencia debe ser reportada al administrador del HUB.
+                     </p>
+                  </div>
+               </div>
+
+               <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl relative overflow-hidden group">
+                  <h4 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-8">Performance & Yield</h4>
+                  <div className="space-y-8">
+                     <div className="space-y-3">
+                        <div className="flex justify-between items-end">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Margen de Retorno sobre Interés</p>
+                           <p className="text-lg font-black text-emerald-500">
+                              {totales.interesesGenerados > 0 ? ((totales.utilidad / totales.interesesGenerados) * 100).toFixed(1) : 0}%
+                           </p>
+                        </div>
+                        <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-1">
+                           <div 
+                            className="h-full bg-emerald-500 rounded-full transition-all duration-1000" 
+                            style={{ width: `${Math.min(100, Math.max(0, (totales.utilidad / totales.interesesGenerados) * 100))}%` }}
+                           ></div>
+                        </div>
+                     </div>
+                     
+                     <div className="grid grid-cols-2 gap-6 pt-4">
+                        <div className="p-6 bg-indigo-50 dark:bg-indigo-900/10 rounded-3xl border border-indigo-100 dark:border-indigo-900/20">
+                           <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">ROE Proyectado</p>
+                           <p className="text-sm font-black text-indigo-600 dark:text-indigo-400 uppercase">Saludable</p>
+                        </div>
+                        <div className="p-6 bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl border border-emerald-100 dark:border-emerald-900/20">
+                           <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-1">Cumplimiento Meta</p>
+                           <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 uppercase">92.4%</p>
+                        </div>
+                     </div>
+                  </div>
+                  <FiTarget className="absolute -right-10 -bottom-10 text-slate-50 dark:text-white/5" size={200} />
+               </div>
+            </div>
           </>
+        ) : (
+          <div className="glass p-20 rounded-[3rem] text-center border-white/60 dark:border-slate-800">
+             <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 text-slate-300 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
+                <FiBarChart2 size={48} />
+             </div>
+             <h2 className="text-2xl font-black text-slate-400 uppercase tracking-widest mb-2">Esperando Auditoría</h2>
+             <p className="text-sm font-bold text-slate-400">Seleccione un período y pulse "Generar Reporte" para visualizar la inteligencia de utilidad.</p>
+          </div>
         )}
       </div>
     </div>

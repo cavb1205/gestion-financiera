@@ -13,6 +13,13 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiTag,
+  FiSearch,
+  FiPieChart,
+  FiActivity,
+  FiInfo,
+  FiAlertCircle,
+  FiArrowUpRight,
+  FiArrowDownRight,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -21,17 +28,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function GastosPage() {
-  const { token, selectedStore } = useAuth();
+  const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const [gastos, setGastos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tiposGasto, setTiposGasto] = useState([]);
   const [filters, setFilters] = useState({
     fechaInicio: "",
     fechaFin: "",
+    tipoGasto: "Todos",
   });
 
   const [isDeleting, setIsDeleting] = useState(false);
-  const [gastoToDelete, setGastoToDelete] = useState(null); // Almacenar el gasto a eliminar
+  const [gastoToDelete, setGastoToDelete] = useState(null);
 
   // Paginación en el cliente
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,24 +50,13 @@ export default function GastosPage() {
   // Obtener tipos de gasto
   const fetchTiposGasto = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/gastos/tipo/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Error al obtener los tipos de gasto");
-      }
-
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/gastos/tipo/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Error al obtener los tipos de gasto");
       const data = await response.json();
-      const tiposArray = Array.isArray(data) ? data : [];
-      setTiposGasto(tiposArray);
+      setTiposGasto(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error:", error);
       toast.error(error.message);
     }
   };
@@ -67,27 +64,16 @@ export default function GastosPage() {
   // Obtener gastos
   const fetchGastos = async () => {
     if (!selectedStore) return;
-
     setLoading(true);
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/gastos/t/${selectedStore.tienda.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      if (!response.ok) {
-        throw new Error("Error al obtener los gastos");
-      }
-
+      if (!response.ok) throw new Error("Error al obtener los gastos");
       const data = await response.json();
-      const gastosArray = Array.isArray(data) ? data : [];
-      setGastos(gastosArray);
+      setGastos(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error:", error);
       toast.error(error.message);
     } finally {
       setLoading(false);
@@ -96,39 +82,28 @@ export default function GastosPage() {
 
   const handleDelete = async () => {
     if (!gastoToDelete) return;
-
     setIsDeleting(true);
-
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/gastos/${gastoToDelete.id}/delete/t/${selectedStore.tienda.id}/`,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error detallado del backend:", errorData);
-        throw new Error(
-          errorData.detail ||
-            errorData.message ||
-            "Error al eliminar el gasto. Por favor, intente de nuevo."
-        );
+        throw new Error(errorData.detail || errorData.message || "Error al eliminar el gasto.");
       }
 
       toast.success("Gasto eliminado exitosamente");
-      // Actualizar la lista de gastos sin recargar toda la página
       fetchGastos();
     } catch (error) {
-      console.error("Error:", error);
       toast.error(error.message);
     } finally {
       setIsDeleting(false);
-      setGastoToDelete(null); // Limpiar el gasto a eliminar
+      setGastoToDelete(null);
     }
   };
 
@@ -139,21 +114,11 @@ export default function GastosPage() {
     }
   }, [selectedStore, token]);
 
-  // Aplicar filtros
   const filteredGastos = useMemo(() => {
     return gastos.filter((gasto) => {
-      // Filtro por fecha
-      if (filters.fechaInicio && gasto.fecha < filters.fechaInicio)
-        return false;
+      if (filters.fechaInicio && gasto.fecha < filters.fechaInicio) return false;
       if (filters.fechaFin && gasto.fecha > filters.fechaFin) return false;
-
-      // Filtro por valor
-      const valor = parseFloat(gasto.valor);
-      if (filters.minValor && valor < parseFloat(filters.minValor))
-        return false;
-      if (filters.maxValor && valor > parseFloat(filters.maxValor))
-        return false;
-
+      if (filters.tipoGasto !== "Todos" && gasto.tipo_gasto.id.toString() !== filters.tipoGasto) return false;
       return true;
     });
   }, [gastos, filters]);
@@ -164,348 +129,329 @@ export default function GastosPage() {
   const currentItems = filteredGastos.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredGastos.length / itemsPerPage);
 
-  const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
-  };
+  const handlePageChange = (newPage) => setCurrentPage(newPage);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters({ ...filters, [name]: value });
-    setCurrentPage(1); // Resetear a la primera página al cambiar filtros
-  };
-
-  const applyFilters = () => {
     setCurrentPage(1);
   };
 
   const resetFilters = () => {
-    setFilters({
-      fechaInicio: "",
-      fechaFin: "",
-    });
+    setFilters({ fechaInicio: "", fechaFin: "", tipoGasto: "Todos" });
     setCurrentPage(1);
   };
 
-  if (!selectedStore) {
+  const formatMoney = (amount) => {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
+
+  if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      <div className="min-h-[400px] flex flex-col items-center justify-center bg-transparent">
+        <LoadingSpinner />
+        <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Auditando Egresos de Caja</p>
       </div>
     );
   }
 
-  const formatDate = (dateString) => {
-    const options = { day: "2-digit", month: "2-digit", year: "numeric" };
-    return new Date(dateString).toLocaleDateString("es-ES", options);
-  };
-
-  const formatCurrency = (value) => {
-    return `$${parseFloat(value).toLocaleString("es-CO")}`;
-  };
+  const totalGastosMonto = filteredGastos.reduce((acc, gasto) => acc + parseFloat(gasto.valor), 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Encabezado */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Gestión de Gastos
-          </h1>
-          <Link
-            href="/dashboard/gastos/crear"
-            className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            <FiPlus className="mr-2" /> Nuevo Gasto
-          </Link>
-        </div>
+    <div className="min-h-screen bg-transparent pb-12">
+      <div className="w-full">
 
-        {/* Filtros */}
-        <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha Inicio
-              </label>
-              <input
-                type="date"
-                name="fechaInicio"
-                value={filters.fechaInicio}
-                onChange={handleFilterChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
-              />
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-6">
+          <div className="flex items-center gap-5">
+            <div className="bg-rose-600 p-4 rounded-[1.5rem] shadow-xl shadow-rose-200 dark:shadow-none">
+               <FiArrowDownRight className="text-white text-3xl" />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha Fin
-              </label>
-              <input
-                type="date"
-                name="fechaFin"
-                value={filters.fechaFin}
-                onChange={handleFilterChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end mt-4">
-            <button
-              onClick={applyFilters}
-              className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
-            >
-              <FiFilter className="mr-2" /> Aplicar Filtros
-            </button>
-            <button
-              onClick={resetFilters}
-              className="flex items-center ml-2 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors"
-            >
-              <FiRefreshCw className="mr-2" /> Limpiar
-            </button>
-          </div>
-        </div>
-
-        {/* Resumen */}
-        <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-gray-500 text-sm font-medium">
-                Total Gastos
-              </h3>
-              <p className="text-2xl font-bold text-red-400">
-                {formatCurrency(
-                  filteredGastos.reduce(
-                    (acc, gasto) => acc + parseFloat(gasto.valor),
-                    0
-                  )
-                )}
+              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Control de Gastos</h1>
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">
+                Flujo de Egreso • <span className="text-rose-500">{selectedStore?.tienda?.nombre}</span>
               </p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-gray-500 text-sm font-medium">
-                Gastos Registrados
-              </h3>
-              <p className="text-2xl font-bold text-blue-400">
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={fetchGastos}
+              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-rose-600 transition-all shadow-sm group"
+            >
+              <FiRefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
+            </button>
+            <Link 
+              href="/dashboard/gastos/crear"
+              className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 dark:bg-rose-600 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all"
+            >
+              <FiPlus size={20} />
+              Registrar Gasto
+            </Link>
+          </div>
+        </div>
+
+        {/* Metrics Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl">
+                  <FiDollarSign size={24} />
+                </div>
+                <div className="group relative">
+                  <FiInfo className="text-slate-300 hover:text-indigo-500 cursor-help transition-colors" size={12} />
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-4 bg-slate-900/95 backdrop-blur-xl text-[10px] text-slate-200 font-bold leading-relaxed rounded-2xl opacity-0 group-hover:opacity-100 transition-all transform scale-95 group-hover:scale-100 pointer-events-none z-50 shadow-2xl border border-white/10 text-center uppercase tracking-tighter">
+                    Suma acumulada de todos los egresos registrados en el periodo seleccionado.
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/95"></div>
+                  </div>
+                </div>
+              </div>
+              <p className="text-3xl font-black text-rose-600 dark:text-rose-400 tracking-tighter mb-1 select-all">
+                {formatMoney(totalGastosMonto)}
+              </p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Inversión Operativa Total</p>
+            </div>
+          </div>
+
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 rounded-2xl">
+                  <FiTag size={24} />
+                </div>
+                <div className="group relative">
+                  <FiInfo className="text-slate-300 hover:text-indigo-500 cursor-help transition-colors" size={12} />
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-4 bg-slate-900/95 backdrop-blur-xl text-[10px] text-slate-200 font-bold leading-relaxed rounded-2xl opacity-0 group-hover:opacity-100 transition-all transform scale-95 group-hover:scale-100 pointer-events-none z-50 shadow-2xl border border-white/10 text-center uppercase tracking-tighter">
+                    Cantidad total de movimientos de salida registrados.
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/95"></div>
+                  </div>
+                </div>
+              </div>
+              <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
                 {filteredGastos.length}
               </p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Registros Emitidos</p>
             </div>
+          </div>
+
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative col-span-1 md:col-span-2 overflow-hidden flex items-center justify-between group">
+             <div className="relative z-10">
+                <p className="text-[10px] font-black text-rose-400 uppercase tracking-[0.2em] mb-2 tracking-widest">Gasto Promedio por Operación</p>
+                <h3 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">
+                   {formatMoney(filteredGastos.length > 0 ? totalGastosMonto / filteredGastos.length : 0)}
+                </h3>
+             </div>
+             <div className="opacity-10 group-hover:opacity-20 transition-opacity">
+                <FiPieChart size={80} className="text-rose-600" />
+             </div>
           </div>
         </div>
 
-        {/* Tabla de gastos */}
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <LoadingSpinner />
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+        {/* Filters and Search */}
+        <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 mb-8 p-8">
+           <div className="flex flex-col lg:flex-row items-center gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 w-full">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Desde</label>
+                  <input
+                    type="date"
+                    name="fechaInicio"
+                    value={filters.fechaInicio}
+                    onChange={handleFilterChange}
+                    className="block w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white focus:ring-4 focus:ring-rose-500/10 transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Hasta</label>
+                  <input
+                    type="date"
+                    name="fechaFin"
+                    value={filters.fechaFin}
+                    onChange={handleFilterChange}
+                    className="block w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white focus:ring-4 focus:ring-rose-500/10 transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Categoría</label>
+                  <select
+                    name="tipoGasto"
+                    value={filters.tipoGasto}
+                    onChange={handleFilterChange}
+                    className="block w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[11px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest appearance-none focus:ring-4 focus:ring-rose-500/10 transition-all cursor-pointer"
+                  >
+                    <option value="Todos">Todas las Categorías</option>
+                    {tiposGasto.map(t => <option key={t.id} value={t.id}>{t.tipo_gasto}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-end h-full">
+                <button 
+                  onClick={resetFilters}
+                  className="px-6 py-4 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-rose-500 transition-all"
+                >
+                  Resetear Filtros
+                </button>
+              </div>
+           </div>
+        </div>
+
+        {/* Table Section */}
+        <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-slate-50/50 dark:bg-slate-800/20">
+                  <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha</th>
+                  <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Clasificación</th>
+                  <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Descripción / Nota</th>
+                  <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Importe</th>
+                  <th className="px-4 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {currentItems.length === 0 ? (
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tipo
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Valor
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Comentario
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
+                    <td colSpan="5" className="px-8 py-24 text-center">
+                      <div className="bg-slate-50 dark:bg-slate-800/50 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                        <FiPieChart className="text-4xl text-slate-200" />
+                      </div>
+                      <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest">Sin gastos reportados</h3>
+                      <p className="text-sm font-bold text-slate-400 mt-2">No se encontraron egresos vinculados a este periodo.</p>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {currentItems.map((gasto) => (
-                    <tr key={gasto.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {gasto.fecha}
+                ) : (
+                  currentItems.map((gasto) => (
+                    <tr key={gasto.id} className="group hover:bg-slate-50/50 dark:hover:bg-rose-500/5 transition-all">
+                      <td className="px-4 py-6 whitespace-nowrap">
+                         <div className="flex items-center gap-2 text-slate-500">
+                            <FiCalendar className="text-slate-300" />
+                            <span className="text-xs font-bold">{gasto.fecha}</span>
+                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {gasto.tipo_gasto.tipo_gasto}
+                      <td className="px-4 py-6 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                           <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center text-rose-600">
+                              <FiTag size={14} />
+                           </div>
+                           <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{gasto.tipo_gasto.tipo_gasto}</span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatCurrency(gasto.valor)}
+                      <td className="px-4 py-6">
+                         <p className="text-xs font-bold text-slate-400 truncate max-w-xs">{gasto.comentario || "Sin descripción de gestión"}</p>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                        {gasto.comentario || "-"}
+                      <td className="px-6 py-6 whitespace-nowrap text-right">
+                        <p className="text-sm font-black text-rose-600 dark:text-rose-400 tracking-tight leading-none">
+                          {formatMoney(gasto.valor)}
+                        </p>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <Link
-                          href={`/dashboard/gastos/${gasto.id}/editar`}
-                          className="text-indigo-600 hover:text-indigo-900 mr-3"
-                        >
-                          <FiEdit className="inline" />
-                        </Link>
-                        <button
-                          onClick={() => setGastoToDelete(gasto)} // Guardar el gasto a eliminar
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <FiTrash2 className="inline" />
-                        </button>
+                      <td className="px-4 py-6 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center gap-2">
+                           <button 
+                            onClick={() => router.push(`/dashboard/gastos/${gasto.id}/editar`)}
+                            className="p-3 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-indigo-600 hover:shadow-lg transition-all"
+                           >
+                              <FiEdit size={16} />
+                           </button>
+                           <button 
+                            onClick={() => setGastoToDelete(gasto)}
+                            className="p-3 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-rose-600 hover:shadow-lg transition-all"
+                           >
+                              <FiTrash2 size={16} />
+                           </button>
+                        </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {filteredGastos.length === 0 && !loading && (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No se encontraron gastos</p>
-              </div>
-            )}
-
-            {/* Paginación */}
-            {filteredGastos.length > itemsPerPage && (
-              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
-                <div className="flex-1 flex justify-between sm:hidden">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                      currentPage === 1
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : "bg-white text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    Anterior
-                  </button>
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                      currentPage === totalPages
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : "bg-white text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    Siguiente
-                  </button>
-                </div>
-
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700">
-                      Mostrando{" "}
-                      <span className="font-medium">
-                        {indexOfFirstItem + 1}
-                      </span>{" "}
-                      a{" "}
-                      <span className="font-medium">
-                        {Math.min(indexOfLastItem, filteredGastos.length)}
-                      </span>{" "}
-                      de{" "}
-                      <span className="font-medium">
-                        {filteredGastos.length}
-                      </span>{" "}
-                      gastos
-                    </p>
-                  </div>
-                  <div>
-                    <nav
-                      className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-                      aria-label="Pagination"
-                    >
-                      <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                          currentPage === 1
-                            ? "text-gray-300 cursor-not-allowed"
-                            : "text-gray-500 hover:bg-gray-50"
-                        }`}
-                      >
-                        <span className="sr-only">Anterior</span>
-                        <FiChevronLeft className="h-5 w-5" />
-                      </button>
-
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                        (page) => (
-                          <button
-                            key={page}
-                            onClick={() => handlePageChange(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
-                                ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        )
-                      )}
-
-                      <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                          currentPage === totalPages
-                            ? "text-gray-300 cursor-not-allowed"
-                            : "text-gray-500 hover:bg-gray-50"
-                        }`}
-                      >
-                        <span className="sr-only">Siguiente</span>
-                        <FiChevronRight className="h-5 w-5" />
-                      </button>
-                    </nav>
-                  </div>
-                </div>
-              </div>
-            )}
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-8 py-6 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Analizando {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, filteredGastos.length)} de {filteredGastos.length} Movimientos
+               </p>
+               <div className="flex items-center gap-2">
+                  <button 
+                    disabled={currentPage === 1}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className="p-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 disabled:opacity-30"
+                  >
+                    <FiChevronLeft />
+                  </button>
+                  {[...Array(totalPages)].map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handlePageChange(i + 1)}
+                      className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${currentPage === i + 1 ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg' : 'bg-white dark:bg-slate-900 text-slate-400 hover:bg-slate-50'}`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                  <button 
+                    disabled={currentPage === totalPages}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className="p-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 disabled:opacity-30"
+                  >
+                    <FiChevronRight />
+                  </button>
+               </div>
+            </div>
+          )}
+        </div>
 
         {/* Modal de confirmación de eliminación */}
         {gastoToDelete && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">
-                Confirmar Eliminación
-              </h2>
-              <p className="text-gray-600 mb-2">
-                ¿Estás seguro de que deseas eliminar este gasto?
-              </p>
-              <div className="bg-gray-50 p-4 rounded-lg mb-4 text-gray-500">
-                <p className="font-medium">Detalles del gasto:</p>
-                <ul className="list-disc pl-5 mt-2">
-                  <li>Tipo: {gastoToDelete.tipo_gasto.tipo_gasto}</li>
-                  <li>Fecha: {gastoToDelete.fecha}</li>
-                  <li>Valor: {formatCurrency(gastoToDelete.valor)}</li>
-                  <li>Comentario: {gastoToDelete.comentario || "Ninguno"}</li>
-                </ul>
-              </div>
-              <p className="text-red-500 font-medium mb-4">
-                Esta acción no se puede deshacer.
-              </p>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setGastoToDelete(null)}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-                  disabled={isDeleting}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center"
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                      Eliminando...
-                    </>
-                  ) : (
-                    "Eliminar"
-                  )}
-                </button>
-              </div>
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-6">
+            <div className="glass max-w-md w-full rounded-[2.5rem] border-white/20 p-10 shadow-2xl">
+               <div className="text-center">
+                  <div className="w-24 h-24 bg-rose-500 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-rose-200">
+                     <FiAlertCircle size={48} />
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-none mb-4 uppercase">¿Eliminar Registro?</h2>
+                  <p className="text-sm font-bold text-slate-400 mb-10 leading-relaxed uppercase tracking-tighter">Esta acción reversará el egreso de caja y no podrá ser auditado posteriormente.</p>
+               </div>
+
+               <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 mb-10">
+                  <div className="space-y-4">
+                     <div className="flex justify-between">
+                        <span className="text-[10px] font-black text-slate-300 uppercase">Clasificación</span>
+                        <span className="text-xs font-black text-slate-800 dark:text-white">{gastoToDelete.tipo_gasto.tipo_gasto}</span>
+                     </div>
+                     <div className="flex justify-between">
+                        <span className="text-[10px] font-black text-slate-300 uppercase">Monto</span>
+                        <span className="text-xs font-black text-rose-600">{formatMoney(gastoToDelete.valor)}</span>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="flex flex-col gap-3">
+                  <button
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="w-full py-5 bg-rose-600 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all"
+                  >
+                    {isDeleting ? "Sincronizando..." : "Confirmar Eliminación"}
+                  </button>
+                  <button
+                    onClick={() => setGastoToDelete(null)}
+                    disabled={isDeleting}
+                    className="w-full py-4 text-slate-400 font-bold text-xs uppercase tracking-widest"
+                  >
+                    Cancelar
+                  </button>
+               </div>
             </div>
           </div>
         )}

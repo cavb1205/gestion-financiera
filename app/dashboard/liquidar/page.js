@@ -8,12 +8,18 @@ import {
   FiCalendar,
   FiRefreshCw,
   FiChevronLeft,
-  FiChevronRight,
   FiCheck,
   FiX,
   FiClock,
   FiUser,
   FiSearch,
+  FiActivity,
+  FiTarget,
+  FiAlertCircle,
+  FiPieChart,
+  FiArrowRight,
+  FiInfo,
+  FiFilter
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -21,7 +27,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function LiquidarCreditosPage() {
-  const { token, selectedStore } = useAuth();
+  const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const [creditos, setCreditos] = useState([]);
   const [recaudos, setRecaudos] = useState([]);
   const [creditosActivos, setCreditosActivos] = useState([]);
@@ -29,62 +35,57 @@ export default function LiquidarCreditosPage() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedCredito, setSelectedCredito] = useState(null);
   const [itemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
 
   // Establecer fecha actual por defecto
   useEffect(() => {
-    // Intentar obtener la fecha guardada del localStorage
     const storedDate = localStorage.getItem("liquidarFecha");
-
-    // Si hay fecha guardada, usarla
     if (storedDate) {
       setSelectedDate(storedDate);
-    }
-    // Si no, establecer fecha actual
-    else {
+    } else {
       const today = new Date();
       const formattedDate = new Date(
         today.getTime() - today.getTimezoneOffset() * 60000
       )
         .toISOString()
         .split("T")[0];
-
       setSelectedDate(formattedDate);
     }
   }, []);
 
-  // Obtener créditos para liquidar
+  // Obtener datos
   useEffect(() => {
-    const fetchCreditos = async () => {
+    const fetchData = async () => {
       if (!token || !selectedStore || !selectedDate) return;
 
       setLoading(true);
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/liquidar/${selectedDate}/t/${selectedStore.tienda.id}/`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const [creditosRes, activosRes, recaudosRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/liquidar/${selectedDate}/t/${selectedStore.tienda.id}/`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/t/${selectedStore.tienda.id}/`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
 
-        if (!response.ok) {
-          throw new Error("Error al obtener los créditos para liquidar");
-        }
+        if (!creditosRes.ok || !activosRes.ok || !recaudosRes.ok) throw new Error("Error al sincronizar datos de liquidación.");
 
-        const data = await response.json();
-        // Asegurarnos de que siempre sea un array
-        if (Array.isArray(data)) {
-          setCreditos(data);
-          setFilteredCreditos(data); // Inicializar los créditos filtrados
-        } else {
-          setCreditos([]);
-          setFilteredCreditos([]);
-        }
+        const [creditosData, activosData, recaudosData] = await Promise.all([
+          creditosRes.json(),
+          activosRes.json(),
+          recaudosRes.json()
+        ]);
+
+        setCreditos(Array.isArray(creditosData) ? creditosData : []);
+        setCreditosActivos(Array.isArray(activosData) ? activosData : []);
+        setRecaudos(Array.isArray(recaudosData) ? recaudosData : []);
+        setFilteredCreditos(Array.isArray(creditosData) ? creditosData : []);
       } catch (error) {
         console.error("Error:", error);
         toast.error(error.message);
@@ -93,69 +94,7 @@ export default function LiquidarCreditosPage() {
       }
     };
 
-    const fetchCreditosActivos = async () => {
-      if (!token || !selectedStore || !selectedDate) return;
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/t/${selectedStore.tienda.id}/`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("Error al obtener los créditos activos");
-        }
-
-        const data = await response.json();
-        // Asegurarnos de que siempre sea un array
-        if (Array.isArray(data)) {
-          setCreditosActivos(data);
-        } else {
-          setCreditos([]);
-        }
-      } catch (error) {
-        console.error("Error:", error);
-        toast.error(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchRecaudos = async () => {
-      if (!token || !selectedStore || !selectedDate) return;
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("Error al obtener los recaudos");
-        }
-
-        const data = await response.json();
-        // Asegurarnos de que siempre sea un array
-        if (Array.isArray(data)) {
-          setRecaudos(data);
-        } else {
-          setRecaudos([]);
-        }
-      } catch (error) {
-        console.error("Error:", error);
-        toast.error(error.message);
-      }
-    };
-
-    fetchCreditos();
-    fetchRecaudos();
-    fetchCreditosActivos();
+    fetchData();
   }, [token, selectedStore, selectedDate]);
 
   useEffect(() => {
@@ -164,65 +103,30 @@ export default function LiquidarCreditosPage() {
     }
   }, [selectedDate]);
 
-  // Filtrar créditos por nombre del cliente
+  // Filtrado de búsqueda
   useEffect(() => {
-    if (!searchTerm) {
-      setFilteredCreditos(creditos);
-      setCurrentPage(1);
-      return;
-    }
-
-    const term = searchTerm.toLowerCase();
-    const filtered = creditos.filter((credito) => {
-      const nombreCompleto =
-        `${credito.cliente.nombres} ${credito.cliente.apellidos}`.toLowerCase();
-      return nombreCompleto.includes(term);
+    const filtered = creditos.filter(c => {
+      const fullName = `${c.cliente.nombres} ${c.cliente.apellidos}`.toLowerCase();
+      return fullName.includes(searchTerm.toLowerCase());
     });
-
     setFilteredCreditos(filtered);
     setCurrentPage(1);
   }, [searchTerm, creditos]);
 
   // Paginación
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredCreditos.slice(
-    indexOfFirstItem,
-    indexOfLastItem
-  );
   const totalPages = Math.ceil(filteredCreditos.length / itemsPerPage);
-
-  const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
-  };
-
-  const handleDateChange = (e) => {
-    setSelectedDate(e.target.value);
-    setCurrentPage(1);
-    localStorage.setItem("liquidarFecha", e.target.value);
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
+  const currentItems = filteredCreditos.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const formatCurrency = (value) => {
-    return `$${parseFloat(value)
-      .toFixed(0)
-      .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+    }).format(value);
   };
 
   const handleAbonar = (credito) => {
-    console.log("Abonar crédito:", credito);
-    setSelectedCredito(credito);
-
-    // Calcular el valor a abonar (mínimo entre saldo actual y valor cuota)
-    const valorAbono = Math.min(
-      parseFloat(credito.saldo_actual),
-      parseFloat(credito.valor_cuota)
-    );
-
-    // Preparar el objeto de abono
+    const valorAbono = Math.min(parseFloat(credito.saldo_actual), parseFloat(credito.valor_cuota));
     const abono = {
       fecha_recaudo: selectedDate,
       valor_recaudo: valorAbono,
@@ -232,633 +136,317 @@ export default function LiquidarCreditosPage() {
     };
     localStorage.setItem("abono", JSON.stringify(abono));
     localStorage.setItem("cliente", JSON.stringify(credito.cliente));
-
-    // Navegar a la página de pago con los datos necesarios
     router.push(`/dashboard/liquidar/abonar`);
   };
 
   const handleReportarFalla = (credito) => {
-    setSelectedCredito(credito);
-
-    // Preparar el objeto de no pago
     const noPago = {
       fecha_recaudo: selectedDate,
       valor_recaudo: 0,
       venta: credito.id,
       tienda: selectedStore.tienda.id,
-      visita_blanco: {
-        comentario: "",
-        tipo_falla: "Casa o Local Cerrado",
-      },
+      visita_blanco: { comentario: "", tipo_falla: "Casa o Local Cerrado" },
     };
-
     localStorage.setItem("noPago", JSON.stringify(noPago));
     localStorage.setItem("cliente", JSON.stringify(credito.cliente));
-
-    // Navegar a la página de reporte de falla
     router.push(`/dashboard/liquidar/reportar`);
   };
 
-  // Calcular totales basados en créditos filtrados
-  const totalRecaudar = creditosActivos.reduce(
-    (acc, credito) => acc + parseFloat(credito.valor_cuota),
-    0
-  );
+  if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 
-  const totalPendientes = filteredCreditos.reduce(
-    (acc, credito) => acc + parseFloat(credito.valor_cuota),
-    0
-  );
-
-  const totalRealizados = recaudos.reduce(
-    (acc, recaudo) => acc + parseFloat(recaudo.valor_recaudo),
-    0
-  );
-
-  if (loading && creditos.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex justify-center items-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
+  // Totales
+  const totalRecaudar = creditosActivos.reduce((acc, c) => acc + parseFloat(c.valor_cuota), 0);
+  const totalPendientes = filteredCreditos.reduce((acc, c) => acc + parseFloat(c.valor_cuota), 0);
+  const totalRealizados = recaudos.reduce((acc, r) => acc + parseFloat(r.valor_recaudo), 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <Link
-            href="/dashboard"
-            className="flex items-center text-gray-600 hover:text-gray-800"
-          >
-            <FiChevronLeft className="mr-2" /> Volver al Dashboard
-          </Link>
-        </div>
+    <div className="min-h-screen bg-transparent pb-12">
+      <div className="w-full">
 
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">
-          Liquidación de Créditos
-        </h1>
-
-        {/* Filtro de fecha y búsqueda */}
-        <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
-          <div className="flex flex-col space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-              <div className="mb-4 md:mb-0 w-full md:w-1/2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Seleccionar fecha de liquidación
-                </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={handleDateChange}
-                    className="w-full p-2 border border-gray-300 rounded-md text-gray-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center">
-                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                  {filteredCreditos.length} créditos
-                </span>
-              </div>
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-6">
+          <div className="flex items-center gap-5">
+            <div className="bg-emerald-600 p-4 rounded-[1.5rem] shadow-xl shadow-emerald-200 dark:shadow-none">
+               <FiActivity className="text-white text-3xl" />
             </div>
-
-            {/* Campo de búsqueda */}
-            <div className="w-full">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Buscar cliente
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Escribe el nombre del cliente..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  className="w-full pl-10 p-2 border border-gray-300 rounded-md text-gray-700"
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiSearch className="text-gray-400" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Resumen móvil */}
-        <div className="md:hidden grid grid-cols-3 gap-1 mb-4">
-          <div className="bg-white rounded-lg p-3 shadow-sm">
-            <p className="text-xs text-gray-500">A recaudar</p>
-            <p className="font-bold text-purple-600">
-              {formatCurrency(totalRecaudar)}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg p-3 shadow-sm">
-            <p className="text-xs text-gray-500">Pendientes</p>
-            <p className="font-bold text-orange-500">
-              {formatCurrency(totalPendientes)}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg p-3 shadow-sm">
-            <p className="text-xs text-gray-500">Recaudado</p>
-            <p className="font-bold text-green-500">
-              {formatCurrency(totalRealizados)}
-            </p>
-          </div>
-        </div>
-
-        {/* Lista de créditos - Versión móvil optimizada */}
-        <div className="md:hidden space-y-3">
-          {filteredCreditos.length === 0 ? (
-            <div className="bg-white rounded-xl p-6 text-center">
-              <div className="bg-gray-100 inline-block p-4 rounded-full mb-4">
-                <FiDollarSign className="text-gray-400 text-3xl" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-700 mb-2">
-                {searchTerm
-                  ? "No se encontraron créditos"
-                  : "No hay créditos para liquidar"}
-              </h3>
-              <p className="text-gray-500 mb-4">
-                {searchTerm
-                  ? "Intenta con otro nombre o cambia la fecha"
-                  : "Cambia la fecha o intenta de nuevo más tarde."}
-              </p>
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="flex items-center justify-center mx-auto bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 mb-3"
-                >
-                  <FiRefreshCw className="mr-2" /> Limpiar búsqueda
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  const today = new Date();
-                  const formattedDate = new Date(
-                    today.getTime() - today.getTimezoneOffset() * 60000
-                  )
-                    .toISOString()
-                    .split("T")[0];
-                  setSelectedDate(formattedDate);
-                }}
-                className="flex items-center justify-center mx-auto bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
-              >
-                <FiRefreshCw className="mr-2" /> Hoy
-              </button>
-            </div>
-          ) : (
-            currentItems.map((credito) => (
-              <div
-                key={credito.id}
-                className="bg-white rounded-xl shadow-sm overflow-hidden text-gray-500"
-              >
-                <Link
-                  href={`/dashboard/ventas/${credito.id}/`}
-                  className="flex items-center px-4 py-2 hover:bg-gray-50 transition-colors border-b border-gray-200"
-                >
-                  <div className="flex items-center">
-                    <div className="bg-indigo-100 p-2 rounded-full mr-3">
-                      <FiUser className="text-indigo-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-900 capitalize">
-                        {credito.cliente.nombres} {credito.cliente.apellidos}
-                      </h3>
-                      <p className="text-xs text-gray-500">#{credito.id}</p>
-                    </div>
-                  </div>
-                </Link>
-
-                <div className="p-4 grid grid-cols-2 gap-3">
-                  <div className="text-sm">
-                    <p className="text-gray-500">Valor cuota</p>
-                    <p className="font-medium">
-                      {formatCurrency(credito.valor_cuota)}
-                    </p>
-                  </div>
-
-                  <div className="text-sm">
-                    <p className="text-gray-500">Saldo</p>
-                    <p className="font-medium text-red-500">
-                      {formatCurrency(credito.saldo_actual)}
-                    </p>
-                  </div>
-
-                  <div className="text-sm">
-                    <p className="text-gray-500">Pagos realizados</p>
-                    <p className="font-medium text-green-600">
-                      {credito.pagos_realizados.toFixed(0)}
-                    </p>
-                  </div>
-
-                  <div className="text-sm">
-                    <p className="text-gray-500">Pagos pendientes</p>
-                    <p className="font-medium text-orange-500">
-                      {credito.pagos_pendientes.toFixed(0)}
-                    </p>
-                  </div>
-
-                  {credito.dias_atrasados == 0 ? (
-                    <div className="text-sm col-span-2">
-                      <p className="text-gray-500">Estado</p>
-                      <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
-                        Al día
-                      </span>
-                    </div>
-                  ) : credito.dias_atrasados < 0 ? (
-                    <div className="text-sm col-span-2">
-                      <p className="text-gray-500">Anticipado</p>
-                      <div className="flex items-center">
-                        <FiClock className="text-gray-400 mr-1" />
-                        <span className="font-medium text-green-500">
-                          {Math.abs(credito.dias_atrasados)} días
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm col-span-2">
-                      <p className="text-gray-500">Atraso</p>
-                      <div className="flex items-center">
-                        <FiClock className="text-gray-400 mr-1" />
-                        <span className="font-medium text-red-500">
-                          {credito.dias_atrasados} días
-                        </span>
-                        <span
-                          className={`ml-2 text-xs px-2 py-1 rounded-full ${
-                            credito.dias_atrasados > 30
-                              ? "bg-red-100 text-red-800"
-                              : credito.dias_atrasados > 15
-                              ? "bg-orange-100 text-orange-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {credito.estado_venta}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-3 bg-gray-50 grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => handleAbonar(credito)}
-                    className="flex items-center justify-center bg-green-600 text-white py-2 rounded-lg hover:bg-green-700"
-                  >
-                    <FiCheck className="mr-2" /> Abonar
-                  </button>
-                  <button
-                    onClick={() => handleReportarFalla(credito)}
-                    className="flex items-center justify-center bg-red-600 text-white py-2 rounded-lg hover:bg-red-700"
-                  >
-                    <FiX className="mr-2" /> Reportar
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-
-          {/* Paginación móvil */}
-          {filteredCreditos.length > itemsPerPage && (
-            <div className="mt-4 flex justify-between">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`px-4 py-2 rounded-lg ${
-                  currentPage === 1
-                    ? "bg-gray-200 text-gray-400"
-                    : "bg-white text-indigo-600 border border-indigo-300"
-                }`}
-              >
-                Anterior
-              </button>
-
-              <div className="flex items-center">
-                <span className="text-sm text-gray-700">
-                  Página {currentPage} de {totalPages}
-                </span>
-              </div>
-
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`px-4 py-2 rounded-lg ${
-                  currentPage === totalPages
-                    ? "bg-gray-200 text-gray-400"
-                    : "bg-white text-indigo-600 border border-indigo-300"
-                }`}
-              >
-                Siguiente
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Versión de escritorio */}
-        <div className="hidden md:block">
-          {/* Resumen escritorio */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <h3 className="text-gray-500 text-sm font-medium mb-1">
-                Total a Recaudar
-              </h3>
-              <p className="text-2xl font-bold text-purple-500">
-                {formatCurrency(totalRecaudar)}
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <h3 className="text-gray-500 text-sm font-medium mb-1">
-                Pagos Pendientes
-              </h3>
-              <p className="text-2xl font-bold text-orange-500">
-                {formatCurrency(totalPendientes)}
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <h3 className="text-gray-500 text-sm font-medium mb-1">
-                Recaudado
-              </h3>
-              <p className="text-2xl font-bold text-green-500">
-                {formatCurrency(totalRealizados)}
+            <div>
+              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none uppercase">Liquidación Diaria</h1>
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
+                Operación de Cartera • <span className="text-emerald-500">{selectedStore.tienda.nombre}</span>
               </p>
             </div>
           </div>
 
-          {/* Tabla de créditos escritorio */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {filteredCreditos.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="bg-gray-100 inline-block p-4 rounded-full mb-4">
-                  <FiDollarSign className="text-gray-400 text-3xl" />
-                </div>
-                <h3 className="text-xl font-medium text-gray-700 mb-2">
-                  {searchTerm
-                    ? "No se encontraron créditos"
-                    : "No hay créditos para liquidar"}
-                </h3>
-                <p className="text-gray-500 mb-4">
-                  {searchTerm
-                    ? "Intenta con otro nombre o cambia la fecha"
-                    : "No se encontraron créditos pendientes para la fecha seleccionada."}
-                </p>
-                <div className="flex justify-center space-x-3">
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm("")}
-                      className="flex items-center justify-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
-                    >
-                      <FiRefreshCw className="mr-2" /> Limpiar búsqueda
-                    </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      const today = new Date();
-                      const formattedDate = new Date(
-                        today.getTime() - today.getTimezoneOffset() * 60000
-                      )
-                        .toISOString()
-                        .split("T")[0];
-                      setSelectedDate(formattedDate);
-                    }}
-                    className="flex items-center justify-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
-                  >
-                    <FiRefreshCw className="mr-2" /> Volver a hoy
-                  </button>
-                </div>
+          <div className="flex items-center gap-3">
+             <button 
+              onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+              className="px-6 py-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 font-black text-[10px] uppercase tracking-widest hover:text-emerald-600 transition-all shadow-sm"
+             >
+               Ir a Hoy
+             </button>
+             <button 
+              onClick={() => router.refresh()}
+              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
+             >
+               <FiRefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
+             </button>
+          </div>
+        </div>
+
+        {/* Global Metrics Area */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-2xl">
+              <div className="relative z-10">
+                 <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl">
+                       <FiTarget size={24} />
+                    </div>
+                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Meta de Cobro</span>
+                 </div>
+                 <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
+                    {formatCurrency(totalRecaudar)}
+                 </p>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Capital Total Proyectado</p>
               </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Cliente
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Valor Cuota
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Pagos
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Saldo
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Atraso
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Acciones
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+              <div className="absolute -right-5 -bottom-5 text-indigo-500/5 group-hover:scale-110 transition-transform">
+                 <FiTarget size={120} />
+              </div>
+           </div>
+
+           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-2xl">
+              <div className="relative z-10">
+                 <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl">
+                       <FiClock size={24} />
+                    </div>
+                    <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Pendiente</span>
+                 </div>
+                 <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
+                    {formatCurrency(totalPendientes)}
+                 </p>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Resta por Auditoría</p>
+              </div>
+           </div>
+
+           <div className="bg-emerald-600 p-8 rounded-[2.5rem] border border-emerald-500 relative overflow-hidden group shadow-2xl shadow-emerald-200 dark:shadow-none">
+              <div className="relative z-10 text-white">
+                 <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-white/20 rounded-2xl">
+                       <FiCheck size={24} />
+                    </div>
+                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Recaudado</span>
+                 </div>
+                 <p className="text-3xl font-black tracking-tighter mb-1">
+                    {formatCurrency(totalRealizados)}
+                 </p>
+                 <p className="text-[10px] font-bold uppercase tracking-widest leading-none opacity-60">Efectivo Ingresado</p>
+              </div>
+              <div className="absolute -right-5 -bottom-5 text-white/5 opacity-50 group-hover:scale-110 transition-transform">
+                 <FiPieChart size={120} />
+              </div>
+           </div>
+        </div>
+
+        {/* Filters & Search Container */}
+        <div className="glass rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl mb-10">
+           <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 flex flex-col lg:flex-row items-center gap-8">
+              <div className="w-full lg:w-1/3 space-y-2">
+                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Periodo Contable</label>
+                 <div className="relative group">
+                    <FiCalendar className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
+                    <input 
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="w-full pl-14 pr-6 py-4.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-3xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-inner outline-none"
+                    />
+                 </div>
+              </div>
+
+              <div className="flex-1 w-full space-y-2">
+                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Filtro de Inteligencia</label>
+                 <div className="relative group">
+                    <FiSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
+                    <input 
+                      type="text"
+                      placeholder="Escanea o escribe el nombre del cliente..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-16 pr-6 py-4.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-3xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-inner outline-none placeholder:text-slate-300"
+                    />
+                 </div>
+              </div>
+
+              <div className="w-full lg:w-auto pt-6 lg:pt-0">
+                 <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center gap-4">
+                    <FiFilter className="text-slate-400" />
+                    <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                       {filteredCreditos.length} Resultados
+                    </span>
+                 </div>
+              </div>
+           </div>
+
+           {/* Table Section */}
+           <div className="overflow-x-auto min-h-[400px]">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                   <LoadingSpinner />
+                   <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Sincronizando Auditoría</p>
+                </div>
+              ) : filteredCreditos.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-24 px-10 text-center">
+                   <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center mb-6 text-slate-300">
+                      <FiSearch size={40} />
+                   </div>
+                   <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Cero Registros Encontrados</h3>
+                   <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-tighter">No hay créditos pendientes de liquidación para el periodo {selectedDate}</p>
+                </div>
+              ) : (
+                <table className="w-full border-collapse">
+                   <thead>
+                       <tr className="bg-slate-50/50 dark:bg-slate-800/30">
+                          <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Perfil de Cliente</th>
+                          <th className="px-4 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Compromiso</th>
+                          <th className="px-4 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Ciclos</th>
+                          <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estado de Riesgo</th>
+                          <th className="px-4 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Operación</th>
+                       </tr>
+                   </thead>
+                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {currentItems.map((credito) => (
-                        <tr key={credito.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <Link
-                                className="ml-4 hover:scale-105 transition-transform"
-                                href={`/dashboard/ventas/${credito.id}/`}
-                              >
-                                <div className="text-sm font-medium text-gray-900 capitalize">
-                                  {credito.cliente.nombres}{" "}
-                                  {credito.cliente.apellidos}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  {credito.cliente.telefono_principal}
-                                </div>
-                                <div className="text-xs text-gray-400">
-                                  #{credito.id}
-                                </div>
-                              </Link>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {formatCurrency(credito.valor_cuota)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex flex-col">
-                              <div className="flex items-center">
-                                <span className="text-green-500 mr-1">✓</span>
-                                <span className="text-sm text-green-500">
-                                  {credito.pagos_realizados} realizados
-                                </span>
-                              </div>
-                              <div className="flex items-center">
-                                <span className="text-orange-500 mr-1">●</span>
-                                <span className="text-sm text-orange-500">
-                                  {credito.pagos_pendientes} pendientes
-                                </span>
-                              </div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                Total: {credito.cuotas} cuotas
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-red-600">
-                              {formatCurrency(credito.saldo_actual)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {credito.dias_atrasados < 0 ? (
-                              <div className="flex items-center">
-                                <FiClock className="text-gray-400 mr-1" />
-                                <div className="text-sm font-medium text-green-500">
-                                  {Math.abs(credito.dias_atrasados)} días
-                                </div>
-                                <span className="ml-2 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
-                                  Anticipado
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center">
-                                <div className="text-sm font-medium text-red-500">
-                                  {credito.dias_atrasados} días
-                                </div>
-                                <div
-                                  className={`ml-2 text-xs px-2 py-1 rounded-full ${
-                                    credito.dias_atrasados > 30
-                                      ? "bg-red-100 text-red-800"
-                                      : credito.dias_atrasados > 15
-                                      ? "bg-orange-100 text-orange-800"
-                                      : "bg-yellow-100 text-yellow-800"
-                                  }`}
-                                >
-                                  {credito.estado_venta}
-                                </div>
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex flex-col space-y-2">
-                              <button
-                                onClick={() => handleAbonar(credito)}
-                                className="flex items-center justify-center bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700"
-                              >
-                                <FiCheck className="mr-1" /> Abonar
-                              </button>
-                              <button
-                                onClick={() => handleReportarFalla(credito)}
-                                className="flex items-center justify-center bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700"
-                              >
-                                <FiX className="mr-1" /> Reportar
-                              </button>
-                            </div>
-                          </td>
+                         <tr key={credito.id} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
+                            <td className="px-4 py-6 whitespace-nowrap">
+                               <div className="flex items-center gap-4">
+                                  <button 
+                                    onClick={() => router.push(`/dashboard/ventas/${credito.id}`)}
+                                    className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-sm uppercase hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                                  >
+                                     {credito.cliente.nombres.charAt(0)}
+                                  </button>
+                                  <div className="group/name cursor-pointer" onClick={() => router.push(`/dashboard/ventas/${credito.id}`)}>
+                                     <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none group-hover/name:text-indigo-600 transition-colors">
+                                        {credito.cliente.nombres} {credito.cliente.apellidos}
+                                     </p>
+                                     <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">Ref: #{credito.id}</p>
+                                  </div>
+                               </div>
+                            </td>
+                            <td className="px-4 py-6 text-right whitespace-nowrap">
+                               <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none mb-1">
+                                  {formatCurrency(credito.valor_cuota)}
+                               </p>
+                               <p className="text-[9px] font-bold text-rose-400 uppercase tracking-widest leading-none">
+                                  Saldo: {formatCurrency(credito.saldo_actual)}
+                               </p>
+                            </td>
+                            <td className="px-4 py-6 text-center whitespace-nowrap">
+                               <div className="flex flex-col items-center">
+                                  <span className="text-xs font-black text-slate-800 dark:text-white tracking-tighter mb-1">
+                                     {credito.pagos_realizados}/{credito.cuotas}
+                                  </span>
+                                  <div className="w-20 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                     <div 
+                                       className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
+                                       style={{ width: `${(credito.pagos_realizados / credito.cuotas) * 100}%` }}
+                                     ></div>
+                                  </div>
+                               </div>
+                            </td>
+                            <td className="px-4 py-6 whitespace-nowrap">
+                               {credito.dias_atrasados <= 0 ? (
+                                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Al Día</span>
+                                 </div>
+                               ) : (
+                                 <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl ${
+                                    credito.dias_atrasados > 30 ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600' :
+                                    credito.dias_atrasados > 15 ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600' :
+                                    'bg-amber-50 dark:bg-amber-900/20 text-amber-600'
+                                 }`}>
+                                    <FiClock size={12} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">{credito.dias_atrasados} Días Mora</span>
+                                 </div>
+                               )}
+                            </td>
+                            <td className="px-4 py-6 text-right whitespace-nowrap">
+                               <div className="flex items-center justify-end gap-2 transition-all">
+                                  <button 
+                                    onClick={() => handleReportarFalla(credito)}
+                                    className="p-2.5 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-rose-600 hover:shadow-xl transition-all border border-slate-100 dark:border-slate-700"
+                                    title="Reportar Falla"
+                                  >
+                                     <FiX size={16} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleAbonar(credito)}
+                                    className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center gap-2"
+                                  >
+                                     Abonar
+                                     <FiArrowRight />
+                                  </button>
+                               </div>
+                            </td>
                         </tr>
                       ))}
-                    </tbody>
-                  </table>
+                   </tbody>
+                </table>
+              )}
+           </div>
+
+           {/* Pagination */}
+           {totalPages > 1 && (
+             <div className="px-10 py-8 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                   Página {currentPage} de {totalPages} • Total {filteredCreditos.length} Compromisos
+                </p>
+                <div className="flex items-center gap-2">
+                   <button 
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => prev - 1)}
+                    className="p-3 bg-white dark:bg-slate-900 text-slate-400 rounded-xl border border-slate-200 dark:border-slate-800 disabled:opacity-30 hover:text-indigo-600 transition-all font-black text-sm"
+                   >
+                     Anterior
+                   </button>
+                   <button 
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    className="px-6 py-3 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl border border-slate-200 dark:border-slate-800 disabled:opacity-30 shadow-sm font-black text-[10px] uppercase tracking-widest hover:border-indigo-500 transition-all"
+                   >
+                     Siguiente
+                   </button>
                 </div>
-
-                {/* Paginación escritorio */}
-                {filteredCreditos.length > itemsPerPage && (
-                  <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
-                    <div className="flex-1 flex justify-between sm:hidden">
-                      <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                          currentPage === 1
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-white text-gray-700 hover:bg-gray-50"
-                        }`}
-                      >
-                        Anterior
-                      </button>
-                      <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className={`ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                          currentPage === totalPages
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-white text-gray-700 hover:bg-gray-50"
-                        }`}
-                      >
-                        Siguiente
-                      </button>
-                    </div>
-
-                    <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-sm text-gray-700">
-                          Mostrando{" "}
-                          <span className="font-medium">
-                            {indexOfFirstItem + 1}
-                          </span>{" "}
-                          a{" "}
-                          <span className="font-medium">
-                            {Math.min(indexOfLastItem, filteredCreditos.length)}
-                          </span>{" "}
-                          de{" "}
-                          <span className="font-medium">
-                            {filteredCreditos.length}
-                          </span>{" "}
-                          créditos
-                        </p>
-                      </div>
-                      <div>
-                        <nav
-                          className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-                          aria-label="Pagination"
-                        >
-                          <button
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                            className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                              currentPage === 1
-                                ? "text-gray-300 cursor-not-allowed"
-                                : "text-gray-500 hover:bg-gray-50"
-                            }`}
-                          >
-                            <span className="sr-only">Anterior</span>
-                            <FiChevronLeft className="h-5 w-5" />
-                          </button>
-
-                          {Array.from(
-                            { length: totalPages },
-                            (_, i) => i + 1
-                          ).map((page) => (
-                            <button
-                              key={page}
-                              onClick={() => handlePageChange(page)}
-                              className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                currentPage === page
-                                  ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                                  : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                              }`}
-                            >
-                              {page}
-                            </button>
-                          ))}
-
-                          <button
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                            className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                              currentPage === totalPages
-                                ? "text-gray-300 cursor-not-allowed"
-                                : "text-gray-500 hover:bg-gray-50"
-                            }`}
-                          >
-                            <span className="sr-only">Siguiente</span>
-                            <FiChevronRight className="h-5 w-5" />
-                          </button>
-                        </nav>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+             </div>
+           )}
         </div>
+
+        {/* Informative Footer */}
+        <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl relative overflow-hidden">
+           <div className="flex flex-col md:flex-row items-center justify-between gap-10">
+              <div className="flex items-start gap-6 max-w-2xl">
+                 <div className="w-14 h-14 bg-amber-50 dark:bg-amber-900/30 text-amber-500 rounded-2xl flex items-center justify-center shrink-0">
+                    <FiInfo size={28} />
+                 </div>
+                 <div>
+                    <h4 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">Protocolo de Liquidación Activo</h4>
+                    <p className="text-xs font-bold text-slate-400 leading-relaxed uppercase tracking-tighter">
+                       Los recaudos registrados se sincronizan inmediatamente con la bóveda central. Asegúrese de validar el efectivo físico contra los reportes generados al cierre de la ruta.
+                    </p>
+                 </div>
+              </div>
+              <div className="flex items-center gap-6">
+                 <div className="text-right">
+                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Auditoría en Tiempo Real</p>
+                    <p className="text-xs font-black text-emerald-500 uppercase">Estado: Conectado</p>
+                 </div>
+                 <div className="w-1.5 h-10 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+                 <FiActivity className="text-indigo-500/50 animate-pulse" size={32} />
+              </div>
+           </div>
+        </div>
+
       </div>
     </div>
   );
