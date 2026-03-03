@@ -192,7 +192,7 @@ export default function EliminarCliente() {
                            </div>
                            <div className="flex items-center gap-3">
                               <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
-                              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Marcar ventas activas como "Perdida" o "Pagado"</span>
+                              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Marcar ventas activas como &quot;Perdida&quot; o &quot;Pagado&quot;</span>
                            </div>
                         </div>
                         

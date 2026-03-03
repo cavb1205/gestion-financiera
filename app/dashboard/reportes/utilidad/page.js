@@ -452,7 +452,7 @@ export default function ReportesPage() {
                 <FiBarChart2 size={48} />
              </div>
              <h2 className="text-2xl font-black text-slate-400 uppercase tracking-widest mb-2">Esperando Auditoría</h2>
-             <p className="text-sm font-bold text-slate-400">Seleccione un período y pulse "Generar Reporte" para visualizar la inteligencia de utilidad.</p>
+             <p className="text-sm font-bold text-slate-400">Seleccione un período y pulse &quot;Generar Reporte&quot; para visualizar la inteligencia de utilidad.</p>
           </div>
         )}
       </div>

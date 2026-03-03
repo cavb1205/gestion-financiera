@@ -1,305 +1,327 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import {
-  FiArrowRight,
-  FiCheckCircle,
-  FiTrendingUp,
-  FiUsers,
-  FiShield,
-  FiSmartphone,
+import { 
+  FiArrowRight, 
+  FiCheckCircle, 
+  FiTrendingUp, 
+  FiUsers, 
+  FiShield, 
+  FiSmartphone, 
   FiPieChart,
+  FiActivity,
+  FiZap,
+  FiGlobe,
+  FiLock,
+  FiCpu,
+  FiArrowUpRight
 } from "react-icons/fi";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white font-[family-name:var(--font-geist-sans)]">
-      {/* Navbar */}
-      <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center">
-              <div className="bg-indigo-600 p-2 rounded-lg mr-2">
-                <FiTrendingUp className="text-white text-xl" />
-              </div>
-              <span className="text-2xl font-bold text-gray-900">
-                MyMoney<span className="text-indigo-600">App</span>
+    <div className="min-h-screen bg-slate-950 text-white selection:bg-emerald-500/30 selection:text-emerald-200 overflow-x-hidden font-sans">
+      {/* Dynamic Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-600/10 blur-[150px] rounded-full animate-pulse opacity-50"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-emerald-600/10 blur-[150px] rounded-full animate-pulse opacity-50" style={{ animationDelay: '4s' }}></div>
+      </div>
+
+      {/* Navbar Section */}
+      <header className="fixed top-0 w-full z-50 border-b border-white/5 backdrop-blur-2xl bg-slate-950/60 transition-all duration-500">
+        <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
+          <div className="flex items-center gap-4 group cursor-pointer">
+            <div className="bg-emerald-600 p-2.5 rounded-[1.2rem] group-hover:rotate-[15deg] transition-all duration-500 shadow-2xl shadow-emerald-900/40">
+              <FiActivity className="text-white text-2xl" />
+            </div>
+            <div className="flex flex-col -space-y-1">
+              <span className="text-2xl font-black tracking-tighter uppercase leading-none">
+                MONEY<span className="text-emerald-500">CORE</span>
               </span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/login"
-                className="text-gray-600 hover:text-indigo-600 font-medium transition-colors"
-              >
-                Iniciar Sesión
-              </Link>
-              <Link
-                href="/dashboard/select-store"
-                className="hidden sm:inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm"
-              >
-                Supervisar Tiendas
-              </Link>
+              <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.4em]">Integrated Financial Suite</span>
             </div>
           </div>
-        </div>
-      </nav>
+          
+          <div className="hidden lg:flex items-center gap-10 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+             <a href="#tecnologia" className="hover:text-white transition-colors py-2 relative group italic">
+               Tecnología
+               <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-emerald-500 group-hover:w-full transition-all"></span>
+             </a>
+             <a href="#ecosistema" className="hover:text-white transition-colors py-2 relative group italic">
+               Ecosistema
+               <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-emerald-500 group-hover:w-full transition-all"></span>
+             </a>
+             <a href="#auditoria" className="hover:text-white transition-colors py-2 relative group italic">
+               Seguridad
+               <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-emerald-500 group-hover:w-full transition-all"></span>
+             </a>
+          </div>
 
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gray-50">
-        <div className="absolute inset-y-0 h-full w-full" aria-hidden="true">
-          <div className="relative h-full">
-            <svg
-              className="absolute right-full transform translate-y-1/3 translate-x-1/4 md:translate-y-1/2 sm:translate-x-1/2 lg:translate-x-full"
-              width={404}
-              height={784}
-              fill="none"
-              viewBox="0 0 404 784"
+          <div className="flex items-center gap-5">
+            <Link 
+              href="/login" 
+              className="hidden sm:block text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors px-4"
             >
-              <defs>
-                <pattern
-                  id="e229dbec-10e9-49ee-8ec3-0286ca089edf"
-                  x={0}
-                  y={0}
-                  width={20}
-                  height={20}
-                  patternUnits="userSpaceOnUse"
-                >
-                  <rect
-                    x={0}
-                    y={0}
-                    width={4}
-                    height={4}
-                    className="text-gray-200"
-                    fill="currentColor"
-                  />
-                </pattern>
-              </defs>
-              <rect
-                width={404}
-                height={784}
-                fill="url(#e229dbec-10e9-49ee-8ec3-0286ca089edf)"
-              />
-            </svg>
-            <svg
-              className="absolute left-full transform -translate-y-3/4 -translate-x-1/4 md:-translate-y-1/2 sm:-translate-x-1/2 lg:-translate-x-full"
-              width={404}
-              height={784}
-              fill="none"
-              viewBox="0 0 404 784"
+              Auth
+            </Link>
+            <Link 
+              href="/login"
+              className="px-8 py-4 bg-emerald-600 text-white rounded-[1.2rem] text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-2xl shadow-emerald-900/40 hover:scale-[1.05] active:scale-95 flex items-center gap-3 group"
             >
-              <defs>
-                <pattern
-                  id="d2a68204-c383-44b1-b99f-42ccff4e5365"
-                  x={0}
-                  y={0}
-                  width={20}
-                  height={20}
-                  patternUnits="userSpaceOnUse"
-                >
-                  <rect
-                    x={0}
-                    y={0}
-                    width={4}
-                    height={4}
-                    className="text-gray-200"
-                    fill="currentColor"
-                  />
-                </pattern>
-              </defs>
-              <rect
-                width={404}
-                height={784}
-                fill="url(#d2a68204-c383-44b1-b99f-42ccff4e5365)"
-              />
-            </svg>
+              Acceso Total
+              <FiArrowUpRight className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+            </Link>
           </div>
         </div>
+      </header>
 
-        <div className="relative pt-6 pb-16 sm:pb-24">
-          <main className="mt-16 mx-auto max-w-7xl px-4 sm:mt-24 sm:px-6 lg:mt-32">
-            <div className="lg:grid lg:grid-cols-12 lg:gap-8">
-              <div className="sm:text-center md:max-w-2xl md:mx-auto lg:col-span-6 lg:text-left">
-                <h1>
-                  <span className="block text-sm font-semibold uppercase tracking-wide text-indigo-600 sm:text-base lg:text-sm xl:text-base">
-                    Gestión Financiera Inteligente
-                  </span>
-                  <span className="mt-1 block text-4xl tracking-tight font-extrabold sm:text-5xl xl:text-6xl">
-                    <span className="block text-gray-900">Control total de</span>
-                    <span className="block text-indigo-600">tus créditos</span>
-                  </span>
-                </h1>
-                <p className="mt-3 text-base text-gray-500 sm:mt-5 sm:text-xl lg:text-lg xl:text-xl">
-                  Optimiza tu negocio de préstamos y ventas a crédito. Gestiona
-                  clientes, realiza seguimiento de cobros y visualiza el
-                  rendimiento de tu capital en tiempo real.
-                </p>
-                <div className="mt-8 sm:max-w-lg sm:mx-auto sm:text-center lg:text-left lg:mx-0">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Link href="/login">
-                      <button className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg shadow-lg hover:shadow-xl transition-all">
-                        Ingresar al Sistema
-                      </button>
-                    </Link>
-                    <Link href="/dashboard/select-store">
-                      <button className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 md:py-4 md:text-lg transition-all">
-                        Supervisar
-                      </button>
-                    </Link>
+      {/* Main Hero Content */}
+      <main className="relative pt-48 pb-32 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-12 gap-16 items-center">
+            
+            <div className="lg:col-span-12 xl:col-span-6 relative z-10 text-center lg:text-left">
+              <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-10 backdrop-blur-md">
+                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Red Global de Transacciones Activa</span>
+              </div>
+              
+              <h1 className="text-6xl md:text-8xl xl:text-9xl font-black tracking-tighter leading-[0.85] mb-10 uppercase italic">
+                 EVOLUCIÓN <br />
+                 <span className="text-emerald-500 not-italic uppercase underline decoration-emerald-800 decoration-8 underline-offset-8">FINANCIERA</span>
+              </h1>
+              
+              <p className="max-w-xl mx-auto lg:mx-0 text-slate-400 text-xl font-medium leading-relaxed mb-12 uppercase tracking-tight">
+                 Gestione su capital con la precisión de una entidad bancaria. Inteligencia analítica para el control total de créditos y ventas.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start">
+                 <Link href="/login" className="flex items-center justify-center gap-4 px-12 py-7 bg-white text-slate-950 hover:bg-emerald-500 hover:text-white rounded-[1.8rem] font-black text-xs uppercase tracking-[0.2em] shadow-3xl transition-all hover:scale-105 active:scale-95 group">
+                    Iniciar Despliegue 
+                    <FiZap className="group-hover:animate-bounce" />
+                 </Link>
+                 <button className="flex items-center justify-center gap-4 px-12 py-7 bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 rounded-[1.8rem] font-black text-xs uppercase tracking-[0.2em] transition-all backdrop-blur-xl">
+                    Documentación Core
+                 </button>
+              </div>
+
+              <div className="mt-16 grid grid-cols-3 gap-10 opacity-40">
+                 <div className="space-y-4">
+                    <FiShield className="text-emerald-500 text-2xl" />
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em] leading-tight text-slate-300">Cifrado de Grado Militar</p>
+                 </div>
+                 <div className="space-y-4">
+                    <FiGlobe className="text-emerald-500 text-2xl" />
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em] leading-tight text-slate-300">Multi-Sucursal <br /> Global</p>
+                 </div>
+                 <div className="space-y-4">
+                    <FiCpu className="text-emerald-500 text-2xl" />
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em] leading-tight text-slate-300">Procesamiento Instantáneo</p>
+                 </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-12 xl:col-span-6 relative perspective-[2000px] mt-12 xl:mt-0">
+               {/* Visual Hero Decoration */}
+               <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[120%] bg-emerald-500/10 blur-[150px] rounded-full animate-pulse"></div>
+               
+               <div className="relative glass p-4 rounded-[4rem] border-white/5 shadow-3xl transform rotate-Y-12 rotate-X-6 hover:rotate-0 transition-all duration-1000 group">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[3.8rem]"></div>
+                  <div className="relative rounded-[3.5rem] overflow-hidden bg-slate-900 border border-white/10 aspect-square md:aspect-video xl:aspect-square">
+                     <Image 
+                        src="/hero-finance.png"
+                        alt="MoneyCore Interface"
+                        fill
+                        className="object-cover opacity-80 group-hover:scale-105 transition-transform duration-[2s]"
+                     />
                   </div>
-                  <p className="mt-3 text-sm text-gray-500">
-                    Acceso seguro y encriptado para tu tranquilidad.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-12 relative sm:max-w-lg sm:mx-auto lg:mt-0 lg:max-w-none lg:mx-0 lg:col-span-6 lg:flex lg:items-center">
-                <div className="relative mx-auto w-full rounded-lg shadow-lg lg:max-w-md">
-                  <div className="relative block w-full bg-white rounded-lg overflow-hidden">
-                    <div className="w-full h-64 bg-indigo-50 flex items-center justify-center">
-                      <FiPieChart className="text-9xl text-indigo-200" />
-                    </div>
-                    <div className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <p className="text-sm font-medium text-indigo-600">
-                            Rendimiento Mensual
-                          </p>
-                          <p className="text-2xl font-bold text-gray-900">
-                            +24.5%
-                          </p>
-                        </div>
-                        <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                          Excelente
-                        </div>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                        <div
-                          className="bg-indigo-600 h-2 rounded-full"
-                          style={{ width: "75%" }}
-                        ></div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <p className="text-xs text-gray-500">Recaudado</p>
-                          <p className="font-bold text-gray-900">$12.4M</p>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <p className="text-xs text-gray-500">Pendiente</p>
-                          <p className="font-bold text-gray-900">$4.2M</p>
-                        </div>
-                      </div>
-                    </div>
+                  
+                  {/* Floating Action Elements */}
+                  <div className="absolute -top-10 -right-10 glass p-8 rounded-3xl border-emerald-500/20 shadow-2xl animate-float">
+                     <FiTrendingUp className="text-emerald-500 text-4xl mb-2" />
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Crecimiento</p>
+                     <p className="text-xl font-black">+42.8%</p>
                   </div>
-                </div>
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
 
-      {/* Features Section */}
-      <div className="py-16 bg-white overflow-hidden lg:py-24">
-        <div className="relative max-w-xl mx-auto px-4 sm:px-6 lg:px-8 lg:max-w-7xl">
-          <div className="relative">
-            <h2 className="text-center text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-              Todo lo que necesitas para gestionar tu cartera
-            </h2>
-            <p className="mt-4 max-w-3xl mx-auto text-center text-xl text-gray-500">
-              Una plataforma integral diseñada para simplificar la administración
-              de créditos y cobranzas.
-            </p>
-          </div>
-
-          <div className="relative mt-12 lg:mt-24 lg:grid lg:grid-cols-3 lg:gap-8">
-            <div className="mt-10 lg:mt-0">
-              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white mx-auto">
-                <FiUsers className="text-2xl" />
-              </div>
-              <div className="mt-5 text-center">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  Gestión de Clientes
-                </h3>
-                <p className="mt-2 text-base text-gray-500">
-                  Base de datos centralizada con historial crediticio, datos de
-                  contacto y comportamiento de pago de cada cliente.
-                </p>
-              </div>
+                  <div className="absolute -bottom-12 -left-12 glass p-10 rounded-[2.5rem] border-white/10 shadow-2xl hidden md:block">
+                     <div className="flex gap-4 mb-4">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40"></div>
+                        <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/40"></div>
+                        <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/40"></div>
+                     </div>
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Usuarios Conectados</p>
+                     <p className="text-2xl font-black">2,482</p>
+                  </div>
+               </div>
             </div>
 
-            <div className="mt-10 lg:mt-0">
-              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white mx-auto">
-                <FiSmartphone className="text-2xl" />
-              </div>
-              <div className="mt-5 text-center">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  Cobranza en Campo
-                </h3>
-                <p className="mt-2 text-base text-gray-500">
-                  Herramientas móviles para tus cobradores. Registro de pagos,
-                  geolocalización y actualización en tiempo real.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-10 lg:mt-0">
-              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white mx-auto">
-                <FiShield className="text-2xl" />
-              </div>
-              <div className="mt-5 text-center">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  Seguridad y Control
-                </h3>
-                <p className="mt-2 text-base text-gray-500">
-                  Auditoría completa de transacciones, control de caja y
-                  permisos granulares por rol de usuario.
-                </p>
-              </div>
-            </div>
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* Feature Section Grid */}
+      <section id="tecnologia" className="py-40 px-6 bg-white/[0.01] relative overflow-hidden">
+         <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+         
+         <div className="max-w-7xl mx-auto relative z-10">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-32 gap-10">
+               <div className="max-w-2xl">
+                  <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-[0.85] mb-8">
+                     ARQUITECTURA DE <br /> <span className="text-emerald-500 not-italic underline decoration-emerald-800 decoration-4 underline-offset-4">ÉLITE</span>
+                  </h2>
+                  <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-sm">Escalabilidad bancaria para carteras de cualquier dimensión.</p>
+               </div>
+               <div className="text-right hidden md:block">
+                  <p className="text-8xl font-black text-white/5 tracking-tighter uppercase italic leading-none">CORE v4.0</p>
+               </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {[
+                  { icon: FiUsers, title: "Análisis de Riesgo", desc: "Motor de IA que procesa el historial de pagos para predecir la liquidez futura de su cartera." },
+                  { icon: FiSmartphone, title: "App para Campo", desc: "Herramienta optimizada para cobradores con actualización vía satélite y modo offline." },
+                  { icon: FiPieChart, title: "Dynamic BI", desc: "Business Intelligence embebido. Visualice el retorno de inversión por cada sucursal." },
+                  { icon: FiShield, title: "Vault Security", desc: "Protección perimetral de datos y auditoría de registros inmutable." },
+                  { icon: FiGlobe, title: "Sync Global", desc: "Sincronización multi-región. Gestione tiendas en diferentes ciudades simultáneamente." },
+                  { icon: FiZap, title: "Liquidación 1ms", desc: "Cierre de ventas y abonos con latencia imperceptible, incluso en conexiones lentas." }
+               ].map((feat, i) => (
+                  <div key={i} className="glass p-12 rounded-[3.5rem] border-white/5 hover:border-emerald-500/40 transition-all duration-500 group relative overflow-hidden">
+                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                     <div className="p-5 bg-white/5 rounded-2xl inline-flex mb-10 group-hover:bg-emerald-600 transition-all duration-500 shadow-xl group-hover:scale-110">
+                        <feat.icon className="text-2xl text-emerald-500 group-hover:text-white" />
+                     </div>
+                     <h3 className="text-2xl font-black uppercase tracking-tight text-white mb-6 italic group-hover:text-emerald-400 transition-colors">{feat.title}</h3>
+                     <p className="text-slate-500 text-sm leading-relaxed font-semibold uppercase tracking-tight">{feat.desc}</p>
+                     
+                     <div className="mt-10 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Ver Detalles</span>
+                        <FiArrowRight className="text-emerald-500" size={12} />
+                     </div>
+                  </div>
+               ))}
+            </div>
+         </div>
+      </section>
+
+      {/* Social / Trust Section */}
+      <section className="py-24 px-6 border-y border-white/5 overflow-hidden">
+         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16 md:gap-32">
+            <div className="flex flex-col gap-2">
+               <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Confianza Industrial</p>
+               <h3 className="text-2xl font-black italic tracking-tighter uppercase whitespace-nowrap">RESPALDADO POR <span className="text-emerald-500 not-italic">EL MERCADO</span></h3>
+            </div>
+            
+            <div className="flex-1 overflow-hidden relative">
+               <div className="flex gap-20 animate-marquee whitespace-nowrap opacity-20 hover:opacity-100 transition-opacity duration-700 font-black text-2xl md:text-4xl italic tracking-tighter uppercase grayscale hover:grayscale-0">
+                  <span>FINTECH_CORP</span>
+                  <span>GLOBAL_FINANCE</span>
+                  <span>CAPITAL_PLUS</span>
+                  <span>RECAUDOS_VITAL</span>
+                  <span>CREDIT_MASTER</span>
+                  <span>SYNC_BANK</span>
+               </div>
+            </div>
+         </div>
+      </section>
 
       {/* CTA Section */}
-      <div className="bg-indigo-700">
-        <div className="max-w-2xl mx-auto text-center py-16 px-4 sm:py-20 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
-            <span className="block">¿Listo para tomar el control?</span>
-            <span className="block">Empieza a gestionar hoy mismo.</span>
-          </h2>
-          <p className="mt-4 text-lg leading-6 text-indigo-200">
-            Únete a los negocios que ya han optimizado su flujo de caja y
-            reducido su cartera vencida.
-          </p>
-          <Link
-            href="/login"
-            className="mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 bg-white hover:bg-indigo-50 sm:w-auto"
-          >
-            Comenzar ahora
-            <FiArrowRight className="ml-2" />
-          </Link>
-        </div>
-      </div>
+      <section id="ecosistema" className="py-40 px-6">
+         <div className="max-w-6xl mx-auto glass rounded-[5rem] p-12 md:p-32 text-center relative overflow-hidden border-white/10">
+            <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-emerald-600/20 blur-[130px] rounded-full"></div>
+            <div className="absolute bottom-0 left-0 w-[30%] h-[30%] bg-blue-600/10 blur-[100px] rounded-full"></div>
+            
+            <div className="relative z-10">
+               <div className="inline-flex p-5 bg-white/5 rounded-3xl mb-12 shadow-2xl">
+                  <FiActivity className="text-emerald-500 text-5xl" />
+               </div>
+               <h2 className="text-5xl md:text-8xl font-black tracking-tighter uppercase italic leading-[0.8] mb-12">
+                  ACTIVA TU <br /> <span className="text-emerald-500 not-italic">INFRAESTRUCTURA</span>
+               </h2>
+               <p className="text-slate-400 text-xl md:text-2xl mb-16 max-w-2xl mx-auto font-medium leading-relaxed italic">
+                  Únase a los negocios que han reducido su mora en un <span className="text-white font-black underline decoration-emerald-500 underline-offset-8">40% desde el primer mes.</span>
+               </p>
+               
+               <div className="flex justify-center">
+                  <Link href="/login" className="inline-flex items-center gap-6 px-16 py-9 bg-emerald-600 text-white rounded-[2.5rem] font-black text-base uppercase tracking-[0.3em] hover:bg-emerald-500 transition-all shadow-3xl hover:scale-110 active:scale-95 group">
+                     Desplegar Ahora
+                     <FiArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
+                  </Link>
+               </div>
+               
+               <p className="mt-12 text-[10px] font-black text-slate-500 uppercase tracking-[0.5em]">Implementación Inmediata • Sin Compromiso</p>
+            </div>
+         </div>
+      </section>
 
       {/* Footer */}
-      <footer className="bg-gray-50 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center space-x-6 md:order-2">
-            <span className="text-gray-400 hover:text-gray-500">
-              Términos
-            </span>
-            <span className="text-gray-400 hover:text-gray-500">
-              Privacidad
-            </span>
-            <span className="text-gray-400 hover:text-gray-500">
-              Soporte
-            </span>
-          </div>
-          <div className="mt-8 md:mt-0 md:order-1">
-            <p className="text-center text-base text-gray-400">
-              &copy; {new Date().getFullYear()} MyMoneyApp. Todos los derechos
-              reservados.
-            </p>
-          </div>
-        </div>
+      <footer className="py-20 px-6 border-t border-white/5 bg-black/20">
+         <div className="max-w-7xl mx-auto">
+            <div className="grid md:grid-cols-4 gap-16 mb-20">
+               <div className="md:col-span-2">
+                  <div className="flex items-center gap-4 mb-8">
+                     <FiActivity className="text-emerald-500 text-3xl" />
+                     <span className="text-3xl font-black tracking-tighter uppercase">MONEY<span className="text-emerald-500">CORE</span></span>
+                  </div>
+                  <p className="text-slate-500 font-bold uppercase tracking-tight text-sm max-w-sm">
+                     La suite financiera definitiva diseñada para empresarios que no aceptan menos que la perfección operativa.
+                  </p>
+               </div>
+               
+               <div className="space-y-6">
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Tecnología</p>
+                  <ul className="space-y-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                     <li className="hover:text-emerald-500 cursor-pointer transition-colors">Infraestructura</li>
+                     <li className="hover:text-emerald-500 cursor-pointer transition-colors">Seguridad AES</li>
+                     <li className="hover:text-emerald-500 cursor-pointer transition-colors">API REST</li>
+                  </ul>
+               </div>
+
+               <div className="space-y-6">
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Compañía</p>
+                  <ul className="space-y-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                     <li className="hover:text-emerald-500 cursor-pointer transition-colors">Sobre Nosotros</li>
+                     <li className="hover:text-emerald-500 cursor-pointer transition-colors">Términos Legales</li>
+                     <li className="hover:text-emerald-500 cursor-pointer transition-colors">Soporte 24/7</li>
+                  </ul>
+               </div>
+            </div>
+
+            <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
+               <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.5em]">
+                  &copy; {new Date().getFullYear()} CORE SYSTEMS GROUP. ALL RIGHTS RESERVED.
+               </p>
+               <div className="flex gap-10 opacity-30">
+                  <div className="w-10 h-[1px] bg-white"></div>
+                  <div className="w-10 h-[1px] bg-white"></div>
+                  <div className="w-10 h-[1px] bg-white"></div>
+               </div>
+            </div>
+         </div>
       </footer>
+
+      <style jsx global>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee 30s linear infinite;
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.6; }
+        }
+        .animate-pulse-slow {
+          animation: pulse-slow 8s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }

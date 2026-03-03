@@ -349,7 +349,7 @@ export default function VentaDetailPage() {
 
                 <div className="mt-10 pt-6 border-t border-slate-50 dark:border-slate-800">
                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Comentarios Operativos</p>
-                   <p className="text-xs font-bold text-slate-500 italic leading-relaxed">"{venta.comentario || "Sin notas adicionales registradas en este contrato."}"</p>
+                   <p className="text-xs font-bold text-slate-500 italic leading-relaxed">&quot;{venta.comentario || "Sin notas adicionales registradas en este contrato."}&quot;</p>
                 </div>
              </div>
 
