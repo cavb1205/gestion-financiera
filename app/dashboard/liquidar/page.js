@@ -125,6 +125,19 @@ export default function LiquidarCreditosPage() {
     }).format(value);
   };
 
+  const getStatusBadge = (estado) => {
+    switch (estado) {
+      case "Vigente":
+        return <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-lg border border-emerald-200 dark:border-emerald-800">Vigente</span>;
+      case "Atrasado":
+        return <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase tracking-widest rounded-lg border border-amber-200 dark:border-amber-800 border-dashed animate-pulse">Atrasado</span>;
+      case "Vencido":
+        return <span className="px-3 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 text-[10px] font-black uppercase tracking-widest rounded-lg border border-rose-200 dark:border-rose-800 shadow-sm shadow-rose-200 dark:shadow-none">Vencido</span>;
+      default:
+        return <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-lg">{estado}</span>;
+    }
+  };
+
   const handleAbonar = (credito) => {
     const valorAbono = Math.min(parseFloat(credito.saldo_actual), parseFloat(credito.valor_cuota));
     const abono = {
@@ -289,112 +302,170 @@ export default function LiquidarCreditosPage() {
            </div>
 
            {/* Table Section */}
-           <div className="overflow-x-auto min-h-[400px]">
-              {loading ? (
-                <div className="flex flex-col items-center justify-center py-20">
-                   <LoadingSpinner />
-                   <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Sincronizando Auditoría</p>
-                </div>
-              ) : filteredCreditos.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-24 px-10 text-center">
-                   <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center mb-6 text-slate-300">
-                      <FiSearch size={40} />
-                   </div>
-                   <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Cero Registros Encontrados</h3>
-                   <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-tighter">No hay créditos pendientes de liquidación para el periodo {selectedDate}</p>
-                </div>
-              ) : (
-                <table className="w-full border-collapse">
-                   <thead>
-                       <tr className="bg-slate-50/50 dark:bg-slate-800/30">
-                          <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Perfil de Cliente</th>
-                          <th className="px-4 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Compromiso</th>
-                          <th className="px-4 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Ciclos</th>
-                          <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estado de Riesgo</th>
-                          <th className="px-4 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Operación</th>
-                       </tr>
-                   </thead>
-                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {currentItems.map((credito) => (
-                         <tr key={credito.id} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
-                            <td className="px-4 py-6 whitespace-nowrap">
-                               <div className="flex items-center gap-4">
-                                  <button 
-                                    onClick={() => router.push(`/dashboard/ventas/${credito.id}`)}
-                                    className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-sm uppercase hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
-                                  >
-                                     {credito.cliente.nombres.charAt(0)}
-                                  </button>
-                                  <div className="group/name cursor-pointer" onClick={() => router.push(`/dashboard/ventas/${credito.id}`)}>
-                                     <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none group-hover/name:text-indigo-600 transition-colors">
-                                        {credito.cliente.nombres} {credito.cliente.apellidos}
-                                     </p>
-                                     <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">Ref: #{credito.id}</p>
-                                  </div>
-                               </div>
-                            </td>
-                            <td className="px-4 py-6 text-right whitespace-nowrap">
-                               <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none mb-1">
-                                  {formatCurrency(credito.valor_cuota)}
-                               </p>
-                               <p className="text-[9px] font-bold text-rose-400 uppercase tracking-widest leading-none">
-                                  Saldo: {formatCurrency(credito.saldo_actual)}
-                               </p>
-                            </td>
-                            <td className="px-4 py-6 text-center whitespace-nowrap">
-                               <div className="flex flex-col items-center">
-                                  <span className="text-xs font-black text-slate-800 dark:text-white tracking-tighter mb-1">
-                                     {credito.pagos_realizados}/{credito.cuotas}
-                                  </span>
-                                  <div className="w-20 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                     <div 
-                                       className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
-                                       style={{ width: `${(credito.pagos_realizados / credito.cuotas) * 100}%` }}
-                                     ></div>
-                                  </div>
-                               </div>
-                            </td>
-                            <td className="px-4 py-6 whitespace-nowrap">
-                               {credito.dias_atrasados <= 0 ? (
-                                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Al Día</span>
-                                 </div>
-                               ) : (
-                                 <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl ${
-                                    credito.dias_atrasados > 30 ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600' :
-                                    credito.dias_atrasados > 15 ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600' :
-                                    'bg-amber-50 dark:bg-amber-900/20 text-amber-600'
-                                 }`}>
-                                    <FiClock size={12} />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">{credito.dias_atrasados} Días Mora</span>
-                                 </div>
-                               )}
-                            </td>
-                            <td className="px-4 py-6 text-right whitespace-nowrap">
-                               <div className="flex items-center justify-end gap-2 transition-all">
-                                  <button 
-                                    onClick={() => handleReportarFalla(credito)}
-                                    className="p-2.5 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-rose-600 hover:shadow-xl transition-all border border-slate-100 dark:border-slate-700"
-                                    title="Reportar Falla"
-                                  >
-                                     <FiX size={16} />
-                                  </button>
-                                  <button 
-                                    onClick={() => handleAbonar(credito)}
-                                    className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center gap-2"
-                                  >
-                                     Abonar
-                                     <FiArrowRight />
-                                  </button>
-                               </div>
-                            </td>
+            <div className="hidden md:block overflow-x-auto min-h-[400px]">
+               {loading ? (
+                 <div className="flex flex-col items-center justify-center py-20">
+                    <LoadingSpinner />
+                    <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Sincronizando Auditoría</p>
+                 </div>
+               ) : filteredCreditos.length === 0 ? (
+                 <div className="flex flex-col items-center justify-center py-24 px-10 text-center">
+                    <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center mb-6 text-slate-300">
+                       <FiSearch size={40} />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Cero Registros Encontrados</h3>
+                    <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-tighter">No hay créditos pendientes de liquidación para el periodo {selectedDate}</p>
+                 </div>
+               ) : (
+                 <table className="w-full border-collapse">
+                    <thead>
+                        <tr className="bg-slate-50/50 dark:bg-slate-800/30">
+                           <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Perfil de Cliente</th>
+                           <th className="px-4 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Compromiso</th>
+                           <th className="px-4 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Ciclos</th>
+                           <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estado de Riesgo</th>
+                           <th className="px-4 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Operación</th>
                         </tr>
-                      ))}
-                   </tbody>
-                </table>
-              )}
-           </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                       {currentItems.map((credito) => (
+                          <tr key={credito.id} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
+                             <td className="px-4 py-6 whitespace-nowrap">
+                                <div className="flex items-center gap-4">
+                                    <button 
+                                     onClick={() => router.push(`/dashboard/ventas/${credito.id}`)}
+                                     className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-sm uppercase hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                                   >
+                                      {credito.cliente.nombres.charAt(0)}
+                                   </button>
+                                   <div className="group/name cursor-pointer" onClick={() => router.push(`/dashboard/ventas/${credito.id}`)}>
+                                      <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none group-hover/name:text-indigo-600 transition-colors">
+                                         {credito.cliente.nombres} {credito.cliente.apellidos}
+                                      </p>
+                                      <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">Ref: #{credito.id}</p>
+                                   </div>
+                                </div>
+                             </td>
+                             <td className="px-4 py-6 text-right whitespace-nowrap">
+                                <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none mb-1">
+                                   {formatCurrency(credito.valor_cuota)}
+                                </p>
+                                <p className="text-[9px] font-bold text-rose-400 uppercase tracking-widest leading-none">
+                                   Saldo: {formatCurrency(credito.saldo_actual)}
+                                </p>
+                             </td>
+                             <td className="px-4 py-6 text-center whitespace-nowrap">
+                                <div className="flex flex-col items-center">
+                                   <span className="text-xs font-black text-slate-800 dark:text-white tracking-tighter mb-1">
+                                      {credito.pagos_realizados}/{credito.cuotas}
+                                   </span>
+                                   <div className="w-20 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                      <div 
+                                        className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
+                                        style={{ width: `${(credito.pagos_realizados / credito.cuotas) * 100}%` }}
+                                      ></div>
+                                   </div>
+                                </div>
+                             </td>
+                             <td className="px-4 py-6 whitespace-nowrap">
+                                <div className="flex flex-col items-start gap-1.5">
+                                   {getStatusBadge(credito.estado_venta)}
+                                   {credito.dias_atrasados > 0 && (
+                                     <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest">
+                                        {Math.round(credito.dias_atrasados)} Días Mora
+                                     </span>
+                                   )}
+                                </div>
+                             </td>
+                             <td className="px-4 py-6 text-right whitespace-nowrap">
+                                <div className="flex items-center justify-end gap-2 transition-all">
+                                   <button 
+                                     onClick={() => handleReportarFalla(credito)}
+                                     className="p-2.5 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-rose-600 hover:shadow-xl transition-all border border-slate-100 dark:border-slate-700"
+                                     title="Reportar Falla"
+                                   >
+                                      <FiX size={16} />
+                                   </button>
+                                   <button 
+                                     onClick={() => handleAbonar(credito)}
+                                     className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center gap-2"
+                                   >
+                                      Abonar
+                                      <FiArrowRight />
+                                   </button>
+                                </div>
+                             </td>
+                          </tr>
+                       ))}
+                    </tbody>
+                 </table>
+               )}
+            </div>
+
+            {/* Mobile View - Cards Layout */}
+            <div className="md:hidden space-y-4 px-4 pb-8">
+               {loading ? (
+                 <div className="flex flex-col items-center justify-center py-20">
+                    <LoadingSpinner />
+                 </div>
+               ) : filteredCreditos.length === 0 ? (
+                 <div className="glass p-10 text-center rounded-[2.5rem]">
+                    <FiSearch size={30} className="mx-auto text-slate-300 mb-4" />
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sin Pendientes</p>
+                 </div>
+               ) : (
+                 currentItems.map((credito) => (
+                   <div key={credito.id} className="glass p-6 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-xl space-y-6">
+                      <div className="flex items-start justify-between gap-4">
+                         <div className="flex-1">
+                            <p className="text-[17px] font-black text-slate-800 dark:text-white uppercase leading-tight mb-2">
+                               {credito.cliente.nombres} {credito.cliente.apellidos}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                               {getStatusBadge(credito.estado_venta)}
+                               {credito.dias_atrasados > 0 && (
+                                 <span className="px-3 py-1 bg-rose-50 dark:bg-rose-900/20 text-rose-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-rose-100 dark:border-rose-800">{Math.round(credito.dias_atrasados)}d Mora</span>
+                               )}
+                            </div>
+                         </div>
+                         <div className="text-right shrink-0">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none">Cuota Hoy</p>
+                           <p className="text-xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter leading-none">
+                             {formatCurrency(credito.valor_cuota)}
+                           </p>
+                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-6 p-5 bg-slate-50/50 dark:bg-slate-800/20 rounded-3xl border border-slate-100 dark:border-slate-800">
+                         <div className="space-y-1">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Saldo Pendiente</p>
+                            <p className="text-sm font-black text-rose-500 tracking-tight">{formatCurrency(credito.saldo_actual)}</p>
+                         </div>
+                         <div className="text-right space-y-1">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Progreso</p>
+                            <p className="text-sm font-black text-slate-800 dark:text-white uppercase">{credito.pagos_realizados} / {credito.cuotas}</p>
+                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                         <button 
+                           onClick={() => handleReportarFalla(credito)}
+                           className="p-5 bg-white dark:bg-slate-900 text-slate-400 rounded-2xl border border-slate-200 dark:border-slate-800 active:scale-90 transition-all shadow-sm"
+                           title="Reportar Falla"
+                         >
+                            <FiX size={20} />
+                         </button>
+                         <button 
+                           onClick={() => handleAbonar(credito)}
+                           className="flex-1 py-5 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-emerald-200 dark:shadow-none active:scale-95 transition-all flex items-center justify-center gap-3"
+                         >
+                            Abonar Cuota <FiArrowRight />
+                         </button>
+                      </div>
+                   </div>
+                 ))
+               )}
+            </div>
 
            {/* Pagination */}
            {totalPages > 1 && (
