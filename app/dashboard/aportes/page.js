@@ -290,7 +290,7 @@ export default function AportesPage() {
                       </td>
                       <td className="px-4 py-6">
                         <p className="text-xs font-bold text-slate-500 dark:text-slate-400 max-w-xs line-clamp-2 italic leading-relaxed">
-                          "{aporte.comentario || 'Sin observaciones adicionales'}"
+                          &quot;{aporte.comentario || 'Sin observaciones adicionales'}&quot;
                         </p>
                       </td>
                       <td className="px-4 py-6 whitespace-nowrap">

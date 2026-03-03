@@ -278,7 +278,7 @@ export default function PagarAbonoPage() {
              <div className="px-8 flex items-start gap-4 opacity-50">
                 <FiInfo className="text-slate-400 mt-1 shrink-0" />
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                   Al presionar "Registrar", usted certifica que el monto ingresado coincide exactamente con el efectivo recibido. Toda discrepancia será reportada al supervisor.
+                   Al presionar &quot;Registrar&quot;, usted certifica que el monto ingresado coincide exactamente con el efectivo recibido. Toda discrepancia será reportada al supervisor.
                 </p>
              </div>
           </div>
