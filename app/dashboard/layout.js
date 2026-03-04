@@ -190,13 +190,23 @@ export default function DashboardLayout({ children }) {
                   <p className="text-[10px] text-slate-400 font-bold">{storeInfo?.nombre}</p>
                 </div>
               </div>
-              <button 
-                onClick={logout}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-100 transition-all"
-              >
-                <FiLogOut size={16} />
-                Finalizar Sesión
-              </button>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <button 
+                  onClick={() => router.push("/select-store")}
+                  className="flex items-center justify-center gap-2 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100 dark:border-slate-700 shadow-sm"
+                >
+                  <FiRefreshCw size={16} />
+                  Ruta
+                </button>
+                <button 
+                  onClick={logout}
+                  className="flex items-center justify-center gap-2 py-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-100 transition-all"
+                >
+                  <FiLogOut size={16} />
+                  Salir
+                </button>
+              </div>
             </div>
           </div>
         </div>
