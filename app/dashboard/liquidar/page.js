@@ -25,6 +25,7 @@ import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useRef } from "react";
 
 export default function LiquidarCreditosPage() {
   const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
@@ -38,6 +39,7 @@ export default function LiquidarCreditosPage() {
   const [itemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
+  const dateInputRef = useRef(null);
 
   // Establecer fecha actual por defecto
   useEffect(() => {
@@ -193,7 +195,11 @@ export default function LiquidarCreditosPage() {
 
           <div className="flex items-center gap-3">
              <button 
-              onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+              onClick={() => {
+                const today = new Date();
+                const formattedDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+                setSelectedDate(formattedDate);
+              }}
               className="px-6 py-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 font-black text-[10px] uppercase tracking-widest hover:text-emerald-600 transition-all shadow-sm"
              >
                Ir a Hoy
@@ -266,13 +272,30 @@ export default function LiquidarCreditosPage() {
            <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 flex flex-col lg:flex-row items-center gap-8">
               <div className="w-full lg:w-1/3 space-y-2">
                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Periodo Contable</label>
-                 <div className="relative group">
-                    <FiCalendar className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
+                 <div 
+                   className="relative group cursor-pointer"
+                   onClick={() => {
+                     try {
+                        if (dateInputRef.current) dateInputRef.current.showPicker();
+                     } catch (err) {
+                        dateInputRef.current?.focus();
+                     }
+                   }}
+                 >
+                    <FiCalendar className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 transition-all pointer-events-none z-10" />
                     <input 
+                      ref={dateInputRef}
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="w-full pl-14 pr-6 py-4.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-3xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-inner outline-none"
+                      onClick={(e) => {
+                         try {
+                            e.target.showPicker();
+                         } catch (err) {
+                            // Silently ignore if showPicker is not supported
+                         }
+                      }}
+                      className="w-full pl-14 pr-6 py-4.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-3xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-inner outline-none relative z-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     />
                  </div>
               </div>
@@ -280,7 +303,7 @@ export default function LiquidarCreditosPage() {
               <div className="flex-1 w-full space-y-2">
                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Filtro de Inteligencia</label>
                  <div className="relative group">
-                    <FiSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
+                    <FiSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-all pointer-events-none z-10" size={20} />
                     <input 
                       type="text"
                       placeholder="Escanea o escribe el nombre del cliente..."

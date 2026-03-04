@@ -160,23 +160,26 @@ export default function CrearCliente() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent pb-12">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-10">
+    <div className="min-h-screen bg-transparent pb-20 md:pb-12">
+      <div className="max-w-4xl mx-auto px-4 md:px-0">
+        
+        {/* Compact Mobile Header */}
+        <div className="flex items-center gap-4 mb-8">
           <button
             onClick={() => router.push("/dashboard/clientes")}
-            className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 transition-all shadow-sm"
+            className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 transition-all shadow-sm shrink-0"
           >
-            <FiArrowLeft size={20} />
+            <FiArrowLeft size={18} />
           </button>
-          <div>
-            <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Nuevo Registro</h1>
-            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-tight">Apertura de Cuenta Cliente</p>
+          <div className="min-w-0">
+            <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase truncate">Nuevo Registro</h1>
+            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none mt-1">Apertura de Cuenta Cliente</p>
           </div>
         </div>
 
-        <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none">
-          <div className="bg-slate-900 dark:bg-indigo-600 p-8 text-white relative overflow-hidden">
+        <div className="glass rounded-[2rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl relative">
+          {/* Header decoration - simplified for mobile */}
+          <div className="hidden md:block bg-slate-900 dark:bg-indigo-600 p-8 text-white relative overflow-hidden">
             <div className="relative z-10 flex items-center gap-5">
               <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-md">
                  <FiUser className="text-3xl text-white" />
@@ -186,163 +189,160 @@ export default function CrearCliente() {
                 <h2 className="text-2xl font-black tracking-tight">Expediente de Cliente</h2>
               </div>
             </div>
-            {/* Decorative element */}
             <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
           </div>
 
-          <div className="p-8 md:p-12 bg-white/40 dark:bg-transparent">
+          <div className="p-6 md:p-10 bg-white/40 dark:bg-transparent">
             {submitError && (
-              <div className="mb-8 p-5 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl flex items-start gap-4">
-                <div className="bg-rose-100 dark:bg-rose-900/40 p-2 rounded-lg">
-                  <FiAlertCircle className="text-rose-600" />
-                </div>
-                <p className="text-sm font-bold text-rose-700 dark:text-rose-400">{submitError}</p>
+              <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl flex items-start gap-3">
+                <FiAlertCircle className="text-rose-600 shrink-0 mt-0.5" />
+                <p className="text-[10px] font-black text-rose-700 dark:text-rose-400 uppercase tracking-tight">{submitError}</p>
               </div>
             )}
 
             {success ? (
-              <div className="py-20 text-center flex flex-col items-center">
-                <div className="w-24 h-24 rounded-[2rem] bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-8 relative">
-                   <div className="absolute inset-0 bg-emerald-400 rounded-[2rem] animate-ping opacity-20"></div>
-                   <FiCheck className="text-emerald-600 text-4xl relative z-10" />
+              <div className="py-16 text-center flex flex-col items-center">
+                <div className="w-20 h-20 rounded-[1.5rem] bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-6 relative">
+                   <div className="absolute inset-0 bg-emerald-400 rounded-[1.5rem] animate-ping opacity-20"></div>
+                   <FiCheck className="text-emerald-600 text-3xl relative z-10" />
                 </div>
-                <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2 tracking-tight">
-                  ¡Registro Exitoso!
-                </h2>
-                <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
-                  Redirigiendo al Centro de Operaciones...
-                </p>
+                <h2 className="text-xl font-black text-slate-800 dark:text-white mb-2 tracking-tight">¡Registro Exitoso!</h2>
+                <p className="text-slate-500 font-bold uppercase text-[9px] tracking-widest">Sincronizando con la red...</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
-                  {/* Sección Personal */}
-                  <div className="space-y-8">
-                    <div className="flex items-center gap-3 mb-2">
-                       <FiShield className="text-indigo-500" />
-                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Datos de Identidad</span>
+              <form onSubmit={handleSubmit} className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+                  {/* Left Column */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 px-1">
+                       <FiShield className="text-indigo-500" size={14} />
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identidad</span>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Identificación</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Documento *</label>
                         <input
                           type="text"
                           name="identificacion"
                           value={formData.identificacion}
                           onChange={handleChange}
-                          placeholder="Número de documento"
-                          className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.identificacion ? 'border-rose-300' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                          placeholder="Número de identificación"
+                          className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.identificacion ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
                         />
-                        {errors.identificacion && <p className="text-[10px] text-rose-500 font-bold uppercase tracking-wide ml-1">{errors.identificacion}</p>}
+                        {errors.identificacion && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.identificacion}</p>}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2">
-                          <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres</label>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres *</label>
                           <input
                             type="text"
                             name="nombres"
                             value={formData.nombres}
                             onChange={handleChange}
-                            className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.nombres ? 'border-rose-300' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                            className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.nombres ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos</label>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos *</label>
                           <input
                             type="text"
                             name="apellidos"
                             value={formData.apellidos}
                             onChange={handleChange}
-                            className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.apellidos ? 'border-rose-300' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                            className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.apellidos ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
                           />
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Sección Ubicación/Negocio */}
-                  <div className="space-y-8">
-                     <div className="flex items-center gap-3 mb-2">
-                       <FiHome className="text-indigo-500" />
-                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Negocio y Contacto</span>
+                  {/* Right Column */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 px-1">
+                       <FiHome className="text-indigo-500" size={14} />
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contacto & Local</span>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Establecimiento</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Establecimiento</label>
                         <input
                           type="text"
                           name="nombre_local"
                           value={formData.nombre_local}
                           onChange={handleChange}
-                          placeholder="Punto de venta o nombre local"
-                          className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                          placeholder="Nombre del local"
+                          className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono Principal</label>
-                        <input
-                          type="tel"
-                          name="telefono_principal"
-                          value={formData.telefono_principal}
-                          onChange={handleChange}
-                          className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.telefono_principal ? 'border-rose-300' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
-                        />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono *</label>
+                          <input
+                            type="tel"
+                            name="telefono_principal"
+                            value={formData.telefono_principal}
+                            onChange={handleChange}
+                            className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.telefono_principal ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white transition-all outline-none`}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Opcional</label>
+                          <input
+                            type="tel"
+                            name="telefono_opcional"
+                            value={formData.telefono_opcional}
+                            onChange={handleChange}
+                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white transition-all outline-none"
+                          />
+                        </div>
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono Opcional</label>
-                        <input
-                          type="tel"
-                          name="telefono_opcional"
-                          value={formData.telefono_opcional}
-                          onChange={handleChange}
-                          className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección Exacta</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección Exacta</label>
                         <input
                           type="text"
                           name="direccion"
                           value={formData.direccion}
                           onChange={handleChange}
-                          className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.direccion ? 'border-rose-300' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[15px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                          className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.direccion ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white transition-all outline-none`}
                         />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-10 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-4">
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/clientes")}
-                    className="px-10 py-4 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
-                  >
-                    Salir sin Guardar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-12 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-slate-200 dark:shadow-none disabled:opacity-50"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        Guardando...
-                      </>
-                    ) : (
-                      <>
-                        <FiSave size={18} />
-                        Confirmar Registro
-                      </>
-                    )}
-                  </button>
+                {/* Action Button - Sticky Mobile */}
+                <div className="fixed bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-[100] md:relative md:bottom-auto md:bg-transparent md:border-t-0 md:p-0 md:backdrop-blur-none md:z-auto md:pt-8 md:mt-8">
+                  <div className="flex flex-col md:flex-row items-center justify-end gap-3 max-w-4xl mx-auto">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full md:w-auto md:px-12 py-4.5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-indigo-100 dark:shadow-none disabled:opacity-50 order-1 md:order-2"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <FiSave size={18} />
+                          Confirmar Registro
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => router.push("/dashboard/clientes")}
+                      className="w-full md:w-auto px-8 py-4.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
+                    >
+                      Descartar
+                    </button>
+                  </div>
                 </div>
               </form>
             )}

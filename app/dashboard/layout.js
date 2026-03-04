@@ -180,28 +180,34 @@ export default function DashboardLayout({ children }) {
               ))}
             </nav>
 
-            <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+            <div className="mt-6 pt-6 pb-8 border-t border-slate-100 dark:border-slate-800 space-y-4 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center font-black text-indigo-600">
+                <div className="w-10 h-10 rounded-[1rem] bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center font-black text-indigo-600">
                   {profile?.trabajador?.charAt(0) || "U"}
                 </div>
                 <div>
-                  <p className="text-xs font-black">{profile?.trabajador || "Usuario"}</p>
-                  <p className="text-[10px] text-slate-400 font-bold">{storeInfo?.nombre}</p>
+                  <p className="text-xs font-black truncate">{profile?.trabajador || "Usuario"}</p>
+                  <p className="text-[10px] text-slate-400 font-bold truncate max-w-[180px]">{storeInfo?.nombre}</p>
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-2">
                 <button 
-                  onClick={() => router.push("/select-store")}
-                  className="flex items-center justify-center gap-2 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100 dark:border-slate-700 shadow-sm"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    router.push("/select-store");
+                  }}
+                  className="flex items-center justify-center gap-2 py-3.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-100 dark:border-slate-800 shadow-sm active:scale-95"
                 >
                   <FiRefreshCw size={16} />
                   Ruta
                 </button>
                 <button 
-                  onClick={logout}
-                  className="flex items-center justify-center gap-2 py-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-100 transition-all"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    logout();
+                  }}
+                  className="flex items-center justify-center gap-2 py-3.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-all active:scale-95"
                 >
                   <FiLogOut size={16} />
                   Salir

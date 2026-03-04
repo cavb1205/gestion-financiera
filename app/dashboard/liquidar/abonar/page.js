@@ -117,168 +117,138 @@ export default function PagarAbonoPage() {
   const nuevoSaldo = maximoAbonable - (parseFloat(valorAbono) || 0);
 
   return (
-    <div className="min-h-screen bg-transparent pb-12">
-      <div className="w-full">
-
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-6">
-          <div className="flex items-center gap-5">
-            <button 
-              onClick={() => router.push("/dashboard/liquidar")}
-              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm"
-            >
-              <FiArrowLeft size={20} />
-            </button>
-            <div>
-              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none uppercase">Procesar Recaudo</h1>
-              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
-                Abono a Crédito • <span className="text-indigo-500">#{abono.venta}</span>
-              </p>
-            </div>
+    <div className="min-h-screen bg-transparent pb-20 md:pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Compact Mobile Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <button 
+            onClick={() => router.push("/dashboard/liquidar")}
+            className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm shrink-0"
+          >
+            <FiArrowLeft size={18} />
+          </button>
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight uppercase truncate">
+               {cliente?.nombres} {cliente?.apellidos}
+            </h1>
+            <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">
+               Procesar Recaudo • Saldo: <span className="text-emerald-500">{formatMoney(maximoAbonable)}</span>
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Main Form Area */}
-          <div className="lg:col-span-12 xl:col-span-8">
-             <div className="glass rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl relative">
-                <div className="p-10 md:p-14">
-                   <div className="flex items-center gap-6 mb-12 pb-12 border-b border-slate-100 dark:border-slate-800">
-                      <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-[1.5rem] flex items-center justify-center shadow-inner font-black text-xl">
-                         {cliente?.nombres.charAt(0)}
-                      </div>
-                      <div>
-                         <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">
-                            {cliente?.nombres} {cliente?.apellidos}
-                         </h3>
-                         <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest">Saldo Actual: {formatMoney(maximoAbonable)}</p>
-                      </div>
-                   </div>
-
-                   <form onSubmit={handleSubmit} className="space-y-10">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+          {/* Main Payment Area */}
+          <div className="xl:col-span-8">
+             <div className="glass rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl relative">
+                <div className="p-6 md:p-12 pb-32 md:pb-12"> {/* Extra padding bottom on mobile for sticky button */}
+                   <form onSubmit={handleSubmit} className="flex flex-col gap-8">
                       <div className="space-y-4">
-                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Monto del Recaudo (COP)</label>
+                         <div className="flex items-center justify-between px-1">
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Monto del Recaudo (COP)</label>
+                           <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-md">Obligatorio</span>
+                         </div>
                          <div className="relative group">
-                            <FiDollarSign className="absolute left-8 top-1/2 -translate-y-1/2 text-emerald-500 group-focus-within:scale-110 transition-transform" size={32} />
+                            <FiDollarSign className="absolute left-6 md:left-8 top-1/2 -translate-y-1/2 text-emerald-500 group-focus-within:scale-110 transition-transform" size={28} />
                             <input 
                               type="number"
                               value={valorAbono}
                               onChange={(e) => setValorAbono(e.target.value)}
                               onWheel={(e) => e.target.blur()}
                               max={maximoAbonable}
-                              className="w-full pl-20 pr-10 py-8 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-[2rem] text-4xl font-black text-slate-800 dark:text-white focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              className="w-full pl-16 md:pl-20 pr-6 py-6 md:py-8 bg-slate-50 dark:bg-slate-800/10 border border-slate-100 dark:border-slate-700 rounded-[2rem] text-3xl md:text-5xl font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all outline-none"
                               placeholder="0"
                             />
                          </div>
-                         <div className="flex justify-between items-center px-4">
-                            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Tope Máximo Permitido: {formatMoney(maximoAbonable)}</p>
-                            <div className="flex gap-2">
-                               {[0.5, 1, 2].map((mult) => (
-                                 <button 
-                                   key={mult}
-                                   type="button"
-                                   onClick={() => setValorAbono(Math.min(maximoAbonable, 100000 * mult))}
-                                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-[9px] font-black text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-widest"
-                                 >
-                                   +{formatMoney(100000 * mult)}
-                                 </button>
-                               ))}
-                            </div>
+                         
+                         {/* Quick Select Amounts */}
+                         <div className="grid grid-cols-3 gap-2 mt-2">
+                            {[0.5, 1, 2].map((mult) => (
+                              <button 
+                                key={mult}
+                                type="button"
+                                onClick={() => setValorAbono(Math.min(maximoAbonable, 100000 * mult))}
+                                className="py-3 bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[11px] font-black text-slate-500 hover:text-indigo-600 hover:border-indigo-300 active:scale-95 transition-all uppercase tracking-widest shadow-sm ring-1 ring-transparent focus:ring-indigo-500/20"
+                              >
+                                +{mult * 100}K
+                              </button>
+                            ))}
                          </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800 flex items-center gap-4">
-                            <FiCalendar className="text-indigo-500" size={24} />
-                            <div>
-                               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Fecha de Operación</p>
-                               <p className="text-sm font-black text-slate-800 dark:text-white uppercase">{abono?.fecha_recaudo}</p>
-                            </div>
-                         </div>
-                         <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800 flex items-center gap-4">
-                            <FiTarget className="text-emerald-500" size={24} />
-                            <div>
-                               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Estado del Registro</p>
-                               <p className="text-sm font-black text-emerald-600 uppercase">Listo para Sincronizar</p>
-                            </div>
+                      {/* Sticky Mobile Action Bar */}
+                      <div className="fixed bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-50 md:relative md:bottom-auto md:bg-transparent md:border-t-0 md:p-0 md:backdrop-blur-none md:z-auto">
+                         <div className="flex flex-row items-center gap-3 max-w-7xl mx-auto px-0 lg:px-8">
+                             <div className="hidden md:flex flex-1 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 items-center gap-4">
+                                <FiCalendar className="text-indigo-500 shrink-0" size={18} />
+                                <div>
+                                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Operación</p>
+                                   <p className="text-xs font-black text-slate-800 dark:text-white uppercase leading-none">{abono?.fecha_recaudo}</p>
+                                </div>
+                             </div>
+                             
+                             <button 
+                               type="submit"
+                               disabled={submitting || !valorAbono || valorAbono <= 0}
+                               className="w-full md:flex-[2] py-4.5 bg-emerald-600 text-white rounded-2xl font-black text-xs md:text-[11px] uppercase tracking-widest shadow-xl shadow-emerald-200 dark:shadow-none active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-3"
+                             >
+                               {submitting ? (
+                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                               ) : (
+                                 <>
+                                   <FiCheck size={18} />
+                                   Registrar Recaudo
+                                 </>
+                               )}
+                             </button>
                          </div>
                       </div>
 
-                      <div className="pt-6">
-                         <button 
-                           type="submit"
-                           disabled={submitting}
-                           className="w-full md:w-auto px-16 py-6 bg-slate-900 dark:bg-emerald-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-4"
-                         >
-                           {submitting ? (
-                             <>
-                               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                               Sincronizando Bóveda...
-                             </>
-                           ) : (
-                             <>
-                               <FiCheck size={20} />
-                               Registrar Recaudo Efectivo
-                             </>
-                           )}
-                         </button>
-                      </div>
                    </form>
                 </div>
-                {/* Visual Accent */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full"></div>
              </div>
           </div>
 
-          {/* Context Sidebar */}
-          <div className="lg:col-span-12 xl:col-span-4 space-y-8">
-             <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden relative group">
-                <h4 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-8">Impacto Operativo</h4>
-                <div className="space-y-8">
-                   <div className="flex items-center justify-between">
+          {/* Secondary Stats Area - Moved after Main on Mobile */}
+          <div className="xl:col-span-4 space-y-6">
+             <div className="glass p-8 rounded-[2rem] border-white/60 dark:border-slate-800 relative group shadow-xl">
+                <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-6 flex items-center gap-2">
+                  <FiActivity className="text-indigo-500" />
+                  Impacto Operativo
+                </h4>
+                <div className="space-y-6 relative z-10">
+                   <div className="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                       <div>
-                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Nuevo Saldo Proyectado</p>
-                         <p className={`text-2xl font-black tracking-tight ${nuevoSaldo === 0 ? 'text-emerald-500' : 'text-slate-800 dark:text-white'}`}>
+                         <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Nuevo Saldo</p>
+                         <p className={`text-xl font-black tracking-tight ${nuevoSaldo === 0 ? 'text-emerald-500' : 'text-slate-800 dark:text-white'}`}>
                             {formatMoney(nuevoSaldo)}
                          </p>
                       </div>
-                      <div className={`p-4 rounded-2xl ${nuevoSaldo === 0 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600' : 'bg-slate-50 dark:bg-slate-800 text-slate-400'}`}>
-                         <FiTrendingDown size={28} />
+                      <div className={`p-3 rounded-xl ${nuevoSaldo === 0 ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-slate-700 text-slate-400'}`}>
+                         <FiTrendingDown size={20} />
                       </div>
                    </div>
 
-                   <div className="h-px bg-slate-100 dark:bg-slate-800"></div>
-
-                   <div className="space-y-6">
-                      <div className="flex items-start gap-4">
-                         <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
-                            <FiActivity size={16} />
-                         </div>
-                         <div>
-                            <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest leading-none mb-1">Rendimiento de Cartera</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed">El abono reduce directamente el riesgo de mora del cliente.</p>
-                         </div>
-                      </div>
+                   <div className="grid grid-cols-1 gap-4">
                       <div className="flex items-start gap-4">
                          <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
                             <FiShield size={16} />
                          </div>
                          <div>
-                            <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest leading-none mb-1">Protocolo Seguro</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed">La transacción genera un hash de auditoría único e inmutable.</p>
+                            <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest leading-none mb-1">Operación Segura</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase leading-relaxed">Registro inmutable en bóveda central.</p>
                          </div>
                       </div>
                    </div>
                 </div>
-                <div className="absolute -right-10 -bottom-10 text-slate-50 dark:text-white/5 opacity-30 group-hover:scale-110 transition-transform">
-                   <FiActivity size={180} />
-                </div>
+                <FiActivity className="absolute -right-6 -bottom-6 text-indigo-500/5 opacity-30 group-hover:scale-110 transition-transform" size={120} />
              </div>
 
-             <div className="px-8 flex items-start gap-4 opacity-50">
-                <FiInfo className="text-slate-400 mt-1 shrink-0" />
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                   Al presionar &quot;Registrar&quot;, usted certifica que el monto ingresado coincide exactamente con el efectivo recibido. Toda discrepancia será reportada al supervisor.
+             <div className="px-4 flex items-start gap-3 opacity-40">
+                <FiInfo className="text-slate-400 mt-0.5 shrink-0" size={14} />
+                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                   Usted certifica que el monto ingresado coincide con el efectivo recibido.
                 </p>
              </div>
           </div>

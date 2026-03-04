@@ -133,72 +133,80 @@ export default function NuevaUtilidadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent pb-12">
-      <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-6">
-          <div className="flex items-center gap-5">
-            <button
-              onClick={() => router.push("/dashboard/utilidades")}
-              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-emerald-600 transition-all shadow-sm group"
-            >
-              <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none uppercase">Registro de Utilidad</h1>
-              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
-                Giro Operativo • <span className="text-emerald-500">{selectedStore?.tienda?.nombre}</span>
-              </p>
-            </div>
+    <div className="min-h-screen bg-transparent pb-20 md:pb-12">
+      <div className="max-w-7xl mx-auto px-4 md:px-0">
+        
+        {/* Compact Mobile Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <button
+            onClick={() => router.push("/dashboard/utilidades")}
+            className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-emerald-600 transition-all shadow-sm shrink-0"
+          >
+            <FiArrowLeft size={18} />
+          </button>
+          <div className="min-w-0">
+            <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase truncate">Reparto Utilidad</h1>
+            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest leading-none mt-1">
+              Giro • <span className="opacity-60">{selectedStore?.tienda?.nombre}</span>
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8">
             <div className="glass p-8 md:p-12 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl relative overflow-hidden">
                <div className="relative z-10">
-                  <form onSubmit={handleSubmit} className="space-y-10">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <form onSubmit={handleSubmit} className="space-y-8">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Trabajador */}
-                        <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Colaborador Beneficiario *</label>
+                        <div className="space-y-4">
+                           <div className="flex items-center gap-2 px-1">
+                              <FiUser className="text-emerald-500" size={14} />
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Beneficiario</span>
+                           </div>
                            <div className="relative group">
                               <select
                                 name="trabajador"
                                 value={formData.trabajador}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all cursor-pointer appearance-none shadow-inner"
+                                className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all cursor-pointer appearance-none outline-none"
                               >
-                                <option value="">Seleccione Beneficiario</option>
+                                <option value="">Seleccione...</option>
                                 {trabajadores.map((t) => (
-                                  <option key={t.id} value={t.id}>{t.trabajador} • {t.identificacion}</option>
+                                  <option key={t.id} value={t.id}>{t.trabajador}</option>
                                 ))}
                               </select>
-                              <FiUser size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-focus-within:text-emerald-500" />
+                              <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">
+                                 <FiArrowUpRight size={16} />
+                              </div>
                            </div>
                         </div>
 
                         {/* Fecha */}
-                        <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Fecha de Reparto *</label>
-                           <div className="relative group">
-                              <input
-                                type="date"
-                                name="fecha"
-                                value={formData.fecha}
-                                onChange={handleChange}
-                                required
-                                className="w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-inner"
-                              />
+                        <div className="space-y-4">
+                           <div className="flex items-center gap-2 px-1">
+                              <FiCalendar className="text-emerald-500" size={14} />
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</span>
                            </div>
+                           <input
+                             type="date"
+                             name="fecha"
+                             value={formData.fecha}
+                             onChange={handleChange}
+                             required
+                             className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white outline-none"
+                           />
                         </div>
 
                         {/* Valor */}
-                        <div className="md:col-span-2 space-y-2">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Monto a Distribuir *</label>
+                        <div className="md:col-span-2 space-y-4">
+                           <div className="flex items-center gap-2 px-1">
+                              <FiDollarSign className="text-emerald-500" size={14} />
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monto</span>
+                           </div>
                            <div className="relative group">
-                              <FiDollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
+                              <FiDollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500" size={24} />
                               <input
                                 type="number"
                                 name="valor"
@@ -208,87 +216,80 @@ export default function NuevaUtilidadPage() {
                                 min="0.01"
                                 step="any"
                                 placeholder="0.00"
-                                className="w-full pl-14 pr-6 py-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-3xl text-[24px] font-black text-slate-800 dark:text-white placeholder:text-slate-200 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-inner"
+                                className="w-full pl-16 pr-6 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-2xl font-black text-slate-800 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none"
                               />
                            </div>
                         </div>
 
                         {/* Comentario */}
-                        <div className="md:col-span-2 space-y-2">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Descripción del Giro</label>
+                        <div className="md:col-span-2 space-y-4">
+                           <div className="flex items-center gap-2 px-1">
+                              <FiInfo className="text-emerald-500" size={14} />
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Concepto</span>
+                           </div>
                            <textarea
                              name="comentario"
                              value={formData.comentario}
                              onChange={handleChange}
-                             rows="4"
-                             className="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-[2rem] text-[15px] font-bold text-slate-800 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-inner resize-none outline-none"
-                             placeholder="¿Por qué o para qué se emite este pago? (Opcional)"
+                             rows="2"
+                             className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none resize-none"
+                             placeholder="Observaciones..."
                            ></textarea>
                         </div>
                      </div>
 
-                     <div className="flex flex-col md:flex-row items-center justify-end gap-6 pt-6 border-t border-slate-100 dark:border-slate-800">
-                        <button
-                          type="button"
-                          onClick={() => router.push("/dashboard/utilidades")}
-                          className="w-full md:w-auto px-10 py-5 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-600 transition-all"
-                        >
-                          Cancelar Reparto
-                        </button>
+                     <div className="flex flex-col md:flex-row items-center justify-end gap-4 pt-6">
                         <button
                           type="submit"
-                          disabled={loading}
-                          className="w-full md:w-auto flex items-center justify-center gap-4 px-16 py-5 bg-slate-900 dark:bg-emerald-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                          disabled={loading || !formData.valor || !formData.trabajador}
+                          className="w-full md:flex-1 flex items-center justify-center gap-3 py-5 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-100 dark:shadow-none active:scale-95 transition-all disabled:opacity-40 order-1 md:order-2"
                         >
                           {loading ? (
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                           ) : (
                             <>
-                              <FiSave size={20} />
-                              Confirmar Giro
+                              <FiSave size={18} />
+                              Sincronizar Giro
                             </>
                           )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => router.push("/dashboard/utilidades")}
+                          className="w-full md:w-auto px-8 py-5 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-slate-600 transition-all order-2 md:order-1"
+                        >
+                          Cancelar
                         </button>
                      </div>
                   </form>
                </div>
-               
-               <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px]"></div>
             </div>
           </div>
 
-          <div className="lg:col-span-4 space-y-10">
-             <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden relative group">
-                <div className="relative z-10">
-                   <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl flex items-center justify-center mb-8 shadow-sm">
-                      <FiActivity size={32} />
+          <div className="lg:col-span-4 space-y-6">
+             <div className="glass p-8 rounded-[2rem] border-white/60 dark:border-slate-800 overflow-hidden relative group">
+                <div className="relative z-10 space-y-6">
+                   <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                         <FiActivity size={24} />
+                      </div>
+                      <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Ejercicio Neto</h2>
                    </div>
-                   <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none mb-4 uppercase">Estado Operativo</h2>
-                   <p className="text-xs font-bold text-slate-400 mb-8 leading-relaxed uppercase tracking-tighter">
-                      Las distribuciones de utilidad son consideradas egresos especiales que impactan la rentabilidad neta de la sucursal.
-                   </p>
 
-                   <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-8 border border-slate-100 dark:border-slate-800 space-y-6">
-                      <div className="space-y-1">
-                         <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">Carga Neta al Ejercicio</p>
-                         <p className="text-2xl font-black text-emerald-600 tracking-tighter shadow-emerald-100">
-                            {formatMoney(formData.valor)}
-                         </p>
-                      </div>
-                      <div className="flex items-center gap-3 text-emerald-500 bg-emerald-50 dark:bg-emerald-900/10 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
-                         <FiShield className="shrink-0" />
-                         <p className="text-[9px] font-black uppercase tracking-widest">Protocolo Antifraude Activo</p>
-                      </div>
+                   <div className="bg-slate-900 dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-800">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Carga al Ejercicio</p>
+                      <p className="text-2xl font-black text-emerald-500 tracking-tighter">
+                         {formatMoney(formData.valor)}
+                      </p>
+                   </div>
+
+                   <div className="flex items-start gap-3 opacity-60">
+                      <FiShield className="text-emerald-500 mt-0.5 shrink-0" size={14} />
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                         Validado bajo protocolos financieros de cierre.
+                      </p>
                    </div>
                 </div>
-                <div className="absolute -right-10 top-20 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl"></div>
-             </div>
-
-             <div className="px-8 flex items-start gap-4 opacity-50">
-                <FiInfo className="text-slate-400 shrink-0 mt-1" />
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                   Todo reparto de capital debe estar alineado con los estados financieros del cierre parcial. Verifique sus flujos antes de confirmar.
-                </p>
              </div>
           </div>
         </div>
