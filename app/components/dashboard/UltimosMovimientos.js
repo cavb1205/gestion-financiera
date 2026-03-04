@@ -324,15 +324,13 @@ const UltimosMovimientos = ({ tienda }) => {
             </div>
             Stream de Actividad
           </h2>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-1 ml-1">Últimos Eventos Operativos</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-1 ml-1">Últimos Eventos</p>
         </div>
-        
         <button 
           onClick={cargarMovimientos}
           className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl shadow-slate-200/20 dark:shadow-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400"
         >
           <FiRefreshCw className={`transition-transform duration-700 ${cargando ? 'animate-spin' : 'group-hover:rotate-180'}`} />
-          Sincronizar
         </button>
       </div>
 
@@ -386,7 +384,7 @@ const UltimosMovimientos = ({ tienda }) => {
                 }`}>
                   {movimiento.monto < 0 ? '-' : '+'}${Math.abs(movimiento.monto).toLocaleString()}
                 </p>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">USD Consolidado</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Monto</p>
               </div>
             </div>
           ))}

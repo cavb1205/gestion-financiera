@@ -403,8 +403,6 @@ export default function DashboardPage() {
                  <ResumenAnual tienda={tienda} />
                </div>
             </div>
-            
-            <ResumenGeneral tienda={tienda} />
           </div>
 
           {/* Activity & Sidebar */}
@@ -417,29 +415,13 @@ export default function DashboardPage() {
               <UltimosMovimientos tienda={tienda} />
             </div>
 
-            {/* Motivational / Insight Card */}
-            <div className="bg-indigo-600 rounded-[3rem] p-10 text-white relative overflow-hidden shadow-[0_25px_60px_-15px_rgba(79,70,229,0.5)] dark:shadow-none group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-[0.03] rounded-full -mr-20 -mt-20 blur-3xl group-hover:scale-125 transition-transform duration-1000"></div>
-              <FiTarget className="absolute -bottom-8 -right-8 text-indigo-400 opacity-20 transform -rotate-12 group-hover:scale-110 transition-transform duration-1000" size={200} />
-              
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-indigo-500 rounded-2xl">
-                    <FiTarget className="text-white" />
-                  </div>
-                  <h4 className="text-xl font-black uppercase tracking-widest">Meta Semanal</h4>
-                </div>
-                
-                <p className="text-indigo-100 text-lg mb-8 leading-relaxed font-medium">
-                  Estás a solo <span className="text-white font-black underline decoration-indigo-400 underline-offset-4">$2,300,000</span> de superar tu récord histórico.
-                </p>
-                
-                <button className="w-full py-4 bg-white text-indigo-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl hover:bg-slate-50 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                  Explorar Oportunidades
-                </button>
-              </div>
-            </div>
+ 
           </aside>
+        </section>
+
+        {/* Full Width Global Balance */}
+        <section className="mt-8">
+          <ResumenGeneral tienda={tienda} />
         </section>
       </main>
     </div>
