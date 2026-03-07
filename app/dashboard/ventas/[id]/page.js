@@ -190,21 +190,21 @@ export default function VentaDetailPage() {
 
   return (
     <div className="min-h-screen bg-transparent pb-12">
-      {editingRecaudo && <EditarRecaudo editingRecaudo={editingRecaudo} onEditar={() => {setEditingRecaudo(null); setRefreshData(p=>!p)}} onClose={() => setEditingRecaudo(null)} />}
-      {deletingRecaudo && <EliminarRecaudo deletingRecaudo={deletingRecaudo} onEliminar={() => {setDeletingRecaudo(null); setRefreshData(p=>!p)}} onClose={() => setDeletingRecaudo(null)} />}
+      {editingRecaudo && <EditarRecaudo editingRecaudo={editingRecaudo} onEditar={() => { setEditingRecaudo(null); setRefreshData(p => !p) }} onClose={() => setEditingRecaudo(null)} />}
+      {deletingRecaudo && <EliminarRecaudo deletingRecaudo={deletingRecaudo} onEliminar={() => { setDeletingRecaudo(null); setRefreshData(p => !p) }} onClose={() => setDeletingRecaudo(null)} />}
 
       {/* Modal Perdida */}
       {showLossModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-6">
           <div className="glass max-w-md w-full rounded-[2.5rem] border-white/20 p-10 shadow-2xl">
             <div className="text-center">
-               <div className="w-20 h-20 bg-rose-500 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-rose-200">
-                  <FiAlertTriangle size={40} />
-               </div>
-               <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight mb-4 uppercase">¿Activar Proceso de Pérdida?</h3>
-               <p className="text-sm font-bold text-slate-400 leading-relaxed mb-8">
-                 Esta acción cerrará el crédito permanentemente sin posibilidad de recupero. El saldo se registrará como pérdida neta del ejercicio.
-               </p>
+              <div className="w-20 h-20 bg-rose-500 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-rose-200">
+                <FiAlertTriangle size={40} />
+              </div>
+              <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight mb-4 uppercase">¿Activar Proceso de Pérdida?</h3>
+              <p className="text-sm font-bold text-slate-400 leading-relaxed mb-8">
+                Esta acción cerrará el crédito permanentemente sin posibilidad de recupero. El saldo se registrará como pérdida neta del ejercicio.
+              </p>
             </div>
 
             {lossError && <div className="bg-rose-50 p-4 rounded-xl text-rose-600 text-[10px] font-black uppercase mb-6">{lossError}</div>}
@@ -229,15 +229,15 @@ export default function VentaDetailPage() {
             </button>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Contrato #{venta.id}</h1>
+                <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none capitalize">{venta.cliente?.nombres} {venta.cliente?.apellidos}</h1>
                 {getStatusBadge(venta.estado_venta)}
               </div>
-              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">
-                Ficha Técnica de Crédito Direto • <span className="text-indigo-500">{selectedStore?.tienda?.nombre}</span>
+              <p className="text-sm font-bold text-slate-400 capitalize tracking-widest mt-2">
+                <span className="text-indigo-500">{selectedStore?.tienda?.nombre}</span>
               </p>
             </div>
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-3">
             <button onClick={handleRegistrarPago} className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 transition-all flex items-center gap-2">
               <FiPlus size={18} /> Registrar Abono
@@ -254,240 +254,240 @@ export default function VentaDetailPage() {
         {/* Resumen Financiero Top Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
-             <div className="flex justify-between items-start mb-4">
-                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl"><FiDollarSign size={24} /></div>
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Valor Venta</span>
-             </div>
-             <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 select-all">{formatMoney(venta.valor_venta)}</p>
-             <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md inline-block">Capital Neto</p>
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl"><FiDollarSign size={24} /></div>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Valor Venta</span>
+            </div>
+            <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 select-all">{formatMoney(venta.valor_venta)}</p>
+            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md inline-block">Capital Neto</p>
           </div>
 
           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
-             <div className="flex justify-between items-start mb-4">
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl"><FiBarChart2 size={24} /></div>
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Total a recaudar</span>
-             </div>
-             <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 select-all">{formatMoney(venta.total_a_pagar)}</p>
-             <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Interés {venta.interes}% Incluido</p>
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl"><FiBarChart2 size={24} /></div>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Total a recaudar</span>
+            </div>
+            <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 select-all">{formatMoney(venta.total_a_pagar)}</p>
+            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Interés {venta.interes}% Incluido</p>
           </div>
 
           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
-             <div className="flex justify-between items-start mb-4">
-                <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl"><FiTrendingDown size={24} /></div>
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Saldo Actual</span>
-             </div>
-             <p className={`text-3xl font-black tracking-tighter mb-1 select-all ${parseFloat(venta.saldo_actual) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-               {formatMoney(venta.saldo_actual)}
-             </p>
-             <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">{Math.round(venta.pagos_pendientes)} Cuotas Pendientes</p>
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl"><FiTrendingDown size={24} /></div>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Saldo Actual</span>
+            </div>
+            <p className={`text-3xl font-black tracking-tighter mb-1 select-all ${parseFloat(venta.saldo_actual) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+              {formatMoney(venta.saldo_actual)}
+            </p>
+            <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">{Math.round(venta.pagos_pendientes)} Cuotas Pendientes</p>
           </div>
 
           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
-             <div className="flex justify-between items-start mb-4">
-                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl"><FiCreditCard size={24} /></div>
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Valor Cuota</span>
-             </div>
-             <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 select-all">{formatMoney(venta.valor_cuota)}</p>
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{venta.cuotas} Cuotas Fijas</p>
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl"><FiCreditCard size={24} /></div>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Valor Cuota</span>
+            </div>
+            <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 select-all">{formatMoney(venta.valor_cuota)}</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{venta.cuotas} Cuotas Fijas</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          
+
           {/* Main Info Card */}
           <div className="lg:col-span-8 space-y-10">
-             <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800">
-                <div className="flex items-center gap-4 mb-10 border-b border-slate-100 dark:border-slate-800 pb-6">
-                   <div className="p-3 bg-indigo-500 text-white rounded-2xl shadow-xl shadow-indigo-100"><FiShield size={24} /></div>
-                   <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase">Datos del Contrato</h2>
-                </div>
+            <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+              <div className="flex items-center gap-4 mb-10 border-b border-slate-100 dark:border-slate-800 pb-6">
+                <div className="p-3 bg-indigo-500 text-white rounded-2xl shadow-xl shadow-indigo-100"><FiShield size={24} /></div>
+                <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase">Datos del Contrato</h2>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-12 mb-12">
-                   <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Apertura</p>
-                      <p className="text-sm font-black text-slate-700 dark:text-slate-200">{venta.fecha_venta}</p>
-                   </div>
-                   <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Estimada Cierre</p>
-                      <p className="text-sm font-black text-slate-700 dark:text-slate-200">{venta.fecha_vencimiento}</p>
-                   </div>
-                   <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado de Mora</p>
-                      <p className={`text-sm font-black ${venta.dias_atrasados > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                         {venta.dias_atrasados > 0 ? `${Math.round(venta.dias_atrasados)} Días de Atraso` : `${Math.round(venta.dias_atrasados)*-1} Días Adelantado`}
-                      </p>
-                   </div>
-                   <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Eficiencia de Recaudo</p>
-                      <p className="text-sm font-black text-indigo-600">{Math.round(venta.pagos_realizados)} de {venta.cuotas} Cuotas Liq.</p>
-                   </div>
-                   <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Promedio Abono Diario</p>
-                      <p className="text-sm font-black text-slate-700 dark:text-slate-200">{formatMoney(venta.promedio_pago)}</p>
-                   </div>
-                   <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Plazo Original</p>
-                      <p className="text-sm font-black text-slate-700 dark:text-slate-200 uppercase">{venta.plazo}</p>
-                   </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-12 mb-12">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Apertura</p>
+                  <p className="text-sm font-black text-slate-700 dark:text-slate-200">{venta.fecha_venta}</p>
                 </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Estimada Cierre</p>
+                  <p className="text-sm font-black text-slate-700 dark:text-slate-200">{venta.fecha_vencimiento}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado de Mora</p>
+                  <p className={`text-sm font-black ${venta.dias_atrasados > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                    {venta.dias_atrasados > 0 ? `${Math.round(venta.dias_atrasados)} Días de Atraso` : `${Math.round(venta.dias_atrasados) * -1} Días Adelantado`}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Eficiencia de Recaudo</p>
+                  <p className="text-sm font-black text-indigo-600">{Math.round(venta.pagos_realizados)} de {venta.cuotas} Cuotas Liq.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Promedio Abono Diario</p>
+                  <p className="text-sm font-black text-slate-700 dark:text-slate-200">{formatMoney(venta.promedio_pago)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Plazo Original</p>
+                  <p className="text-sm font-black text-slate-700 dark:text-slate-200 uppercase">{venta.plazo}</p>
+                </div>
+              </div>
 
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-700 group">
-                   <div className="flex justify-between items-end mb-4">
-                      <div>
-                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Progreso de Amortización</p>
-                         <h3 className="text-2xl font-black text-indigo-600 tracking-tighter">{progresoPago.toFixed(1)}% Completo</h3>
-                      </div>
-                      <p className="text-xs font-black text-slate-300 uppercase tracking-widest">{formatMoney(totalPagado)} / {formatMoney(venta.total_a_pagar)}</p>
-                   </div>
-                   <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden p-0.5 border border-slate-100 dark:border-slate-800">
-                      <div 
-                         className="h-full bg-indigo-600 rounded-full shadow-lg shadow-indigo-200 dark:shadow-none transition-all duration-1000"
-                         style={{ width: `${progresoPago}%` }}
-                      ></div>
-                   </div>
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-700 group">
+                <div className="flex justify-between items-end mb-4">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Progreso de Amortización</p>
+                    <h3 className="text-2xl font-black text-indigo-600 tracking-tighter">{progresoPago.toFixed(1)}% Completo</h3>
+                  </div>
+                  <p className="text-xs font-black text-slate-300 uppercase tracking-widest">{formatMoney(totalPagado)} / {formatMoney(venta.total_a_pagar)}</p>
                 </div>
+                <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden p-0.5 border border-slate-100 dark:border-slate-800">
+                  <div
+                    className="h-full bg-indigo-600 rounded-full shadow-lg shadow-indigo-200 dark:shadow-none transition-all duration-1000"
+                    style={{ width: `${progresoPago}%` }}
+                  ></div>
+                </div>
+              </div>
 
-                <div className="mt-10 pt-6 border-t border-slate-50 dark:border-slate-800">
-                   <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Comentarios Operativos</p>
-                   <p className="text-xs font-bold text-slate-500 italic leading-relaxed">&quot;{venta.comentario || "Sin notas adicionales registradas en este contrato."}&quot;</p>
-                </div>
-             </div>
+              <div className="mt-10 pt-6 border-t border-slate-50 dark:border-slate-800">
+                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Comentarios Operativos</p>
+                <p className="text-xs font-bold text-slate-500 italic leading-relaxed">&quot;{venta.comentario || "Sin notas adicionales registradas en este contrato."}&quot;</p>
+              </div>
+            </div>
 
-             {/* Historial de Pagos Section */}
-             <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl">
-                <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
-                   <div className="flex items-center gap-3">
-                      <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-xl"><FiActivity size={20} /></div>
-                      <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Bitácora de Recaudos</h2>
-                   </div>
-                   <button onClick={handleRegistrarPago} className="px-5 py-2.5 bg-slate-900 dark:bg-slate-800 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2">
-                      <FiPlus /> Nuevo Registro
-                   </button>
+            {/* Historial de Pagos Section */}
+            <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl">
+              <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-xl"><FiActivity size={20} /></div>
+                  <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Bitácora de Recaudos</h2>
                 </div>
+                <button onClick={handleRegistrarPago} className="px-5 py-2.5 bg-slate-900 dark:bg-slate-800 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2">
+                  <FiPlus /> Nuevo Registro
+                </button>
+              </div>
 
-                <div className="overflow-x-auto">
-                   <table className="w-full">
-                      <thead>
-                         <tr className="bg-slate-50/50 dark:bg-slate-800/30">
-                            <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</th>
-                            <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Concepto</th>
-                            <th className="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Abono</th>
-                            <th className="px-8 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Acciones</th>
-                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                         {pagos.length === 0 ? (
-                           <tr>
-                              <td colSpan="4" className="px-8 py-20 text-center">
-                                 <FiActivity className="mx-auto text-4xl text-slate-200 mb-4" />
-                                 <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Sin registros de pago vinculados</p>
-                              </td>
-                           </tr>
-                         ) : (
-                           pagos.map(pago => {
-                             const valor = parseFloat(pago.valor_recaudo);
-                             const isFallida = valor === 0 && pago.visita_blanco;
-                             return (
-                               <tr key={pago.id} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
-                                  <td className="px-8 py-5 whitespace-nowrap text-xs font-bold text-slate-500">{pago.fecha_recaudo}</td>
-                                  <td className="px-8 py-5">
-                                     {isFallida ? (
-                                       <div className="flex flex-col">
-                                          <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Visita Fallida</span>
-                                          <span className="text-[9px] text-slate-400 italic mt-0.5 truncate max-w-[150px]">{pago.visita_blanco.tipo_falla}: {pago.visita_blanco.comentario}</span>
-                                       </div>
-                                     ) : (
-                                       <span className="text-[11px] font-black text-indigo-600 uppercase tracking-widest">Abono Ordinario</span>
-                                     )}
-                                  </td>
-                                  <td className="px-8 py-5 text-right">
-                                     <span className={`text-sm font-black ${valor > 0 ? 'text-emerald-600' : 'text-slate-300'}`}>{formatMoney(valor)}</span>
-                                  </td>
-                                  <td className="px-8 py-5 text-center">
-                                     <div className="flex items-center justify-center gap-3">
-                                        {valor > 0 && <button onClick={()=>setEditingRecaudo(pago)} className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-indigo-600 transition-colors"><FiEdit size={14} /></button>}
-                                        <button onClick={()=>setDeletingRecaudo(pago)} className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-rose-600 transition-colors"><FiTrash2 size={14} /></button>
-                                     </div>
-                                  </td>
-                               </tr>
-                             )
-                           })
-                         )}
-                      </tbody>
-                   </table>
-                </div>
-             </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50/50 dark:bg-slate-800/30">
+                      <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</th>
+                      <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Concepto</th>
+                      <th className="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Abono</th>
+                      <th className="px-8 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                    {pagos.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="px-8 py-20 text-center">
+                          <FiActivity className="mx-auto text-4xl text-slate-200 mb-4" />
+                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Sin registros de pago vinculados</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      pagos.map(pago => {
+                        const valor = parseFloat(pago.valor_recaudo);
+                        const isFallida = valor === 0 && pago.visita_blanco;
+                        return (
+                          <tr key={pago.id} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
+                            <td className="px-8 py-5 whitespace-nowrap text-xs font-bold text-slate-500">{pago.fecha_recaudo}</td>
+                            <td className="px-8 py-5">
+                              {isFallida ? (
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Visita Fallida</span>
+                                  <span className="text-[9px] text-slate-400 italic mt-0.5 truncate max-w-[150px]">{pago.visita_blanco.tipo_falla}: {pago.visita_blanco.comentario}</span>
+                                </div>
+                              ) : (
+                                <span className="text-[11px] font-black text-indigo-600 uppercase tracking-widest">Abono Ordinario</span>
+                              )}
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                              <span className={`text-sm font-black ${valor > 0 ? 'text-emerald-600' : 'text-slate-300'}`}>{formatMoney(valor)}</span>
+                            </td>
+                            <td className="px-8 py-5 text-center">
+                              <div className="flex items-center justify-center gap-3">
+                                {valor > 0 && <button onClick={() => setEditingRecaudo(pago)} className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-indigo-600 transition-colors"><FiEdit size={14} /></button>}
+                                <button onClick={() => setDeletingRecaudo(pago)} className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-rose-600 transition-colors"><FiTrash2 size={14} /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           {/* Sidebar Area: Client Snapshot */}
           <div className="lg:col-span-4 space-y-10">
-             <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800">
-                <div className="flex items-center gap-4 mb-10 border-b border-slate-100 dark:border-slate-800 pb-6">
-                   <div className="p-3 bg-indigo-500 text-white rounded-2xl shadow-xl shadow-indigo-100"><FiUser size={24} /></div>
-                   <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase">Titularización</h2>
-                </div>
+            <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+              <div className="flex items-center gap-4 mb-10 border-b border-slate-100 dark:border-slate-800 pb-6">
+                <div className="p-3 bg-indigo-500 text-white rounded-2xl shadow-xl shadow-indigo-100"><FiUser size={24} /></div>
+                <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase">Titularización</h2>
+              </div>
 
-                <div className="flex flex-col items-center text-center mb-10">
-                   <div className="w-24 h-24 bg-indigo-50 dark:bg-slate-800 border-4 border-white dark:border-slate-900 rounded-[2.5rem] flex items-center justify-center text-4xl text-indigo-500 font-black shadow-2xl mb-6">
-                      {venta.cliente.nombres.charAt(0)}
-                   </div>
-                   <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none mb-1">{venta.cliente.nombres} {venta.cliente.apellidos}</h3>
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{venta.cliente.identificacion}</p>
-                   <div className="mt-4">{venta.cliente.estado_cliente === "Activo" ? <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">Solvente</span> : <span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-rose-100">Bloqueado</span>}</div>
+              <div className="flex flex-col items-center text-center mb-10">
+                <div className="w-24 h-24 bg-indigo-50 dark:bg-slate-800 border-4 border-white dark:border-slate-900 rounded-[2.5rem] flex items-center justify-center text-4xl text-indigo-500 font-black shadow-2xl mb-6">
+                  {venta.cliente.nombres.charAt(0)}
                 </div>
+                <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none mb-1">{venta.cliente.nombres} {venta.cliente.apellidos}</h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{venta.cliente.identificacion}</p>
+                <div className="mt-4">{venta.cliente.estado_cliente === "Activo" ? <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">Solvente</span> : <span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-rose-100">Bloqueado</span>}</div>
+              </div>
 
-                <div className="space-y-6 mb-10">
-                   <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
-                      <div className="p-2 bg-white dark:bg-slate-700 text-slate-400 rounded-xl shadow-sm"><FiMapPin size={18} /></div>
-                      <div className="flex-1 truncate">
-                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ub icación</p>
-                         <p className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate">{venta.cliente.direccion}</p>
-                      </div>
-                   </div>
-                   <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
-                      <div className="p-2 bg-white dark:bg-slate-700 text-slate-400 rounded-xl shadow-sm"><FiPhone size={18} /></div>
-                      <div>
-                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Contacto Directo</p>
-                         <p className="text-xs font-bold text-slate-600 dark:text-slate-300">{venta.cliente.telefono_principal}</p>
-                      </div>
-                   </div>
-                   <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
-                      <div className="p-2 bg-white dark:bg-slate-700 text-slate-400 rounded-xl shadow-sm"><FiShield size={18} /></div>
-                      <div>
-                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Razon Social</p>
-                         <p className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tighter">{venta.cliente.nombre_local || "S/N"}</p>
-                      </div>
-                   </div>
+              <div className="space-y-6 mb-10">
+                <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                  <div className="p-2 bg-white dark:bg-slate-700 text-slate-400 rounded-xl shadow-sm"><FiMapPin size={18} /></div>
+                  <div className="flex-1 truncate">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ub icación</p>
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate">{venta.cliente.direccion}</p>
+                  </div>
                 </div>
-
-                <button 
-                  onClick={() => router.push(`/dashboard/clientes/${venta.cliente.id}`)}
-                  className="w-full py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 group"
-                >
-                  Expediente Completo <FiArrowUpRight className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                </button>
-             </div>
-
-             <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 bg-indigo-600 text-white relative overflow-hidden group">
-                <div className="relative z-10">
-                   <h3 className="text-xl font-black uppercase tracking-tight mb-4">Cartera Proyectada</h3>
-                   <div className="space-y-4">
-                      <div className="flex justify-between items-end border-b border-white/10 pb-4">
-                         <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Capital de Giro</span>
-                         <span className="text-lg font-black">{formatMoney(venta.valor_venta)}</span>
-                      </div>
-                      <div className="flex justify-between items-end border-b border-white/10 pb-4">
-                         <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Utilidad Bruta</span>
-                         <span className="text-lg font-black text-emerald-300">+{formatMoney(parseFloat(venta.total_a_pagar) - parseFloat(venta.valor_venta))}</span>
-                      </div>
-                      <div className="flex justify-between items-end pt-2">
-                         <span className="text-[10px] font-black uppercase tracking-widest opacity-60 text-indigo-200">Total Recupero</span>
-                         <span className="text-2xl font-black">{formatMoney(venta.total_a_pagar)}</span>
-                      </div>
-                   </div>
+                <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                  <div className="p-2 bg-white dark:bg-slate-700 text-slate-400 rounded-xl shadow-sm"><FiPhone size={18} /></div>
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Contacto Directo</p>
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-300">{venta.cliente.telefono_principal}</p>
+                  </div>
                 </div>
-                <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000"></div>
-             </div>
+                <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                  <div className="p-2 bg-white dark:bg-slate-700 text-slate-400 rounded-xl shadow-sm"><FiShield size={18} /></div>
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Razon Social</p>
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tighter">{venta.cliente.nombre_local || "S/N"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => router.push(`/dashboard/clientes/${venta.cliente.id}`)}
+                className="w-full py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 group"
+              >
+                Expediente Completo <FiArrowUpRight className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+              </button>
+            </div>
+
+            <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 bg-indigo-600 text-white relative overflow-hidden group">
+              <div className="relative z-10">
+                <h3 className="text-xl font-black uppercase tracking-tight mb-4">Cartera Proyectada</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-end border-b border-white/10 pb-4">
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Capital de Giro</span>
+                    <span className="text-lg font-black">{formatMoney(venta.valor_venta)}</span>
+                  </div>
+                  <div className="flex justify-between items-end border-b border-white/10 pb-4">
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Utilidad Bruta</span>
+                    <span className="text-lg font-black text-emerald-300">+{formatMoney(parseFloat(venta.total_a_pagar) - parseFloat(venta.valor_venta))}</span>
+                  </div>
+                  <div className="flex justify-between items-end pt-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60 text-indigo-200">Total Recupero</span>
+                    <span className="text-2xl font-black">{formatMoney(venta.total_a_pagar)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000"></div>
+            </div>
           </div>
         </div>
       </div>
