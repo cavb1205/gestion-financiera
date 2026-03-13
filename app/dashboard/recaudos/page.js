@@ -8,6 +8,7 @@ import {
   FiCalendar,
   FiRefreshCw,
   FiChevronLeft,
+  FiChevronRight,
   FiUser,
   FiSearch,
   FiCheck,
@@ -112,8 +113,16 @@ export default function RecaudosPage() {
   }, [filteredRecaudos]);
 
   // Paginación
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const totalPages = Math.ceil(filteredRecaudos.length / itemsPerPage);
-  const currentItems = filteredRecaudos.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const currentItems = filteredRecaudos.slice(indexOfFirstItem, indexOfLastItem);
+  const getPageNumbers = (current, total) => {
+    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
+    if (current <= 3) return [1, 2, 3, 4, 5];
+    if (current >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
+    return [current - 2, current - 1, current, current + 1, current + 2];
+  };
 
   const formatCurrency = (value) => {
     return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
@@ -384,26 +393,39 @@ export default function RecaudosPage() {
 
            {/* Pagination */}
            {totalPages > 1 && (
-             <div className="px-10 py-8 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                   Página {currentPage} de {totalPages} • Total {filteredRecaudos.length} Registros
-                </p>
-                <div className="flex items-center gap-2">
-                   <button 
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(prev => prev - 1)}
-                    className="px-6 py-3 bg-white dark:bg-slate-900 text-slate-400 rounded-xl border border-slate-200 dark:border-slate-800 disabled:opacity-30 hover:text-indigo-600 transition-all font-black text-[10px] uppercase tracking-widest"
+             <div className="px-8 py-5 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:block">
+                 {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredRecaudos.length)} de {filteredRecaudos.length}
+               </p>
+               <div className="flex items-center gap-1.5 mx-auto sm:mx-0">
+                 <button
+                   disabled={currentPage === 1}
+                   onClick={() => setCurrentPage(p => p - 1)}
+                   className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
+                 >
+                   <FiChevronLeft size={16} />
+                 </button>
+                 {getPageNumbers(currentPage, totalPages).map(n => (
+                   <button
+                     key={n}
+                     onClick={() => setCurrentPage(n)}
+                     className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all active:scale-95 ${
+                       currentPage === n
+                         ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg'
+                         : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                     }`}
                    >
-                     Anterior
+                     {n}
                    </button>
-                   <button 
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(prev => prev + 1)}
-                    className="px-6 py-3 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl border border-slate-200 dark:border-slate-800 disabled:opacity-30 shadow-sm font-black text-[10px] uppercase tracking-widest hover:border-indigo-500 transition-all"
-                   >
-                     Siguiente
-                   </button>
-                </div>
+                 ))}
+                 <button
+                   disabled={currentPage === totalPages}
+                   onClick={() => setCurrentPage(p => p + 1)}
+                   className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
+                 >
+                   <FiChevronRight size={16} />
+                 </button>
+               </div>
              </div>
            )}
         </div>

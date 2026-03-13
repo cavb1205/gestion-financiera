@@ -130,6 +130,12 @@ export default function GastosPage() {
   const totalPages = Math.ceil(filteredGastos.length / itemsPerPage);
 
   const handlePageChange = (newPage) => setCurrentPage(newPage);
+  const getPageNumbers = (current, total) => {
+    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
+    if (current <= 3) return [1, 2, 3, 4, 5];
+    if (current >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
+    return [current - 2, current - 1, current, current + 1, current + 2];
+  };
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -374,35 +380,39 @@ export default function GastosPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-8 py-6 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Analizando {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, filteredGastos.length)} de {filteredGastos.length} Movimientos
-               </p>
-               <div className="flex items-center gap-2">
-                  <button 
-                    disabled={currentPage === 1}
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    className="p-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 disabled:opacity-30"
+            <div className="px-8 py-5 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:block">
+                {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredGastos.length)} de {filteredGastos.length}
+              </p>
+              <div className="flex items-center gap-1.5 mx-auto sm:mx-0">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                  className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
+                >
+                  <FiChevronLeft size={16} />
+                </button>
+                {getPageNumbers(currentPage, totalPages).map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setCurrentPage(n)}
+                    className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all active:scale-95 ${
+                      currentPage === n
+                        ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg'
+                        : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                    }`}
                   >
-                    <FiChevronLeft />
+                    {n}
                   </button>
-                  {[...Array(totalPages)].map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handlePageChange(i + 1)}
-                      className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${currentPage === i + 1 ? 'bg-rose-600 text-white shadow-lg shadow-rose-200 dark:shadow-none' : 'bg-white dark:bg-slate-900 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                  <button 
-                    disabled={currentPage === totalPages}
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    className="p-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 disabled:opacity-30"
-                  >
-                    <FiChevronRight />
-                  </button>
-               </div>
+                ))}
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
+                >
+                  <FiChevronRight size={16} />
+                </button>
+              </div>
             </div>
           )}
         </div>

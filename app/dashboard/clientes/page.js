@@ -105,6 +105,12 @@ export default function ClientesPage() {
 
   // Cambiar página
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const getPageNumbers = (current, total) => {
+    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
+    if (current <= 3) return [1, 2, 3, 4, 5];
+    if (current >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
+    return [current - 2, current - 1, current, current + 1, current + 2];
+  };
 
   // Resetear filtros
   const resetFilters = () => {
@@ -432,50 +438,38 @@ export default function ClientesPage() {
             </div>
 
             {/* Paginación */}
-            {filteredClientes.length > itemsPerPage && (
-              <div className="mt-10 flex flex-col md:flex-row items-center justify-between gap-6 px-4">
-                <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                  Visualizando <span className="text-indigo-600">{indexOfFirstItem + 1} - {Math.min(indexOfLastItem, filteredClientes.length)}</span> de <span className="text-slate-800 dark:text-white">{filteredClientes.length} registros</span>
-                </div>
-                <div className="flex items-center gap-2">
+            {totalPages > 1 && (
+              <div className="px-8 py-5 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:block">
+                  {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredClientes.length)} de {filteredClientes.length}
+                </p>
+                <div className="flex items-center gap-1.5 mx-auto sm:mx-0">
                   <button
-                    onClick={() => paginate(Math.max(1, currentPage - 1))}
+                    onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 disabled:opacity-30 hover:bg-slate-50 transition-all shadow-sm"
+                    className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
                   >
-                    <FiChevronLeft size={20} />
+                    <FiChevronLeft size={16} />
                   </button>
-                  
-                  <div className="flex gap-1.5">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNumber;
-                      if (totalPages <= 5) pageNumber = i + 1;
-                      else if (currentPage <= 3) pageNumber = i + 1;
-                      else if (currentPage >= totalPages - 2) pageNumber = totalPages - 4 + i;
-                      else pageNumber = currentPage - 2 + i;
-                      
-                      return (
-                        <button
-                          key={pageNumber}
-                          onClick={() => paginate(pageNumber)}
-                          className={`w-11 h-11 flex items-center justify-center rounded-xl text-xs font-black transition-all ${
-                            currentPage === pageNumber
-                              ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-xl shadow-slate-200 dark:shadow-none'
-                              : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'
-                          }`}
-                        >
-                          {pageNumber}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  
+                  {getPageNumbers(currentPage, totalPages).map(n => (
+                    <button
+                      key={n}
+                      onClick={() => paginate(n)}
+                      className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all active:scale-95 ${
+                        currentPage === n
+                          ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg'
+                          : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
                   <button
-                    onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                    onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 disabled:opacity-30 hover:bg-slate-50 transition-all shadow-sm"
+                    className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
                   >
-                    <FiChevronRight size={20} />
+                    <FiChevronRight size={16} />
                   </button>
                 </div>
               </div>

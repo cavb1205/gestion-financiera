@@ -117,6 +117,13 @@ export default function AportesPage() {
   const currentAportes = filteredAportes.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredAportes.length / itemsPerPage);
 
+  const getPageNumbers = (current, total) => {
+    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
+    if (current <= 3) return [1, 2, 3, 4, 5];
+    if (current >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
+    return [current - 2, current - 1, current, current + 1, current + 2];
+  };
+
   const totalAportes = filteredAportes.reduce(
     (total, aporte) => total + parseFloat(aporte.valor),
     0
@@ -315,57 +322,50 @@ export default function AportesPage() {
           </div>
 
           {/* Pagination & Stats Footer */}
-          {filteredAportes.length > 0 && (
-            <div className="p-8 bg-slate-50/50 dark:bg-slate-900/40 border-t border-slate-100 dark:border-slate-800">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                 <div className="flex items-center gap-4">
-                   <select
-                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-widest focus:ring-2 focus:ring-indigo-500/20"
-                    value={itemsPerPage}
-                    onChange={handleItemsPerPageChange}
-                   >
-                    <option value="5">Mostrar 5</option>
-                    <option value="10">Mostrar 10</option>
-                    <option value="25">Mostrar 25</option>
-                   </select>
-                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
-                      Mostrando {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredAportes.length)} de {filteredAportes.length}
-                   </p>
-                 </div>
-
-                 <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm"
-                    >
-                      <FiChevronLeft size={20} />
-                    </button>
-                    
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <button
-                          key={page}
-                          onClick={() => handlePageChange(page)}
-                          className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${
-                            currentPage === page
-                              ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-lg"
-                              : "text-slate-400 hover:bg-white dark:hover:bg-slate-800"
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                    </div>
-
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm"
-                    >
-                      <FiChevronRight size={20} />
-                    </button>
-                 </div>
+          {totalPages > 1 && (
+            <div className="px-8 py-5 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 hidden sm:flex">
+                <select
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-widest focus:ring-2 focus:ring-indigo-500/20"
+                  value={itemsPerPage}
+                  onChange={handleItemsPerPageChange}
+                >
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                </select>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredAportes.length)} de {filteredAportes.length}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 mx-auto sm:mx-0">
+                <button
+                  onClick={() => setCurrentPage(p => p - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
+                >
+                  <FiChevronLeft size={16} />
+                </button>
+                {getPageNumbers(currentPage, totalPages).map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setCurrentPage(n)}
+                    className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all active:scale-95 ${
+                      currentPage === n
+                        ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg'
+                        : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
+                >
+                  <FiChevronRight size={16} />
+                </button>
               </div>
             </div>
           )}
