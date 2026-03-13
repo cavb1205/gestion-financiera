@@ -389,6 +389,11 @@ export default function LiquidarCreditosPage() {
                                              {Math.round(credito.dias_atrasados)} Días Mora
                                           </span>
                                        )}
+                                       {credito.dias_atrasados < 0 && (
+                                          <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">
+                                             {Math.round(Math.abs(credito.dias_atrasados))} Días Adelantado
+                                          </span>
+                                       )}
                                     </div>
                                  </td>
                                  <td className="px-4 py-6 text-right whitespace-nowrap">
@@ -439,6 +444,9 @@ export default function LiquidarCreditosPage() {
                                     {getStatusBadge(credito.estado_venta)}
                                     {credito.dias_atrasados > 0 && (
                                        <span className="px-3 py-1 bg-rose-50 dark:bg-rose-900/20 text-rose-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-rose-100 dark:border-rose-800">{Math.round(credito.dias_atrasados)}d Mora</span>
+                                    )}
+                                    {credito.dias_atrasados < 0 && (
+                                       <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-emerald-100 dark:border-emerald-800">{Math.round(Math.abs(credito.dias_atrasados))}d Adelantado</span>
                                     )}
                                  </div>
                               </div>

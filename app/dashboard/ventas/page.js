@@ -38,6 +38,8 @@ export default function VentasPage() {
     montoMin: "",
     montoMax: "",
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   useEffect(() => {
     if (!loading && isAuthenticated && selectedStore) {
@@ -78,8 +80,8 @@ export default function VentasPage() {
     }
   };
 
-  let ventasOrdered = ventas.sort((a, b) => b.id - a.id);
-  
+  const ventasOrdered = [...ventas].sort((a, b) => b.id - a.id);
+
   const filteredVentas = ventasOrdered.filter((venta) => {
     if (filters.estado !== "Todos" && venta.estado_venta !== filters.estado) return false;
     if (filters.montoMin && parseFloat(venta.saldo_actual) < parseFloat(filters.montoMin)) return false;
@@ -96,6 +98,20 @@ export default function VentasPage() {
     }
     return true;
   });
+
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, filters]);
+
+  const totalPages = Math.ceil(filteredVentas.length / itemsPerPage);
+  const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
+  const indexOfLastItem = indexOfFirstItem + itemsPerPage;
+  const currentVentas = filteredVentas.slice(indexOfFirstItem, indexOfLastItem);
+
+  const getPageNumbers = (current, total) => {
+    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
+    if (current <= 3) return [1, 2, 3, 4, 5];
+    if (current >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
+    return [current - 2, current - 1, current, current + 1, current + 2];
+  };
 
   const summary = filteredVentas.reduce(
     (acc, venta) => {
@@ -166,7 +182,7 @@ export default function VentasPage() {
           <div className="flex items-center gap-3">
             <button 
               onClick={fetchVentas}
-              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
+              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 active:scale-95 transition-all shadow-sm group"
             >
               <FiActivity size={20} className="group-hover:rotate-12 transition-transform" />
             </button>
@@ -321,7 +337,7 @@ export default function VentasPage() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-800/20">
-                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Referencia</th>
+                  <th className="hidden md:table-cell px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Referencia</th>
                   <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Titular del Crédito</th>
                   <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha Venta</th>
                   <th className="px-12 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Valor Venta</th>
@@ -341,13 +357,13 @@ export default function VentasPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredVentas.map((venta) => (
+                  currentVentas.map((venta) => (
                     <tr 
                       key={venta.id} 
                       onClick={() => router.push(`/dashboard/ventas/${venta.id}`)}
                       className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all cursor-pointer"
                     >
-                      <td className="px-4 py-6 whitespace-nowrap">
+                      <td className="hidden md:table-cell px-4 py-6 whitespace-nowrap">
                          <span className="text-xs font-black text-slate-400 group-hover:text-indigo-600 transition-colors">#{venta.id}</span>
                       </td>
                       <td className="px-4 py-6 whitespace-nowrap">
@@ -387,7 +403,12 @@ export default function VentasPage() {
                            {getStatusBadge(venta.estado_venta)}
                            {venta.dias_atrasados > 0 && (
                              <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest">
-                                {Math.round(venta.dias_atrasados)} Días Mora
+                               {Math.round(venta.dias_atrasados)} Días Mora
+                             </span>
+                           )}
+                           {venta.dias_atrasados < 0 && (
+                             <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">
+                               {Math.round(Math.abs(venta.dias_atrasados))} Días Adelantado
                              </span>
                            )}
                         </div>
@@ -399,6 +420,39 @@ export default function VentasPage() {
             </table>
           </div>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-6">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 disabled:opacity-30 hover:text-indigo-600 active:scale-95 transition-all shadow-sm"
+            >
+              <FiChevronLeft size={16} />
+            </button>
+            {getPageNumbers(currentPage, totalPages).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-9 h-9 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 ${
+                  currentPage === page
+                    ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-lg"
+                    : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 disabled:opacity-30 hover:text-indigo-600 active:scale-95 transition-all shadow-sm"
+            >
+              <FiChevronRight size={16} />
+            </button>
+          </div>
+        )}
 
         {/* Financial Context Sidebar/Extra (Optional stats) */}
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -34,7 +34,6 @@ export default function CrearCliente() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [corsError, setCorsError] = useState(false);
 
   useEffect(() => {
     if (!loading && (!isAuthenticated || !selectedStore)) {
@@ -57,7 +56,6 @@ export default function CrearCliente() {
       });
     }
 
-    if (corsError) setCorsError(false);
     if (submitError) setSubmitError("");
   };
 
@@ -116,32 +114,26 @@ export default function CrearCliente() {
       );
 
       if (!response.ok) {
-        // Manejo mejorado de errores del backend
         const errorData = await response.json();
-
-        // Mapear errores del backend a campos específicos
         const backendErrors = {};
+        let globalError = "Por favor revise los errores en el formulario";
+
         Object.keys(errorData).forEach((field) => {
           let errorMessage = Array.isArray(errorData[field])
             ? errorData[field].join(", ")
             : errorData[field];
-            
-          // Mejorar mensaje para error de identificación duplicada
-          if (field === 'identificacion' && 
-             (errorMessage.includes('unique') || errorMessage.includes('exists') || errorMessage.includes('ya existe'))) {
-            errorMessage = "Ya existe un cliente registrado con esta identificación. Por favor verifique el número o busque el cliente en la lista.";
-            
-            // También mostrar un mensaje global para que sea más evidente
-            setSubmitError("No se pudo crear el cliente: La identificación ya está registrada.");
+
+          if (field === 'identificacion' &&
+            (errorMessage.includes('unique') || errorMessage.includes('exists') || errorMessage.includes('ya existe'))) {
+            errorMessage = "Ya existe un cliente con esta identificación.";
+            globalError = "No se pudo crear el cliente: La identificación ya está registrada.";
           }
-          
+
           backendErrors[field] = errorMessage;
         });
 
         setErrors(backendErrors);
-        if (!submitError) { // Solo lanzar error genérico si no pusimos uno específico
-             throw new Error("Por favor revise los errores en el formulario");
-        }
+        throw new Error(globalError);
       }
 
       // Éxito

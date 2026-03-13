@@ -59,16 +59,17 @@ export default function EditarVentaPage() {
   const fetchVenta = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const [response, pagosResponse] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
       if (!response.ok) throw new Error("No se pudieron cargar los datos de la venta");
       const ventaData = await response.json();
-      
-      const pagosResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
 
       let pagos = [];
       if (pagosResponse.ok) pagos = await pagosResponse.json();
@@ -213,7 +214,7 @@ export default function EditarVentaPage() {
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-12">
-            <div className="glass p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl">
+            <div className="glass p-6 md:p-10 pb-32 md:pb-10 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl">
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10">
                 
@@ -338,29 +339,31 @@ export default function EditarVentaPage() {
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-center justify-end gap-3">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full md:flex-1 flex items-center justify-center gap-3 py-4.5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 dark:shadow-none active:scale-95 transition-all disabled:opacity-50 order-1 md:order-2"
-                >
-                  {isSubmitting ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <FiSave size={18} />
-                      Sincronizar Cambios
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => router.push(`/dashboard/ventas/${ventaId}`)}
-                  className="w-full md:w-auto px-8 py-4.5 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-slate-600 transition-all order-2 md:order-1"
-                >
-                  Cancelar
-                </button>
+              {/* Actions — sticky on mobile */}
+              <div className="fixed bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-[100] md:relative md:bottom-auto md:bg-transparent md:border-t md:border-slate-100 dark:md:border-slate-800 md:p-0 md:backdrop-blur-none md:z-auto md:mt-8 md:pt-6">
+                <div className="flex flex-col md:flex-row items-center justify-end gap-3 max-w-7xl mx-auto">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full md:flex-1 flex items-center justify-center gap-3 py-4.5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 dark:shadow-none active:scale-95 transition-all disabled:opacity-50 order-1 md:order-2"
+                  >
+                    {isSubmitting ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        <FiSave size={18} />
+                        Sincronizar Cambios
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/dashboard/ventas/${ventaId}`)}
+                    className="w-full md:w-auto px-8 py-4.5 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </div>
 
             </div>

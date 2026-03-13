@@ -182,7 +182,7 @@ export default function EditarCliente() {
 
       // Éxito
       setSuccess(true);
-      setTimeout(() => router.push("/dashboard/clientes"), 1500);
+      setTimeout(() => router.push(`/dashboard/clientes/${clienteId}`), 1500);
     } catch (err) {
       setSubmitError(err.message || "Error al actualizar el cliente");
       console.error("Error updating client:", err);
@@ -228,7 +228,7 @@ export default function EditarCliente() {
             <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
           </div>
 
-          <div className="p-6 md:p-10 bg-white/40 dark:bg-transparent">
+          <div className="p-6 md:p-10 pb-32 md:pb-10 bg-white/40 dark:bg-transparent">
             {submitError && (
               <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl flex items-start gap-3">
                 <div className="bg-rose-100 dark:bg-rose-900/40 p-2 rounded-lg shrink-0">
@@ -356,28 +356,30 @@ export default function EditarCliente() {
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-center justify-end gap-3">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full md:flex-1 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-slate-200 dark:shadow-none disabled:opacity-50 order-1 md:order-2"
-                  >
-                    {isSubmitting ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                      <>
-                        <FiSave size={16} />
-                        Guardar Cambios
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/clientes")}
-                    className="w-full md:w-auto px-8 py-4 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
-                  >
-                    Cancelar
-                  </button>
+                <div className="fixed bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-[100] md:relative md:bottom-auto md:bg-transparent md:border-t md:border-slate-100 dark:md:border-slate-800 md:p-0 md:backdrop-blur-none md:z-auto md:pt-6">
+                  <div className="flex flex-col md:flex-row items-center justify-end gap-3 max-w-4xl mx-auto">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full md:flex-1 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-slate-200 dark:shadow-none disabled:opacity-50 order-1 md:order-2"
+                    >
+                      {isSubmitting ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      ) : (
+                        <>
+                          <FiSave size={16} />
+                          Guardar Cambios
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/dashboard/clientes/${clienteId}`)}
+                      className="w-full md:w-auto px-8 py-4 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
                 </div>
               </form>
             )}

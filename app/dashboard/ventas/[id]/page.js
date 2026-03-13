@@ -217,34 +217,33 @@ export default function VentaDetailPage() {
 
       <div className="w-full">
 
-        {/* Header con Contexto */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-6">
-          <div className="flex items-center gap-5">
-            <button onClick={() => router.push("/dashboard/ventas")} className="p-4 bg-white dark:bg-slate-900 text-slate-400 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group">
-              <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-            </button>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none capitalize">{venta.cliente?.nombres} {venta.cliente?.apellidos}</h1>
-                {getStatusBadge(venta.estado_venta)}
-              </div>
-              <p className="text-sm font-bold text-slate-400 capitalize tracking-widest mt-2">
-                <span className="text-indigo-500">{selectedStore?.tienda?.nombre}</span>
-              </p>
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-6">
+          <button onClick={() => router.push("/dashboard/ventas")} className="p-3.5 bg-white dark:bg-slate-900 text-slate-400 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 active:scale-95 transition-all shadow-sm group shrink-0">
+            <FiArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+          </button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none capitalize truncate">{venta.cliente?.nombres} {venta.cliente?.apellidos}</h1>
+              {getStatusBadge(venta.estado_venta)}
             </div>
+            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none mt-1">
+              Crédito #{ventaId} • <span className="opacity-60">{selectedStore?.tienda?.nombre}</span>
+            </p>
           </div>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button onClick={handleRegistrarPago} className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 transition-all flex items-center gap-2">
-              <FiPlus size={18} /> Registrar Abono
-            </button>
-            <button onClick={() => router.push(`/dashboard/ventas/${ventaId}/editar`)} className="px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
-              <FiEdit size={18} /> Editar
-            </button>
-            <button onClick={() => setShowLossModal(true)} className="px-6 py-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm border border-rose-100 dark:border-rose-900/30 hover:bg-rose-100 transition-all flex items-center gap-2">
-              <FiAlertTriangle size={18} /> Pérdida
-            </button>
-          </div>
+        {/* Action buttons */}
+        <div className="flex flex-wrap items-center gap-3 mb-8">
+          <button onClick={handleRegistrarPago} className="flex-1 md:flex-none px-6 py-3.5 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
+            <FiPlus size={16} /> Registrar Abono
+          </button>
+          <button onClick={() => router.push(`/dashboard/ventas/${ventaId}/editar`)} className="px-5 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:bg-slate-50 active:scale-95 transition-all flex items-center gap-2">
+            <FiEdit size={16} /> Editar
+          </button>
+          <button onClick={() => setShowLossModal(true)} className="px-5 py-3.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm border border-rose-100 dark:border-rose-900/30 hover:bg-rose-100 active:scale-95 transition-all flex items-center gap-2">
+            <FiAlertTriangle size={16} /> Pérdida
+          </button>
         </div>
 
         {/* Resumen Financiero Top Metrics */}
@@ -275,7 +274,16 @@ export default function VentaDetailPage() {
             <p className={`text-3xl font-black tracking-tighter mb-1 select-all ${parseFloat(venta.saldo_actual) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
               {formatMoney(venta.saldo_actual)}
             </p>
-            <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">{Math.round(venta.pagos_pendientes)} Cuotas Pendientes</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{Math.round(venta.pagos_pendientes)} Cuotas Pend.</p>
+              <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{progresoPago.toFixed(1)}%</p>
+            </div>
+            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
+                style={{ width: `${Math.min(progresoPago, 100)}%` }}
+              />
+            </div>
           </div>
 
           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
@@ -324,6 +332,10 @@ export default function VentaDetailPage() {
                 <div className="space-y-1">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Plazo Original</p>
                   <p className="text-sm font-black text-slate-700 dark:text-slate-200 uppercase">{venta.plazo}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tasa Pactada</p>
+                  <p className="text-sm font-black text-indigo-600">{venta.interes}%</p>
                 </div>
               </div>
 
@@ -436,7 +448,7 @@ export default function VentaDetailPage() {
                 <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
                   <div className="p-2 bg-white dark:bg-slate-700 text-slate-400 rounded-xl shadow-sm"><FiMapPin size={18} /></div>
                   <div className="flex-1 truncate">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ub icación</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ubicación</p>
                     <p className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate">{venta.cliente.direccion}</p>
                   </div>
                 </div>

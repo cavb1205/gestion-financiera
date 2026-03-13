@@ -46,16 +46,17 @@ export default function EliminarVentaPage() {
   const fetchVenta = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const [response, pagosResponse] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
       if (!response.ok) throw new Error("No se pudieron cargar los datos de la venta");
       const venta = await response.json();
-      
-      const pagosResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
 
       let pagos = [];
       if (pagosResponse.ok) pagos = await pagosResponse.json();
@@ -117,20 +118,18 @@ export default function EliminarVentaPage() {
   return (
     <div className="min-h-screen bg-transparent pb-12">
       <div className="max-w-4xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-6">
-          <div className="flex items-center gap-5">
-            <button
-              onClick={() => router.push(`/dashboard/ventas/${ventaId}`)}
-              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-rose-600 transition-all shadow-sm group"
-            >
-              <FiArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none uppercase">Depuración de Contrato</h1>
-              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
-                Remoción Permanente • <span className="text-rose-500">ID #{ventaId}</span>
-              </p>
-            </div>
+        <div className="flex items-center gap-4 mb-8">
+          <button
+            onClick={() => router.push(`/dashboard/ventas/${ventaId}`)}
+            className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-rose-600 active:scale-95 transition-all shadow-sm group shrink-0"
+          >
+            <FiArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+          </button>
+          <div className="min-w-0">
+            <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase truncate">Depuración de Contrato</h1>
+            <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest leading-none mt-1">
+              Remoción Permanente • <span className="opacity-60">ID #{ventaId}</span>
+            </p>
           </div>
         </div>
 

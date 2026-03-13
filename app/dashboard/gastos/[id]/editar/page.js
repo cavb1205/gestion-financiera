@@ -147,7 +147,7 @@ export default function EditarGastoPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8">
-            <div className="glass p-8 md:p-12 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl relative overflow-hidden">
+            <div className="glass p-8 md:p-12 pb-32 md:pb-12 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl relative overflow-hidden">
                <div className="relative z-10">
                   <form onSubmit={handleSubmit} className="space-y-8">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -195,8 +195,9 @@ export default function EditarGastoPage() {
                                 value={formData.valor}
                                 onChange={handleChange}
                                 required
-                                min="0"
+                                min="0.01"
                                 step="any"
+                                onWheel={(e) => e.target.blur()}
                                 className="w-full pl-16 pr-6 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[24px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all outline-none"
                               />
                            </div>
@@ -219,28 +220,30 @@ export default function EditarGastoPage() {
                         </div>
                      </div>
 
-                     <div className="flex flex-col md:flex-row items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
-                        <button
-                          type="submit"
-                          disabled={isSubmitting}
-                          className="w-full md:flex-1 py-4 bg-slate-900 dark:bg-rose-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-slate-200 dark:shadow-none disabled:opacity-50 order-1 md:order-2"
-                        >
-                          {isSubmitting ? (
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                          ) : (
-                            <>
-                              <FiSave size={16} />
-                              Guardar Ajustes
-                            </>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => router.push("/dashboard/gastos")}
-                          className="w-full md:w-auto px-8 py-4 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
-                        >
-                          Descartar Cambios
-                        </button>
+                     <div className="fixed bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-[100] md:relative md:bottom-auto md:bg-transparent md:border-t md:border-slate-100 dark:md:border-slate-800 md:p-0 md:backdrop-blur-none md:z-auto md:pt-6">
+                        <div className="flex flex-col md:flex-row items-center justify-end gap-3 max-w-7xl mx-auto">
+                          <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full md:flex-1 py-4 bg-slate-900 dark:bg-rose-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-slate-200 dark:shadow-none disabled:opacity-50 order-1 md:order-2"
+                          >
+                            {isSubmitting ? (
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            ) : (
+                              <>
+                                <FiSave size={16} />
+                                Guardar Ajustes
+                              </>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => router.push("/dashboard/gastos")}
+                            className="w-full md:w-auto px-8 py-4 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
+                          >
+                            Descartar Cambios
+                          </button>
+                        </div>
                      </div>
                   </form>
                </div>

@@ -29,7 +29,7 @@ import {
   FiBarChart2,
   FiTarget
 } from "react-icons/fi";
-import { FaStar, FaRegStar, FaBan, FaSkullCrossbones } from "react-icons/fa";
+import { FaBan, FaSkullCrossbones } from "react-icons/fa";
 import { useAuth } from "../../../context/AuthContext";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import ErrorMessage from "../../../components/ErrorMessage";
@@ -41,7 +41,6 @@ export default function DetalleCliente({ params }) {
   const [creditos, setCreditos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   params = useParams();
 
   const clienteId = params.id;
@@ -232,42 +231,27 @@ export default function DetalleCliente({ params }) {
       setIsLoading(true);
       setError("");
 
-      // Obtener detalles del cliente
-      const clienteResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clientes/${clienteId}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const [clienteResponse, creditosResponse] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes/${clienteId}/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/${clienteId}/t/${selectedStore.tienda.id}/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
-      if (!clienteResponse.ok) {
-        throw new Error("Error al obtener los detalles del cliente");
-      }
+      if (!clienteResponse.ok) throw new Error("Error al obtener los detalles del cliente");
+      if (!creditosResponse.ok) throw new Error("Error al obtener los créditos del cliente");
 
-      const clienteData = await clienteResponse.json();
+      const [clienteData, creditosData] = await Promise.all([
+        clienteResponse.json(),
+        creditosResponse.json(),
+      ]);
+
       setCliente(clienteData);
-
-      // Obtener créditos del cliente
-      const creditosResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/${clienteId}/t/${selectedStore.tienda.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!creditosResponse.ok) {
-        throw new Error("Error al obtener los créditos del cliente");
-      }
-
-      const creditosData = await creditosResponse.json();
       setCreditos(creditosData);
     } catch (err) {
       setError(err.message || "Error al cargar los datos del cliente");
-      console.error("Error fetching client details:", err);
     } finally {
       setIsLoading(false);
     }
@@ -350,30 +334,6 @@ export default function DetalleCliente({ params }) {
     }
   };
 
-  const handleDelete = async () => {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clientes/${clienteId}/delete/`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Error al eliminar el cliente");
-      }
-
-      router.push("/dashboard/clientes");
-    } catch (err) {
-      setError(err.message || "Error al eliminar el cliente");
-      console.error("Error deleting client:", err);
-    } finally {
-      setShowDeleteConfirmation(false);
-    }
-  };
 
   if (loading || !isAuthenticated || !selectedStore) {
     return <LoadingSpinner />;
@@ -418,56 +378,46 @@ export default function DetalleCliente({ params }) {
       <div className="w-full">
 
         {/* Encabezado Principal */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-12 gap-8">
-          <div className="flex items-start gap-6">
-            <button
-              onClick={() => router.push("/dashboard/clientes")}
-              className="mt-2 p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 transition-all shadow-sm"
-            >
-              <FiArrowLeft size={20} />
-            </button>
-
-            <div>
-              <div className="flex flex-wrap items-center gap-3 mb-2">
-                 <div className="bg-indigo-600 p-2.5 rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none">
-                    <FiUser className="text-white text-xl" />
-                 </div>
-                 {getStatusBadge(cliente.estado_cliente)}
-                 {resumenFinanciero.bloqueado && (
-                   <span className="bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg flex items-center gap-2">
-                     <FaSkullCrossbones /> Riesgo Crítico
-                   </span>
-                 )}
-              </div>
-              <h1 className="text-4xl font-black text-slate-800 dark:text-white tracking-tight leading-none mb-4">
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={() => router.push("/dashboard/clientes")}
+            className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 active:scale-95 transition-all shadow-sm shrink-0"
+          >
+            <FiArrowLeft size={18} />
+          </button>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none truncate">
                 {cliente.nombres} {cliente.apellidos}
               </h1>
-              <div className="flex items-center gap-6 text-slate-400 font-bold text-xs uppercase tracking-[0.15em]">
-                 <span className="flex items-center gap-2">
-                    <FiShield className="text-indigo-500" /> ID: {cliente.identificacion}
-                 </span>
-                 <span className="flex items-center gap-2">
-                    <FiCalendar className="text-indigo-500" /> Miembro desde {formatDate(cliente.fecha_creacion)}
-                 </span>
-              </div>
+              {getStatusBadge(cliente.estado_cliente)}
+              {resumenFinanciero.bloqueado && (
+                <span className="bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                  <FaSkullCrossbones size={10} /> Riesgo Crítico
+                </span>
+              )}
             </div>
+            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none">
+              ID: {cliente.identificacion} • <span className="opacity-60">Desde {formatDate(cliente.fecha_creacion)}</span>
+            </p>
           </div>
+        </div>
 
-          <div className="flex items-center gap-3">
-             <button
-                onClick={() => router.push(`/dashboard/clientes/${clienteId}/editar`)}
-                className="flex-1 lg:flex-none flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-2xl"
-              >
-                <FiEdit size={16} />
-                Modificar Perfil
-              </button>
-              <button
-                onClick={() => router.push(`/dashboard/clientes/${clienteId}/eliminar`)}
-                className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl hover:bg-rose-100 transition-all border border-rose-100 dark:border-rose-900/30"
-              >
-                <FiTrash2 size={20} />
-              </button>
-          </div>
+        {/* Acciones */}
+        <div className="flex flex-wrap items-center gap-3 mb-8">
+          <button
+            onClick={() => router.push(`/dashboard/clientes/${clienteId}/editar`)}
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-xl"
+          >
+            <FiEdit size={16} />
+            Modificar Perfil
+          </button>
+          <button
+            onClick={() => router.push(`/dashboard/clientes/${clienteId}/eliminar`)}
+            className="p-3.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl hover:bg-rose-100 active:scale-95 transition-all border border-rose-100 dark:border-rose-900/30"
+          >
+            <FiTrash2 size={18} />
+          </button>
         </div>
 
         {/* Malla de Indicadores Financieros */}
@@ -750,47 +700,6 @@ export default function DetalleCliente({ params }) {
         </div>
       </div>
 
-      {/* Modern Confirmation Modal */}
-      {showDeleteConfirmation && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-6 animate-in fade-in duration-300">
-           <div className="glass max-w-md w-full rounded-[2.5rem] border-white/60 dark:border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-              <div className="bg-rose-600 p-8 text-white relative overflow-hidden">
-                 <div className="relative z-10 flex items-center gap-4">
-                    <div className="bg-white/20 p-3 rounded-2xl">
-                       <FiAlertCircle size={28} />
-                    </div>
-                    <div>
-                       <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-1">Confirmación Requerida</p>
-                       <h3 className="text-xl font-black tracking-tight leading-tight">Eliminar Registro Maestro</h3>
-                    </div>
-                 </div>
-                 <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
-              </div>
-              
-              <div className="p-10 bg-white/80 dark:bg-slate-900">
-                 <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-relaxed mb-10">
-                    ¿Está completamente seguro de eliminar a <span className="font-black text-slate-800 dark:text-white underline decoration-rose-500/30">{cliente.nombres} {cliente.apellidos}</span>? 
-                    Esta acción purgará todo el historial transaccional asociado de forma irreversible.
-                 </p>
-                 
-                 <div className="grid grid-cols-2 gap-4">
-                    <button
-                      onClick={() => setShowDeleteConfirmation(false)}
-                      className="px-6 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      className="px-6 py-4 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-rose-200 dark:shadow-none hover:scale-105 transition-all"
-                    >
-                      Confirmar Purga
-                    </button>
-                 </div>
-              </div>
-           </div>
-        </div>
-      )}
     </div>
   );
 }

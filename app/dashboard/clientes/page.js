@@ -178,20 +178,20 @@ export default function ClientesPage() {
 
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-6">
           <div className="flex items-center gap-5">
-            <div className="bg-indigo-600 p-4 rounded-[1.5rem] shadow-xl shadow-indigo-200 dark:shadow-none">
+            <div className="bg-indigo-600 p-4 rounded-[1.5rem] shadow-xl shadow-indigo-200 dark:shadow-none shrink-0">
                <FiUsers className="text-white text-3xl" />
             </div>
-            <div>
-              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">Comunidad de Clientes</h1>
+            <div className="min-w-0">
+              <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight truncate">Comunidad de Clientes</h1>
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">
                 {selectedStore.tienda.nombre} • <span className="text-indigo-500">{filteredClientes.length} Registros</span>
               </p>
             </div>
           </div>
-          
-          <button 
+
+          <button
             onClick={() => router.push('/dashboard/clientes/crear')}
-            className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all"
+            className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all shrink-0"
           >
             <FiPlus size={20} />
             Añadir Cliente
@@ -329,12 +329,9 @@ export default function ClientesPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex flex-col justify-center items-center h-96 gap-4">
-            <div className="relative">
-              <div className="w-16 h-16 border-4 border-slate-100 dark:border-slate-800 rounded-full"></div>
-              <div className="w-16 h-16 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin absolute top-0"></div>
-            </div>
-            <p className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Procesando Registros...</p>
+          <div className="min-h-[400px] flex flex-col items-center justify-center bg-transparent">
+            <LoadingSpinner />
+            <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Procesando Registros...</p>
           </div>
         ) : error ? (
           <div className="glass bg-rose-50/50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/30 p-8 rounded-[2.5rem] flex flex-col items-center text-center">
@@ -359,33 +356,37 @@ export default function ClientesPage() {
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
                       <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Identidad Cliente</th>
-                      <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Contacto Directo</th>
-                      <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Establecimiento</th>
-                      <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado Canales</th>
+                      <th className="hidden md:table-cell px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Contacto Directo</th>
+                      <th className="hidden md:table-cell px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Establecimiento</th>
+                      <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado</th>
                       <th className="px-4 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Gestión</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {currentClientes.length > 0 ? (
                       currentClientes.map((cliente) => (
-                        <tr key={cliente.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                        <tr
+                          key={cliente.id}
+                          onClick={() => router.push(`/dashboard/clientes/${cliente.id}`)}
+                          className="hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-colors group cursor-pointer"
+                        >
                           <td className="px-4 py-6 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="flex-shrink-0 h-12 w-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                                <FiUser className="text-indigo-600 text-xl" />
+                              <div className="flex-shrink-0 h-10 w-10 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-600 font-black text-sm group-hover:scale-110 transition-transform">
+                                {cliente.nombres?.charAt(0)}
                               </div>
-                              <div className="ml-5">
-                                <div className="text-[15px] font-black text-slate-800 dark:text-white tracking-tight">
+                              <div className="ml-4 min-w-0">
+                                <div className="text-[14px] font-black text-slate-800 dark:text-white tracking-tight truncate">
                                   {cliente.nombres} {cliente.apellidos}
                                 </div>
-                                <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1 mt-0.5">
-                                  <FiMapPin className="text-indigo-400" />
+                                <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1 mt-0.5 truncate">
+                                  <FiMapPin className="text-indigo-400 shrink-0" size={10} />
                                   {cliente.direccion}
                                 </div>
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-6 whitespace-nowrap">
+                          <td className="hidden md:table-cell px-4 py-6 whitespace-nowrap">
                             <div className="flex flex-col gap-1">
                               <div className="text-[13px] font-black text-slate-700 dark:text-slate-300 flex items-center gap-2">
                                 <FiPhone className="text-slate-400" size={12} />
@@ -398,24 +399,24 @@ export default function ClientesPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-6 whitespace-nowrap text-[13px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">
-                            {cliente.nombre_local || "N/A"}
+                          <td className="hidden md:table-cell px-4 py-6 whitespace-nowrap text-[13px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">
+                            {cliente.nombre_local || "—"}
                           </td>
                           <td className="px-4 py-6 whitespace-nowrap">
                             {getStatusBadge(cliente.estado_cliente)}
                           </td>
                           <td className="px-4 py-6 whitespace-nowrap text-right">
-                            <div className="flex justify-end gap-2">
+                            <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => router.push(`/dashboard/clientes/${cliente.id}`)}
-                                className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                                className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-indigo-600 hover:text-white active:scale-95 transition-all shadow-sm"
                                 title="Ficha Técnica"
                               >
                                 <FiEye size={16} />
                               </button>
                               <button
                                 onClick={() => router.push(`/dashboard/clientes/${cliente.id}/editar`)}
-                                className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                                className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-emerald-600 hover:text-white active:scale-95 transition-all shadow-sm"
                                 title="Modificar Datos"
                               >
                                 <FiEdit size={16} />
