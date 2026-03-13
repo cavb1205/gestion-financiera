@@ -23,12 +23,14 @@ import {
   FiArrowUpRight,
 } from "react-icons/fi";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import EliminarUtilidad from "@/app/components/utilidades/EliminarUtilidad";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 
 export default function UtilidadesPage() {
   const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [utilidades, setUtilidades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -345,15 +347,18 @@ export default function UtilidadesPage() {
                       </td>
                       <td className="px-4 py-6 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center gap-2 transition-opacity">
-                           <button 
-                            onClick={() => toast.info("Edición de utilidades restringida por auditoría. Si cometió un error, por favor anule el registro y créelo nuevamente.")}
-                            className="p-3 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-indigo-600 hover:shadow-lg transition-all"
+                           <button
+                            onClick={() => {
+                              localStorage.setItem("utilidadEditar", JSON.stringify(utilidad));
+                              router.push(`/dashboard/utilidades/${utilidad.id}/editar`);
+                            }}
+                            className="p-3 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-indigo-600 hover:shadow-lg transition-all active:scale-95"
                            >
                               <FiEdit size={16} />
                            </button>
-                           <button 
+                           <button
                             onClick={() => setUtilidadAEliminar(utilidad)}
-                            className="p-3 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-rose-600 hover:shadow-lg transition-all"
+                            className="p-3 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-rose-600 hover:shadow-lg transition-all active:scale-95"
                            >
                               <FiTrash2 size={16} />
                            </button>

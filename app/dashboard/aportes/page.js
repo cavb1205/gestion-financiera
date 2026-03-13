@@ -305,12 +305,21 @@ export default function AportesPage() {
                         </p>
                       </td>
                       <td className="px-4 py-6 whitespace-nowrap">
-                        <div className="flex justify-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => {
+                              localStorage.setItem("aporteEditar", JSON.stringify(aporte));
+                              router.push(`/dashboard/aportes/${aporte.id}/editar`);
+                            }}
+                            className="p-3 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-indigo-600 hover:shadow-lg transition-all active:scale-95"
+                          >
+                            <FiEdit size={16} />
+                          </button>
                           <button
                             onClick={() => setAporteAEliminar(aporte)}
-                            className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all border border-rose-100 dark:border-rose-900/30 group/btn"
+                            className="p-3 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-rose-600 hover:shadow-lg transition-all active:scale-95"
                           >
-                            <FiTrash2 className="text-lg group-hover/btn:scale-110" />
+                            <FiTrash2 size={16} />
                           </button>
                         </div>
                       </td>
