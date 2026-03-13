@@ -39,7 +39,7 @@ export default function EliminarRecaudo({ deletingRecaudo, onEliminar, onClose }
   };
 
   const formatCurrency = (value) => {
-    return `$${parseFloat(value).toLocaleString("es-CO", {
+    return `$${parseFloat(value).toLocaleString(undefined, {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     })}`;

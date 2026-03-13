@@ -114,11 +114,7 @@ export default function RecaudosPage() {
   const currentItems = filteredRecaudos.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-    }).format(value);
+    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
   };
 
   const handleRecaudoEditado = (updated) => {

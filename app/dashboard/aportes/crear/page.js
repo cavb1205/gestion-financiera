@@ -280,7 +280,7 @@ export default function NuevoAportePage() {
                   <div className="bg-slate-900 dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-800">
                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Inyección a Capital</p>
                      <p className="text-2xl font-black text-emerald-500 tracking-tighter shadow-indigo-100">
-                        +{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(formData.valor || 0)}
+                        +{"$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(formData.valor || 0)}
                      </p>
                   </div>
 

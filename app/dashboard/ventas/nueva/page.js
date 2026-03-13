@@ -67,7 +67,7 @@ function NuevaVentaContent() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clientes/activos/t/${selectedStore.tienda.id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/clientes/activos/t/${selectedStore.tienda.id}/`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -134,11 +134,7 @@ function NuevaVentaContent() {
   };
 
   const formatMoney = (amount) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-    }).format(amount);
+    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
   };
 
   const handleSubmit = async (e) => {
@@ -177,7 +173,7 @@ function NuevaVentaContent() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Error al crear la venta");
+        throw new Error(errorData.detail || "Error al crear la venta");
       }
 
       const result = await response.json();

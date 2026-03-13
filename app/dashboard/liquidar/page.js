@@ -64,24 +64,16 @@ export default function LiquidarCreditosPage() {
 
          setLoading(true);
          try {
-            const [creditosRes, activosRes, recaudosRes] = await Promise.all([
-               fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/liquidar/${selectedDate}/t/${selectedStore.tienda.id}/`, {
-                  headers: { Authorization: `Bearer ${token}` }
-               }),
-               fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/t/${selectedStore.tienda.id}/`, {
-                  headers: { Authorization: `Bearer ${token}` }
-               }),
-               fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`, {
-                  headers: { Authorization: `Bearer ${token}` }
-               })
-            ]);
-
-            if (!creditosRes.ok || !activosRes.ok || !recaudosRes.ok) throw new Error("Error al sincronizar datos de liquidación.");
+            const fetchJson = async (url) => {
+               const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+               if (!res.ok) return null;
+               return res.json();
+            };
 
             const [creditosData, activosData, recaudosData] = await Promise.all([
-               creditosRes.json(),
-               activosRes.json(),
-               recaudosRes.json()
+               fetchJson(`${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/liquidar/${selectedDate}/t/${selectedStore.tienda.id}/`),
+               fetchJson(`${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/t/${selectedStore.tienda.id}/`),
+               fetchJson(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`),
             ]);
 
             setCreditos(Array.isArray(creditosData) ? creditosData : []);
@@ -120,11 +112,7 @@ export default function LiquidarCreditosPage() {
    const currentItems = filteredCreditos.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
    const formatCurrency = (value) => {
-      return new Intl.NumberFormat("es-CO", {
-         style: "currency",
-         currency: "COP",
-         minimumFractionDigits: 0,
-      }).format(value);
+      return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
    };
 
    const getStatusBadge = (estado) => {

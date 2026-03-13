@@ -53,7 +53,7 @@ export default function EliminarVentaPage() {
       if (!response.ok) throw new Error("No se pudieron cargar los datos de la venta");
       const venta = await response.json();
       
-      const pagosResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}`, {
+      const pagosResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -79,7 +79,7 @@ export default function EliminarVentaPage() {
     setError("");
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/delete/t/${selectedStore.tienda.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/delete/t/${selectedStore.tienda.id}/`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -100,11 +100,7 @@ export default function EliminarVentaPage() {
   };
 
   const formatMoney = (amount) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-    }).format(amount);
+    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
   };
 
   if (loading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;

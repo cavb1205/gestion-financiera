@@ -127,7 +127,6 @@ const UltimosMovimientos = ({ tienda }) => {
 
   //Función para obtener movimientos de utilidades (retiros)
   const obtenerUtilidades = async (fechaFin) => {
-    console.log("fechaFin:", fechaFin);
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/utilidades/list/${fechaFin}/t/${tienda.tienda.id}/`,

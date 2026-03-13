@@ -46,7 +46,6 @@ export default function DetalleCliente({ params }) {
 
   const clienteId = params.id;
   // Calcular los totales financieros
-  console.log("creditos:", creditos);
   const resumenFinanciero = useMemo(() => {
     if (creditos.message || creditos.length === 0) {
       return {
@@ -217,8 +216,6 @@ export default function DetalleCliente({ params }) {
     }
   }, [creditos]);
 
-  console.log("creditos:", creditos);
-
   useEffect(() => {
     if (!loading && (!isAuthenticated || !selectedStore)) {
       router.push("/select-store");
@@ -275,6 +272,9 @@ export default function DetalleCliente({ params }) {
       setIsLoading(false);
     }
   };
+
+  const formatMoney = (amount) =>
+    "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount ?? 0);
 
   const formatPhone = (phone) => {
     if (!phone) return "";
@@ -353,7 +353,7 @@ export default function DetalleCliente({ params }) {
   const handleDelete = async () => {
     try {
       const response = await fetch(
-        `https://api.carterafinanciera.com/clientes/${clienteId}/`,
+        `${process.env.NEXT_PUBLIC_API_URL}/clientes/${clienteId}/delete/`,
         {
           method: "DELETE",
           headers: {
@@ -395,15 +395,20 @@ export default function DetalleCliente({ params }) {
 
   if (!cliente) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-        <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
-        <p className="mt-4 text-lg text-gray-700">Cliente no encontrado</p>
-        <button
-          onClick={() => router.push("/clientes")}
-          className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-        >
-          Volver a la lista de clientes
-        </button>
+      <div className="min-h-[400px] flex flex-col items-center justify-center p-8">
+        <div className="glass p-12 rounded-[2.5rem] border-white/60 dark:border-slate-800 text-center max-w-sm w-full">
+          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <FiUser className="text-slate-300 text-2xl" />
+          </div>
+          <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">Cliente no encontrado</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">El registro no existe o fue eliminado</p>
+          <button
+            onClick={() => router.push("/dashboard/clientes")}
+            className="w-full py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-xl"
+          >
+            Volver a Clientes
+          </button>
+        </div>
       </div>
     );
   }
@@ -543,7 +548,7 @@ export default function DetalleCliente({ params }) {
                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-emerald-500">Rendimiento</span>
                 </div>
                 <div>
-                   <p className="text-xl font-black text-emerald-600 tracking-tight">${resumenFinanciero.totalIngresos.toLocaleString()}</p>
+                   <p className="text-xl font-black text-emerald-600 tracking-tight">{formatMoney(resumenFinanciero.totalIngresos)}</p>
                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Intereses Cobrados</p>
                 </div>
               </div>
@@ -556,7 +561,7 @@ export default function DetalleCliente({ params }) {
                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-rose-500">Exposición</span>
                 </div>
                 <div>
-                   <p className="text-xl font-black text-rose-600 tracking-tight">${resumenFinanciero.totalPerdidas.toLocaleString()}</p>
+                   <p className="text-xl font-black text-rose-600 tracking-tight">{formatMoney(resumenFinanciero.totalPerdidas)}</p>
                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Capital Perdido</p>
                 </div>
               </div>
@@ -572,7 +577,7 @@ export default function DetalleCliente({ params }) {
                 </div>
                 <div>
                    <p className={`text-xl font-black tracking-tight ${resumenFinanciero.beneficioNeto >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                     ${Math.abs(resumenFinanciero.beneficioNeto).toLocaleString()}
+                     {formatMoney(Math.abs(resumenFinanciero.beneficioNeto))}
                    </p>
                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                      {resumenFinanciero.beneficioNeto >= 0 ? 'Ganancia Real' : 'Déficit Acumulado'}
@@ -639,8 +644,7 @@ export default function DetalleCliente({ params }) {
                     </div>
                     <p className="text-slate-400 text-sm font-bold mb-2">Cupo Sugerido de Inversión:</p>
                     <div className="flex items-end gap-2 mb-8">
-                       <span className="text-5xl font-black tracking-tighter">${resumenFinanciero.montoRecomendado.toLocaleString()}</span>
-                       <span className="text-indigo-400 font-bold mb-2 tracking-widest uppercase text-[10px]">COP</span>
+                       <span className="text-4xl font-black tracking-tighter">{formatMoney(resumenFinanciero.montoRecomendado)}</span>
                     </div>
                     
                     <div className="space-y-3">
@@ -670,7 +674,7 @@ export default function DetalleCliente({ params }) {
                      <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm text-indigo-600">
                         <FiBarChart2 size={24} />
                      </div>
-                     <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Historial Transaccional</h3>
+                     <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Créditos Activos</h3>
                   </div>
                   
                   <button
@@ -687,9 +691,9 @@ export default function DetalleCliente({ params }) {
                        <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                           <FiDollarSign size={32} className="text-slate-300" />
                        </div>
-                       <h4 className="text-lg font-black text-slate-800 dark:text-white mb-2 tracking-tight">Sin registros financieros</h4>
+                       <h4 className="text-lg font-black text-slate-800 dark:text-white mb-2 tracking-tight">Sin créditos activos</h4>
                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest max-w-[240px] mx-auto leading-relaxed">
-                          Este usuario no posee operaciones activas o históricas en el sistema.
+                          Este cliente no tiene créditos vigentes en este momento.
                        </p>
                     </div>
                   ) : (
@@ -715,13 +719,13 @@ export default function DetalleCliente({ params }) {
                                 </div>
                               </td>
                               <td className="px-8 py-6">
-                                <span className="text-sm font-black text-slate-900 dark:text-white">${parseInt(credito.valor_venta).toLocaleString()}</span>
+                                <span className="text-sm font-black text-slate-900 dark:text-white">{formatMoney(credito.valor_venta)}</span>
                               </td>
                               <td className="px-8 py-6">
                                 <span className="text-xs font-bold text-slate-500">{formatDate(credito.fecha_vencimiento)}</span>
                               </td>
-                              <td className="px-8 py-6 font-mono text-xs font-black text-indigo-600 dark:text-indigo-400">
-                                ${parseInt(credito.saldo_actual).toLocaleString()}
+                              <td className="px-8 py-6 text-xs font-black text-indigo-600 dark:text-indigo-400">
+                                {formatMoney(credito.saldo_actual)}
                               </td>
                               <td className="px-8 py-6">
                                 {getCreditStatus(credito.estado_venta)}

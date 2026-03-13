@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiUser, FiUsers, FiSearch, FiPlus, FiEdit, FiEye, FiFilter, FiX, FiPhone, FiMapPin, FiActivity, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiUser, FiUsers, FiSearch, FiPlus, FiEdit, FiEye, FiFilter, FiX, FiPhone, FiMapPin, FiActivity, FiChevronLeft, FiChevronRight, FiShield, FiAlertCircle } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from "../../components/LoadingSpinner";
 
@@ -42,7 +42,7 @@ export default function ClientesPage() {
       setError('');
       
       const response = await fetch(
-        `https://api.carterafinanciera.com/clientes/tienda/${selectedStore.tienda.id}/`, 
+        `${process.env.NEXT_PUBLIC_API_URL}/clientes/tienda/${selectedStore.tienda.id}/`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -192,6 +192,47 @@ export default function ClientesPage() {
           </button>
         </div>
 
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl"><FiUsers size={24} /></div>
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Total</span>
+              </div>
+              <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">{clientes.length}</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Clientes Registrados</p>
+            </div>
+            <div className="absolute -right-5 -bottom-5 text-indigo-500/5 group-hover:scale-110 transition-transform"><FiUsers size={100} /></div>
+          </div>
+
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl"><FiShield size={24} /></div>
+                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Activos</span>
+              </div>
+              <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
+                {clientes.filter(c => c.estado_cliente === 'Activo').length}
+              </p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cuentas Operativas</p>
+            </div>
+          </div>
+
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-2xl"><FiAlertCircle size={24} /></div>
+                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Bloqueados</span>
+              </div>
+              <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
+                {clientes.filter(c => c.estado_cliente === 'Bloqueado' || c.estado_cliente === 'Inactivo').length}
+              </p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cuentas Restringidas</p>
+            </div>
+          </div>
+        </div>
+
         {/* Search & Filter Bar */}
         <div className="glass p-6 md:p-8 rounded-[2.5rem] mb-10 border-white/60 dark:border-slate-800">
           <div className="flex flex-col md:flex-row md:items-center gap-4">
@@ -311,7 +352,7 @@ export default function ClientesPage() {
                 <table className="min-w-full">
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
-                      <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Indentidad Cliente</th>
+                      <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Identidad Cliente</th>
                       <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Contacto Directo</th>
                       <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Establecimiento</th>
                       <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado Canales</th>

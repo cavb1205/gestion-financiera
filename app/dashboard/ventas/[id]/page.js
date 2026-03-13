@@ -96,7 +96,7 @@ export default function VentaDetailPage() {
       const ventaData = await ventaResponse.json();
       setVenta(ventaData);
 
-      const pagosResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}`, {
+      const pagosResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -122,7 +122,7 @@ export default function VentaDetailPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Error al marcar como pérdida");
+        throw new Error(errorData.detail || "Error al marcar como pérdida");
       }
 
       toast.success("Venta marcada como pérdida");
@@ -136,11 +136,7 @@ export default function VentaDetailPage() {
   };
 
   const formatMoney = (amount) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-    }).format(amount);
+    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
   };
 
   const getStatusBadge = (estado) => {
