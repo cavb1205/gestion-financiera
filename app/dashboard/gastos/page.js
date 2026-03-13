@@ -390,7 +390,7 @@ export default function GastosPage() {
                     <button
                       key={i}
                       onClick={() => handlePageChange(i + 1)}
-                      className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${currentPage === i + 1 ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg' : 'bg-white dark:bg-slate-900 text-slate-400 hover:bg-slate-50'}`}
+                      className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${currentPage === i + 1 ? 'bg-rose-600 text-white shadow-lg shadow-rose-200 dark:shadow-none' : 'bg-white dark:bg-slate-900 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                     >
                       {i + 1}
                     </button>

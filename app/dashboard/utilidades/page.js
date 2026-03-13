@@ -114,7 +114,7 @@ export default function UtilidadesPage() {
         utilidad.trabajador.trabajador
           .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        utilidad.comentario.toLowerCase().includes(searchTerm.toLowerCase())
+        (utilidad.comentario || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [utilidades, searchTerm]);
 

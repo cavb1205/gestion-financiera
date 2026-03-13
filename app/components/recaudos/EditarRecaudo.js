@@ -45,7 +45,7 @@ export default function EditarRecaudo({ editingRecaudo, onEditar, onClose }) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Error al actualizar el recaudo");
+        throw new Error(errorData.detail || errorData.message || "Error al actualizar el recaudo");
       }
 
       const updatedRecaudo = await response.json();
@@ -98,7 +98,7 @@ export default function EditarRecaudo({ editingRecaudo, onEditar, onClose }) {
              </div>
 
              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Monto Actualizado (COP)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Monto Actualizado</label>
                 <div className="relative group">
                    <FiDollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 group-focus-within:scale-110 transition-transform" />
                    <input 

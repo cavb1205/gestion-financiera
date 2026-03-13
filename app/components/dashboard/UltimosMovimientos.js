@@ -15,6 +15,8 @@ import { useAuth } from "../../context/AuthContext";
 
 import { useRouter } from "next/navigation";
 
+const formatMoney = (amount) => "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount ?? 0);
+
 const UltimosMovimientos = ({ tienda }) => {
   const router = useRouter();
   const [movimientos, setMovimientos] = useState([]);
@@ -381,7 +383,7 @@ const UltimosMovimientos = ({ tienda }) => {
                 <p className={`text-lg font-black tracking-tighter ${
                   movimiento.monto < 0 ? 'text-rose-600' : 'text-emerald-600 dark:text-emerald-400'
                 }`}>
-                  {movimiento.monto < 0 ? '-' : '+'}${Math.abs(movimiento.monto).toLocaleString()}
+                  {movimiento.monto < 0 ? '-' : '+'}{formatMoney(Math.abs(movimiento.monto))}
                 </p>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Monto</p>
               </div>

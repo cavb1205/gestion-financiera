@@ -13,6 +13,8 @@ import {
 } from "react-icons/fi";
 import { useState } from "react";
 
+const formatMoney = (amount) => "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount ?? 0);
+
 export default function ResumenDia({ tienda, loading = false }) {
   const [showTooltip, setShowTooltip] = useState(null);
 
@@ -87,7 +89,7 @@ export default function ResumenDia({ tienda, loading = false }) {
             </div>
           </div>
           <p className="text-3xl font-black text-slate-800 dark:text-white relative">
-            ${tienda.tienda.recaudos_dia?.toLocaleString() || "0"}
+            {formatMoney(tienda.tienda.recaudos_dia ?? 0)}
           </p>
           <div className="absolute bottom-4 right-6 opacity-20 group-hover/item:opacity-40 transition-opacity">
             <FiTrendingUp size={48} className="text-emerald-500" />
@@ -104,7 +106,7 @@ export default function ResumenDia({ tienda, loading = false }) {
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ventas</span>
             </div>
             <p className="text-xl font-black text-slate-800 dark:text-slate-100">
-              ${tienda.tienda.ventas_netas_dia?.toLocaleString() || "0"}
+              {formatMoney(tienda.tienda.ventas_netas_dia ?? 0)}
             </p>
           </div>
 
@@ -116,7 +118,7 @@ export default function ResumenDia({ tienda, loading = false }) {
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Gastos</span>
             </div>
             <p className="text-xl font-black text-slate-800 dark:text-slate-100">
-              ${tienda.tienda.gastos_dia?.toLocaleString() || "0"}
+              {formatMoney(tienda.tienda.gastos_dia ?? 0)}
             </p>
           </div>
         </div>
@@ -128,7 +130,7 @@ export default function ResumenDia({ tienda, loading = false }) {
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Spread Diario</h3>
               <div className="flex items-baseline gap-2">
                 <p className={`text-3xl font-black ${utilidadDia >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"}`}>
-                  ${utilidadDia.toLocaleString()}
+                  {formatMoney(utilidadDia)}
                 </p>
                 {margenUtilidad !== 0 && (
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${margenUtilidad >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"}`}>
@@ -154,7 +156,7 @@ export default function ResumenDia({ tienda, loading = false }) {
                   </div>
                   <span className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest">Payout Socios</span>
                 </div>
-                <span className="text-sm font-black text-purple-600 dark:text-purple-300">-${gananciasRetiradas.toLocaleString()}</span>
+                <span className="text-sm font-black text-purple-600 dark:text-purple-300">-{formatMoney(gananciasRetiradas)}</span>
               </div>
             )}
             {tienda.tienda.aportes_dia > 0 && (
@@ -165,7 +167,7 @@ export default function ResumenDia({ tienda, loading = false }) {
                   </div>
                   <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">Inyección K</span>
                 </div>
-                <span className="text-sm font-black text-indigo-600 dark:text-indigo-300">+${tienda.tienda.aportes_dia.toLocaleString()}</span>
+                <span className="text-sm font-black text-indigo-600 dark:text-indigo-300">+{formatMoney(tienda.tienda.aportes_dia)}</span>
               </div>
             )}
           </div>

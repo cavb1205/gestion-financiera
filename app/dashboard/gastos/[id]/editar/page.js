@@ -39,20 +39,16 @@ export default function EditarGastoPage() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        // Primero obtener tipos
-        const tiposResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/gastos/tipo/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const [tiposResponse, gastoResponse] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/gastos/tipo/`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/gastos/${id}/`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
         if (!tiposResponse.ok) throw new Error("Error al obtener los tipos de gasto");
+        if (!gastoResponse.ok) throw new Error("Error al obtener el gasto");
         const tiposData = await tiposResponse.json();
         setTiposGasto(Array.isArray(tiposData) ? tiposData : []);
 
-        // Luego obtener el gasto específico
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/gastos/${id}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error("Error al obtener el gasto");
-        const gasto = await response.json();
+        const gasto = await gastoResponse.json();
         
         const fecha = gasto.fecha.split("T")[0];
         const tipoNombre = tiposData.find(t => t.id === gasto.tipo_gasto)?.tipo_gasto || "Tipo no encontrado";

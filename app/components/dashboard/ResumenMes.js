@@ -15,6 +15,8 @@ import {
 } from "react-icons/fi";
 import { useState } from "react";
 
+const formatMoney = (amount) => "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount ?? 0);
+
 export default function ResumenMes({ tienda, loading = false }) {
   const [showTooltip, setShowTooltip] = useState(null);
   
@@ -110,7 +112,7 @@ export default function ResumenMes({ tienda, loading = false }) {
             <FiTrendingUp className="text-blue-500 text-lg" />
           </div>
           <p className="text-3xl font-black text-slate-800 dark:text-white">
-            ${tienda.tienda.ventas_netas_mes?.toLocaleString() || "0"}
+            {formatMoney(tienda.tienda.ventas_netas_mes ?? 0)}
           </p>
         </div>
 
@@ -119,13 +121,13 @@ export default function ResumenMes({ tienda, loading = false }) {
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/50">
             <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Egresos</span>
             <p className="text-lg font-black text-rose-600 dark:text-rose-400">
-              ${tienda.tienda.gastos_mes?.toLocaleString() || "0"}
+              {formatMoney(tienda.tienda.gastos_mes ?? 0)}
             </p>
           </div>
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/50">
             <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">U. Bruta</span>
             <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">
-              ${utilidadBruta.toLocaleString()}
+              {formatMoney(utilidadBruta)}
             </p>
           </div>
         </div>
@@ -136,7 +138,7 @@ export default function ResumenMes({ tienda, loading = false }) {
             <div>
               <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest block mb-1">Utilidad Neta</span>
               <p className={`text-2xl font-black ${utilidadPeriodo >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
-                ${utilidadPeriodo.toLocaleString()}
+                {formatMoney(utilidadPeriodo)}
               </p>
             </div>
             <div className="text-right">

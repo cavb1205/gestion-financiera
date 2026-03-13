@@ -233,7 +233,7 @@ export default function ReportesPage() {
                 disabled={cargando}
                 className="w-full lg:w-auto px-16 py-5 bg-slate-900 dark:bg-slate-800 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
               >
-                {cargando ? "Auditando..." : "Generar Reporte Finandiero"}
+                {cargando ? "Auditando..." : "Generar Reporte Financiero"}
               </button>
            </form>
         </div>

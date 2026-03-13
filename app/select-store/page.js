@@ -34,7 +34,7 @@ export default function SelectStorePage() {
       try {
         setLoading(true);
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/tiendas/list/tiendas/admin`,
+          `${process.env.NEXT_PUBLIC_API_URL}/tiendas/list/tiendas/admin/`,
           {
             method: "GET",
             headers: {
@@ -87,27 +87,31 @@ export default function SelectStorePage() {
         <div className="absolute bottom-[-15%] right-[-10%] w-[50%] h-[50%] bg-emerald-600/15 blur-[130px] rounded-full animate-pulse opacity-60" style={{ animationDelay: '3s' }}></div>
       </div>
 
-      <div className="max-w-6xl w-full relative z-10 pt-12 pb-24">
+      <div className="max-w-6xl w-full relative z-10 pt-6 md:pt-12 pb-16 md:pb-24">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-16 gap-8">
-          <div className="text-center md:text-left">
-             <div className="flex items-center justify-center md:justify-start gap-4 mb-4">
-                <div className="p-3 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-2xl">
-                   <FiShoppingBag className="text-emerald-500 text-2xl" />
+        <div className="flex items-center justify-between mb-8 md:mb-16 gap-4">
+          <div>
+             <div className="flex items-center gap-3 md:gap-4 mb-2">
+                <div className="p-2.5 md:p-3 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-xl md:rounded-2xl shrink-0">
+                   <FiShoppingBag className="text-emerald-500 text-lg md:text-2xl" />
                 </div>
-                <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">
-                  SELECCIONAR<span className="text-emerald-500 not-italic ml-2">SUCURSAL</span>
+                <h1 className="text-2xl md:text-4xl font-black text-white tracking-tighter uppercase">
+                  Seleccionar<span className="text-emerald-500 ml-2">Sucursal</span>
                 </h1>
              </div>
-             <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">Seleccione la región operativa para iniciar gestión</p>
+             {user && (
+               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] pl-1">
+                 {user.username || user.email || "Administrador"}
+               </p>
+             )}
           </div>
-          
+
           <button
             onClick={logout}
-            className="flex items-center gap-3 px-6 py-4 bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 rounded-2xl border border-white/5 hover:border-rose-500/30 transition-all font-black text-[10px] uppercase tracking-widest shadow-xl group"
+            className="flex items-center gap-2 md:gap-3 px-4 md:px-6 py-3 md:py-4 bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 rounded-xl md:rounded-2xl border border-white/5 hover:border-rose-500/30 transition-all font-black text-[10px] uppercase tracking-widest shadow-xl group shrink-0"
           >
-            <FiLogOut className="group-hover:-translate-x-1 transition-transform" />
-            Cerrar Sesión Segura
+            <FiLogOut size={14} className="group-hover:-translate-x-1 transition-transform" />
+            <span className="hidden md:inline">Cerrar Sesión</span>
           </button>
         </div>
 
@@ -131,7 +135,7 @@ export default function SelectStorePage() {
               <div
                 key={store.id}
                 onClick={() => handleSelectStore(store)}
-                className="glass group cursor-pointer border-white/5 hover:border-emerald-500/50 transition-all duration-500 rounded-[2.5rem] overflow-hidden hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative"
+                className="glass group cursor-pointer border-white/5 hover:border-emerald-500/50 transition-all duration-300 rounded-[2.5rem] overflow-hidden hover:scale-[1.02] active:scale-[0.98] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative"
               >
                 {/* Visual indicator of selection on hover */}
                 <div className="absolute top-0 right-0 p-8 transform translate-x-10 -translate-y-10 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-500 opacity-0 group-hover:opacity-100">
@@ -197,9 +201,10 @@ export default function SelectStorePage() {
             <p className="text-slate-400 text-sm font-bold uppercase tracking-widest leading-loose mb-12">No hemos detectado ninguna sucursal operativa vinculada a su perfil de administrador core.</p>
             <button
               onClick={logout}
-              className="px-12 py-6 bg-rose-600 hover:bg-rose-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all"
+              className="px-12 py-6 bg-rose-600 hover:bg-rose-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all flex items-center gap-3 mx-auto"
             >
-              Reportar Incidencia
+              <FiLogOut size={16} />
+              Cerrar Sesión
             </button>
           </div>
         )}

@@ -168,89 +168,83 @@ export default function LiquidarCreditosPage() {
 
 
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-6">
-               <div className="flex items-center gap-5">
-                  <div className="bg-emerald-600 p-4 rounded-[1.5rem] shadow-xl shadow-emerald-200 dark:shadow-none">
-                     <FiActivity className="text-white text-3xl" />
+            <div className="flex items-center justify-between mb-6 gap-4">
+               <div className="flex items-center gap-3 md:gap-5 min-w-0">
+                  <div className="bg-emerald-600 p-3 md:p-4 rounded-[1.25rem] md:rounded-[1.5rem] shadow-xl shadow-emerald-200 dark:shadow-none shrink-0">
+                     <FiActivity className="text-white text-xl md:text-3xl" />
                   </div>
-                  <div>
-                     <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none uppercase">Liquidación Diaria</h1>
-                     <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
-                        Operación de Cartera • <span className="text-emerald-500">{selectedStore.tienda.nombre}</span>
+                  <div className="min-w-0">
+                     <h1 className="text-xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none uppercase truncate">Liquidación Diaria</h1>
+                     <p className="text-[10px] md:text-sm font-bold text-slate-400 uppercase tracking-widest mt-1 px-0.5 truncate">
+                        <span className="text-emerald-500">{selectedStore.tienda.nombre}</span>
                      </p>
                   </div>
                </div>
 
-               <div className="flex items-center gap-3">
+               <div className="flex items-center gap-2 shrink-0">
                   <button
                      onClick={() => {
                         const today = new Date();
                         const formattedDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split('T')[0];
                         setSelectedDate(formattedDate);
                      }}
-                     className="px-6 py-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 font-black text-[10px] uppercase tracking-widest hover:text-emerald-600 transition-all shadow-sm"
+                     className="px-4 py-3 md:px-6 md:py-4 bg-white dark:bg-slate-900 text-slate-500 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-800 font-black text-[10px] uppercase tracking-widest hover:text-emerald-600 transition-all shadow-sm"
                   >
-                     Ir a Hoy
+                     Hoy
                   </button>
                   <button
                      onClick={() => router.refresh()}
-                     className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
+                     className="p-3 md:p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
                   >
-                     <FiRefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
+                     <FiRefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
                   </button>
                </div>
             </div>
 
             {/* Global Metrics Area */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-               <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-2xl">
+            <div className="grid grid-cols-3 gap-3 md:gap-6 mb-8">
+               <div className="glass p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-xl">
                   <div className="relative z-10">
-                     <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl">
-                           <FiTarget size={24} />
+                     <div className="flex items-center justify-between mb-2 md:mb-4">
+                        <div className="p-2 md:p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl md:rounded-2xl">
+                           <FiTarget size={16} className="md:w-6 md:h-6" />
                         </div>
-                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Meta de Cobro</span>
+                        <span className="hidden md:block text-[10px] font-black text-indigo-400 uppercase tracking-widest">Meta</span>
                      </div>
-                     <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
+                     <p className="text-base md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-0.5 md:mb-1">
                         {formatCurrency(totalRecaudar)}
                      </p>
-                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Capital Total Proyectado</p>
-                  </div>
-                  <div className="absolute -right-5 -bottom-5 text-indigo-500/5 group-hover:scale-110 transition-transform">
-                     <FiTarget size={120} />
+                     <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Meta Total</p>
                   </div>
                </div>
 
-               <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-2xl">
+               <div className="glass p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-xl">
                   <div className="relative z-10">
-                     <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl">
-                           <FiClock size={24} />
+                     <div className="flex items-center justify-between mb-2 md:mb-4">
+                        <div className="p-2 md:p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-xl md:rounded-2xl">
+                           <FiClock size={16} className="md:w-6 md:h-6" />
                         </div>
-                        <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Pendiente</span>
+                        <span className="hidden md:block text-[10px] font-black text-rose-400 uppercase tracking-widest">Pendiente</span>
                      </div>
-                     <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
+                     <p className="text-base md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-0.5 md:mb-1">
                         {formatCurrency(totalPendientes)}
                      </p>
-                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Resta por Auditoría</p>
+                     <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Pendiente</p>
                   </div>
                </div>
 
-               <div className="bg-emerald-600 p-8 rounded-[2.5rem] border border-emerald-500 relative overflow-hidden group shadow-2xl shadow-emerald-200 dark:shadow-none">
+               <div className="bg-emerald-600 p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-emerald-500 relative overflow-hidden group shadow-xl shadow-emerald-200 dark:shadow-none">
                   <div className="relative z-10 text-white">
-                     <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-white/20 rounded-2xl">
-                           <FiCheck size={24} />
+                     <div className="flex items-center justify-between mb-2 md:mb-4">
+                        <div className="p-2 md:p-3 bg-white/20 rounded-xl md:rounded-2xl">
+                           <FiCheck size={16} className="md:w-6 md:h-6" />
                         </div>
-                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Recaudado</span>
+                        <span className="hidden md:block text-[10px] font-bold text-white/60 uppercase tracking-widest">Cobrado</span>
                      </div>
-                     <p className="text-3xl font-black tracking-tighter mb-1">
+                     <p className="text-base md:text-3xl font-black tracking-tighter mb-0.5 md:mb-1">
                         {formatCurrency(totalRealizados)}
                      </p>
-                     <p className="text-[10px] font-bold uppercase tracking-widest leading-none opacity-60">Efectivo Ingresado</p>
-                  </div>
-                  <div className="absolute -right-5 -bottom-5 text-white/5 opacity-50 group-hover:scale-110 transition-transform">
-                     <FiPieChart size={120} />
+                     <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest leading-none opacity-70">Recaudado</p>
                   </div>
                </div>
             </div>
@@ -505,28 +499,12 @@ export default function LiquidarCreditosPage() {
             </div>
 
             {/* Informative Footer */}
-            <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl relative overflow-hidden">
-               <div className="flex flex-col md:flex-row items-center justify-between gap-10">
-                  <div className="flex items-start gap-6 max-w-2xl">
-                     <div className="w-14 h-14 bg-amber-50 dark:bg-amber-900/30 text-amber-500 rounded-2xl flex items-center justify-center shrink-0">
-                        <FiInfo size={28} />
-                     </div>
-                     <div>
-                        <h4 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">Protocolo de Liquidación Activo</h4>
-                        <p className="text-xs font-bold text-slate-400 leading-relaxed uppercase tracking-tighter">
-                           Los recaudos registrados se sincronizan inmediatamente con la bóveda central. Asegúrese de validar el efectivo físico contra los reportes generados al cierre de la ruta.
-                        </p>
-                     </div>
-                  </div>
-                  <div className="flex items-center gap-6">
-                     <div className="text-right">
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Auditoría en Tiempo Real</p>
-                        <p className="text-xs font-black text-emerald-500 uppercase">Estado: Conectado</p>
-                     </div>
-                     <div className="w-1.5 h-10 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
-                     <FiActivity className="text-indigo-500/50 animate-pulse" size={32} />
-                  </div>
-               </div>
+            <div className="flex items-center gap-4 px-5 py-4 bg-white/40 dark:bg-slate-900/40 rounded-[1.5rem] border border-white/60 dark:border-slate-800/50 opacity-60">
+               <FiInfo className="text-amber-500 shrink-0" size={16} />
+               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                  Los recaudos se sincronizan en tiempo real. Valide el efectivo físico al cierre de ruta.
+               </p>
+               <FiActivity className="text-emerald-500/50 animate-pulse shrink-0" size={16} />
             </div>
 
          </div>

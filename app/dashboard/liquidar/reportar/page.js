@@ -170,11 +170,11 @@ export default function ReportarFallaPage() {
                       {/* Sticky Mobile Action Bar */}
                       <div className="fixed bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-50 md:relative md:bottom-auto md:bg-transparent md:border-t-0 md:p-0 md:backdrop-blur-none md:z-auto order-3 md:order-last">
                          <div className="flex flex-row items-center gap-3 max-w-7xl mx-auto px-0 lg:px-8">
-                             <div className="hidden md:flex flex-1 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 items-center gap-4">
-                                <FiCalendar className="text-indigo-500 shrink-0" size={18} />
+                             <div className="flex flex-1 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 items-center gap-3">
+                                <FiCalendar className="text-indigo-500 shrink-0" size={16} />
                                 <div>
-                                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Operación</p>
-                                   <p className="text-xs font-black text-slate-800 dark:text-white uppercase leading-none">{noPago?.fecha_recaudo}</p>
+                                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Fecha</p>
+                                   <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-none">{noPago?.fecha_recaudo}</p>
                                 </div>
                              </div>
                              

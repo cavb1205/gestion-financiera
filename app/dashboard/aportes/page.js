@@ -122,6 +122,10 @@ export default function AportesPage() {
     0
   );
 
+  const formatMoney = (amount) => {
+    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+  };
+
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
@@ -181,7 +185,7 @@ export default function AportesPage() {
                 </div>
               </div>
               <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 select-all">
-                ${totalAportes.toLocaleString()}
+                {formatMoney(totalAportes)}
               </p>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Capital Total Inyectado</p>
             </div>
@@ -284,7 +288,7 @@ export default function AportesPage() {
                       </td>
                       <td className="px-6 py-6 whitespace-nowrap text-right">
                         <p className="text-base font-black text-indigo-600 dark:text-indigo-400 tracking-tighter leading-none mb-1">
-                          ${parseFloat(aporte.valor).toLocaleString()}
+                          {formatMoney(parseFloat(aporte.valor))}
                         </p>
                         <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.1em]">Capital Activo</p>
                       </td>
@@ -374,7 +378,7 @@ export default function AportesPage() {
             onClose={() => setAporteAEliminar(null)}
             onConfirm={handleEliminarAporte}
             title="Revocar Inyección"
-            message={`¿Está seguro que desea eliminar este aporte de capital de ${aporteAEliminar?.trabajador?.trabajador} por valor de $${parseFloat(aporteAEliminar?.valor).toLocaleString()}? Esta acción afectará el balance de caja.`}
+            message={`¿Está seguro que desea eliminar este aporte de capital de ${aporteAEliminar?.trabajador?.trabajador} por valor de ${formatMoney(parseFloat(aporteAEliminar?.valor))}? Esta acción afectará el balance de caja.`}
             confirmText="Sí, Revocar Fondos"
             cancelText="Cancelar"
             isLoading={eliminando}

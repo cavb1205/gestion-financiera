@@ -26,11 +26,13 @@ import {
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
 import EliminarRecaudo from "@/app/components/recaudos/EliminarRecaudo";
 
 export default function RecaudosPage() {
   const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [recaudos, setRecaudos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState("");

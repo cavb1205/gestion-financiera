@@ -101,7 +101,7 @@ export default function NuevaUtilidadPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Error al registrar distribución.");
+        throw new Error(errorData.detail || errorData.message || "Error al registrar distribución.");
       }
 
       toast.success("Reparto de utilidad sincronizado.");

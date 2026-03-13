@@ -11,6 +11,8 @@ import {
   FiUsers,
 } from "react-icons/fi";
 
+const formatMoney = (amount) => "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount ?? 0);
+
 export default function ResumenGeneral({ tienda }) {
   const [showTooltip, setShowTooltip] = useState(null);
   // Calcular porcentajes en relación a los ingresos por ventas
@@ -81,7 +83,7 @@ export default function ResumenGeneral({ tienda }) {
           </div>
           <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ingresos x Ventas</h3>
           <p className="text-3xl font-black text-slate-800 dark:text-white mb-4">
-            ${ingresosVentas.toLocaleString()}
+            {formatMoney(ingresosVentas)}
           </p>
           <div className="h-1.5 w-full bg-emerald-100 dark:bg-emerald-900/30 rounded-full overflow-hidden">
             <div className="h-full bg-emerald-500 w-full"></div>
@@ -101,7 +103,7 @@ export default function ResumenGeneral({ tienda }) {
           </div>
           <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pérdidas Totales</h3>
           <p className="text-3xl font-black text-slate-800 dark:text-white mb-4">
-            ${tienda.tienda.perdidas.toLocaleString()}
+            {formatMoney(tienda.tienda.perdidas)}
           </p>
           <div className="h-1.5 w-full bg-rose-100 dark:bg-rose-900/30 rounded-full overflow-hidden">
             <div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${Math.min(100, porcentajePerdidas)}%` }}></div>
@@ -121,7 +123,7 @@ export default function ResumenGeneral({ tienda }) {
           </div>
           <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Retiros Socios</h3>
           <p className="text-3xl font-black text-slate-800 dark:text-white mb-4">
-            ${tienda.tienda.utilidades.toLocaleString()}
+            {formatMoney(tienda.tienda.utilidades)}
           </p>
           <div className="h-1.5 w-full bg-purple-100 dark:bg-purple-900/30 rounded-full overflow-hidden">
             <div className="h-full bg-purple-500 transition-all duration-1000" style={{ width: `${Math.min(100, porcentajeRetiros)}%` }}></div>
@@ -141,7 +143,7 @@ export default function ResumenGeneral({ tienda }) {
           </div>
           <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Gastos Operativos</h3>
           <p className="text-3xl font-black text-slate-800 dark:text-white mb-4">
-            ${tienda.tienda.gastos.toLocaleString()}
+            {formatMoney(tienda.tienda.gastos)}
           </p>
           <div className="h-1.5 w-full bg-orange-100 dark:bg-orange-900/30 rounded-full overflow-hidden">
             <div className="h-full bg-orange-500 transition-all duration-1000" style={{ width: `${Math.min(100, porcentajeGastos)}%` }}></div>
@@ -161,7 +163,7 @@ export default function ResumenGeneral({ tienda }) {
           </div>
           <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Aportes / Inversión</h3>
           <p className="text-3xl font-black text-slate-800 dark:text-white mb-4">
-            ${tienda.tienda.inversion.toLocaleString()}
+            {formatMoney(tienda.tienda.inversion)}
           </p>
           <div className="h-1.5 w-full bg-amber-100 dark:bg-amber-900/30 rounded-full overflow-hidden">
             <div className="h-full bg-amber-500 transition-all duration-1000" style={{ width: `${Math.min(100, porcentajeAportes)}%` }}></div>
@@ -181,7 +183,7 @@ export default function ResumenGeneral({ tienda }) {
           </div>
           <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Por Cobrar Total</h3>
           <p className="text-3xl font-black text-slate-800 dark:text-white mb-4">
-            ${tienda.tienda.dinero_x_cobrar.toLocaleString()}
+            {formatMoney(tienda.tienda.dinero_x_cobrar)}
           </p>
           <div className="h-1.5 w-full bg-blue-100 dark:bg-blue-900/30 rounded-full overflow-hidden">
             <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${Math.min(100, porcentajePorCobrar)}%` }}></div>
@@ -199,7 +201,7 @@ export default function ResumenGeneral({ tienda }) {
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Utilidad Neta</p>
               <p className={`text-2xl font-black ${utilidadNeta >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"}`}>
-                ${utilidadNeta.toLocaleString()}
+                {formatMoney(utilidadNeta)}
               </p>
               <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{margenNeto.toFixed(1)}% Margen Operativo</p>
             </div>
@@ -212,7 +214,7 @@ export default function ResumenGeneral({ tienda }) {
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Retirado</p>
               <p className="text-2xl font-black text-purple-700 dark:text-purple-400">
-                ${tienda.tienda.utilidades.toLocaleString()}
+                {formatMoney(tienda.tienda.utilidades)}
               </p>
               <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Distribución Acumulada</p>
             </div>
@@ -225,7 +227,7 @@ export default function ResumenGeneral({ tienda }) {
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Balance Neto</p>
               <p className={`text-2xl font-black ${balanceNeto >= 0 ? "text-slate-800 dark:text-white" : "text-rose-600"}`}>
-                ${balanceNeto.toLocaleString()}
+                {formatMoney(balanceNeto)}
               </p>
               <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{margenBalance.toFixed(1)}% Spread Final</p>
             </div>

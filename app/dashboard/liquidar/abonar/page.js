@@ -110,7 +110,7 @@ export default function PagarAbonoPage() {
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
   if (loading) return <LoadingSpinner />;
 
-  const nuevoSaldo = maximoAbonable - (parseFloat(valorAbono) || 0);
+  const nuevoSaldo = Math.max(0, maximoAbonable - (parseFloat(valorAbono) || 0));
 
   return (
     <div className="min-h-screen bg-transparent pb-20 md:pb-12">
@@ -142,7 +142,7 @@ export default function PagarAbonoPage() {
                    <form onSubmit={handleSubmit} className="flex flex-col gap-8">
                       <div className="space-y-4">
                          <div className="flex items-center justify-between px-1">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Monto del Recaudo (COP)</label>
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Monto del Recaudo</label>
                            <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-md">Obligatorio</span>
                          </div>
                          <div className="relative group">
@@ -176,18 +176,18 @@ export default function PagarAbonoPage() {
                       {/* Sticky Mobile Action Bar */}
                       <div className="fixed bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-50 md:relative md:bottom-auto md:bg-transparent md:border-t-0 md:p-0 md:backdrop-blur-none md:z-auto">
                          <div className="flex flex-row items-center gap-3 max-w-7xl mx-auto px-0 lg:px-8">
-                             <div className="hidden md:flex flex-1 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 items-center gap-4">
-                                <FiCalendar className="text-indigo-500 shrink-0" size={18} />
+                             <div className="flex flex-1 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 items-center gap-3">
+                                <FiCalendar className="text-indigo-500 shrink-0" size={16} />
                                 <div>
-                                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Operación</p>
-                                   <p className="text-xs font-black text-slate-800 dark:text-white uppercase leading-none">{abono?.fecha_recaudo}</p>
+                                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Fecha</p>
+                                   <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-none">{abono?.fecha_recaudo}</p>
                                 </div>
                              </div>
-                             
-                             <button 
+
+                             <button
                                type="submit"
                                disabled={submitting || !valorAbono || valorAbono <= 0}
-                               className="w-full md:flex-[2] py-4.5 bg-emerald-600 text-white rounded-2xl font-black text-xs md:text-[11px] uppercase tracking-widest shadow-xl shadow-emerald-200 dark:shadow-none active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-3"
+                               className="w-full flex-[2] py-4.5 bg-emerald-600 text-white rounded-2xl font-black text-xs md:text-[11px] uppercase tracking-widest shadow-xl shadow-emerald-200 dark:shadow-none active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-3"
                              >
                                {submitting ? (
                                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

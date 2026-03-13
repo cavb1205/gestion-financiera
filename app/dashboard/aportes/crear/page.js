@@ -108,7 +108,7 @@ export default function NuevoAportePage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Error al crear el aporte");
+        throw new Error(errorData.detail || errorData.message || "Error al crear el aporte");
       }
 
       toast.success("Inyección de capital registrada correctamente");

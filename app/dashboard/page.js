@@ -7,7 +7,6 @@ import {
   FiTrendingUp,
   FiTrendingDown,
   FiRefreshCw,
-  FiPieChart,
   FiActivity,
   FiAlertTriangle,
   FiCheckCircle,
@@ -29,7 +28,6 @@ const fmt = (n) =>
 export default function DashboardPage() {
   const { selectedStore, token, updateStoreData, loading: authLoading } = useAuth();
   const [tienda, setTienda] = useState(null);
-  const [dataLoading, setDataLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchTienda = async () => {
@@ -58,31 +56,25 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const init = async () => {
-      setDataLoading(true);
-      // Mostrar datos en caché mientras carga la API
-      if (!tienda) {
-        setTienda({
-          tienda: selectedStore.tienda,
-          membresia: selectedStore.membresia,
-          fecha_vencimiento: selectedStore.fecha_vencimiento,
-        });
-      }
-      await fetchTienda();
-      setDataLoading(false);
+      // Mostrar datos en caché de inmediato, actualizar en background
+      setTienda({
+        tienda: selectedStore.tienda,
+        membresia: selectedStore.membresia,
+        fecha_vencimiento: selectedStore.fecha_vencimiento,
+      });
+      fetchTienda();
     };
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore.tienda.id]);
 
-  if (authLoading || dataLoading) {
+  if (authLoading || !tienda) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner />
       </div>
     );
   }
-
-  if (!tienda) return null;
 
   // ── Membresía ──────────────────────────────────────────────────
   const formatDate = (s) => {
