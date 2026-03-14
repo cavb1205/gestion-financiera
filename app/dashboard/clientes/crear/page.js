@@ -90,7 +90,6 @@ export default function CrearCliente() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError("");
-    setCorsError(false);
 
     if (!validateForm()) return;
 

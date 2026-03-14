@@ -29,7 +29,8 @@ import {
   FiPackage,
   FiActivity,
   FiCalendar,
-  FiTablet
+  FiTablet,
+  FiShield,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import Link from "next/link";
@@ -43,10 +44,12 @@ const menuItems = [
   { path: '/dashboard/ventas', label: 'Ventas Activas', icon: FiShoppingCart },
   { path: '/dashboard/gastos', label: 'Control Gastos', icon: FiTrendingDown },
   { path: '/dashboard/utilidades', label: 'Utilidades', icon: FiTrendingUp },
+  { path: '/dashboard/trabajadores', label: 'Trabajadores', icon: FiUsers },
   { path: '/dashboard/sueldos', label: 'Cálculo Sueldo', icon: FiTablet },
   { path: '/dashboard/liquidar', label: 'Liquidación', icon: FiCheckCircle },
   { path: '/dashboard/recaudos', label: 'Recaudos', icon: FiPackage },
   { path: '/dashboard/reportes/utilidad', label: 'Inteligencia', icon: FiPieChart },
+  { path: '/dashboard/membresias', label: 'Membresía', icon: FiShield },
 ];
 
 export default function DashboardLayout({ children }) {
@@ -95,8 +98,8 @@ export default function DashboardLayout({ children }) {
       const expired = diffDays < 0;
       setIsExpired(expired);
 
-      // Si está expirado y no estamos en dashboard, redirigir
-      if (expired && pathname !== '/dashboard' && !pathname.includes('/select-store')) {
+      // Si está expirado, solo permitir dashboard y membresías (para poder renovar)
+      if (expired && pathname !== '/dashboard' && !pathname.includes('/select-store') && !pathname.includes('/membresias')) {
          router.push('/dashboard');
       }
     }
@@ -134,10 +137,12 @@ export default function DashboardLayout({ children }) {
              isActive("/dashboard/ventas") ? "Ventas" :
              isActive("/dashboard/gastos") ? "Gastos" :
              isActive("/dashboard/utilidades") ? "Utilidades" :
+             isActive("/dashboard/trabajadores") ? "Trabajadores" :
              isActive("/dashboard/sueldos") ? "Sueldos" :
              isActive("/dashboard/liquidar") ? "Créditos" :
              isActive("/dashboard/recaudos") ? "Recaudos" :
-             isActive("/dashboard/reportes") ? "Reportes" : "Dashboard"}
+             isActive("/dashboard/reportes") ? "Reportes" :
+             isActive("/dashboard/membresias") ? "Membresía" : "Dashboard"}
           </h1>
         </div>
         <button

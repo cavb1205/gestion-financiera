@@ -12,7 +12,9 @@ import {
   FiCheckCircle,
   FiClock,
   FiZap,
+  FiShield,
 } from "react-icons/fi";
+import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 import ResumenDia from "../components/dashboard/ResumenDia";
 import ResumenMes from "../components/dashboard/ResumenMes";
@@ -27,6 +29,7 @@ const fmt = (n) =>
 
 export default function DashboardPage() {
   const { selectedStore, token, updateStoreData, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [tienda, setTienda] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -128,10 +131,16 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-3">
               <button
-                onClick={() => window.open(`https://wa.me/56963511337?text=Hola,%20quisiera%20renovar%20para%20${tienda.tienda.nombre}`, "_blank")}
-                className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3"
+                onClick={() => router.push("/dashboard/membresias")}
+                className="w-full py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3"
               >
-                <FiCheckCircle size={18} /> Renovar Membresía
+                <FiShield size={18} /> Gestionar Membresía
+              </button>
+              <button
+                onClick={() => window.open(`https://wa.me/56963511337?text=Hola,%20quisiera%20renovar%20para%20${tienda.tienda.nombre}`, "_blank")}
+                className="w-full py-4 bg-emerald-600/20 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-600/30 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-3"
+              >
+                <FiCheckCircle size={16} /> Contactar por WhatsApp
               </button>
               <button
                 onClick={actualizarDashboard}
