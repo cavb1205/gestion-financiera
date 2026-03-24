@@ -52,12 +52,6 @@ export default function ReportarFallaPage() {
     } finally {
       setLoading(false);
     }
-
-    // Limpiar localStorage al desmontar (navegación sin submit)
-    return () => {
-      localStorage.removeItem("noPago");
-      localStorage.removeItem("cliente");
-    };
   }, [router]);
 
   const handleSubmit = async (e) => {
@@ -122,7 +116,11 @@ export default function ReportarFallaPage() {
         {/* Compact Mobile Header */}
         <div className="flex items-center gap-4 mb-8">
           <button 
-            onClick={() => router.push("/dashboard/liquidar")}
+            onClick={() => {
+              localStorage.removeItem("noPago");
+              localStorage.removeItem("cliente");
+              router.push("/dashboard/liquidar");
+            }}
             className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-rose-600 transition-all shadow-sm shrink-0"
           >
             <FiArrowLeft size={18} />
