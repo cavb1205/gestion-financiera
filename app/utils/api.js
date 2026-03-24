@@ -1,51 +1,86 @@
 // utils/api.js
+// Utilidad centralizada para llamadas API con autenticación automática
 
-import { useAuth } from "../context/AuthContext";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+/**
+ * Intenta renovar el access token usando el refresh token.
+ * Retorna el nuevo token o null si falla.
+ */
+async function tryRefreshToken() {
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) return null;
 
-// Función fetch que maneja automáticamente tokens expirados
-export const authFetch = async (url, options = {}) => {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { token, refreshToken, logout } = useAuth();
-  
-  // Verificar si el token está expirado
-  const tokenTimestamp = localStorage.getItem('tokenTimestamp');
-  const now = new Date().getTime();
-  const tokenAge = now - parseInt(tokenTimestamp, 10);
-  const tokenExpired = tokenAge > 60 * 60 * 1000;
-  
-  let currentToken = token;
-  
-  // Si el token está expirado, intentar renovarlo
-  if (tokenExpired) {
-    currentToken = await refreshToken();
-    if (!currentToken) {
-      logout();
-      throw new Error('Token expired and refresh failed');
-    }
+  try {
+    const res = await fetch(`${API_URL}/token/refresh/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh: refreshToken }),
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    // Simple JWT retorna { access: "..." }
+    localStorage.setItem('authToken', data.access);
+    localStorage.setItem('tokenTimestamp', new Date().getTime().toString());
+    return data.access;
+  } catch {
+    return null;
   }
-  
-  // Configurar headers con el token
+}
+
+/**
+ * Limpia toda la data de autenticación y redirige a login.
+ */
+function forceLogout() {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('userData');
+  localStorage.removeItem('userProfile');
+  localStorage.removeItem('tokenTimestamp');
+  localStorage.removeItem('selectedStore');
+  window.location.href = '/login';
+}
+
+/**
+ * Fetch centralizado con autenticación automática.
+ * - Agrega Authorization header automáticamente
+ * - En caso de 401, intenta refresh y reintenta una vez
+ * - Si el refresh falla, fuerza logout
+ *
+ * @param {string} path - Path relativo (ej: "/clientes/tienda/1/") o URL completa
+ * @param {RequestInit} options - Opciones de fetch estándar
+ * @returns {Promise<Response>}
+ */
+export async function apiFetch(path, options = {}) {
+  const token = localStorage.getItem('authToken');
+  const url = path.startsWith('http') ? path : `${API_URL}${path}`;
+
   const headers = {
-    ...options.headers,
-    'Authorization': `Bearer ${currentToken}`,
     'Content-Type': 'application/json',
+    ...options.headers,
   };
-  
-  // Realizar la solicitud
-  const response = await fetch(url, { ...options, headers });
-  
-  // Si la respuesta es 401 (no autorizado), intentar renovar token y reintentar
-  if (response.status === 401) {
-    const newToken = await refreshToken();
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  let response = await fetch(url, { ...options, headers });
+
+  // Si es 401, intentar refresh y reintentar una vez
+  if (response.status === 401 && token) {
+    const newToken = await tryRefreshToken();
     if (newToken) {
-      headers.Authorization = `Bearer ${newToken}`;
-      return fetch(url, { ...options, headers });
+      headers['Authorization'] = `Bearer ${newToken}`;
+      response = await fetch(url, { ...options, headers });
     } else {
-      logout();
-      return response;
+      forceLogout();
+      throw new Error('Sesión expirada');
     }
   }
-  
+
   return response;
-};
+}
+
+export { tryRefreshToken };

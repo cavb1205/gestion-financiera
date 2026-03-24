@@ -36,18 +36,21 @@ import { useAuth } from "../context/AuthContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LoadingSpinner from "../components/LoadingSpinner";
+import SessionTimeout from "../components/SessionTimeout";
 
 const menuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: FiHome },
   { path: '/dashboard/clientes', label: 'Clientes', icon: FiUsers },
   { path: '/dashboard/aportes', label: 'Gestión Aportes', icon: FiDollar },
   { path: '/dashboard/ventas', label: 'Ventas Activas', icon: FiShoppingCart },
+  { path: '/dashboard/ventas/perdidas', label: 'Ventas Pérdida', icon: FiTrendingDown },
   { path: '/dashboard/gastos', label: 'Control Gastos', icon: FiTrendingDown },
   { path: '/dashboard/utilidades', label: 'Utilidades', icon: FiTrendingUp },
   { path: '/dashboard/trabajadores', label: 'Trabajadores', icon: FiUsers },
   { path: '/dashboard/sueldos', label: 'Cálculo Sueldo', icon: FiTablet },
   { path: '/dashboard/liquidar', label: 'Liquidación', icon: FiCheckCircle },
   { path: '/dashboard/recaudos', label: 'Recaudos', icon: FiPackage },
+  { path: '/dashboard/cierre-caja', label: 'Cierre de Caja', icon: FiCreditCard },
   { path: '/dashboard/reportes/utilidad', label: 'Inteligencia', icon: FiPieChart },
   { path: '/dashboard/membresias', label: 'Membresía', icon: FiShield },
 ];
@@ -121,7 +124,12 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  const isActive = (path) => pathname.startsWith(path);
+  const isActive = (path) => {
+    if (path === '/dashboard/ventas') {
+      return pathname === '/dashboard/ventas' || (pathname.startsWith('/dashboard/ventas/') && !pathname.startsWith('/dashboard/ventas/perdidas'));
+    }
+    return pathname.startsWith(path);
+  };
 
   return (
     <div className="flex flex-col h-screen h-[100svh] bg-slate-50 dark:bg-slate-950 md:flex-row overflow-hidden font-sans antialiased text-slate-900">
@@ -141,6 +149,7 @@ export default function DashboardLayout({ children }) {
              isActive("/dashboard/sueldos") ? "Sueldos" :
              isActive("/dashboard/liquidar") ? "Créditos" :
              isActive("/dashboard/recaudos") ? "Recaudos" :
+             isActive("/dashboard/cierre-caja") ? "Cierre de Caja" :
              isActive("/dashboard/reportes") ? "Reportes" :
              isActive("/dashboard/membresias") ? "Membresía" : "Dashboard"}
           </h1>
@@ -334,6 +343,9 @@ export default function DashboardLayout({ children }) {
         </main>
 
       </div>
+
+      {/* Modal de inactividad con renovación de sesión */}
+      <SessionTimeout />
     </div>
   );
 }

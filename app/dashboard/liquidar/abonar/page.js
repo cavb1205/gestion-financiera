@@ -19,6 +19,7 @@ import {
 } from "react-icons/fi";
 import Link from "next/link";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { formatMoney } from "../../../utils/format";
 
 export default function PagarAbonoPage() {
   const { token, isAuthenticated, selectedStore, loading: authLoading } = useAuth();
@@ -55,6 +56,12 @@ export default function PagarAbonoPage() {
     } finally {
       setLoading(false);
     }
+
+    // Limpiar localStorage al desmontar (navegación sin submit)
+    return () => {
+      localStorage.removeItem("abono");
+      localStorage.removeItem("cliente");
+    };
   }, [router]);
 
   const handleSubmit = async (e) => {
@@ -103,9 +110,6 @@ export default function PagarAbonoPage() {
     }
   };
 
-  const formatMoney = (amount) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-  };
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
   if (loading) return <LoadingSpinner />;

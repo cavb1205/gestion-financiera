@@ -24,6 +24,7 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import { formatMoney } from "../../utils/format";
 import Link from "next/link";
 
 export default function VentasPage() {
@@ -126,10 +127,6 @@ export default function VentasPage() {
     },
     { totalVentas: 0, saldoTotal: 0, vencidas: 0, perdidas: 0 }
   );
-
-  const formatMoney = (amount) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-  };
 
   const getStatusBadge = (estado) => {
     switch (estado) {

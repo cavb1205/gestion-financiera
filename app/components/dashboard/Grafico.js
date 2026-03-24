@@ -8,6 +8,7 @@ import {
 } from "react-icons/fi";
 import { Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { formatMoney } from "../../utils/format";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -140,7 +141,7 @@ export default function GraficoDona({ data }) {
             if (label) {
               label += ": ";
             }
-            label += "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(context.raw);
+            label += formatMoney(context.raw);
             return label;
           },
         },
@@ -290,7 +291,7 @@ export default function GraficoDona({ data }) {
             </div>
             <div className="relative">
               <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block mb-2">Efectivo en Caja</span>
-              <p className="text-4xl font-black text-slate-800 dark:text-white mb-2">{"$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(data.tienda.caja ?? 0)}</p>
+              <p className="text-4xl font-black text-slate-800 dark:text-white mb-2">{formatMoney(data.tienda.caja)}</p>
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[9px] font-black text-emerald-700 dark:text-emerald-300 uppercase">Status: Operativo</span>
                 <span className="text-[10px] font-bold text-slate-400 italic">Fondos disponibles</span>
@@ -304,7 +305,7 @@ export default function GraficoDona({ data }) {
             </div>
             <div className="relative">
               <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-2">Cartera x Cobrar</span>
-              <p className="text-4xl font-black text-slate-800 dark:text-white mb-2">{"$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(data.tienda.dinero_x_cobrar ?? 0)}</p>
+              <p className="text-4xl font-black text-slate-800 dark:text-white mb-2">{formatMoney(data.tienda.dinero_x_cobrar)}</p>
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-[9px] font-black text-indigo-700 dark:text-indigo-300 uppercase">Flujo Pendiente</span>
                 <span className="text-[10px] font-bold text-slate-400 italic">Créditos en curso</span>

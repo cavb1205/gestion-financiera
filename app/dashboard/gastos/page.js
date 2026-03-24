@@ -26,6 +26,7 @@ import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { formatMoney } from "../../utils/format";
 
 export default function GastosPage() {
   const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
@@ -148,9 +149,6 @@ export default function GastosPage() {
     setCurrentPage(1);
   };
 
-  const formatMoney = (amount) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-  };
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 

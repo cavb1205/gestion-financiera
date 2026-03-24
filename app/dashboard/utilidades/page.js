@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import EliminarUtilidad from "@/app/components/utilidades/EliminarUtilidad";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { formatMoney } from "../../utils/format";
 
 export default function UtilidadesPage() {
   const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
@@ -146,9 +147,6 @@ export default function UtilidadesPage() {
     return [current - 2, current - 1, current, current + 1, current + 2];
   };
 
-  const formatMoney = (amount) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-  };
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 

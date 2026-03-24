@@ -52,6 +52,12 @@ export default function ReportarFallaPage() {
     } finally {
       setLoading(false);
     }
+
+    // Limpiar localStorage al desmontar (navegación sin submit)
+    return () => {
+      localStorage.removeItem("noPago");
+      localStorage.removeItem("cliente");
+    };
   }, [router]);
 
   const handleSubmit = async (e) => {

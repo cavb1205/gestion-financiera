@@ -13,6 +13,7 @@ import {
   FiCalendar,
   FiHash,
 } from "react-icons/fi";
+import { formatMoney } from "../utils/format";
 
 const CalculoSueldo = ({ tienda, token }) => {
   const [fechaInicio, setFechaInicio] = useState("");
@@ -86,8 +87,6 @@ const CalculoSueldo = ({ tienda, token }) => {
     });
   };
 
-  const formatMoney = (amount) =>
-    "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount || 0);
 
   const comisionRatio = resultados && resultados.total_recaudado > 0
     ? (resultados.sueldo_calculado / resultados.total_recaudado) * 100

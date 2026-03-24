@@ -28,6 +28,7 @@ import {
   FiPhone,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
+import { formatMoney } from "../../../utils/format";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import EliminarRecaudo from "@/app/components/recaudos/EliminarRecaudo";
 import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
@@ -133,10 +134,6 @@ export default function VentaDetailPage() {
     } finally {
       setIsSendingLoss(false);
     }
-  };
-
-  const formatMoney = (amount) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
   };
 
   const getStatusBadge = (estado) => {

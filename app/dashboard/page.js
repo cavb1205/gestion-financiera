@@ -23,9 +23,7 @@ import ResumenGeneral from "../components/dashboard/ResumenGeneral";
 import Grafico from "../components/dashboard/Grafico";
 import UltimosMovimientos from "../components/dashboard/UltimosMovimientos";
 import LoadingSpinner from "../components/LoadingSpinner";
-
-const fmt = (n) =>
-  "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n ?? 0);
+import { formatMoney } from "../utils/format";
 
 const formatDate = (s) => {
   if (!s) return "";
@@ -212,7 +210,7 @@ export default function DashboardPage() {
             : "bg-rose-600 border-rose-500 shadow-xl shadow-rose-200/40 dark:shadow-none"
         }`}>
           <p className="text-[9px] font-black text-white/60 uppercase tracking-widest mb-3">Caja</p>
-          <p className="text-2xl md:text-3xl font-black text-white tracking-tighter leading-none mb-1">{fmt(t.caja)}</p>
+          <p className="text-2xl md:text-3xl font-black text-white tracking-tighter leading-none mb-1">{formatMoney(t.caja)}</p>
           <p className="text-[10px] font-black text-white/50 uppercase tracking-widest">{cajaPositiva ? "Disponible" : "Revisar"}</p>
           <FiDollarSign className="absolute -right-3 -bottom-3 text-white/10" size={72} />
         </div>
@@ -225,7 +223,7 @@ export default function DashboardPage() {
               <FiTrendingUp size={13} />
             </div>
           </div>
-          <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter leading-none mb-1">{fmt(t.ventas_netas_mes)}</p>
+          <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter leading-none mb-1">{formatMoney(t.ventas_netas_mes)}</p>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Capital colocado</p>
           <FiTrendingUp className="absolute -right-3 -bottom-3 text-slate-100 dark:text-slate-800" size={72} />
         </div>
@@ -238,7 +236,7 @@ export default function DashboardPage() {
               <FiActivity size={13} />
             </div>
           </div>
-          <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter leading-none mb-2">{fmt(t.dinero_x_cobrar)}</p>
+          <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter leading-none mb-2">{formatMoney(t.dinero_x_cobrar)}</p>
           {(t.caja + t.dinero_x_cobrar) > 0 && (
             <div className="h-1 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
               <div
@@ -258,9 +256,9 @@ export default function DashboardPage() {
               <FiClock size={13} />
             </div>
           </div>
-          <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter leading-none mb-1">{fmt(t.recaudos_dia)}</p>
+          <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter leading-none mb-1">{formatMoney(t.recaudos_dia)}</p>
           {t.ventas_netas_dia > 0 && (
-            <p className="text-[10px] font-bold text-slate-400">+{fmt(t.ventas_netas_dia)} ventas</p>
+            <p className="text-[10px] font-bold text-slate-400">+{formatMoney(t.ventas_netas_dia)} ventas</p>
           )}
           {t.ventas_netas_dia === 0 && (
             <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Sin ventas hoy</p>

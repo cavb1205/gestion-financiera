@@ -33,6 +33,7 @@ import { FaBan, FaSkullCrossbones } from "react-icons/fa";
 import { useAuth } from "../../../context/AuthContext";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import ErrorMessage from "../../../components/ErrorMessage";
+import { formatMoney } from "../../../utils/format";
 
 export default function DetalleCliente({ params }) {
   const router = useRouter();
@@ -256,9 +257,6 @@ export default function DetalleCliente({ params }) {
       setIsLoading(false);
     }
   };
-
-  const formatMoney = (amount) =>
-    "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount ?? 0);
 
   const formatPhone = (phone) => {
     if (!phone) return "";

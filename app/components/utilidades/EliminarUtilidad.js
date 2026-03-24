@@ -1,5 +1,6 @@
 // app/components/utilidades/EliminarUtilidad.js
 import { FiAlertCircle, FiX, FiCheck, FiShield } from "react-icons/fi";
+import { formatMoney } from "../../utils/format";
 
 export default function EliminarUtilidad({
   isOpen,
@@ -14,9 +15,6 @@ export default function EliminarUtilidad({
 }) {
   if (!isOpen) return null;
 
-  const formatMoney = (amount) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount || 0);
-  };
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-6 animate-in fade-in duration-300">

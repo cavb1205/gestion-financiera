@@ -14,8 +14,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 
 import { useRouter } from "next/navigation";
-
-const formatMoney = (amount) => "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount ?? 0);
+import { formatMoney } from "../../utils/format";
 
 const UltimosMovimientos = ({ tienda }) => {
   const router = useRouter();

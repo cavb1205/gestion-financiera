@@ -17,6 +17,7 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { formatMoney } from "../../utils/format";
 
 const PLAN_PERIODS = { Prueba: 7, Mensual: 30, Anual: 365 };
 
@@ -103,8 +104,6 @@ export default function MembresiasPage() {
     });
   };
 
-  const formatMoney = (amount) =>
-    "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount || 0);
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 

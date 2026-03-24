@@ -17,6 +17,9 @@ import {
   FiClock,
   FiAlertTriangle,
   FiX,
+  FiLock,
+  FiEye,
+  FiEyeOff,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "react-toastify";
@@ -30,6 +33,10 @@ export default function TrabajadorDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
     const fetchTrabajador = async () => {
@@ -67,6 +74,40 @@ export default function TrabajadorDetailPage() {
       toast.error(error.message);
       setIsDeleting(false);
       setShowDeleteModal(false);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      toast.error("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Las contraseñas no coinciden");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/trabajadores/password/${id}/`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ password: newPassword }),
+        }
+      );
+      if (!response.ok) throw new Error("Error al cambiar la contraseña");
+      toast.success("Contraseña actualizada correctamente");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -190,6 +231,63 @@ export default function TrabajadorDetailPage() {
                 <InfoRow icon={<FiCalendar size={14} />} label="Registro" value={formatDate(trabajador.date_joined)} />
                 <InfoRow icon={<FiClock size={14} />} label="Último acceso" value={formatDate(trabajador.last_login)} />
               </div>
+            </div>
+
+            {/* Change Password */}
+            <div className="glass p-7 rounded-[2rem] border-white/60 dark:border-slate-800 shadow-xl">
+              <div className="flex items-center gap-2 mb-5">
+                <FiLock className="text-amber-500" size={14} />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cambiar Contraseña</span>
+              </div>
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                      Nueva Contraseña
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Mínimo 6 caracteres"
+                        className="block w-full px-5 py-3.5 pr-12 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white focus:ring-4 focus:ring-amber-500/10 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                      Confirmar Contraseña
+                    </label>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Repetir contraseña"
+                      className="block w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white focus:ring-4 focus:ring-amber-500/10 transition-all"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={changingPassword || !newPassword || !confirmPassword}
+                  className="flex items-center gap-2 px-6 py-3.5 bg-amber-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-amber-100 dark:shadow-none"
+                >
+                  {changingPassword ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <FiLock size={15} />
+                  )}
+                  {changingPassword ? "Actualizando..." : "Actualizar Contraseña"}
+                </button>
+              </form>
             </div>
           </div>
         </div>

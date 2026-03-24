@@ -26,7 +26,7 @@ This is a **Next.js 15 App Router** frontend for a credit/portfolio management s
 
 All dashboard pages guard auth by checking `isAuthenticated` and `selectedStore` from `useAuth()` — redirecting to `/login` if missing. There is also a `selectedStore.fecha_vencimiento` check in `app/dashboard/layout.js` that restricts access if the store subscription has expired.
 
-API calls are made directly with `fetch()` using `Authorization: Bearer <token>` headers — the `authFetch` utility in `app/utils/api.js` exists but is not widely used (it incorrectly calls a React hook outside a component).
+API calls are made directly with `fetch()` using `Authorization: Bearer <token>` headers. A centralized `apiFetch` utility exists in `app/utils/api.js` that automatically adds auth headers, handles 401 responses with token refresh via `/token/refresh/`, and forces logout on failure. Token refresh is also done proactively at ~55 minutes and via the `SessionTimeout` inactivity modal in the dashboard layout.
 
 ### Route Structure
 
@@ -45,7 +45,9 @@ API calls are made directly with `fetch()` using `Authorization: Bearer <token>`
 /dashboard/liquidar/abonar      → Apply a payment
 /dashboard/recaudos             → Collections
 /dashboard/sueldos              → Salary calculator
+/dashboard/cierre-caja          → Cash closing (daily balance snapshots)
 /dashboard/reportes/utilidad    → Business intelligence/reports
+/dashboard/membresias           → Subscription management
 ```
 
 ### Key Conventions
@@ -53,6 +55,6 @@ API calls are made directly with `fetch()` using `Authorization: Bearer <token>`
 - **All pages are `"use client"`** — no server components beyond the root layout.
 - **Styling**: Tailwind CSS v4 with a custom `.glass` utility class (defined in `globals.css`) used pervasively for cards. Color palette centers on `indigo-600` (primary), `slate-*` (neutrals), `rose-*` (danger), `emerald-*` (success), `amber-*` (warning).
 - **UI patterns**: `react-icons/fi` (Feather icons) throughout. `react-toastify` for notifications (dark theme, bottom-right). `LoadingSpinner` component for loading states.
-- **Money formatting**: `Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" })` — Colombian peso locale.
+- **Money formatting**: `formatMoney()` from `app/utils/format.js` — generic locale with `"$"` prefix, no decimals. Import: `import { formatMoney } from '../../utils/format';`
 - **`selectedStore.tienda.id`** is passed as a path parameter to most API endpoints to scope data to the active store.
 - The dashboard layout (`app/dashboard/layout.js`) renders the sidebar nav and handles responsive mobile menu — individual pages only render their content area.

@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { formatMoney } from "../../../utils/format";
 
 export default function NuevaUtilidadPage() {
   const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
@@ -113,9 +114,6 @@ export default function NuevaUtilidadPage() {
     }
   };
 
-  const formatMoney = (amount) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount || 0);
-  };
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 

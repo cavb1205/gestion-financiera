@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "react-toastify";
 import { FiTrash2, FiAlertCircle, FiX, FiCheck, FiUser, FiDollarSign } from "react-icons/fi";
+import { formatMoney } from "../../utils/format";
 
 export default function EliminarRecaudo({ deletingRecaudo, onEliminar, onClose }) {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -38,12 +39,6 @@ export default function EliminarRecaudo({ deletingRecaudo, onEliminar, onClose }
     }
   };
 
-  const formatCurrency = (value) => {
-    return `$${parseFloat(value).toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    })}`;
-  };
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-6">
@@ -81,7 +76,7 @@ export default function EliminarRecaudo({ deletingRecaudo, onEliminar, onClose }
                 <div className="text-left">
                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Monto a Reversar</p>
                    <p className="text-xs font-black text-rose-600">
-                      {formatCurrency(deletingRecaudo.valor_recaudo)}
+                      {formatMoney(deletingRecaudo.valor_recaudo)}
                    </p>
                 </div>
              </div>

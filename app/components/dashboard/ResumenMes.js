@@ -14,8 +14,7 @@ import {
   FiAlertTriangle
 } from "react-icons/fi";
 import { useState } from "react";
-
-const formatMoney = (amount) => "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount ?? 0);
+import { formatMoney } from "../../utils/format";
 
 export default function ResumenMes({ tienda, loading = false }) {
   const [showTooltip, setShowTooltip] = useState(null);

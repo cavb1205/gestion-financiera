@@ -16,6 +16,7 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { formatMoney } from "../utils/format";
 
 export default function SelectStorePage() {
   const { token, logout, selectStore, user } = useAuth();
@@ -68,9 +69,6 @@ export default function SelectStorePage() {
     router.push("/dashboard");
   };
 
-  const formatCurrency = (amount) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-  };
 
   if (loading) return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
@@ -157,7 +155,7 @@ export default function SelectStorePage() {
                       <div>
                         <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Caja Actual</p>
                         <p className={`text-lg font-black tracking-tight ${store.tienda.caja >= 0 ? 'text-white' : 'text-rose-500'}`}>
-                          {formatCurrency(store.tienda.caja)}
+                          {formatMoney(store.tienda.caja)}
                         </p>
                       </div>
                       <div className="p-3 bg-white/5 rounded-xl text-slate-400 group-hover:text-emerald-500 transition-colors">
@@ -169,13 +167,13 @@ export default function SelectStorePage() {
                       <div className="p-5 bg-white/5 rounded-3xl border border-white/5">
                         <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Cuentas x Cobrar</p>
                         <p className="text-sm font-black text-slate-300">
-                          {formatCurrency(store.tienda.dinero_x_cobrar)}
+                          {formatMoney(store.tienda.dinero_x_cobrar)}
                         </p>
                       </div>
                       <div className="p-5 bg-emerald-500/10 rounded-3xl border border-emerald-500/10 flex flex-col justify-center">
                         <p className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest mb-1 font-extrabold">Total Valor</p>
                         <p className="text-sm font-black text-emerald-500 tracking-tighter">
-                          {formatCurrency(store.tienda.caja + store.tienda.dinero_x_cobrar)}
+                          {formatMoney(store.tienda.caja + store.tienda.dinero_x_cobrar)}
                         </p>
                       </div>
                     </div>

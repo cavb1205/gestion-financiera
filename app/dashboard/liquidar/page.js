@@ -27,6 +27,7 @@ import LoadingSpinner from "@/app/components/LoadingSpinner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
+import { formatMoney } from "../../utils/format";
 
 export default function LiquidarCreditosPage() {
    const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
@@ -120,9 +121,6 @@ export default function LiquidarCreditosPage() {
      return [current - 2, current - 1, current, current + 1, current + 2];
    };
 
-   const formatCurrency = (value) => {
-      return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
-   };
 
    const getStatusBadge = (estado) => {
       switch (estado) {
@@ -221,7 +219,7 @@ export default function LiquidarCreditosPage() {
                         <span className="hidden md:block text-[10px] font-black text-indigo-400 uppercase tracking-widest">Meta</span>
                      </div>
                      <p className="text-base md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-0.5 md:mb-1">
-                        {formatCurrency(totalRecaudar)}
+                        {formatMoney(totalRecaudar)}
                      </p>
                      <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Meta Total</p>
                   </div>
@@ -236,7 +234,7 @@ export default function LiquidarCreditosPage() {
                         <span className="hidden md:block text-[10px] font-black text-rose-400 uppercase tracking-widest">Pendiente</span>
                      </div>
                      <p className="text-base md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-0.5 md:mb-1">
-                        {formatCurrency(totalPendientes)}
+                        {formatMoney(totalPendientes)}
                      </p>
                      <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Pendiente</p>
                   </div>
@@ -251,7 +249,7 @@ export default function LiquidarCreditosPage() {
                         <span className="hidden md:block text-[10px] font-bold text-white/60 uppercase tracking-widest">Cobrado</span>
                      </div>
                      <p className="text-base md:text-3xl font-black tracking-tighter mb-0.5 md:mb-1">
-                        {formatCurrency(totalRealizados)}
+                        {formatMoney(totalRealizados)}
                      </p>
                      <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest leading-none opacity-70">Recaudado</p>
                   </div>
@@ -362,10 +360,10 @@ export default function LiquidarCreditosPage() {
                                  </td>
                                  <td className="px-4 py-6 text-right whitespace-nowrap">
                                     <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none mb-1">
-                                       {formatCurrency(credito.valor_cuota)}
+                                       {formatMoney(credito.valor_cuota)}
                                     </p>
                                     <p className="text-[9px] font-bold text-rose-400 uppercase tracking-widest leading-none">
-                                       Saldo: {formatCurrency(credito.saldo_actual)}
+                                       Saldo: {formatMoney(credito.saldo_actual)}
                                     </p>
                                  </td>
                                  <td className="px-4 py-6 text-center whitespace-nowrap">
@@ -453,7 +451,7 @@ export default function LiquidarCreditosPage() {
                               <div className="text-right shrink-0">
                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none">Cuota Hoy</p>
                                  <p className="text-xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter leading-none">
-                                    {formatCurrency(credito.valor_cuota)}
+                                    {formatMoney(credito.valor_cuota)}
                                  </p>
                               </div>
                            </div>
@@ -461,7 +459,7 @@ export default function LiquidarCreditosPage() {
                            <div className="grid grid-cols-2 gap-6 p-5 bg-slate-50/50 dark:bg-slate-800/20 rounded-3xl border border-slate-100 dark:border-slate-800">
                               <div className="space-y-1">
                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Saldo Pendiente</p>
-                                 <p className="text-sm font-black text-rose-500 tracking-tight">{formatCurrency(credito.saldo_actual)}</p>
+                                 <p className="text-sm font-black text-rose-500 tracking-tight">{formatMoney(credito.saldo_actual)}</p>
                               </div>
                               <div className="text-right space-y-1">
                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Progreso</p>

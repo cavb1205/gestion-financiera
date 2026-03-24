@@ -1,7 +1,8 @@
 // context/AuthContext.js
 'use client';
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { tryRefreshToken } from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -12,6 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [selectedStore, setSelectedStore] = useState(null);
   const [loading, setLoading] = useState(true);
+  const tokenTimeoutRef = useRef(null);
 
   // Función para limpiar la autenticación
   const clearAuth = useCallback(() => {
@@ -78,13 +80,12 @@ export const AuthProvider = ({ children }) => {
       const timeLeft = Math.max(0, 60 * 60 * 1000 - tokenAge);
       console.log(`Token válido, expira en ${Math.round(timeLeft / 60000)} minutos`);
       
-      // Limpiar timeout anterior si existe (aunque en este contexto es nuevo)
-      const timeoutId = setTimeout(() => {
+      // Limpiar timeout anterior si existe y programar nuevo
+      clearTimeout(tokenTimeoutRef.current);
+      tokenTimeoutRef.current = setTimeout(() => {
         console.log('Token expirado por timeout');
         logout();
       }, timeLeft);
-      
-      return () => clearTimeout(timeoutId); // Cleanup en un useEffect si fuera necesario, pero aquí es difícil retornar
     } catch (error) {
       console.error('Error parsing auth data:', error);
       clearAuth();
@@ -104,19 +105,31 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
     
     // Intervalo para verificar expiración periódicamente (por si el timeout falla o el usuario hiberna la PC)
-    const intervalId = setInterval(() => {
+    const intervalId = setInterval(async () => {
         const tokenTimestamp = localStorage.getItem('tokenTimestamp');
         if (tokenTimestamp) {
             const now = new Date().getTime();
             const tokenAge = now - parseInt(tokenTimestamp, 10);
-             if (tokenAge > 60 * 60 * 1000) {
+            // Intentar refresh proactivo a los 55 minutos
+            if (tokenAge > 55 * 60 * 1000 && tokenAge <= 60 * 60 * 1000) {
+                console.log('Token próximo a expirar, intentando refresh proactivo');
+                const newToken = await tryRefreshToken();
+                if (newToken) {
+                    setToken(newToken);
+                    clearTimeout(tokenTimeoutRef.current);
+                    tokenTimeoutRef.current = setTimeout(logout, 60 * 60 * 1000);
+                }
+            } else if (tokenAge > 60 * 60 * 1000) {
                 console.log('Token expirado detectado por intervalo');
                 logout();
             }
         }
     }, 60000); // Verificar cada minuto
 
-    return () => clearInterval(intervalId);
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(tokenTimeoutRef.current);
+    };
 
   }, [loadAuthData, logout]);
 
@@ -133,13 +146,28 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
     
     // Programar expiración exactamente a los 60 minutos
-    setTimeout(logout, 60 * 60 * 1000);
+    clearTimeout(tokenTimeoutRef.current);
+    tokenTimeoutRef.current = setTimeout(logout, 60 * 60 * 1000);
   }, [logout]);
 
   const selectStore = useCallback((store) => {
     localStorage.setItem('selectedStore', JSON.stringify(store));
     setSelectedStore(store);
   }, []);
+
+  // Renovar token usando refresh token
+  const refreshAuthToken = useCallback(async () => {
+    const newToken = await tryRefreshToken();
+    if (newToken) {
+      setToken(newToken);
+      // Reprogramar expiración a 60 min desde ahora
+      clearTimeout(tokenTimeoutRef.current);
+      tokenTimeoutRef.current = setTimeout(logout, 60 * 60 * 1000);
+      return true;
+    }
+    logout();
+    return false;
+  }, [logout]);
 
   const updateStoreData = useCallback((newData) => {
     setSelectedStore(prev => {
@@ -161,6 +189,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         logout,
+        refreshAuthToken,
         selectStore,
         updateStoreData,
         isAuthenticated: !!token,

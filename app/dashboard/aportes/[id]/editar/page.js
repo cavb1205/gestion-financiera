@@ -16,6 +16,7 @@ import {
 import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { formatMoney } from "../../../../utils/format";
 
 export default function EditarAportePage() {
   const { id } = useParams();
@@ -84,8 +85,6 @@ export default function EditarAportePage() {
     }
   };
 
-  const formatMoney = (amount) =>
-    "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount || 0);
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
   if (!aporte) return <LoadingSpinner />;

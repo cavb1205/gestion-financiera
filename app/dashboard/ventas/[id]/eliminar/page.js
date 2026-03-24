@@ -18,6 +18,7 @@ import {
 import { useAuth } from "../../../../context/AuthContext";
 import LoadingSpinner from "../../../../components/LoadingSpinner";
 import { toast } from "react-toastify";
+import { formatMoney } from "../../../../utils/format";
 
 export default function EliminarVentaPage() {
   const router = useRouter();
@@ -100,9 +101,6 @@ export default function EliminarVentaPage() {
     }
   };
 
-  const formatMoney = (amount) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-  };
 
   if (loading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 

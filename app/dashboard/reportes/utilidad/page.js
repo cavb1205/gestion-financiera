@@ -19,6 +19,7 @@ import {
   FiTarget,
 } from "react-icons/fi";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { formatMoney } from "../../../utils/format";
 
 export default function ReportesPage() {
   const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
@@ -110,9 +111,6 @@ export default function ReportesPage() {
       .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
   };
 
-  const formatMoney = (amount) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-  };
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 

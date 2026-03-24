@@ -22,6 +22,7 @@ import LoadingSpinner from "../../../../components/LoadingSpinner";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-toastify";
+import { formatMoney } from "../../../../utils/format";
 
 export default function EditarVentaPage() {
   const router = useRouter();
@@ -111,10 +112,6 @@ export default function EditarVentaPage() {
     const adjustedDate = new Date(date);
     adjustedDate.setMinutes(adjustedDate.getMinutes() - adjustedDate.getTimezoneOffset());
     return adjustedDate.toISOString().split('T')[0];
-  };
-
-  const formatMoney = (amount) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
   };
 
   const handleSubmit = async (e) => {

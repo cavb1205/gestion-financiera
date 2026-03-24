@@ -17,6 +17,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { formatMoney } from "../../../utils/format";
 
 export default function CrearGastoPage() {
   const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
@@ -94,9 +95,6 @@ export default function CrearGastoPage() {
     }
   };
 
-  const formatMoney = (amount) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount || 0);
-  };
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 

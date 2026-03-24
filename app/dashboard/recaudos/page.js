@@ -28,6 +28,7 @@ import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { formatMoney } from "../../utils/format";
 import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
 import EliminarRecaudo from "@/app/components/recaudos/EliminarRecaudo";
 
@@ -124,10 +125,6 @@ export default function RecaudosPage() {
     return [current - 2, current - 1, current, current + 1, current + 2];
   };
 
-  const formatCurrency = (value) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
-  };
-
   const handleRecaudoEditado = (updated) => {
     setRecaudos(prev => prev.map(r => r.id === updated.id ? updated : r));
     setEditingRecaudo(null);
@@ -204,7 +201,7 @@ export default function RecaudosPage() {
                     <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Caja del Día</span>
                  </div>
                  <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
-                    {formatCurrency(metrics.total)}
+                    {formatMoney(metrics.total)}
                  </p>
                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Total Efectivo Ingresado</p>
               </div>
@@ -354,12 +351,12 @@ export default function RecaudosPage() {
                                    <p className={`text-[11px] font-black uppercase leading-tight truncate ${esFalla ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400'}`}>
                                       {esFalla ? (recaudo.visita_blanco?.tipo_falla || "Sin Detalle") : "Sincronización Exitosa"}
                                    </p>
-                                   <p className="text-[9px] font-bold text-slate-300 uppercase mt-1">Saldo Venta: {formatCurrency(recaudo.venta?.saldo_actual || 0)}</p>
+                                   <p className="text-[9px] font-bold text-slate-300 uppercase mt-1">Saldo Venta: {formatMoney(recaudo.venta?.saldo_actual || 0)}</p>
                                 </div>
                              </td>
                              <td className="px-4 py-6 text-right whitespace-nowrap">
                                 <p className={`text-sm font-black tracking-tighter ${esFalla ? 'text-slate-400' : 'text-emerald-500'}`}>
-                                   {formatCurrency(recaudo.valor_recaudo)}
+                                   {formatMoney(recaudo.valor_recaudo)}
                                 </p>
                                 <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-none mt-1">
                                    Hash: {recaudo.id.toString(16).padStart(4, '0')}

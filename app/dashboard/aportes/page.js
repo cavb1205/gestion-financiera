@@ -21,9 +21,10 @@ import {
 } from "react-icons/fi";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import EliminarAporte from "@/app/components/aportes/EliminarAporte";
+import ConfirmModal from "@/app/components/ConfirmModal";
 import { toast } from "react-toastify";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import { formatMoney } from "../../utils/format";
 
 export default function AportesPage() {
   const router = useRouter();
@@ -128,10 +129,6 @@ export default function AportesPage() {
     (total, aporte) => total + parseFloat(aporte.valor),
     0
   );
-
-  const formatMoney = (amount) => {
-    return "$" + new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-  };
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -382,7 +379,7 @@ export default function AportesPage() {
 
         {/* Modal de Confirmación */}
         {aporteAEliminar && (
-          <EliminarAporte
+          <ConfirmModal
             isOpen={!!aporteAEliminar}
             onClose={() => setAporteAEliminar(null)}
             onConfirm={handleEliminarAporte}
