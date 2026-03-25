@@ -26,7 +26,7 @@ import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { formatMoney } from "../../utils/format";
+import { formatMoney, parseMoney } from "../../utils/format";
 
 export default function GastosPage() {
   const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
@@ -161,7 +161,7 @@ export default function GastosPage() {
     );
   }
 
-  const totalGastosMonto = filteredGastos.reduce((acc, gasto) => acc + parseFloat(gasto.valor), 0);
+  const totalGastosMonto = filteredGastos.reduce((acc, gasto) => acc + parseMoney(gasto.valor), 0);
 
   return (
     <div className="min-h-screen bg-transparent pb-12">

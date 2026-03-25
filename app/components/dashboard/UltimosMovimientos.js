@@ -14,7 +14,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 
 import { useRouter } from "next/navigation";
-import { formatMoney } from "../../utils/format";
+import { formatMoney, parseMoney } from "../../utils/format";
 
 const UltimosMovimientos = ({ tienda }) => {
   const router = useRouter();
@@ -83,7 +83,7 @@ const UltimosMovimientos = ({ tienda }) => {
         id: aporte.id,
         tipo: `aporte`,
         descripcion: `Aporte de ${aporte.comentario || "socio"} `,
-        monto: parseFloat(aporte.valor),
+        monto: parseMoney(aporte.valor),
         fecha: aporte.fecha,
         icono: "trending-up",
       }));
@@ -116,7 +116,7 @@ const UltimosMovimientos = ({ tienda }) => {
         id: gasto.id,
         tipo: "gasto",
         descripcion: gasto.tipo_gasto.tipo_gasto || "Gasto registrado",
-        monto: -parseFloat(gasto.valor), // Negativo porque es un gasto
+        monto: -parseMoney(gasto.valor), // Negativo porque es un gasto
         fecha: gasto.fecha,
         icono: "credit-card",
       }));
@@ -149,7 +149,7 @@ const UltimosMovimientos = ({ tienda }) => {
         id: utilidad.id,
         tipo: "retiro",
         descripcion: `Retiro de utilidades`,
-        monto: -parseFloat(utilidad.valor), // Negativo porque es un retiro
+        monto: -parseMoney(utilidad.valor), // Negativo porque es un retiro
         fecha: utilidad.fecha,
         icono: "trending-down",
         estado: "completado",
@@ -186,7 +186,7 @@ const UltimosMovimientos = ({ tienda }) => {
         descripcion: `Venta a ${venta.cliente.nombres || "cliente"} ${
           venta.cliente.apellidos || ""
         }`,
-        monto: parseFloat(venta.valor_venta),
+        monto: parseMoney(venta.valor_venta),
         fecha: venta.fecha_venta,
         icono: "shopping-cart",
       }));

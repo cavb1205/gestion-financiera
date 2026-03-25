@@ -27,7 +27,7 @@ import LoadingSpinner from "@/app/components/LoadingSpinner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
-import { formatMoney } from "../../utils/format";
+import { formatMoney, parseMoney } from "../../utils/format";
 
 export default function LiquidarCreditosPage() {
    const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
@@ -136,7 +136,7 @@ export default function LiquidarCreditosPage() {
    };
 
    const handleAbonar = (credito) => {
-      const valorAbono = Math.min(parseFloat(credito.saldo_actual), parseFloat(credito.valor_cuota));
+      const valorAbono = Math.min(parseMoney(credito.saldo_actual), parseMoney(credito.valor_cuota));
       const abono = {
          fecha_recaudo: selectedDate,
          valor_recaudo: valorAbono,
@@ -165,9 +165,9 @@ export default function LiquidarCreditosPage() {
    if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 
    // Totales
-   const totalRecaudar = creditosActivos.reduce((acc, c) => acc + parseFloat(c.valor_cuota), 0);
-   const totalPendientes = filteredCreditos.reduce((acc, c) => acc + parseFloat(c.valor_cuota), 0);
-   const totalRealizados = recaudos.reduce((acc, r) => acc + parseFloat(r.valor_recaudo), 0);
+   const totalRecaudar = creditosActivos.reduce((acc, c) => acc + parseMoney(c.valor_cuota), 0);
+   const totalPendientes = filteredCreditos.reduce((acc, c) => acc + parseMoney(c.valor_cuota), 0);
+   const totalRealizados = recaudos.reduce((acc, r) => acc + parseMoney(r.valor_recaudo), 0);
 
    return (
       <div className="min-h-screen bg-transparent pb-12">
@@ -369,12 +369,12 @@ export default function LiquidarCreditosPage() {
                                  <td className="px-4 py-6 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
                                        <span className="text-xs font-black text-slate-800 dark:text-white tracking-tighter mb-1">
-                                          {credito.pagos_realizados}/{credito.cuotas}
+                                          {Math.round(credito.pagos_realizados)}/{credito.cuotas}
                                        </span>
                                        <div className="w-20 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                           <div
                                              className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
-                                             style={{ width: `${(credito.pagos_realizados / credito.cuotas) * 100}%` }}
+                                             style={{ width: `${(Math.round(credito.pagos_realizados) / credito.cuotas) * 100}%` }}
                                           ></div>
                                        </div>
                                     </div>
@@ -463,7 +463,7 @@ export default function LiquidarCreditosPage() {
                               </div>
                               <div className="text-right space-y-1">
                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Progreso</p>
-                                 <p className="text-sm font-black text-slate-800 dark:text-white uppercase">{credito.pagos_realizados} / {credito.cuotas}</p>
+                                 <p className="text-sm font-black text-slate-800 dark:text-white uppercase">{Math.round(credito.pagos_realizados)} / {credito.cuotas}</p>
                               </div>
                            </div>
 

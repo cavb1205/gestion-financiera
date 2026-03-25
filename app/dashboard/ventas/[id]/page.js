@@ -28,7 +28,7 @@ import {
   FiPhone,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
-import { formatMoney } from "../../../utils/format";
+import { formatMoney, parseMoney } from "../../../utils/format";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import EliminarRecaudo from "@/app/components/recaudos/EliminarRecaudo";
 import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
@@ -56,8 +56,8 @@ export default function VentaDetailPage() {
 
   const handleRegistrarPago = () => {
     const valorAbono = Math.min(
-      parseFloat(venta.saldo_actual),
-      parseFloat(venta.valor_cuota)
+      parseMoney(venta.saldo_actual),
+      parseMoney(venta.valor_cuota)
     );
     const today = new Date();
     const selectedDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split("T")[0];
@@ -151,8 +151,8 @@ export default function VentaDetailPage() {
     }
   };
 
-  const totalPagado = pagos.reduce((sum, pago) => sum + (parseFloat(pago.valor_recaudo) || 0), 0);
-  const progresoPago = venta ? (totalPagado / parseFloat(venta.total_a_pagar)) * 100 : 0;
+  const totalPagado = pagos.reduce((sum, pago) => sum + parseMoney(pago.valor_recaudo), 0);
+  const progresoPago = venta ? (totalPagado / parseMoney(venta.total_a_pagar)) * 100 : 0;
 
   if (loading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 
@@ -483,7 +483,7 @@ export default function VentaDetailPage() {
                   </div>
                   <div className="flex justify-between items-end border-b border-white/10 pb-4">
                     <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Utilidad Bruta</span>
-                    <span className="text-lg font-black text-emerald-300">+{formatMoney(parseFloat(venta.total_a_pagar) - parseFloat(venta.valor_venta))}</span>
+                    <span className="text-lg font-black text-emerald-300">+{formatMoney(parseMoney(venta.total_a_pagar) - parseMoney(venta.valor_venta))}</span>
                   </div>
                   <div className="flex justify-between items-end pt-2">
                     <span className="text-[10px] font-black uppercase tracking-widest opacity-60 text-indigo-200">Total Recupero</span>

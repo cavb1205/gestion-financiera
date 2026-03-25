@@ -23,7 +23,7 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import LoadingSpinner from "../../../components/LoadingSpinner";
-import { formatMoney } from "../../../utils/format";
+import { formatMoney, calcularTotal, calcularCuota } from "../../../utils/format";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-toastify";
@@ -117,14 +117,11 @@ function NuevaVentaContent() {
   };
 
   const calcularTotalAPagar = () => {
-    const valorVenta = parseFloat(formData.valor_venta) || 0;
-    const interesDecimal = parseFloat(formData.interes) / 100;
-    return valorVenta * (1 + interesDecimal);
+    return calcularTotal(formData.valor_venta, formData.interes);
   };
 
   const calcularValorCuota = () => {
-    const totalAPagar = calcularTotalAPagar();
-    return totalAPagar / parseInt(formData.cuotas || 1);
+    return calcularCuota(calcularTotalAPagar(), formData.cuotas);
   };
 
   const formatDateToLocalISO = (date) => {

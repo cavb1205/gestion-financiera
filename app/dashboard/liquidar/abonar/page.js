@@ -19,7 +19,7 @@ import {
 } from "react-icons/fi";
 import Link from "next/link";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
-import { formatMoney } from "../../../utils/format";
+import { formatMoney, roundMoney } from "../../../utils/format";
 
 export default function PagarAbonoPage() {
   const { token, isAuthenticated, selectedStore, loading: authLoading } = useAuth();
@@ -108,7 +108,7 @@ export default function PagarAbonoPage() {
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
   if (loading) return <LoadingSpinner />;
 
-  const nuevoSaldo = Math.max(0, maximoAbonable - (parseFloat(valorAbono) || 0));
+  const nuevoSaldo = Math.max(0, roundMoney(maximoAbonable - (parseFloat(valorAbono) || 0)));
 
   return (
     <div className="min-h-screen bg-transparent pb-20 md:pb-12">

@@ -24,7 +24,7 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import LoadingSpinner from "../../components/LoadingSpinner";
-import { formatMoney } from "../../utils/format";
+import { formatMoney, parseMoney } from "../../utils/format";
 import Link from "next/link";
 
 export default function VentasPage() {
@@ -117,11 +117,11 @@ export default function VentasPage() {
   const summary = filteredVentas.reduce(
     (acc, venta) => {
       acc.totalVentas += 1;
-      acc.saldoTotal += parseFloat(venta.saldo_actual);
-      acc.abonosTotal += parseFloat(venta.total_abonado);
+      acc.saldoTotal += parseMoney(venta.saldo_actual);
+      acc.abonosTotal += parseMoney(venta.total_abonado);
       if (venta.estado_venta === "Vencido") {
         acc.vencidas += 1;
-        acc.perdidas += parseFloat(venta.perdida);
+        acc.perdidas += parseMoney(venta.perdida);
       }
       return acc;
     },
@@ -513,7 +513,7 @@ export default function VentasPage() {
                        </div>
                     </div>
                     <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
-                       {formatMoney(filteredVentas.reduce((sum, v) => sum + (parseFloat(v.total_a_pagar) - parseFloat(v.valor_venta)), 0))}
+                       {formatMoney(filteredVentas.reduce((sum, v) => sum + (parseMoney(v.total_a_pagar) - parseMoney(v.valor_venta)), 0))}
                     </p>
                  </div>
                  <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700">

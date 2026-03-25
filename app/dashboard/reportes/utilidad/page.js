@@ -19,7 +19,7 @@ import {
   FiTarget,
 } from "react-icons/fi";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
-import { formatMoney } from "../../../utils/format";
+import { formatMoney, parseMoney } from "../../../utils/format";
 
 export default function ReportesPage() {
   const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
@@ -87,10 +87,10 @@ export default function ReportesPage() {
         datosPorFecha[fecha] = { fecha, cantidadVentas: 0, totalVendido: 0, interesesGenerados: 0, gastos: 0, perdidas: 0, utilidad: 0 };
       }
       datosPorFecha[fecha].cantidadVentas += 1;
-      datosPorFecha[fecha].totalVendido += parseFloat(venta.valor_venta);
-      datosPorFecha[fecha].interesesGenerados += (parseFloat(venta.total_a_pagar) - parseFloat(venta.valor_venta));
+      datosPorFecha[fecha].totalVendido += parseMoney(venta.valor_venta);
+      datosPorFecha[fecha].interesesGenerados += (parseMoney(venta.total_a_pagar) - parseMoney(venta.valor_venta));
       if (venta.estado_venta === "Perdida") {
-        datosPorFecha[fecha].perdidas += parseFloat(venta.perdida);
+        datosPorFecha[fecha].perdidas += parseMoney(venta.perdida);
       }
     });
 
@@ -99,7 +99,7 @@ export default function ReportesPage() {
       if (!datosPorFecha[fecha]) {
         datosPorFecha[fecha] = { fecha, cantidadVentas: 0, totalVendido: 0, interesesGenerados: 0, gastos: 0, perdidas: 0, utilidad: 0 };
       }
-      datosPorFecha[fecha].gastos += parseFloat(gasto.valor);
+      datosPorFecha[fecha].gastos += parseMoney(gasto.valor);
     });
 
     Object.values(datosPorFecha).forEach((datos) => {

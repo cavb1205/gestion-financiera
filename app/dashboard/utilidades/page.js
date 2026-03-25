@@ -27,7 +27,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import EliminarUtilidad from "@/app/components/utilidades/EliminarUtilidad";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
-import { formatMoney } from "../../utils/format";
+import { formatMoney, parseMoney } from "../../utils/format";
 
 export default function UtilidadesPage() {
   const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
@@ -121,7 +121,7 @@ export default function UtilidadesPage() {
   }, [utilidades, searchTerm]);
 
   const totalUtilidades = filteredUtilidades.reduce(
-    (total, utilidad) => total + parseFloat(utilidad.valor),
+    (total, utilidad) => total + parseMoney(utilidad.valor),
     0
   );
 

@@ -20,7 +20,7 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import LoadingSpinner from "../../../components/LoadingSpinner";
-import { formatMoney } from "../../../utils/format";
+import { formatMoney, parseMoney } from "../../../utils/format";
 
 export default function VentasPerdidasPage() {
   const router = useRouter();
@@ -105,9 +105,9 @@ export default function VentasPerdidasPage() {
   const summary = filteredVentas.reduce(
     (acc, venta) => {
       acc.totalPerdidas += 1;
-      acc.capitalPerdido += parseFloat(venta.valor_venta);
-      acc.saldoPerdido += parseFloat(venta.saldo_actual);
-      acc.totalAbonado += parseFloat(venta.total_abonado);
+      acc.capitalPerdido += parseMoney(venta.valor_venta);
+      acc.saldoPerdido += parseMoney(venta.saldo_actual);
+      acc.totalAbonado += parseMoney(venta.total_abonado);
       return acc;
     },
     { totalPerdidas: 0, capitalPerdido: 0, saldoPerdido: 0, totalAbonado: 0 }

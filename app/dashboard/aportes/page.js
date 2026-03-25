@@ -24,7 +24,7 @@ import { useRouter } from "next/navigation";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import { toast } from "react-toastify";
 import LoadingSpinner from "../../components/LoadingSpinner";
-import { formatMoney } from "../../utils/format";
+import { formatMoney, parseMoney } from "../../utils/format";
 
 export default function AportesPage() {
   const router = useRouter();
@@ -126,7 +126,7 @@ export default function AportesPage() {
   };
 
   const totalAportes = filteredAportes.reduce(
-    (total, aporte) => total + parseFloat(aporte.valor),
+    (total, aporte) => total + parseMoney(aporte.valor),
     0
   );
 

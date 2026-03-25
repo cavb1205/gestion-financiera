@@ -28,7 +28,7 @@ import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { formatMoney } from "../../utils/format";
+import { formatMoney, parseMoney } from "../../utils/format";
 import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
 import EliminarRecaudo from "@/app/components/recaudos/EliminarRecaudo";
 
@@ -107,7 +107,7 @@ export default function RecaudosPage() {
   }, [searchTerm, recaudos]);
 
   const metrics = useMemo(() => {
-    const total = filteredRecaudos.reduce((acc, r) => acc + parseFloat(r.valor_recaudo || 0), 0);
+    const total = filteredRecaudos.reduce((acc, r) => acc + parseMoney(r.valor_recaudo), 0);
     const abonos = filteredRecaudos.filter(r => parseFloat(r.valor_recaudo) > 0).length;
     const fallas = filteredRecaudos.filter(r => parseFloat(r.valor_recaudo) === 0).length;
     return { total, abonos, fallas, count: filteredRecaudos.length };
