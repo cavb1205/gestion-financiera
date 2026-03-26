@@ -13,6 +13,7 @@ import {
   FiShield,
   FiAlertCircle,
   FiPackage,
+  FiChevronRight,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
@@ -43,6 +44,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [tienda, setTienda] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [alertas, setAlertas] = useState({ vencidos: 0, moraGrave: 0, montoMora: 0, fallasHoy: 0, cajaNegativa: false });
 
   const fetchTienda = async () => {
     if (!selectedStore || !token) return null;
@@ -67,6 +69,38 @@ export default function DashboardPage() {
     setRefreshing(false);
   };
 
+  const fetchAlertas = async () => {
+    if (!selectedStore || !token) return;
+    try {
+      const hoy = new Date();
+      const fechaHoy = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+      const fetchJson = async (url) => {
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return null;
+        return res.json();
+      };
+      const [activosData, recaudosData] = await Promise.all([
+        fetchJson(`${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/t/${selectedStore.tienda.id}/`),
+        fetchJson(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${fechaHoy}/t/${selectedStore.tienda.id}/`),
+      ]);
+      const activos = Array.isArray(activosData) ? activosData : [];
+      const recaudosHoy = Array.isArray(recaudosData) ? recaudosData : [];
+      const vencidos = activos.filter(c => c.estado_venta === "Vencido");
+      const moraGrave = vencidos.filter(c => (c.dias_atrasados || 0) >= 15);
+      const montoMora = vencidos.reduce((acc, c) => acc + Math.round(parseFloat(c.saldo_actual) || 0), 0);
+      const fallasHoy = recaudosHoy.filter(r => r.visita_blanco).length;
+      setAlertas({
+        vencidos: vencidos.length,
+        moraGrave: moraGrave.length,
+        montoMora,
+        fallasHoy,
+        cajaNegativa: (selectedStore.tienda.caja ?? 0) < 0,
+      });
+    } catch {
+      // silently fail
+    }
+  };
+
   useEffect(() => {
     setTienda({
       tienda: selectedStore.tienda,
@@ -74,6 +108,7 @@ export default function DashboardPage() {
       fecha_vencimiento: selectedStore.fecha_vencimiento,
     });
     fetchTienda();
+    fetchAlertas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore.tienda.id]);
 
@@ -197,6 +232,71 @@ export default function DashboardPage() {
           >
             Renovar
           </button>
+        </div>
+      )}
+
+      {/* ── Alertas operativas ──────────────────────────────────── */}
+      {(alertas.vencidos > 0 || alertas.fallasHoy > 0 || alertas.cajaNegativa) && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {alertas.vencidos > 0 && (
+            <button
+              onClick={() => router.push("/dashboard/reportes/cartera")}
+              className="flex items-center gap-4 p-4 bg-rose-50 dark:bg-rose-900/15 border border-rose-200 dark:border-rose-800/40 rounded-2xl hover:border-rose-400 transition-all group text-left"
+            >
+              <div className="p-2.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
+                <FiAlertTriangle size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black text-rose-700 dark:text-rose-400 tracking-tight">
+                  {alertas.vencidos} crédito{alertas.vencidos !== 1 ? "s" : ""} vencido{alertas.vencidos !== 1 ? "s" : ""}
+                </p>
+                <p className="text-[10px] font-bold text-rose-500/70 uppercase tracking-widest">
+                  {alertas.moraGrave > 0 && `${alertas.moraGrave} con +15d mora · `}{formatMoney(alertas.montoMora)} en riesgo
+                </p>
+              </div>
+              <FiChevronRight className="text-rose-300 group-hover:translate-x-1 transition-transform shrink-0" size={16} />
+            </button>
+          )}
+
+          {alertas.fallasHoy > 0 && (
+            <button
+              onClick={() => router.push("/dashboard/reportes/visitas")}
+              className="flex items-center gap-4 p-4 bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800/40 rounded-2xl hover:border-amber-400 transition-all group text-left"
+            >
+              <div className="p-2.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
+                <FiAlertCircle size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black text-amber-700 dark:text-amber-400 tracking-tight">
+                  {alertas.fallasHoy} visita{alertas.fallasHoy !== 1 ? "s" : ""} fallida{alertas.fallasHoy !== 1 ? "s" : ""} hoy
+                </p>
+                <p className="text-[10px] font-bold text-amber-500/70 uppercase tracking-widest">
+                  Clientes no contactados
+                </p>
+              </div>
+              <FiChevronRight className="text-amber-300 group-hover:translate-x-1 transition-transform shrink-0" size={16} />
+            </button>
+          )}
+
+          {alertas.cajaNegativa && (
+            <button
+              onClick={() => router.push("/dashboard/cierre-caja")}
+              className="flex items-center gap-4 p-4 bg-red-50 dark:bg-red-900/15 border border-red-200 dark:border-red-800/40 rounded-2xl hover:border-red-400 transition-all group text-left"
+            >
+              <div className="p-2.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
+                <FiDollarSign size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black text-red-700 dark:text-red-400 tracking-tight">
+                  Caja negativa
+                </p>
+                <p className="text-[10px] font-bold text-red-500/70 uppercase tracking-widest">
+                  Balance requiere atención inmediata
+                </p>
+              </div>
+              <FiChevronRight className="text-red-300 group-hover:translate-x-1 transition-transform shrink-0" size={16} />
+            </button>
+          )}
         </div>
       )}
 

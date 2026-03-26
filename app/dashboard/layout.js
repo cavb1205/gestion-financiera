@@ -23,7 +23,6 @@ import {
   FiTrendingUp,
   FiFileText,
   FiPieChart,
-  FiClipboard,
   FiDollarSign as FiDollar,
   FiUsers,
   FiPackage,
@@ -31,6 +30,8 @@ import {
   FiCalendar,
   FiTablet,
   FiShield,
+  FiChevronDown,
+  FiEye,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import Link from "next/link";
@@ -38,21 +39,30 @@ import { usePathname } from "next/navigation";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SessionTimeout from "../components/SessionTimeout";
 
-const menuItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: FiHome },
-  { path: '/dashboard/aportes', label: 'Gestión Aportes', icon: FiDollar },
-  { path: '/dashboard/gastos', label: 'Control Gastos', icon: FiTrendingDown },
-  { path: '/dashboard/utilidades', label: 'Utilidades', icon: FiTrendingUp },
-  { path: '/dashboard/ventas', label: 'Ventas Activas', icon: FiShoppingCart },
-  { path: '/dashboard/ventas/perdidas', label: 'Ventas Pérdida', icon: FiTrendingDown },
+// Menu items with role restrictions: adminOnly = true means only visible to admins (is_staff)
+const allMenuItems = [
+  { path: '/dashboard', label: 'Dashboard', icon: FiHome, adminOnly: true },
+  { path: '/dashboard/aportes', label: 'Gestión Aportes', icon: FiDollar, adminOnly: true },
+  { path: '/dashboard/gastos', label: 'Control Gastos', icon: FiTrendingDown, adminOnly: true },
+  { path: '/dashboard/utilidades', label: 'Utilidades', icon: FiTrendingUp, adminOnly: true },
+  { path: '/dashboard/ventas', label: 'Ventas Activas', icon: FiShoppingCart, adminOnly: true },
+  { path: '/dashboard/ventas/perdidas', label: 'Ventas Pérdida', icon: FiTrendingDown, adminOnly: true },
   { path: '/dashboard/liquidar', label: 'Liquidación', icon: FiCheckCircle },
   { path: '/dashboard/recaudos', label: 'Recaudos', icon: FiPackage },
-  { path: '/dashboard/clientes', label: 'Clientes', icon: FiUsers },
-  { path: '/dashboard/trabajadores', label: 'Trabajadores', icon: FiUsers },
-  { path: '/dashboard/sueldos', label: 'Cálculo Sueldo', icon: FiTablet },
+  { path: '/dashboard/clientes', label: 'Clientes', icon: FiUsers, adminOnly: true },
+  { path: '/dashboard/trabajadores', label: 'Trabajadores', icon: FiUsers, adminOnly: true },
+  { path: '/dashboard/sueldos', label: 'Cálculo Sueldo', icon: FiTablet, adminOnly: true },
   { path: '/dashboard/cierre-caja', label: 'Cierre de Caja', icon: FiCreditCard },
-  { path: '/dashboard/reportes/utilidad', label: 'Inteligencia', icon: FiPieChart },
-  { path: '/dashboard/membresias', label: 'Membresía', icon: FiShield },
+  {
+    label: 'Reportes', icon: FiBarChart2, adminOnly: true, submenu: [
+      { path: '/dashboard/reportes/utilidad', label: 'Utilidad', icon: FiPieChart },
+      { path: '/dashboard/reportes/cartera', label: 'Cartera', icon: FiActivity },
+      { path: '/dashboard/reportes/gastos', label: 'Gastos', icon: FiDollar },
+      { path: '/dashboard/reportes/visitas', label: 'Visitas', icon: FiEye },
+      { path: '/dashboard/reportes/comparativo', label: 'Comparativo', icon: FiBarChart2 },
+    ]
+  },
+  { path: '/dashboard/membresias', label: 'Membresía', icon: FiShield, adminOnly: true },
 ];
 
 export default function DashboardLayout({ children }) {
@@ -60,9 +70,27 @@ export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const { user, profile, logout, selectedStore, isAuthenticated, loading } =
     useAuth();
+  const isAdmin = user?.is_staff || user?.is_superuser;
+  const isWorker = !isAdmin;
+
+  // Filter menu items based on role
+  const menuItems = allMenuItems.filter(item => {
+    if (item.adminOnly && isWorker) return false;
+    if (item.workerOnly && isAdmin) return false;
+    return true;
+  });
+
   const [storeInfo, setStoreInfo] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [reportesOpen, setReportesOpen] = useState(() => false);
+
+  // Auto-open reportes submenu when on a report page
+  useEffect(() => {
+    if (pathname.startsWith('/dashboard/reportes')) {
+      setReportesOpen(true);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (!loading && (!isAuthenticated || !selectedStore)) {
@@ -74,6 +102,17 @@ export default function DashboardLayout({ children }) {
       });
     }
   }, [loading, isAuthenticated, selectedStore, router]);
+
+  // Route guard: redirect workers away from admin-only pages
+  const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja'];
+  useEffect(() => {
+    if (!loading && isAuthenticated && isWorker) {
+      const isAllowed = workerAllowedPaths.some(p => pathname.startsWith(p));
+      if (!isAllowed) {
+        router.push('/dashboard/liquidar');
+      }
+    }
+  }, [loading, isAuthenticated, isWorker, pathname, router]);
 
   const [isExpired, setIsExpired] = useState(false);
 
@@ -150,7 +189,7 @@ export default function DashboardLayout({ children }) {
                           isActive("/dashboard/liquidar") ? "Créditos" :
                             isActive("/dashboard/recaudos") ? "Recaudos" :
                               isActive("/dashboard/cierre-caja") ? "Cierre de Caja" :
-                                isActive("/dashboard/reportes") ? "Reportes" :
+                                    isActive("/dashboard/reportes") ? "Reportes" :
                                   isActive("/dashboard/membresias") ? "Membresía" : "Dashboard"}
           </h1>
         </div>
@@ -178,10 +217,47 @@ export default function DashboardLayout({ children }) {
             </div>
 
             <nav className="flex-1 space-y-1.5 overflow-y-auto pr-2 custom-scrollbar">
-              {menuItems.map((item) => (
+              {menuItems.map((item) => item.submenu ? (
+                <div key={item.label}>
+                  <button
+                    onClick={() => setReportesOpen(!reportesOpen)}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all ${
+                      pathname.startsWith('/dashboard/reportes')
+                        ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                        : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon size={18} />
+                      {item.label}
+                    </div>
+                    <FiChevronDown size={14} className={`transition-transform duration-200 ${reportesOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {reportesOpen && (
+                    <div className="ml-4 mt-1 space-y-1 border-l-2 border-slate-100 dark:border-slate-800 pl-3">
+                      {item.submenu.map((sub) => (
+                        <Link
+                          key={sub.path}
+                          href={sub.path}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
+                            pathname.startsWith(sub.path)
+                              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none translate-x-1"
+                              : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          <sub.icon size={16} />
+                          {sub.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
                 <Link
                   key={item.path}
                   href={item.path}
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${isActive(item.path) && (item.path !== '/dashboard' || (pathname === '/dashboard'))
                     ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none translate-x-1"
                     : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -246,7 +322,47 @@ export default function DashboardLayout({ children }) {
         </div>
 
         <nav className="flex-1 px-5 overflow-y-auto custom-scrollbar space-y-1">
-          {menuItems.map((item) => (
+          {menuItems.map((item) => item.submenu ? (
+            <div key={item.label}>
+              <button
+                onClick={() => setReportesOpen(!reportesOpen)}
+                className={`w-full flex items-center justify-between group px-5 py-3.5 rounded-[1.25rem] text-[13px] font-bold transition-all ${
+                  pathname.startsWith('/dashboard/reportes')
+                    ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <item.icon size={18} />
+                  <span className="tracking-tight">{item.label}</span>
+                </div>
+                <FiChevronDown size={14} className={`transition-transform duration-200 ${reportesOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {reportesOpen && (
+                <div className="ml-5 mt-1 space-y-0.5 border-l-2 border-slate-100 dark:border-slate-800 pl-3">
+                  {item.submenu.map((sub) => (
+                    <Link
+                      key={sub.path}
+                      href={sub.path}
+                      className={`flex items-center justify-between group px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all relative overflow-hidden ${
+                        pathname.startsWith(sub.path)
+                          ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-lg shadow-slate-400/20 dark:shadow-none"
+                          : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 relative z-10">
+                        <sub.icon size={15} className={`${pathname.startsWith(sub.path) ? "text-white" : "group-hover:text-indigo-600"}`} />
+                        <span className="tracking-tight">{sub.label}</span>
+                      </div>
+                      {pathname.startsWith(sub.path) && (
+                        <div className="w-1 h-4 bg-white rounded-full relative z-10"></div>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
             <Link
               key={item.path}
               href={item.path}
@@ -278,6 +394,9 @@ export default function DashboardLayout({ children }) {
                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
                   <FiShoppingBag className="text-indigo-500" />
                   <span className="truncate">{storeInfo?.nombre}</span>
+                  <span className={`ml-1 px-1.5 py-0.5 rounded text-[8px] font-black tracking-widest ${isAdmin ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600'}`}>
+                    {isAdmin ? 'ADMIN' : 'COBRADOR'}
+                  </span>
                 </div>
               </div>
             </div>

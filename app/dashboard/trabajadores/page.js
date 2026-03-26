@@ -114,15 +114,25 @@ export default function TrabajadoresPage() {
         {/* Workers Grid */}
         {filteredTrabajadores.length === 0 ? (
           <div className="glass py-20 rounded-[3rem] border-white/60 dark:border-slate-800 text-center shadow-xl">
-            <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-slate-200">
-              <FiUsers size={36} />
+            <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+              <FiUsers size={36} className="text-indigo-400" />
             </div>
-            <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">Sin resultados</h3>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest max-w-sm mx-auto leading-relaxed">
+            <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">
+              {searchTerm ? "Sin coincidencias" : "Sin trabajadores"}
+            </h3>
+            <p className="text-xs font-bold text-slate-400 max-w-sm mx-auto leading-relaxed mb-6">
               {searchTerm
-                ? "El criterio de búsqueda no coincide con ningún colaborador."
-                : "Aún no se han vinculado colaboradores para esta sucursal."}
+                ? "Ningún colaborador coincide con tu búsqueda."
+                : "Agrega tu primer trabajador para asignar rutas de cobro."}
             </p>
+            {!searchTerm && (
+              <button
+                onClick={() => router.push("/dashboard/trabajadores/crear")}
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95 transition-all"
+              >
+                Agregar Primer Trabajador
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

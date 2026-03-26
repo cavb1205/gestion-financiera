@@ -31,6 +31,28 @@ export default function SelectStorePage() {
       return;
     }
 
+    // Workers should not be on this page — auto-select their store
+    const isWorker = !(user?.is_staff || user?.is_superuser);
+    if (isWorker) {
+      const autoSelectWorkerStore = async () => {
+        try {
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/tiendas/detail/`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (res.ok) {
+            const storeData = await res.json();
+            selectStore(storeData);
+          }
+        } catch {
+          // silently fail
+        }
+        router.push("/dashboard/liquidar");
+      };
+      autoSelectWorkerStore();
+      return;
+    }
+
     const fetchStores = async () => {
       try {
         setLoading(true);

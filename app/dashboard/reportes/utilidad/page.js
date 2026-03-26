@@ -123,6 +123,19 @@ export default function ReportesPage() {
     utilidad: acc.utilidad + curr.utilidad,
   }), { cantidadVentas: 0, totalVendido: 0, interesesGenerados: 0, gastos: 0, perdidas: 0, utilidad: 0 }) : null;
 
+  // Advanced metrics
+  const mejorDia = datosReporte && datosReporte.length > 0
+    ? datosReporte.reduce((best, curr) => curr.utilidad > best.utilidad ? curr : best)
+    : null;
+  const peorDia = datosReporte && datosReporte.length > 0
+    ? datosReporte.reduce((worst, curr) => curr.utilidad < worst.utilidad ? curr : worst)
+    : null;
+  const diasPositivos = datosReporte ? datosReporte.filter(d => d.utilidad > 0).length : 0;
+  const diasNegativos = datosReporte ? datosReporte.filter(d => d.utilidad < 0).length : 0;
+  const promedioDiario = datosReporte && datosReporte.length > 0
+    ? Math.round(totales.utilidad / datosReporte.length)
+    : 0;
+
   return (
     <div className="min-h-screen bg-transparent pb-12">
       <div className="w-full">
@@ -145,7 +158,7 @@ export default function ReportesPage() {
             {datosReporte && (
               <button
                 onClick={() => {
-                  const csv = ["Fecha,Ventas,Capital,Intereses,Gastos,Perdidas,Utilidad", ...datosReporte.map(r => `${r.fecha},${r.cantidadVentas},${r.totalVendido},${r.interesesGenerados},${r.gastos},${r.perdidas},${r.utilidad}`)].join("\n");
+                  const csv = ["Fecha,Num Ventas,Capital Colocado,Intereses Brutos,Gastos,Perdidas,Utilidad Neta", ...datosReporte.map(r => `${r.fecha},${r.cantidadVentas},${r.totalVendido},${r.interesesGenerados},${r.gastos},${r.perdidas},${r.utilidad}`)].join("\n");
                   const blob = new Blob([csv], { type: 'text/csv' });
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
@@ -264,6 +277,44 @@ export default function ReportesPage() {
               </div>
             </div>
 
+            {/* Advanced Metrics */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+              <div className="glass p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-white/60 dark:border-slate-800">
+                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Promedio Diario</p>
+                <p className={`text-lg md:text-xl font-black tracking-tight ${promedioDiario >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {formatMoney(promedioDiario)}
+                </p>
+                <p className="text-[9px] font-bold text-slate-400 mt-1">{datosReporte?.length || 0} días analizados</p>
+              </div>
+              {mejorDia && (
+                <div className="glass p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-white/60 dark:border-slate-800">
+                  <p className="text-[9px] md:text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2">Mejor Día</p>
+                  <p className="text-lg md:text-xl font-black text-emerald-600 tracking-tight">{formatMoney(mejorDia.utilidad)}</p>
+                  <p className="text-[9px] font-bold text-slate-400 mt-1">{mejorDia.fecha}</p>
+                </div>
+              )}
+              {peorDia && (
+                <div className="glass p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-white/60 dark:border-slate-800">
+                  <p className="text-[9px] md:text-[10px] font-black text-rose-500 uppercase tracking-widest mb-2">Peor Día</p>
+                  <p className="text-lg md:text-xl font-black text-rose-600 tracking-tight">{formatMoney(peorDia.utilidad)}</p>
+                  <p className="text-[9px] font-bold text-slate-400 mt-1">{peorDia.fecha}</p>
+                </div>
+              )}
+              <div className="glass p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-white/60 dark:border-slate-800">
+                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Balance de Días</p>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-lg md:text-xl font-black text-emerald-600">{diasPositivos}</span>
+                  <span className="text-[10px] font-black text-slate-300 dark:text-slate-600">/</span>
+                  <span className="text-lg md:text-xl font-black text-rose-600">{diasNegativos}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[9px] font-bold text-emerald-500">Positivos</span>
+                  <span className="text-[9px] font-bold text-slate-300">vs</span>
+                  <span className="text-[9px] font-bold text-rose-500">Negativos</span>
+                </div>
+              </div>
+            </div>
+
             {/* Analysis Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               {/* Daily Breakdown */}
@@ -317,31 +368,35 @@ export default function ReportesPage() {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="bg-slate-50/50 dark:bg-slate-800/20">
-                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha</th>
-                        <th className="px-8 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Movimientos</th>
-                        <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Int. Bruto</th>
-                        <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Carga Ops</th>
-                        <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Margen Neto</th>
+                        <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha</th>
+                        <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Ventas</th>
+                        <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Capital</th>
+                        <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Int. Bruto</th>
+                        <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Gastos</th>
+                        <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Margen Neto</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {datosReporte.map((fila, idx) => (
                         <tr key={idx} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
-                          <td className="px-8 py-5 whitespace-nowrap">
+                          <td className="px-6 py-5 whitespace-nowrap">
                             <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter">{fila.fecha}</p>
                           </td>
-                          <td className="px-8 py-5 text-center">
+                          <td className="px-6 py-5 text-center">
                             <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-black text-slate-600 dark:text-slate-400">
                               {fila.cantidadVentas}
                             </span>
                           </td>
-                          <td className="px-8 py-5 text-right">
+                          <td className="px-6 py-5 text-right">
+                            <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{formatMoney(fila.totalVendido)}</p>
+                          </td>
+                          <td className="px-6 py-5 text-right">
                             <p className="text-xs font-bold text-amber-600">{formatMoney(fila.interesesGenerados)}</p>
                           </td>
-                          <td className="px-8 py-5 text-right">
+                          <td className="px-6 py-5 text-right">
                             <p className="text-xs font-bold text-rose-500">{formatMoney(fila.gastos + fila.perdidas)}</p>
                           </td>
-                          <td className="px-8 py-5 text-right">
+                          <td className="px-6 py-5 text-right">
                             <p className={`text-sm font-black tracking-tight ${fila.utilidad >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                               {formatMoney(fila.utilidad)}
                             </p>
@@ -351,11 +406,12 @@ export default function ReportesPage() {
                     </tbody>
                     <tfoot className="bg-slate-50 dark:bg-slate-800/50 border-t-2 border-slate-200 dark:border-slate-800">
                       <tr>
-                        <td className="px-8 py-6 text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Totales Período</td>
-                        <td className="px-8 py-6 text-center text-sm font-black text-slate-800 dark:text-white">{totales.cantidadVentas}</td>
-                        <td className="px-8 py-6 text-right text-sm font-black text-amber-600">{formatMoney(totales.interesesGenerados)}</td>
-                        <td className="px-8 py-6 text-right text-sm font-black text-rose-500">{formatMoney(totales.gastos + totales.perdidas)}</td>
-                        <td className="px-8 py-6 text-right text-lg font-black text-indigo-600 dark:text-indigo-400">{formatMoney(totales.utilidad)}</td>
+                        <td className="px-6 py-6 text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Totales Período</td>
+                        <td className="px-6 py-6 text-center text-sm font-black text-slate-800 dark:text-white">{totales.cantidadVentas}</td>
+                        <td className="px-6 py-6 text-right text-sm font-black text-indigo-600 dark:text-indigo-400">{formatMoney(totales.totalVendido)}</td>
+                        <td className="px-6 py-6 text-right text-sm font-black text-amber-600">{formatMoney(totales.interesesGenerados)}</td>
+                        <td className="px-6 py-6 text-right text-sm font-black text-rose-500">{formatMoney(totales.gastos + totales.perdidas)}</td>
+                        <td className="px-6 py-6 text-right text-lg font-black text-indigo-600 dark:text-indigo-400">{formatMoney(totales.utilidad)}</td>
                       </tr>
                     </tfoot>
                   </table>

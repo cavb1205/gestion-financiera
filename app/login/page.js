@@ -29,7 +29,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const { login, selectStore } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e) => {
@@ -56,6 +56,28 @@ export default function LoginPage() {
         autoClose: 2000,
         theme: "dark",
       });
+
+      // Workers: auto-select their store and go to liquidar
+      const isWorker = !(data.user.is_staff || data.user.is_superuser);
+      if (isWorker) {
+        try {
+          const storeRes = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/tiendas/detail/`,
+            { headers: { Authorization: `Bearer ${data.token}` } }
+          );
+          if (storeRes.ok) {
+            const storeData = await storeRes.json();
+            selectStore(storeData);
+            router.push("/dashboard/liquidar");
+          } else {
+            router.push("/dashboard");
+          }
+        } catch {
+          router.push("/dashboard");
+        }
+        return;
+      }
+
       router.push("/select-store");
     } catch (err) {
       const errorMsg = err.message || "Error en el inicio de sesión";

@@ -22,7 +22,8 @@ import {
   FiFilter,
   FiInfo,
   FiArrowRight,
-  FiShield
+  FiShield,
+  FiPackage,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -297,13 +298,19 @@ export default function RecaudosPage() {
                 </div>
               ) : filteredRecaudos.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 px-10 text-center">
-                   <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center mb-6 text-slate-300">
-                      <FiSearch size={40} />
+                   <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 rounded-[2rem] flex items-center justify-center mb-6">
+                      <FiPackage size={40} className="text-emerald-400" />
                    </div>
-                   <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-2">Sin Resultados de Auditoría</h3>
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter max-w-xs mx-auto">
-                      No se detectaron transacciones registradas para el periodo seleccionado.
+                   <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-2">Sin recaudos registrados</h3>
+                   <p className="text-xs font-bold text-slate-400 max-w-xs mx-auto mb-6">
+                      No se encontraron recaudos para el periodo seleccionado. Los recaudos se crean desde la liquidación diaria.
                    </p>
+                   <button
+                     onClick={() => router.push("/dashboard/liquidar")}
+                     className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-200 dark:shadow-none active:scale-95 transition-all"
+                   >
+                     Ir a Liquidación
+                   </button>
                 </div>
               ) : (
                 <table className="w-full border-collapse">

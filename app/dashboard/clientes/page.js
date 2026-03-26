@@ -427,9 +427,24 @@ export default function ClientesPage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="5" className="px-8 py-20 text-center">
-                          <FiActivity className="mx-auto text-4xl text-slate-200 mb-4" />
-                          <p className="text-slate-400 font-bold uppercase text-xs tracking-widest italic">No se encontraron registros activos</p>
+                        <td colSpan="5" className="px-8 py-24 text-center">
+                          <div className="bg-indigo-50 dark:bg-indigo-900/20 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                            <FiUsers className="text-4xl text-indigo-400" />
+                          </div>
+                          <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">
+                            {searchTerm ? "Sin coincidencias" : "Sin clientes registrados"}
+                          </h3>
+                          <p className="text-xs font-bold text-slate-400 mb-6 max-w-xs mx-auto">
+                            {searchTerm ? "Ningún cliente coincide con tu búsqueda." : "Agrega tu primer cliente para comenzar a gestionar créditos."}
+                          </p>
+                          {!searchTerm && (
+                            <button
+                              onClick={() => router.push("/dashboard/clientes/crear")}
+                              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95 transition-all"
+                            >
+                              Crear Primer Cliente
+                            </button>
+                          )}
                         </td>
                       </tr>
                     )}

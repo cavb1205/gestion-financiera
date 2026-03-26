@@ -20,6 +20,7 @@ import {
   FiAlertCircle,
   FiArrowUpRight,
   FiArrowDownRight,
+  FiTrendingDown,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -321,11 +322,17 @@ export default function GastosPage() {
                 {currentItems.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="px-8 py-24 text-center">
-                      <div className="bg-slate-50 dark:bg-slate-800/50 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                        <FiPieChart className="text-4xl text-slate-200" />
+                      <div className="bg-rose-50 dark:bg-rose-900/20 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                        <FiTrendingDown className="text-4xl text-rose-400" />
                       </div>
-                      <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest">Sin gastos reportados</h3>
-                      <p className="text-sm font-bold text-slate-400 mt-2">No se encontraron egresos vinculados a este periodo.</p>
+                      <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">Sin gastos reportados</h3>
+                      <p className="text-xs font-bold text-slate-400 mb-6 max-w-xs mx-auto">No se encontraron egresos vinculados a este periodo.</p>
+                      <button
+                        onClick={() => router.push("/dashboard/gastos/crear")}
+                        className="px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-200 dark:shadow-none active:scale-95 transition-all"
+                      >
+                        Registrar Primer Gasto
+                      </button>
                     </td>
                   </tr>
                 ) : (

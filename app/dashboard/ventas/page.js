@@ -346,11 +346,23 @@ export default function VentasPage() {
                 {filteredVentas.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="px-8 py-24 text-center">
-                      <div className="bg-slate-50 dark:bg-slate-800/50 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                        <FiShoppingBag className="text-4xl text-slate-200" />
+                      <div className="bg-indigo-50 dark:bg-indigo-900/20 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                        <FiShoppingBag className="text-4xl text-indigo-400" />
                       </div>
-                      <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest">Sin ventas activas</h3>
-                      <p className="text-sm font-bold text-slate-400 mt-2">No se encontraron créditos que coincidan con los filtros.</p>
+                      <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">
+                        {searchTerm ? "Sin coincidencias" : "Sin ventas activas"}
+                      </h3>
+                      <p className="text-xs font-bold text-slate-400 mb-6 max-w-xs mx-auto">
+                        {searchTerm ? "Ningún crédito coincide con tu búsqueda." : "Crea tu primera venta a crédito para comenzar."}
+                      </p>
+                      {!searchTerm && (
+                        <button
+                          onClick={() => router.push("/dashboard/ventas/nueva")}
+                          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95 transition-all"
+                        >
+                          Crear Primera Venta
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ) : (

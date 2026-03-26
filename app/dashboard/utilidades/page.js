@@ -308,11 +308,17 @@ export default function UtilidadesPage() {
                 {currentUtilidades.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="px-8 py-24 text-center">
-                      <div className="bg-slate-50 dark:bg-slate-800/50 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                        <FiPieChart className="text-4xl text-slate-200" />
+                      <div className="bg-emerald-50 dark:bg-emerald-900/20 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                        <FiTrendingUp className="text-4xl text-emerald-400" />
                       </div>
-                      <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest">Sin distribuciones reportadas</h3>
-                      <p className="text-sm font-bold text-slate-400 mt-2 px-1">No se encontraron utilidades vinculadas a este criterio.</p>
+                      <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">Sin distribuciones registradas</h3>
+                      <p className="text-xs font-bold text-slate-400 mb-6 max-w-xs mx-auto">Registra tu primera distribución de utilidades.</p>
+                      <button
+                        onClick={() => router.push("/dashboard/utilidades/crear")}
+                        className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-200 dark:shadow-none active:scale-95 transition-all"
+                      >
+                        Registrar Primera Utilidad
+                      </button>
                     </td>
                   </tr>
                 ) : (
