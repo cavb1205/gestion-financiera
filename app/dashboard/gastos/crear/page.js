@@ -14,13 +14,14 @@ import {
   FiArrowDownRight,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
+import { apiFetch } from "../../../utils/api";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../../../utils/format";
 
 export default function CrearGastoPage() {
-  const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({
     tipo_gasto: "",
@@ -37,9 +38,7 @@ export default function CrearGastoPage() {
     const fetchTiposGasto = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/gastos/tipo/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await apiFetch(`/gastos/tipo/`);
 
         if (!response.ok) throw new Error("Error al obtener los tipos de gasto");
         const data = await response.json();
@@ -55,8 +54,8 @@ export default function CrearGastoPage() {
       }
     };
 
-    if (token) fetchTiposGasto();
-  }, [token]);
+    if (isAuthenticated) fetchTiposGasto();
+  }, [isAuthenticated]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -72,12 +71,8 @@ export default function CrearGastoPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/gastos/create/t/${selectedStore.tienda.id}/`, {
+      const response = await apiFetch(`/gastos/create/t/${selectedStore.tienda.id}/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(formData),
       });
 

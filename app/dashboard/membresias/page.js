@@ -18,6 +18,7 @@ import {
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../../utils/format";
+import { apiFetch } from "../../utils/api";
 
 const PLAN_PERIODS = { Prueba: 7, Mensual: 30, Anual: 365 };
 
@@ -28,18 +29,17 @@ const STATUS_CONFIG = {
 };
 
 export default function MembresiasPage() {
-  const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const [membresia, setMembresia] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activating, setActivating] = useState(null); // 'mensual' | 'anual'
 
   const fetchMembresia = async () => {
-    if (!token || !selectedStore) return;
+    if (!selectedStore) return;
     try {
       setIsLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tiendas/detail/admin/${selectedStore.tienda.id}/`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await apiFetch(
+        `/tiendas/detail/admin/${selectedStore.tienda.id}/`
       );
       if (!response.ok) throw new Error("No se pudo cargar la membresía.");
       const data = await response.json();
@@ -53,19 +53,17 @@ export default function MembresiasPage() {
 
   useEffect(() => {
     fetchMembresia();
-  }, [token, selectedStore]);
+  }, [selectedStore]);
 
   const activarPlan = async (tipo) => {
     if (!membresia) return;
     setActivating(tipo);
     try {
       const endpoint = tipo === "mensual"
-        ? `${process.env.NEXT_PUBLIC_API_URL}/tiendas/activate/mounth/${membresia.id}/`
-        : `${process.env.NEXT_PUBLIC_API_URL}/tiendas/activate/year/${membresia.id}/`;
+        ? `/tiendas/activate/mounth/${membresia.id}/`
+        : `/tiendas/activate/year/${membresia.id}/`;
 
-      const response = await fetch(endpoint, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiFetch(endpoint);
       if (!response.ok) throw new Error("Error al activar el plan.");
       toast.success(`Plan ${tipo === "mensual" ? "mensual" : "anual"} activado correctamente.`);
       // Recargar para actualizar selectedStore en el contexto (fecha_vencimiento)

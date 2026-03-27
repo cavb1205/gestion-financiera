@@ -16,13 +16,14 @@ import {
   FiEdit,
 } from "react-icons/fi";
 import { useAuth } from "../../../../context/AuthContext";
+import { apiFetch } from "../../../../utils/api";
 import LoadingSpinner from "../../../../components/LoadingSpinner";
 
 export default function EditarCliente() {
   const router = useRouter();
   const params = useParams();
   const clienteId = params.id;
-  const { token, selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading } = useAuth();
   
   const [formData, setFormData] = useState({
     identificacion: "",
@@ -58,14 +59,7 @@ export default function EditarCliente() {
 
   const fetchClienteData = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clientes/${clienteId}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await apiFetch(`/clientes/${clienteId}/`);
 
       if (!response.ok) {
         throw new Error("No se pudo cargar la información del cliente");
@@ -149,17 +143,13 @@ export default function EditarCliente() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clientes/${clienteId}/update/`,
+      const response = await apiFetch(
+        `/clientes/${clienteId}/update/`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify({
             ...formData,
-            tienda: selectedStore.tienda.id, // Asegurarse de enviar la tienda correcta
+            tienda: selectedStore.tienda.id,
           }),
         }
       );
@@ -263,8 +253,9 @@ export default function EditarCliente() {
 
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Identificación</label>
+                        <label htmlFor="identificacion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Identificación</label>
                         <input
+                          id="identificacion"
                           type="text"
                           name="identificacion"
                           value={formData.identificacion}
@@ -275,8 +266,9 @@ export default function EditarCliente() {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres</label>
+                          <label htmlFor="nombres" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres</label>
                           <input
+                            id="nombres"
                             type="text"
                             name="nombres"
                             value={formData.nombres}
@@ -285,8 +277,9 @@ export default function EditarCliente() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos</label>
+                          <label htmlFor="apellidos" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos</label>
                           <input
+                            id="apellidos"
                             type="text"
                             name="apellidos"
                             value={formData.apellidos}
@@ -297,8 +290,9 @@ export default function EditarCliente() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 tracking-widest">Est. Operacional</label>
+                        <label htmlFor="estado_cliente" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 tracking-widest">Est. Operacional</label>
                         <select
+                          id="estado_cliente"
                           name="estado_cliente"
                           value={formData.estado_cliente}
                           onChange={handleChange}
@@ -321,8 +315,9 @@ export default function EditarCliente() {
 
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Local / Detalle</label>
+                        <label htmlFor="nombre_local" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Local / Detalle</label>
                         <input
+                          id="nombre_local"
                           type="text"
                           name="nombre_local"
                           value={formData.nombre_local}
@@ -332,8 +327,9 @@ export default function EditarCliente() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono</label>
+                        <label htmlFor="telefono_principal" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono</label>
                         <input
+                          id="telefono_principal"
                           type="tel"
                           name="telefono_principal"
                           value={formData.telefono_principal}
@@ -343,8 +339,9 @@ export default function EditarCliente() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección Exacta</label>
+                        <label htmlFor="direccion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección Exacta</label>
                         <input
+                          id="direccion"
                           type="text"
                           name="direccion"
                           value={formData.direccion}

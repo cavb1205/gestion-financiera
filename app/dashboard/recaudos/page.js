@@ -3,12 +3,11 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/app/context/AuthContext";
+import { apiFetch } from "@/app/utils/api";
 import {
   FiDollarSign,
   FiCalendar,
   FiRefreshCw,
-  FiChevronLeft,
-  FiChevronRight,
   FiUser,
   FiSearch,
   FiCheck,
@@ -31,10 +30,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatMoney, parseMoney } from "../../utils/format";
 import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
-import EliminarRecaudo from "@/app/components/recaudos/EliminarRecaudo";
+import ConfirmModal from "@/app/components/ConfirmModal";
+import Pagination from "../../components/Pagination";
 
 export default function RecaudosPage() {
-  const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const [recaudos, setRecaudos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +45,7 @@ export default function RecaudosPage() {
   
   const [editingRecaudo, setEditingRecaudo] = useState(null);
   const [deletingRecaudo, setDeletingRecaudo] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Establecer fecha inicial
   useEffect(() => {
@@ -64,17 +65,12 @@ export default function RecaudosPage() {
 
   // Obtener recaudos
   const fetchRecaudos = async () => {
-    if (!token || !selectedStore || !selectedDate) return;
+    if (!selectedStore || !selectedDate) return;
 
     setLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await apiFetch(
+        `/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`
       );
 
       if (!response.ok) throw new Error("Error al sincronizar recaudos");
@@ -91,11 +87,11 @@ export default function RecaudosPage() {
   };
 
   useEffect(() => {
-    if (selectedDate && token && selectedStore) {
+    if (selectedDate && selectedStore) {
       fetchRecaudos();
       localStorage.setItem("liquidarFecha", selectedDate);
     }
-  }, [token, selectedStore, selectedDate]);
+  }, [selectedStore, selectedDate]);
 
   // Procesamiento de datos (Filtrado y Métricas)
   const filteredRecaudos = useMemo(() => {
@@ -119,12 +115,6 @@ export default function RecaudosPage() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const totalPages = Math.ceil(filteredRecaudos.length / itemsPerPage);
   const currentItems = filteredRecaudos.slice(indexOfFirstItem, indexOfLastItem);
-  const getPageNumbers = (current, total) => {
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    if (current <= 3) return [1, 2, 3, 4, 5];
-    if (current >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
-    return [current - 2, current - 1, current, current + 1, current + 2];
-  };
 
   const handleRecaudoEditado = (updated) => {
     setRecaudos(prev => prev.map(r => r.id === updated.id ? updated : r));
@@ -132,10 +122,20 @@ export default function RecaudosPage() {
     toast.success("Recaudo sincronizado correctamente");
   };
 
-  const handleRecaudoEliminado = () => {
-    setRecaudos(prev => prev.filter(r => r.id !== deletingRecaudo.id));
-    setDeletingRecaudo(null);
-    toast.warning("Registro eliminado de la auditoría");
+  const handleRecaudoEliminado = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await apiFetch(`/recaudos/${deletingRecaudo.id}/delete/`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Error al eliminar el recaudo");
+      setRecaudos(prev => prev.filter(r => r.id !== deletingRecaudo.id));
+      setDeletingRecaudo(null);
+      toast.warning("Registro eliminado de la auditoría");
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error(error.message);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
@@ -151,11 +151,31 @@ export default function RecaudosPage() {
       )}
 
       {deletingRecaudo && (
-        <EliminarRecaudo
-          deletingRecaudo={deletingRecaudo}
-          onEliminar={handleRecaudoEliminado}
+        <ConfirmModal
+          isOpen={!!deletingRecaudo}
           onClose={() => setDeletingRecaudo(null)}
-        />
+          onConfirm={handleRecaudoEliminado}
+          title="¿Anular Recaudo?"
+          message="Esta acción es irreversible y eliminará el registro de la auditoría de caja."
+          confirmText="Confirmar Anulación"
+          cancelText="Mantener Registro"
+          isLoading={isDeleting}
+        >
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-4">
+            <div className="flex justify-between items-center px-1">
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Cliente</span>
+              <span className="text-xs font-black text-slate-800 dark:text-white uppercase truncate ml-4">
+                {deletingRecaudo.venta?.cliente?.nombres} {deletingRecaudo.venta?.cliente?.apellidos}
+              </span>
+            </div>
+            <div className="flex justify-between items-center px-1 pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Monto a Reversar</span>
+              <span className="text-lg font-black text-rose-600">
+                {formatMoney(deletingRecaudo.valor_recaudo)}
+              </span>
+            </div>
+          </div>
+        </ConfirmModal>
       )}
 
       <div className="w-full">
@@ -262,10 +282,11 @@ export default function RecaudosPage() {
         <div className="glass rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl mb-10">
            <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 flex flex-col lg:flex-row items-center gap-8">
               <div className="w-full lg:w-1/3 space-y-2">
-                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Cierre de Fecha</label>
+                 <label htmlFor="cierre-fecha" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Cierre de Fecha</label>
                  <div className="relative group">
                     <FiCalendar className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" />
-                    <input 
+                    <input
+                      id="cierre-fecha"
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
@@ -275,10 +296,11 @@ export default function RecaudosPage() {
               </div>
 
               <div className="flex-1 w-full space-y-2">
-                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Auditores de Búsqueda</label>
+                 <label htmlFor="busqueda-recaudos" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Auditores de Búsqueda</label>
                  <div className="relative group">
                     <FiSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
-                    <input 
+                    <input
+                      id="busqueda-recaudos"
                       type="text"
                       placeholder="Identificador o nombre de cliente..."
                       value={searchTerm}
@@ -395,43 +417,13 @@ export default function RecaudosPage() {
               )}
            </div>
 
-           {/* Pagination */}
-           {totalPages > 1 && (
-             <div className="px-8 py-5 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:block">
-                 {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredRecaudos.length)} de {filteredRecaudos.length}
-               </p>
-               <div className="flex items-center gap-1.5 mx-auto sm:mx-0">
-                 <button
-                   disabled={currentPage === 1}
-                   onClick={() => setCurrentPage(p => p - 1)}
-                   className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
-                 >
-                   <FiChevronLeft size={16} />
-                 </button>
-                 {getPageNumbers(currentPage, totalPages).map(n => (
-                   <button
-                     key={n}
-                     onClick={() => setCurrentPage(n)}
-                     className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all active:scale-95 ${
-                       currentPage === n
-                         ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg'
-                         : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
-                     }`}
-                   >
-                     {n}
-                   </button>
-                 ))}
-                 <button
-                   disabled={currentPage === totalPages}
-                   onClick={() => setCurrentPage(p => p + 1)}
-                   className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
-                 >
-                   <FiChevronRight size={16} />
-                 </button>
-               </div>
-             </div>
-           )}
+           <Pagination
+             currentPage={currentPage}
+             totalPages={totalPages}
+             onPageChange={setCurrentPage}
+             totalItems={filteredRecaudos.length}
+             itemsPerPage={itemsPerPage}
+           />
         </div>
 
         {/* Audit Info Footer */}

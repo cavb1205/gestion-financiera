@@ -7,7 +7,7 @@ import CalculoSueldo from "../../components/CalculoSueldo";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 
 export default function SueldoPage() {
-  const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 
@@ -27,7 +27,7 @@ export default function SueldoPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8">
-            <CalculoSueldo tienda={selectedStore} token={token} />
+            <CalculoSueldo tienda={selectedStore} />
           </div>
 
           <div className="lg:col-span-4 space-y-6">

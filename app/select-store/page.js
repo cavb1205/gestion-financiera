@@ -17,6 +17,7 @@ import {
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../utils/format";
+import { apiFetch } from "../utils/api";
 
 export default function SelectStorePage() {
   const { token, logout, selectStore, user } = useAuth();
@@ -36,16 +37,13 @@ export default function SelectStorePage() {
     if (isWorker) {
       const autoSelectWorkerStore = async () => {
         try {
-          const res = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/tiendas/detail/`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+          const res = await apiFetch(`/tiendas/detail/`);
           if (res.ok) {
             const storeData = await res.json();
             selectStore(storeData);
           }
-        } catch {
-          // silently fail
+        } catch (err) {
+          console.error("Error auto-selecting worker store:", err);
         }
         router.push("/dashboard/liquidar");
       };
@@ -56,16 +54,7 @@ export default function SelectStorePage() {
     const fetchStores = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/tiendas/list/tiendas/admin/`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const response = await apiFetch(`/tiendas/list/tiendas/admin/`);
 
         if (!response.ok) {
           throw new Error("Error al obtener las tiendas asociadas");

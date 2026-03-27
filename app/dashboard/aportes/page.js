@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { apiFetch } from "../../utils/api";
 import {
   FiDollarSign,
   FiPlus,
@@ -12,8 +13,6 @@ import {
   FiUser,
   FiCalendar,
   FiSearch,
-  FiChevronLeft,
-  FiChevronRight,
   FiActivity,
   FiClock,
   FiPieChart,
@@ -25,10 +24,11 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 import { toast } from "react-toastify";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../utils/format";
+import Pagination from "../../components/Pagination";
 
 export default function AportesPage() {
   const router = useRouter();
-  const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const [aportes, setAportes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,16 +41,11 @@ export default function AportesPage() {
 
   const fetchAportes = async () => {
     try {
-      if (!selectedStore || !token) return;
+      if (!selectedStore) return;
 
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/aportes/t/${selectedStore.tienda.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await apiFetch(
+        `/aportes/t/${selectedStore.tienda.id}/`
       );
 
       if (!response.ok) {
@@ -74,14 +69,9 @@ export default function AportesPage() {
 
     setEliminando(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/aportes/${aporteAEliminar.id}/delete/t/${selectedStore.tienda.id}/`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await apiFetch(
+        `/aportes/${aporteAEliminar.id}/delete/t/${selectedStore.tienda.id}/`,
+        { method: "DELETE" }
       );
 
       if (!response.ok) {
@@ -100,10 +90,10 @@ export default function AportesPage() {
   };
 
   useEffect(() => {
-    if (selectedStore && token) {
+    if (selectedStore) {
       fetchAportes();
     }
-  }, [selectedStore, token]);
+  }, [selectedStore]);
 
   const filteredAportes = aportes.filter(
     (aporte) =>
@@ -118,26 +108,10 @@ export default function AportesPage() {
   const currentAportes = filteredAportes.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredAportes.length / itemsPerPage);
 
-  const getPageNumbers = (current, total) => {
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    if (current <= 3) return [1, 2, 3, 4, 5];
-    if (current >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
-    return [current - 2, current - 1, current, current + 1, current + 2];
-  };
-
   const totalAportes = filteredAportes.reduce(
     (total, aporte) => total + parseMoney(aporte.valor),
     0
   );
-
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-  };
-
-  const handleItemsPerPageChange = (e) => {
-    setItemsPerPage(parseInt(e.target.value));
-    setCurrentPage(1);
-  };
 
   if (authLoading || loading) return <LoadingSpinner />;
 
@@ -333,54 +307,14 @@ export default function AportesPage() {
             </table>
           </div>
 
-          {/* Pagination & Stats Footer */}
-          {totalPages > 1 && (
-            <div className="px-8 py-5 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 hidden sm:flex">
-                <select
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-widest focus:ring-2 focus:ring-indigo-500/20"
-                  value={itemsPerPage}
-                  onChange={handleItemsPerPageChange}
-                >
-                  <option value="5">5</option>
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                </select>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredAportes.length)} de {filteredAportes.length}
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5 mx-auto sm:mx-0">
-                <button
-                  onClick={() => setCurrentPage(p => p - 1)}
-                  disabled={currentPage === 1}
-                  className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
-                >
-                  <FiChevronLeft size={16} />
-                </button>
-                {getPageNumbers(currentPage, totalPages).map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setCurrentPage(n)}
-                    className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all active:scale-95 ${
-                      currentPage === n
-                        ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg'
-                        : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  disabled={currentPage === totalPages}
-                  className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
-                >
-                  <FiChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={filteredAportes.length}
+            itemsPerPage={itemsPerPage}
+            onItemsPerPageChange={(val) => { setItemsPerPage(val); setCurrentPage(1); }}
+          />
         </div>
 
         {/* Modal de Confirmación */}

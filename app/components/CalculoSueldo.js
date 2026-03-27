@@ -14,8 +14,9 @@ import {
   FiHash,
 } from "react-icons/fi";
 import { formatMoney } from "../utils/format";
+import { apiFetch } from "../utils/api";
 
-const CalculoSueldo = ({ tienda, token }) => {
+const CalculoSueldo = ({ tienda }) => {
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [porcentaje, setPorcentaje] = useState(3.0);
@@ -63,9 +64,8 @@ const CalculoSueldo = ({ tienda, token }) => {
     setResultados(null);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/recaudos/sueldo/${fechaInicio}/${fechaFin}/${porcentaje}/t/${tienda.tienda.id}/`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await apiFetch(
+        `/recaudos/sueldo/${fechaInicio}/${fechaFin}/${porcentaje}/t/${tienda.tienda.id}/`
       );
       if (!response.ok) throw new Error("Error al calcular el sueldo");
       const data = await response.json();
@@ -114,8 +114,9 @@ const CalculoSueldo = ({ tienda, token }) => {
           <form onSubmit={calcularSueldo} className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Desde</label>
+                <label htmlFor="fecha-inicio" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Desde</label>
                 <input
+                  id="fecha-inicio"
                   type="date"
                   value={fechaInicio}
                   onChange={(e) => setFechaInicio(e.target.value)}
@@ -124,8 +125,9 @@ const CalculoSueldo = ({ tienda, token }) => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hasta</label>
+                <label htmlFor="fecha-fin" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hasta</label>
                 <input
+                  id="fecha-fin"
                   type="date"
                   value={fechaFin}
                   onChange={(e) => setFechaFin(e.target.value)}
@@ -136,10 +138,11 @@ const CalculoSueldo = ({ tienda, token }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tasa de Comisión</label>
+              <label htmlFor="porcentaje-comision" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tasa de Comisión</label>
               <div className="relative">
                 <FiPercent className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                 <input
+                  id="porcentaje-comision"
                   type="number"
                   step="0.1"
                   min="0"

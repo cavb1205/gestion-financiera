@@ -5,10 +5,11 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "react-toastify";
 import { FiEdit, FiDollarSign, FiCalendar, FiX, FiCheck } from "react-icons/fi";
+import { apiFetch } from "../../utils/api";
 
 export default function EditarRecaudo({ editingRecaudo, onEditar, onClose }) {
   const [isSaving, setIsSaving] = useState(false);
-  const { token, selectedStore } = useAuth();
+  const { selectedStore } = useAuth();
   const [formData, setFormData] = useState({
     fecha_recaudo: "",
     valor_recaudo: "",
@@ -31,14 +32,10 @@ export default function EditarRecaudo({ editingRecaudo, onEditar, onClose }) {
 
     setIsSaving(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/recaudos/${editingRecaudo.id}/update/t/${selectedStore.tienda.id}/`,
+      const response = await apiFetch(
+        `/recaudos/${editingRecaudo.id}/update/t/${selectedStore.tienda.id}/`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify(formData),
         }
       );
@@ -77,7 +74,7 @@ export default function EditarRecaudo({ editingRecaudo, onEditar, onClose }) {
             </div>
             <button 
               onClick={onClose}
-              className="ml-auto p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+              className="ml-auto p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
             >
               <FiX size={24} />
             </button>
@@ -85,10 +82,11 @@ export default function EditarRecaudo({ editingRecaudo, onEditar, onClose }) {
 
           <div className="space-y-8">
              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Fecha del Recaudo</label>
+                <label htmlFor="fecha-recaudo" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Fecha del Recaudo</label>
                 <div className="relative group">
                    <FiCalendar className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" />
-                   <input 
+                   <input
+                      id="fecha-recaudo"
                       type="date"
                       value={formData.fecha_recaudo}
                       onChange={(e) => setFormData({ ...formData, fecha_recaudo: e.target.value })}
@@ -98,10 +96,11 @@ export default function EditarRecaudo({ editingRecaudo, onEditar, onClose }) {
              </div>
 
              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Monto Actualizado</label>
+                <label htmlFor="monto-recaudo" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Monto Actualizado</label>
                 <div className="relative group">
                    <FiDollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 group-focus-within:scale-110 transition-transform" />
-                   <input 
+                   <input
+                      id="monto-recaudo"
                       type="number"
                       value={formData.valor_recaudo}
                       onChange={(e) => setFormData({ ...formData, valor_recaudo: e.target.value })}

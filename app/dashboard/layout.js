@@ -5,29 +5,23 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   FiHome,
-  FiUser,
-  FiDollarSign,
   FiBarChart2,
   FiLogOut,
-  FiSettings,
   FiBell,
   FiShoppingBag,
   FiRefreshCw,
   FiTrendingDown,
   FiMenu,
   FiX,
-  FiPocket,
   FiCreditCard,
   FiShoppingCart,
   FiCheckCircle,
   FiTrendingUp,
-  FiFileText,
   FiPieChart,
   FiDollarSign as FiDollar,
   FiUsers,
   FiPackage,
   FiActivity,
-  FiCalendar,
   FiTablet,
   FiShield,
   FiChevronDown,
@@ -63,6 +57,7 @@ const allMenuItems = [
     ]
   },
   { path: '/dashboard/membresias', label: 'Membresía', icon: FiShield, adminOnly: true },
+  { path: '/dashboard/admin/rutas', label: 'Administrar Rutas', icon: FiShield, rootOnly: true },
 ];
 
 export default function DashboardLayout({ children }) {
@@ -75,6 +70,7 @@ export default function DashboardLayout({ children }) {
 
   // Filter menu items based on role
   const menuItems = allMenuItems.filter(item => {
+    if (item.rootOnly && !user?.is_superuser) return false;
     if (item.adminOnly && isWorker) return false;
     if (item.workerOnly && isAdmin) return false;
     return true;
@@ -141,7 +137,7 @@ export default function DashboardLayout({ children }) {
       setIsExpired(expired);
 
       // Si está expirado, solo permitir dashboard y membresías (para poder renovar)
-      if (expired && pathname !== '/dashboard' && !pathname.includes('/select-store') && !pathname.includes('/membresias')) {
+      if (expired && pathname !== '/dashboard' && !pathname.includes('/select-store') && !pathname.includes('/membresias') && !pathname.includes('/admin/rutas')) {
         router.push('/dashboard');
       }
     }
@@ -189,7 +185,7 @@ export default function DashboardLayout({ children }) {
                           isActive("/dashboard/liquidar") ? "Créditos" :
                             isActive("/dashboard/recaudos") ? "Recaudos" :
                               isActive("/dashboard/cierre-caja") ? "Cierre de Caja" :
-                                    isActive("/dashboard/reportes") ? "Reportes" :
+                                isActive("/dashboard/reportes") ? "Reportes" :
                                   isActive("/dashboard/membresias") ? "Membresía" : "Dashboard"}
           </h1>
         </div>
@@ -221,11 +217,10 @@ export default function DashboardLayout({ children }) {
                 <div key={item.label}>
                   <button
                     onClick={() => setReportesOpen(!reportesOpen)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all ${
-                      pathname.startsWith('/dashboard/reportes')
-                        ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
-                        : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    }`}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all ${pathname.startsWith('/dashboard/reportes')
+                      ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <item.icon size={18} />
@@ -240,11 +235,10 @@ export default function DashboardLayout({ children }) {
                           key={sub.path}
                           href={sub.path}
                           onClick={() => setIsMobileMenuOpen(false)}
-                          className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
-                            pathname.startsWith(sub.path)
-                              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none translate-x-1"
-                              : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                          }`}
+                          className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all ${pathname.startsWith(sub.path)
+                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none translate-x-1"
+                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            }`}
                         >
                           <sub.icon size={16} />
                           {sub.label}
@@ -326,11 +320,10 @@ export default function DashboardLayout({ children }) {
             <div key={item.label}>
               <button
                 onClick={() => setReportesOpen(!reportesOpen)}
-                className={`w-full flex items-center justify-between group px-5 py-3.5 rounded-[1.25rem] text-[13px] font-bold transition-all ${
-                  pathname.startsWith('/dashboard/reportes')
-                    ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
-                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600"
-                }`}
+                className={`w-full flex items-center justify-between group px-5 py-3.5 rounded-[1.25rem] text-[13px] font-bold transition-all ${pathname.startsWith('/dashboard/reportes')
+                  ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600"
+                  }`}
               >
                 <div className="flex items-center gap-4">
                   <item.icon size={18} />
@@ -344,11 +337,10 @@ export default function DashboardLayout({ children }) {
                     <Link
                       key={sub.path}
                       href={sub.path}
-                      className={`flex items-center justify-between group px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all relative overflow-hidden ${
-                        pathname.startsWith(sub.path)
-                          ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-lg shadow-slate-400/20 dark:shadow-none"
-                          : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600"
-                      }`}
+                      className={`flex items-center justify-between group px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all relative overflow-hidden ${pathname.startsWith(sub.path)
+                        ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-lg shadow-slate-400/20 dark:shadow-none"
+                        : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600"
+                        }`}
                     >
                       <div className="flex items-center gap-3 relative z-10">
                         <sub.icon size={15} className={`${pathname.startsWith(sub.path) ? "text-white" : "group-hover:text-indigo-600"}`} />
@@ -435,10 +427,6 @@ export default function DashboardLayout({ children }) {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="relative p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-indigo-600 transition-all shadow-sm group">
-              <FiBell size={20} />
-              <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-rose-500 border-2 border-white dark:border-slate-900 rounded-full group-hover:scale-125 transition-transform"></span>
-            </button>
             <div className="h-10 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
             <div className="flex items-center gap-4 pl-2">
               <div className="text-right hidden sm:block">

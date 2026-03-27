@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../../context/AuthContext";
+import { apiFetch } from "../../../utils/api";
 import { useRouter } from "next/navigation";
 import {
   FiCalendar,
@@ -44,7 +45,7 @@ const FALLA_CONFIG = {
 const getFallaConfig = (tipo) => FALLA_CONFIG[tipo] || FALLA_CONFIG["Otro Motivo"];
 
 export default function VisitasReportePage() {
-  const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [fecha, setFecha] = useState("");
@@ -63,21 +64,18 @@ export default function VisitasReportePage() {
 
   // Auto-fetch on mount when fecha and auth are ready
   useEffect(() => {
-    if (fecha && token && selectedStore && !fetched) {
+    if (fecha && selectedStore && !fetched) {
       fetchRecaudos(fecha);
     }
-  }, [fecha, token, selectedStore]);
+  }, [fecha, selectedStore]);
 
   const fetchRecaudos = async (fechaConsulta) => {
-    if (!token || !selectedStore || !fechaConsulta) return;
+    if (!selectedStore || !fechaConsulta) return;
 
     setLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${fechaConsulta}/t/${selectedStore.tienda.id}/`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const response = await apiFetch(
+        `/recaudos/list/${fechaConsulta}/t/${selectedStore.tienda.id}/`
       );
 
       if (!response.ok) throw new Error("Error al consultar recaudos");
@@ -204,10 +202,11 @@ export default function VisitasReportePage() {
           <form onSubmit={handleConsultar} className="flex flex-col gap-5">
             <div className="flex flex-col sm:flex-row items-end gap-4">
               <div className="space-y-2 flex-1 w-full">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                <label htmlFor="fecha" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
                   Fecha de Consulta
                 </label>
                 <input
+                  id="fecha"
                   type="date"
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}

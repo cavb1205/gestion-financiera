@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/context/AuthContext";
+import { apiFetch } from "@/app/utils/api";
 import {
   FiUsers,
   FiSearch,
@@ -18,19 +19,18 @@ import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 
 export default function TrabajadoresPage() {
-  const { selectedStore, token, loading: authLoading } = useAuth();
+  const { selectedStore, loading: authLoading } = useAuth();
   const router = useRouter();
   const [trabajadores, setTrabajadores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
   const fetchTrabajadores = async () => {
-    if (!selectedStore?.tienda?.id || !token) return;
+    if (!selectedStore?.tienda?.id) return;
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/trabajadores/t/${selectedStore.tienda.id}/`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await apiFetch(
+        `/trabajadores/t/${selectedStore.tienda.id}/`
       );
       if (response.ok) {
         const data = await response.json();
@@ -45,7 +45,7 @@ export default function TrabajadoresPage() {
 
   useEffect(() => {
     fetchTrabajadores();
-  }, [selectedStore, token]);
+  }, [selectedStore]);
 
   const filteredTrabajadores = trabajadores.filter(
     (t) =>

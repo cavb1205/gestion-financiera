@@ -16,11 +16,12 @@ import {
   FiAlertCircle,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
+import { apiFetch } from "../../../utils/api";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 
 export default function CrearCliente() {
   const router = useRouter();
-  const { token, selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading } = useAuth();
   const [formData, setFormData] = useState({
     identificacion: "",
     nombres: "",
@@ -97,14 +98,10 @@ export default function CrearCliente() {
 
     try {
       // URL CORREGIDA: sin /create/t/ en la ruta
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clientes/create/t/${selectedStore.tienda.id}/`,
+      const response = await apiFetch(
+        `/clientes/create/t/${selectedStore.tienda.id}/`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify({
             ...formData,
             tienda: selectedStore.tienda.id,
@@ -212,8 +209,9 @@ export default function CrearCliente() {
 
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Documento *</label>
+                        <label htmlFor="identificacion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Documento *</label>
                         <input
+                          id="identificacion"
                           type="text"
                           name="identificacion"
                           value={formData.identificacion}
@@ -226,8 +224,9 @@ export default function CrearCliente() {
 
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres *</label>
+                          <label htmlFor="nombres" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres *</label>
                           <input
+                            id="nombres"
                             type="text"
                             name="nombres"
                             value={formData.nombres}
@@ -236,8 +235,9 @@ export default function CrearCliente() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos *</label>
+                          <label htmlFor="apellidos" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos *</label>
                           <input
+                            id="apellidos"
                             type="text"
                             name="apellidos"
                             value={formData.apellidos}
@@ -258,8 +258,9 @@ export default function CrearCliente() {
 
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Establecimiento</label>
+                        <label htmlFor="nombre_local" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Establecimiento</label>
                         <input
+                          id="nombre_local"
                           type="text"
                           name="nombre_local"
                           value={formData.nombre_local}
@@ -271,8 +272,9 @@ export default function CrearCliente() {
 
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono *</label>
+                          <label htmlFor="telefono_principal" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono *</label>
                           <input
+                            id="telefono_principal"
                             type="tel"
                             name="telefono_principal"
                             value={formData.telefono_principal}
@@ -281,8 +283,9 @@ export default function CrearCliente() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Opcional</label>
+                          <label htmlFor="telefono_opcional" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Opcional</label>
                           <input
+                            id="telefono_opcional"
                             type="tel"
                             name="telefono_opcional"
                             value={formData.telefono_opcional}
@@ -293,8 +296,9 @@ export default function CrearCliente() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección Exacta</label>
+                        <label htmlFor="direccion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección Exacta</label>
                         <input
+                          id="direccion"
                           type="text"
                           name="direccion"
                           value={formData.direccion}

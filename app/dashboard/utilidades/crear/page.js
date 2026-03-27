@@ -22,9 +22,10 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../../../utils/format";
+import { apiFetch } from "../../../utils/api";
 
 export default function NuevaUtilidadPage() {
-  const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [loadingTrabajadores, setLoadingTrabajadores] = useState(true);
@@ -42,16 +43,11 @@ export default function NuevaUtilidadPage() {
   useEffect(() => {
     const fetchTrabajadores = async () => {
       try {
-        if (!selectedStore || !token) return;
+        if (!selectedStore) return;
         setLoadingTrabajadores(true);
 
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/trabajadores/t/${selectedStore.tienda.id}/`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        const response = await apiFetch(
+          `/trabajadores/t/${selectedStore.tienda.id}/`
         );
 
         if (!response.ok) throw new Error("Error al cargar los trabajadores");
@@ -66,7 +62,7 @@ export default function NuevaUtilidadPage() {
     };
 
     fetchTrabajadores();
-  }, [selectedStore, token]);
+  }, [selectedStore]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -82,14 +78,10 @@ export default function NuevaUtilidadPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/utilidades/create/t/${selectedStore.tienda.id}/`,
+      const response = await apiFetch(
+        `/utilidades/create/t/${selectedStore.tienda.id}/`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify({
             fecha: formData.fecha,
             valor: formData.valor,

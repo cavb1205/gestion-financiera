@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
+import { apiFetch } from "../../../utils/api";
 import {
   FiCalendar,
   FiDollarSign,
@@ -22,7 +23,7 @@ import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../../utils/format";
 
 export default function ReportesPage() {
-  const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [datosReporte, setDatosReporte] = useState(null);
@@ -57,12 +58,8 @@ export default function ReportesPage() {
       }
 
       const [ventasRes, gastosRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/gastos/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        apiFetch(`/ventas/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`),
+        apiFetch(`/gastos/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`),
       ]);
 
       if (!ventasRes.ok || !gastosRes.ok) throw new Error("Error al consultar fuentes de datos.");
@@ -180,8 +177,9 @@ export default function ReportesPage() {
           <form onSubmit={generarReporte} className="flex flex-col lg:flex-row items-end gap-6">
             <div className="grid grid-cols-2 gap-4 flex-1 w-full">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Desde</label>
+                <label htmlFor="fecha-inicio" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Desde</label>
                 <input
+                  id="fecha-inicio"
                   type="date"
                   value={fechaInicio}
                   onChange={(e) => setFechaInicio(e.target.value)}
@@ -189,8 +187,9 @@ export default function ReportesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Hasta</label>
+                <label htmlFor="fecha-fin" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Hasta</label>
                 <input
+                  id="fecha-fin"
                   type="date"
                   value={fechaFin}
                   onChange={(e) => setFechaFin(e.target.value)}

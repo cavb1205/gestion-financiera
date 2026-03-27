@@ -3,13 +3,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiUser, FiUsers, FiSearch, FiPlus, FiEdit, FiEye, FiFilter, FiX, FiPhone, FiMapPin, FiActivity, FiChevronLeft, FiChevronRight, FiShield, FiAlertCircle } from 'react-icons/fi';
+import { FiUser, FiUsers, FiSearch, FiPlus, FiEdit, FiEye, FiFilter, FiX, FiPhone, FiMapPin, FiActivity, FiShield, FiAlertCircle } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../utils/api';
 import LoadingSpinner from "../../components/LoadingSpinner";
+import Pagination from "../../components/Pagination";
 
 export default function ClientesPage() {
   const router = useRouter();
-  const { token, selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading } = useAuth();
   const [clientes, setClientes] = useState([]);
   const [filteredClientes, setFilteredClientes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,23 +33,18 @@ export default function ClientesPage() {
     }
 
     // Cargar clientes solo si está autenticado y tiene tienda seleccionada
-    if (selectedStore && token && !loading) {
+    if (selectedStore && !loading) {
       fetchClientes();
     }
-  }, [loading, isAuthenticated, selectedStore, token, router]);
+  }, [loading, isAuthenticated, selectedStore, router]);
 
   const fetchClientes = async () => {
     try {
       setIsLoading(true);
       setError('');
       
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clientes/tienda/${selectedStore.tienda.id}/`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
+      const response = await apiFetch(
+        `/clientes/tienda/${selectedStore.tienda.id}/`
       );
 
       if (!response.ok) {
@@ -103,14 +100,6 @@ export default function ClientesPage() {
   const currentClientes = filteredClientes.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
 
-  // Cambiar página
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
-  const getPageNumbers = (current, total) => {
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    if (current <= 3) return [1, 2, 3, 4, 5];
-    if (current >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
-    return [current - 2, current - 1, current, current + 1, current + 2];
-  };
 
   // Resetear filtros
   const resetFilters = () => {
@@ -304,10 +293,11 @@ export default function ClientesPage() {
               </div>
               
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-2">
+                <label htmlFor="filtro-telefono" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-2">
                   Contacto Telefónico
                 </label>
                 <input
+                  id="filtro-telefono"
                   type="text"
                   value={filters.telefono}
                   onChange={(e) => setFilters({...filters, telefono: e.target.value})}
@@ -453,43 +443,13 @@ export default function ClientesPage() {
               </div>
             </div>
 
-            {/* Paginación */}
-            {totalPages > 1 && (
-              <div className="px-8 py-5 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:block">
-                  {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredClientes.length)} de {filteredClientes.length}
-                </p>
-                <div className="flex items-center gap-1.5 mx-auto sm:mx-0">
-                  <button
-                    onClick={() => paginate(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
-                  >
-                    <FiChevronLeft size={16} />
-                  </button>
-                  {getPageNumbers(currentPage, totalPages).map(n => (
-                    <button
-                      key={n}
-                      onClick={() => paginate(n)}
-                      className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all active:scale-95 ${
-                        currentPage === n
-                          ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg'
-                          : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => paginate(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
-                  >
-                    <FiChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
-            )}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={filteredClientes.length}
+              itemsPerPage={itemsPerPage}
+            />
           </>
         )}
       </div>

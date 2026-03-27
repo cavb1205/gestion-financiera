@@ -18,13 +18,14 @@ import {
   FiTrendingDown
 } from "react-icons/fi";
 import { useAuth } from "../../../../context/AuthContext";
+import { apiFetch } from "../../../../utils/api";
 import LoadingSpinner from "../../../../components/LoadingSpinner";
 
 export default function EliminarCliente() {
   const router = useRouter();
   const params = useParams();
   const clienteId = params.id;
-  const { token, selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading } = useAuth();
   
   const [cliente, setCliente] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,14 +49,7 @@ export default function EliminarCliente() {
 
   const fetchCliente = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clientes/${clienteId}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await apiFetch(`/clientes/${clienteId}/`);
 
       if (!response.ok) {
         throw new Error("No se pudo cargar la información del cliente");
@@ -77,13 +71,10 @@ export default function EliminarCliente() {
     setHasActiveSales(false);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clientes/${clienteId}/delete/`,
+      const response = await apiFetch(
+        `/clientes/${clienteId}/delete/`,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         }
       );
 

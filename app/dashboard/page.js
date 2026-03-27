@@ -17,6 +17,7 @@ import {
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
+import { apiFetch } from "../utils/api";
 import ResumenDia from "../components/dashboard/ResumenDia";
 import ResumenMes from "../components/dashboard/ResumenMes";
 import ResumenAnual from "../components/dashboard/ResumenAnual";
@@ -47,11 +48,10 @@ export default function DashboardPage() {
   const [alertas, setAlertas] = useState({ vencidos: 0, moraGrave: 0, montoMora: 0, fallasHoy: 0, cajaNegativa: false });
 
   const fetchTienda = async () => {
-    if (!selectedStore || !token) return null;
+    if (!selectedStore) return null;
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tiendas/detail/admin/${selectedStore.tienda.id}/`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await apiFetch(
+        `/tiendas/detail/admin/${selectedStore.tienda.id}/`
       );
       if (!res.ok) throw new Error();
       const data = await res.json();
@@ -70,18 +70,18 @@ export default function DashboardPage() {
   };
 
   const fetchAlertas = async () => {
-    if (!selectedStore || !token) return;
+    if (!selectedStore) return;
     try {
       const hoy = new Date();
       const fechaHoy = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000).toISOString().split("T")[0];
-      const fetchJson = async (url) => {
-        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const fetchJson = async (path) => {
+        const res = await apiFetch(path);
         if (!res.ok) return null;
         return res.json();
       };
       const [activosData, recaudosData] = await Promise.all([
-        fetchJson(`${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/t/${selectedStore.tienda.id}/`),
-        fetchJson(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${fechaHoy}/t/${selectedStore.tienda.id}/`),
+        fetchJson(`/ventas/activas/t/${selectedStore.tienda.id}/`),
+        fetchJson(`/recaudos/list/${fechaHoy}/t/${selectedStore.tienda.id}/`),
       ]);
       const activos = Array.isArray(activosData) ? activosData : [];
       const recaudosHoy = Array.isArray(recaudosData) ? recaudosData : [];
@@ -96,8 +96,8 @@ export default function DashboardPage() {
         fallasHoy,
         cajaNegativa: (selectedStore.tienda.caja ?? 0) < 0,
       });
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error("Error al cargar alertas:", err);
     }
   };
 
@@ -165,7 +165,7 @@ export default function DashboardPage() {
                 <FiShield size={18} /> Gestionar Membresía
               </button>
               <button
-                onClick={() => window.open(`https://wa.me/56963511337?text=Hola,%20quisiera%20renovar%20para%20${t.nombre}`, "_blank")}
+                onClick={() => window.open(`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '56963511337'}?text=Hola,%20quisiera%20renovar%20para%20${t.nombre}`, "_blank")}
                 className="w-full py-4 bg-emerald-600/20 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-600/30 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-3"
               >
                 <FiCheckCircle size={16} /> Contactar por WhatsApp
@@ -338,11 +338,17 @@ export default function DashboardPage() {
           </div>
           <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter leading-none mb-2">{formatMoney(t.dinero_x_cobrar)}</p>
           {(t.caja + t.dinero_x_cobrar) > 0 && (
-            <div className="h-1 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-blue-500 rounded-full"
-                style={{ width: `${Math.min(100, (t.dinero_x_cobrar / (t.caja + t.dinero_x_cobrar)) * 100)}%` }}
-              />
+            <div>
+              <div className="flex justify-between mb-1">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">En calle</span>
+                <span className="text-[9px] font-black text-blue-500">{Math.round((t.dinero_x_cobrar / (t.caja + t.dinero_x_cobrar)) * 100)}%</span>
+              </div>
+              <div className="h-1 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full"
+                  style={{ width: `${Math.min(100, (t.dinero_x_cobrar / (t.caja + t.dinero_x_cobrar)) * 100)}%` }}
+                />
+              </div>
             </div>
           )}
           <FiActivity className="absolute -right-3 -bottom-3 text-slate-100 dark:text-slate-800" size={72} />

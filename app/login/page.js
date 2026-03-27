@@ -177,7 +177,7 @@ export default function LoginPage() {
 
             {/* Username */}
             <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+              <label htmlFor="username" className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                 Usuario
               </label>
               <div className="relative group">
@@ -185,6 +185,7 @@ export default function LoginPage() {
                   <FiUser size={18} />
                 </div>
                 <input
+                  id="username"
                   type="text"
                   required
                   autoComplete="username"
@@ -198,7 +199,7 @@ export default function LoginPage() {
 
             {/* Password */}
             <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+              <label htmlFor="password" className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                 Contraseña
               </label>
               <div className="relative group">
@@ -206,6 +207,7 @@ export default function LoginPage() {
                   <FiLock size={18} />
                 </div>
                 <input
+                  id="password"
                   type={showPassword ? "text" : "password"}
                   required
                   autoComplete="current-password"

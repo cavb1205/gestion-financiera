@@ -8,8 +8,6 @@ import {
   FiDollarSign,
   FiRefreshCw,
   FiTrash2,
-  FiChevronLeft,
-  FiChevronRight,
   FiCheck,
   FiInfo,
   FiActivity,
@@ -22,9 +20,11 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "../../utils/format";
+import { apiFetch } from "../../utils/api";
+import Pagination from "../../components/Pagination";
 
 export default function CierreCajaPage() {
-  const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [cierres, setCierres] = useState([]);
@@ -57,9 +57,8 @@ export default function CierreCajaPage() {
     if (!selectedStore) return;
     setLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tiendas/cierres/t/${selectedStore.tienda.id}/`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await apiFetch(
+        `/tiendas/cierres/t/${selectedStore.tienda.id}/`
       );
       if (!response.ok) throw new Error("Error al obtener los cierres de caja");
       const data = await response.json();
@@ -79,9 +78,8 @@ export default function CierreCajaPage() {
   const fetchCajaAnterior = async () => {
     if (!selectedStore || !selectedDate) return;
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tiendas/cierre/${selectedDate}/t/${selectedStore.tienda.id}/`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await apiFetch(
+        `/tiendas/cierre/${selectedDate}/t/${selectedStore.tienda.id}/`
       );
       if (!response.ok) throw new Error("Error al consultar caja anterior");
       const data = await response.json();
@@ -96,16 +94,16 @@ export default function CierreCajaPage() {
   };
 
   useEffect(() => {
-    if (token && selectedStore) {
+    if (selectedStore) {
       fetchCierres();
     }
-  }, [token, selectedStore]);
+  }, [selectedStore]);
 
   useEffect(() => {
-    if (token && selectedStore && selectedDate) {
+    if (selectedStore && selectedDate) {
       fetchCajaAnterior();
     }
-  }, [token, selectedStore, selectedDate]);
+  }, [selectedStore, selectedDate]);
 
   // Crear cierre
   const handleCrearCierre = async () => {
@@ -123,14 +121,10 @@ export default function CierreCajaPage() {
 
     setCreating(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tiendas/cierre/post/${selectedDate}/t/${selectedStore.tienda.id}/`,
+      const response = await apiFetch(
+        `/tiendas/cierre/post/${selectedDate}/t/${selectedStore.tienda.id}/`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
         }
       );
       if (!response.ok) throw new Error("Error al crear el cierre de caja");
@@ -149,11 +143,10 @@ export default function CierreCajaPage() {
     if (!cierreToDelete) return;
     setDeleting(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tiendas/cierre/delete/${cierreToDelete.id}/`,
+      const response = await apiFetch(
+        `/tiendas/cierre/delete/${cierreToDelete.id}/`,
         {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
         }
       );
       if (!response.ok) throw new Error("Error al eliminar el cierre");
@@ -232,10 +225,11 @@ export default function CierreCajaPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end">
           {/* Fecha */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+            <label htmlFor="fecha-cierre" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
               Fecha del Cierre
             </label>
             <input
+              id="fecha-cierre"
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
@@ -448,30 +442,13 @@ export default function CierreCajaPage() {
               ))}
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="px-8 py-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  Página {currentPage} de {totalPages}
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 disabled:opacity-30 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 transition-all"
-                  >
-                    <FiChevronLeft size={16} />
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 disabled:opacity-30 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 transition-all"
-                  >
-                    <FiChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
-            )}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={cierres.length}
+              itemsPerPage={itemsPerPage}
+            />
           </>
         )}
       </div>

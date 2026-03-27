@@ -19,9 +19,10 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import { formatMoney } from "../../../utils/format";
+import { apiFetch } from "../../../utils/api";
 
 export default function NuevoAportePage() {
-  const { selectedStore, token, loading: authLoading } = useAuth();
+  const { selectedStore, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [loadingTrabajadores, setLoadingTrabajadores] = useState(true);
@@ -38,15 +39,10 @@ export default function NuevoAportePage() {
   useEffect(() => {
     const fetchTrabajadores = async () => {
       try {
-        if (!selectedStore || !token) return;
+        if (!selectedStore) return;
 
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/trabajadores/t/${selectedStore.tienda.id}/`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        const response = await apiFetch(
+          `/trabajadores/t/${selectedStore.tienda.id}/`
         );
 
         if (!response.ok) {
@@ -65,7 +61,7 @@ export default function NuevoAportePage() {
     };
 
     fetchTrabajadores();
-  }, [selectedStore, token]);
+  }, [selectedStore]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -89,14 +85,10 @@ export default function NuevoAportePage() {
         throw new Error("El valor debe ser mayor a cero");
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/aportes/create/t/${selectedStore.tienda.id}/`,
+      const response = await apiFetch(
+        `/aportes/create/t/${selectedStore.tienda.id}/`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify({
             fecha: formData.fecha,
             valor: formData.valor,
@@ -165,10 +157,11 @@ export default function NuevoAportePage() {
 
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Inversionista *</label>
+                        <label htmlFor="trabajador" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Inversionista *</label>
                         <div className="relative group">
                           <FiUser className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 pointer-events-none" />
                           <select
+                            id="trabajador"
                             name="trabajador"
                             value={formData.trabajador}
                             onChange={handleChange}
@@ -186,10 +179,11 @@ export default function NuevoAportePage() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Monto a Inyectar *</label>
+                        <label htmlFor="valor" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Monto a Inyectar *</label>
                         <div className="relative group">
                           <FiDollarSign className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-500 pointer-events-none" size={24} />
                           <input
+                            id="valor"
                             type="number"
                             name="valor"
                             value={formData.valor}
@@ -212,8 +206,9 @@ export default function NuevoAportePage() {
 
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha *</label>
+                        <label htmlFor="fecha" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha *</label>
                         <input
+                          id="fecha"
                           type="date"
                           name="fecha"
                           value={formData.fecha}
@@ -224,8 +219,9 @@ export default function NuevoAportePage() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Descripción</label>
+                        <label htmlFor="comentario" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Descripción</label>
                         <textarea
+                          id="comentario"
                           name="comentario"
                           value={formData.comentario}
                           onChange={handleChange}

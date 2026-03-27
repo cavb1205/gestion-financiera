@@ -17,10 +17,11 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { apiFetch } from "@/app/utils/api";
 
 export default function CrearTrabajadorPage() {
   const router = useRouter();
-  const { token, selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading } = useAuth();
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -69,14 +70,10 @@ export default function CrearTrabajadorPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/trabajadores/create/t/${selectedStore.tienda.id}/`,
+      const response = await apiFetch(
+        `/trabajadores/create/t/${selectedStore.tienda.id}/`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify(formData),
         }
       );
@@ -167,8 +164,9 @@ export default function CrearTrabajadorPage() {
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres *</label>
+                        <label htmlFor="first_name" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres *</label>
                         <input
+                          id="first_name"
                           type="text"
                           name="first_name"
                           value={formData.first_name}
@@ -178,8 +176,9 @@ export default function CrearTrabajadorPage() {
                         {errors.first_name && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.first_name}</p>}
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos *</label>
+                        <label htmlFor="last_name" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos *</label>
                         <input
+                          id="last_name"
                           type="text"
                           name="last_name"
                           value={formData.last_name}
@@ -191,10 +190,11 @@ export default function CrearTrabajadorPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Documento *</label>
+                      <label htmlFor="identificacion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Documento *</label>
                       <div className="relative">
                         <FiCreditCard className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                         <input
+                          id="identificacion"
                           type="text"
                           name="identificacion"
                           value={formData.identificacion}
@@ -207,10 +207,11 @@ export default function CrearTrabajadorPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono</label>
+                      <label htmlFor="telefono" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono</label>
                       <div className="relative">
                         <FiPhone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                         <input
+                          id="telefono"
                           type="tel"
                           name="telefono"
                           value={formData.telefono}
@@ -221,10 +222,11 @@ export default function CrearTrabajadorPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección</label>
+                      <label htmlFor="direccion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección</label>
                       <div className="relative">
                         <FiMapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                         <input
+                          id="direccion"
                           type="text"
                           name="direccion"
                           value={formData.direccion}
@@ -243,8 +245,9 @@ export default function CrearTrabajadorPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Usuario (Login) *</label>
+                      <label htmlFor="username" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Usuario (Login) *</label>
                       <input
+                        id="username"
                         type="text"
                         name="username"
                         value={formData.username}
@@ -257,8 +260,9 @@ export default function CrearTrabajadorPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Contraseña *</label>
+                      <label htmlFor="password" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Contraseña *</label>
                       <input
+                        id="password"
                         type="password"
                         name="password"
                         value={formData.password}

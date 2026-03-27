@@ -20,11 +20,12 @@ import {
 import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { apiFetch } from "@/app/utils/api";
 
 export default function EditarTrabajadorPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChangingPass, setIsChangingPass] = useState(false);
@@ -44,12 +45,11 @@ export default function EditarTrabajadorPage() {
 
   useEffect(() => {
     const fetchTrabajador = async () => {
-      if (!token || !id) return;
+      if (!id) return;
       try {
         setIsLoading(true);
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/trabajadores/${id}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
+        const response = await apiFetch(
+          `/trabajadores/${id}/`
         );
         if (!response.ok) throw new Error("No se pudo cargar el colaborador.");
         const data = await response.json();
@@ -71,7 +71,7 @@ export default function EditarTrabajadorPage() {
       }
     };
     fetchTrabajador();
-  }, [token, id]);
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -98,14 +98,10 @@ export default function EditarTrabajadorPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/trabajadores/${id}/update/`,
+      const response = await apiFetch(
+        `/trabajadores/${id}/update/`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify({
             ...formData,
             tienda: selectedStore.tienda.id,
@@ -147,14 +143,10 @@ export default function EditarTrabajadorPage() {
     }
     setIsChangingPass(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/trabajadores/password/${id}/`,
+      const response = await apiFetch(
+        `/trabajadores/password/${id}/`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify({ passwordNuevo: passData.nueva }),
         }
       );
@@ -212,8 +204,9 @@ export default function EditarTrabajadorPage() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres *</label>
+                      <label htmlFor="first_name" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres *</label>
                       <input
+                        id="first_name"
                         type="text"
                         name="first_name"
                         value={formData.first_name}
@@ -223,8 +216,9 @@ export default function EditarTrabajadorPage() {
                       {errors.first_name && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.first_name}</p>}
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos *</label>
+                      <label htmlFor="last_name" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos *</label>
                       <input
+                        id="last_name"
                         type="text"
                         name="last_name"
                         value={formData.last_name}
@@ -236,10 +230,11 @@ export default function EditarTrabajadorPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Documento *</label>
+                    <label htmlFor="identificacion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Documento *</label>
                     <div className="relative">
                       <FiCreditCard className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                       <input
+                        id="identificacion"
                         type="text"
                         name="identificacion"
                         value={formData.identificacion}
@@ -251,10 +246,11 @@ export default function EditarTrabajadorPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono</label>
+                    <label htmlFor="telefono" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono</label>
                     <div className="relative">
                       <FiPhone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                       <input
+                        id="telefono"
                         type="tel"
                         name="telefono"
                         value={formData.telefono}
@@ -265,10 +261,11 @@ export default function EditarTrabajadorPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección</label>
+                    <label htmlFor="direccion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección</label>
                     <div className="relative">
                       <FiMapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                       <input
+                        id="direccion"
                         type="text"
                         name="direccion"
                         value={formData.direccion}
@@ -287,8 +284,9 @@ export default function EditarTrabajadorPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Usuario (Login) *</label>
+                    <label htmlFor="username" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Usuario (Login) *</label>
                     <input
+                      id="username"
                       type="text"
                       name="username"
                       value={formData.username}
@@ -378,8 +376,9 @@ export default function EditarTrabajadorPage() {
 
             <form onSubmit={handlePasswordChange} className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nueva Contraseña</label>
+                <label htmlFor="nueva-contrasena" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nueva Contraseña</label>
                 <input
+                  id="nueva-contrasena"
                   type="password"
                   value={passData.nueva}
                   onChange={(e) => { setPassData(p => ({ ...p, nueva: e.target.value })); setPassError(""); }}
@@ -389,8 +388,9 @@ export default function EditarTrabajadorPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirmar</label>
+                <label htmlFor="confirmar-contrasena" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirmar</label>
                 <input
+                  id="confirmar-contrasena"
                   type="password"
                   value={passData.confirmar}
                   onChange={(e) => { setPassData(p => ({ ...p, confirmar: e.target.value })); setPassError(""); }}

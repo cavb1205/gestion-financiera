@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../context/AuthContext";
+import { apiFetch } from "../../../utils/api";
 import {
   FiDollarSign,
   FiAlertTriangle,
@@ -24,7 +25,7 @@ import { formatMoney, parseMoney } from "../../../utils/format";
 import { toast } from "react-toastify";
 
 export default function CarteraReportPage() {
-  const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const [ventas, setVentas] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -34,9 +35,8 @@ export default function CarteraReportPage() {
     setCargando(true);
     setError("");
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/t/${selectedStore.tienda.id}/`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await apiFetch(
+        `/ventas/activas/t/${selectedStore.tienda.id}/`
       );
       if (!res.ok) throw new Error("Error al consultar la cartera activa.");
       const data = await res.json();
@@ -54,10 +54,10 @@ export default function CarteraReportPage() {
   };
 
   useEffect(() => {
-    if (isAuthenticated && selectedStore && token) {
+    if (isAuthenticated && selectedStore) {
       fetchData();
     }
-  }, [isAuthenticated, selectedStore, token]);
+  }, [isAuthenticated, selectedStore]);
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 

@@ -34,3 +34,16 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+
+
+Lo que queda por hacer
+
+3	Búsqueda Global — buscador en el header del layout, busca en clientes/ventas/recaudos	Media
+
+5	Bloqueo de rutas + auto-vencimiento — pendiente del endpoint backend que te pasé	Baja (con endpoint)
+
+7	Light mode roto (P0) — textos blancos invisibles sobre fondo claro	Alta (muchos archivos)
+
+

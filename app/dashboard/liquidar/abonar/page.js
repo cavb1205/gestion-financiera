@@ -20,9 +20,10 @@ import {
 import Link from "next/link";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, roundMoney } from "../../../utils/format";
+import { apiFetch } from "../../../utils/api";
 
 export default function PagarAbonoPage() {
-  const { token, isAuthenticated, selectedStore, loading: authLoading } = useAuth();
+  const { isAuthenticated, selectedStore, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -76,14 +77,10 @@ export default function PagarAbonoPage() {
     const abonoToSend = { ...abono, valor_recaudo: valorNumerico };
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/recaudos/create/t/${abono.tienda}/`,
+      const response = await apiFetch(
+        `/recaudos/create/t/${abono.tienda}/`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify(abonoToSend),
         }
       );
@@ -144,12 +141,13 @@ export default function PagarAbonoPage() {
                 <form onSubmit={handleSubmit} className="flex flex-col gap-8">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between px-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Monto del Recaudo</label>
+                      <label htmlFor="valor-abono" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Monto del Recaudo</label>
                       <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-md">Obligatorio</span>
                     </div>
                     <div className="relative group">
                       <FiDollarSign className="absolute left-6 md:left-8 top-1/2 -translate-y-1/2 text-emerald-500 group-focus-within:scale-110 transition-transform" size={28} />
                       <input
+                        id="valor-abono"
                         type="number"
                         value={valorAbono}
                         onChange={(e) => setValorAbono(e.target.value)}

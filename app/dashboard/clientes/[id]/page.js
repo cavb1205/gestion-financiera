@@ -31,13 +31,14 @@ import {
 } from "react-icons/fi";
 import { FaBan, FaSkullCrossbones } from "react-icons/fa";
 import { useAuth } from "../../../context/AuthContext";
+import { apiFetch } from "../../../utils/api";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import ErrorMessage from "../../../components/ErrorMessage";
 import { formatMoney } from "../../../utils/format";
 
 export default function DetalleCliente({ params }) {
   const router = useRouter();
-  const { token, selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading } = useAuth();
   const [cliente, setCliente] = useState(null);
   const [creditos, setCreditos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -222,10 +223,10 @@ export default function DetalleCliente({ params }) {
       return;
     }
 
-    if (selectedStore && token && !loading) {
+    if (selectedStore && isAuthenticated && !loading) {
       fetchCliente();
     }
-  }, [loading, isAuthenticated, selectedStore, token, router]);
+  }, [loading, isAuthenticated, selectedStore, router]);
 
   const fetchCliente = async () => {
     try {
@@ -233,12 +234,8 @@ export default function DetalleCliente({ params }) {
       setError("");
 
       const [clienteResponse, creditosResponse] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/clientes/${clienteId}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/${clienteId}/t/${selectedStore.tienda.id}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        apiFetch(`/clientes/${clienteId}/`),
+        apiFetch(`/ventas/activas/${clienteId}/t/${selectedStore.tienda.id}/`),
       ]);
 
       if (!clienteResponse.ok) throw new Error("Error al obtener los detalles del cliente");

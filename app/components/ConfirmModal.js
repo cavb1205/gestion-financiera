@@ -26,7 +26,7 @@ export default function ConfirmModal({
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="absolute -top-4 -right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+            className="absolute -top-4 -right-4 p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
           >
             <FiX size={20} />
           </button>

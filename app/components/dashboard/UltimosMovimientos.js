@@ -12,7 +12,7 @@ import {
   FiCalendar,
 } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
-
+import { apiFetch } from "../../utils/api";
 import { useRouter } from "next/navigation";
 import { formatMoney, parseMoney } from "../../utils/format";
 
@@ -22,7 +22,6 @@ const UltimosMovimientos = ({ tienda }) => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [periodo, setPeriodo] = useState("semana"); // semana, mes, custom
-  const { token } = useAuth();
 
   // Función para formatear fechas en YYYY-MM-DD
   const formatDate = (date) => {
@@ -62,13 +61,8 @@ const UltimosMovimientos = ({ tienda }) => {
   // Función para obtener movimientos de aportes
   const obtenerAportes = async (fechaInicio, fechaFin) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/aportes/list/${fechaInicio}/${fechaFin}/t/${tienda.tienda.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await apiFetch(
+        `/aportes/list/${fechaInicio}/${fechaFin}/t/${tienda.tienda.id}/`
       );
 
       if (!response.ok) {
@@ -96,13 +90,8 @@ const UltimosMovimientos = ({ tienda }) => {
   // Función para obtener movimientos de gastos
   const obtenerGastos = async (fechaInicio, fechaFin) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/gastos/list/${fechaInicio}/${fechaFin}/t/${tienda.tienda.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await apiFetch(
+        `/gastos/list/${fechaInicio}/${fechaFin}/t/${tienda.tienda.id}/`
       );
 
       if (!response.ok) {
@@ -129,13 +118,8 @@ const UltimosMovimientos = ({ tienda }) => {
   //Función para obtener movimientos de utilidades (retiros)
   const obtenerUtilidades = async (fechaFin) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/utilidades/list/${fechaFin}/t/${tienda.tienda.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await apiFetch(
+        `/utilidades/list/${fechaFin}/t/${tienda.tienda.id}/`
       );
 
       if (!response.ok) {
@@ -164,13 +148,8 @@ const UltimosMovimientos = ({ tienda }) => {
   // Función para obtener movimientos de ventas
   const obtenerVentas = async (fechaInicio, fechaFin) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/ventas/list/${fechaInicio}/${fechaFin}/t/${tienda.tienda.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await apiFetch(
+        `/ventas/list/${fechaInicio}/${fechaFin}/t/${tienda.tienda.id}/`
       );
 
       if (!response.ok) {
@@ -284,10 +263,10 @@ const UltimosMovimientos = ({ tienda }) => {
   };
 
   useEffect(() => {
-    if (tienda && token) {
+    if (tienda) {
       cargarMovimientos();
     }
-  }, [tienda, token, periodo]);
+  }, [tienda, periodo]);
 
   if (cargando) {
     return (

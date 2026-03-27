@@ -22,6 +22,7 @@ import {
   FiXCircle,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
+import { apiFetch } from "../../../utils/api";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import { formatMoney, calcularTotal, calcularCuota } from "../../../utils/format";
 import DatePicker from "react-datepicker";
@@ -33,7 +34,7 @@ function NuevaVentaContent() {
   const searchParams = useSearchParams();
   const clienteIdParam = searchParams.get("clienteId");
   
-  const { token, selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading } = useAuth();
 
   const [formData, setFormData] = useState({
     fecha_venta: new Date(),
@@ -67,11 +68,8 @@ function NuevaVentaContent() {
   const fetchClientes = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clientes/activos/t/${selectedStore.tienda.id}/`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const response = await apiFetch(
+        `/clientes/activos/t/${selectedStore.tienda.id}/`
       );
 
       if (!response.ok) throw new Error("No se pudieron cargar los clientes");
@@ -153,14 +151,10 @@ function NuevaVentaContent() {
         id_tienda: selectedStore.tienda.id,
       };
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/ventas/create/t/${selectedStore.tienda.id}/`,
+      const response = await apiFetch(
+        `/ventas/create/t/${selectedStore.tienda.id}/`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify(ventaData),
         }
       );

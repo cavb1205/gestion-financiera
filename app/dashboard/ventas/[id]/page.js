@@ -28,9 +28,10 @@ import {
   FiPhone,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
+import { apiFetch } from "../../../utils/api";
 import { formatMoney, parseMoney } from "../../../utils/format";
 import LoadingSpinner from "../../../components/LoadingSpinner";
-import EliminarRecaudo from "@/app/components/recaudos/EliminarRecaudo";
+import ConfirmModal from "@/app/components/ConfirmModal";
 import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
 import { toast } from "react-toastify";
 
@@ -38,7 +39,7 @@ export default function VentaDetailPage() {
   const router = useRouter();
   const params = useParams();
   const ventaId = params.id;
-  const { token, selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading } = useAuth();
 
   const [venta, setVenta] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,8 +52,25 @@ export default function VentaDetailPage() {
   const [lossError, setLossError] = useState(null);
   const [deletingRecaudo, setDeletingRecaudo] = useState(null);
   const [editingRecaudo, setEditingRecaudo] = useState(null);
+  const [isDeletingRecaudo, setIsDeletingRecaudo] = useState(false);
 
   const [refreshData, setRefreshData] = useState(false);
+
+  const handleDeleteRecaudo = async () => {
+    setIsDeletingRecaudo(true);
+    try {
+      const response = await apiFetch(`/recaudos/${deletingRecaudo.id}/delete/`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Error al eliminar el recaudo");
+      setDeletingRecaudo(null);
+      setRefreshData(p => !p);
+      toast.warning("Recaudo eliminado");
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error(error.message);
+    } finally {
+      setIsDeletingRecaudo(false);
+    }
+  };
 
   const handleRegistrarPago = () => {
     const valorAbono = Math.min(
@@ -89,17 +107,13 @@ export default function VentaDetailPage() {
   const fetchVenta = async () => {
     try {
       setIsLoading(true);
-      const ventaResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const ventaResponse = await apiFetch(`/ventas/${ventaId}/`);
 
       if (!ventaResponse.ok) throw new Error("No se pudo cargar la información de la venta");
       const ventaData = await ventaResponse.json();
       setVenta(ventaData);
 
-      const pagosResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const pagosResponse = await apiFetch(`/recaudos/list/${ventaId}/`);
 
       if (!pagosResponse.ok) throw new Error("No se pudieron cargar los pagos de la venta");
       const pagosData = await pagosResponse.json();
@@ -116,9 +130,8 @@ export default function VentaDetailPage() {
     setIsSendingLoss(true);
     setLossError(null);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/perdida/`, {
+      const response = await apiFetch(`/ventas/${ventaId}/perdida/`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
 
       if (!response.ok) {
@@ -184,7 +197,33 @@ export default function VentaDetailPage() {
   return (
     <div className="min-h-screen bg-transparent pb-12">
       {editingRecaudo && <EditarRecaudo editingRecaudo={editingRecaudo} onEditar={() => { setEditingRecaudo(null); setRefreshData(p => !p) }} onClose={() => setEditingRecaudo(null)} />}
-      {deletingRecaudo && <EliminarRecaudo deletingRecaudo={deletingRecaudo} onEliminar={() => { setDeletingRecaudo(null); setRefreshData(p => !p) }} onClose={() => setDeletingRecaudo(null)} />}
+      {deletingRecaudo && (
+        <ConfirmModal
+          isOpen={!!deletingRecaudo}
+          onClose={() => setDeletingRecaudo(null)}
+          onConfirm={handleDeleteRecaudo}
+          title="¿Anular Recaudo?"
+          message="Esta acción es irreversible y eliminará el registro de la auditoría de caja."
+          confirmText="Confirmar Anulación"
+          cancelText="Mantener Registro"
+          isLoading={isDeletingRecaudo}
+        >
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-4">
+            <div className="flex justify-between items-center px-1">
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Cliente</span>
+              <span className="text-xs font-black text-slate-800 dark:text-white uppercase truncate ml-4">
+                {deletingRecaudo.venta?.cliente?.nombres} {deletingRecaudo.venta?.cliente?.apellidos}
+              </span>
+            </div>
+            <div className="flex justify-between items-center px-1 pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Monto a Reversar</span>
+              <span className="text-lg font-black text-rose-600">
+                {formatMoney(deletingRecaudo.valor_recaudo)}
+              </span>
+            </div>
+          </div>
+        </ConfirmModal>
+      )}
 
       {/* Modal Perdida */}
       {showLossModal && (
@@ -410,8 +449,8 @@ export default function VentaDetailPage() {
                             </td>
                             <td className="px-8 py-5 text-center">
                               <div className="flex items-center justify-center gap-3">
-                                {valor > 0 && <button onClick={() => setEditingRecaudo(pago)} className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-indigo-600 transition-colors"><FiEdit size={14} /></button>}
-                                <button onClick={() => setDeletingRecaudo(pago)} className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-rose-600 transition-colors"><FiTrash2 size={14} /></button>
+                                {valor > 0 && <button onClick={() => setEditingRecaudo(pago)} className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-indigo-600 transition-colors"><FiEdit size={14} /></button>}
+                                <button onClick={() => setDeletingRecaudo(pago)} className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-rose-600 transition-colors"><FiTrash2 size={14} /></button>
                               </div>
                             </td>
                           </tr>

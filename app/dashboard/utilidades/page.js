@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { apiFetch } from "../../utils/api";
 import {
   FiTrendingUp,
   FiPlus,
@@ -13,9 +14,6 @@ import {
   FiCalendar,
   FiSearch,
   FiDollarSign,
-  FiChevronLeft,
-  FiChevronRight,
-
   FiInfo,
   FiPieChart,
   FiActivity,
@@ -25,12 +23,13 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import EliminarUtilidad from "@/app/components/utilidades/EliminarUtilidad";
+import ConfirmModal from "@/app/components/ConfirmModal";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../utils/format";
+import Pagination from "../../components/Pagination";
 
 export default function UtilidadesPage() {
-  const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const [utilidades, setUtilidades] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,16 +45,11 @@ export default function UtilidadesPage() {
 
   const fetchUtilidades = async () => {
     try {
-      if (!selectedStore || !token) return;
+      if (!selectedStore) return;
 
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/utilidades/t/${selectedStore.tienda.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await apiFetch(
+        `/utilidades/t/${selectedStore.tienda.id}/`
       );
 
       if (!response.ok) {
@@ -78,14 +72,9 @@ export default function UtilidadesPage() {
 
     setEliminando(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/utilidades/${utilidadAEliminar.id}/delete/t/${selectedStore.tienda.id}/`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await apiFetch(
+        `/utilidades/${utilidadAEliminar.id}/delete/t/${selectedStore.tienda.id}/`,
+        { method: "DELETE" }
       );
 
       if (!response.ok) {
@@ -105,10 +94,10 @@ export default function UtilidadesPage() {
   };
 
   useEffect(() => {
-    if (selectedStore && token) {
+    if (selectedStore) {
       fetchUtilidades();
     }
-  }, [selectedStore, token]);
+  }, [selectedStore]);
 
   const filteredUtilidades = useMemo(() => {
     return utilidades.filter(
@@ -140,12 +129,6 @@ export default function UtilidadesPage() {
     indexOfLastItem
   );
 
-  const getPageNumbers = (current, total) => {
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    if (current <= 3) return [1, 2, 3, 4, 5];
-    if (current >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
-    return [current - 2, current - 1, current, current + 1, current + 2];
-  };
 
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
@@ -376,52 +359,43 @@ export default function UtilidadesPage() {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-8 py-5 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:block">
-                {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredUtilidades.length)} de {filteredUtilidades.length}
-              </p>
-              <div className="flex items-center gap-1.5 mx-auto sm:mx-0">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(p => p - 1)}
-                  className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
-                >
-                  <FiChevronLeft size={16} />
-                </button>
-                {getPageNumbers(currentPage, totalPages).map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setCurrentPage(n)}
-                    className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all active:scale-95 ${
-                      currentPage === n
-                        ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg'
-                        : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-                <button
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
-                >
-                  <FiChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={filteredUtilidades.length}
+            itemsPerPage={itemsPerPage}
+          />
         </div>
 
         {/* Modal de confirmación de eliminación */}
-        <EliminarUtilidad
+        <ConfirmModal
           isOpen={!!utilidadAEliminar}
           onClose={() => setUtilidadAEliminar(null)}
           onConfirm={handleEliminarUtilidad}
+          title="¿Anular Utilidad?"
+          message="Esta acción reversará el pago al colaborador y reajustará el balance operativo global."
+          confirmText="Anular Distribución"
+          cancelText="Descartar"
           isLoading={eliminando}
-          utilidad={utilidadAEliminar}
-        />
+        >
+          {utilidadAEliminar && (
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-4">
+              <div className="flex justify-between items-center px-1">
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Beneficiario</span>
+                <span className="text-xs font-black text-slate-800 dark:text-white uppercase truncate ml-4">
+                  {utilidadAEliminar.trabajador.trabajador}
+                </span>
+              </div>
+              <div className="flex justify-between items-center px-1 pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Monto</span>
+                <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">
+                  {formatMoney(utilidadAEliminar.valor)}
+                </span>
+              </div>
+            </div>
+          )}
+        </ConfirmModal>
       </div>
     </div>
   );

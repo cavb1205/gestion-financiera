@@ -10,8 +10,6 @@ import {
   FiCalendar,
   FiTrash2,
   FiEdit,
-  FiChevronLeft,
-  FiChevronRight,
   FiTag,
   FiSearch,
   FiPieChart,
@@ -23,14 +21,16 @@ import {
   FiTrendingDown,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
+import { apiFetch } from "@/app/utils/api";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatMoney, parseMoney } from "../../utils/format";
+import Pagination from "../../components/Pagination";
 
 export default function GastosPage() {
-  const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const [gastos, setGastos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tiposGasto, setTiposGasto] = useState([]);
@@ -52,9 +52,7 @@ export default function GastosPage() {
   // Obtener tipos de gasto
   const fetchTiposGasto = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/gastos/tipo/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiFetch(`/gastos/tipo/`);
       if (!response.ok) throw new Error("Error al obtener los tipos de gasto");
       const data = await response.json();
       setTiposGasto(Array.isArray(data) ? data : []);
@@ -68,9 +66,8 @@ export default function GastosPage() {
     if (!selectedStore) return;
     setLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/gastos/t/${selectedStore.tienda.id}/`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await apiFetch(
+        `/gastos/t/${selectedStore.tienda.id}/`
       );
       if (!response.ok) throw new Error("Error al obtener los gastos");
       const data = await response.json();
@@ -86,12 +83,9 @@ export default function GastosPage() {
     if (!gastoToDelete) return;
     setIsDeleting(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/gastos/${gastoToDelete.id}/delete/t/${selectedStore.tienda.id}/`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const response = await apiFetch(
+        `/gastos/${gastoToDelete.id}/delete/t/${selectedStore.tienda.id}/`,
+        { method: "DELETE" }
       );
 
       if (!response.ok) {
@@ -110,11 +104,11 @@ export default function GastosPage() {
   };
 
   useEffect(() => {
-    if (selectedStore && token) {
+    if (selectedStore) {
       fetchTiposGasto();
       fetchGastos();
     }
-  }, [selectedStore, token]);
+  }, [selectedStore]);
 
   const filteredGastos = useMemo(() => {
     return gastos.filter((gasto) => {
@@ -131,13 +125,6 @@ export default function GastosPage() {
   const currentItems = filteredGastos.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredGastos.length / itemsPerPage);
 
-  const handlePageChange = (newPage) => setCurrentPage(newPage);
-  const getPageNumbers = (current, total) => {
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    if (current <= 3) return [1, 2, 3, 4, 5];
-    if (current >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
-    return [current - 2, current - 1, current, current + 1, current + 2];
-  };
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -261,8 +248,9 @@ export default function GastosPage() {
            <div className="flex flex-col lg:flex-row items-center gap-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 w-full">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Desde</label>
+                  <label htmlFor="fechaInicio" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Desde</label>
                   <input
+                    id="fechaInicio"
                     type="date"
                     name="fechaInicio"
                     value={filters.fechaInicio}
@@ -271,8 +259,9 @@ export default function GastosPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Hasta</label>
+                  <label htmlFor="fechaFin" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Hasta</label>
                   <input
+                    id="fechaFin"
                     type="date"
                     name="fechaFin"
                     value={filters.fechaFin}
@@ -281,8 +270,9 @@ export default function GastosPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Categoría</label>
+                  <label htmlFor="tipoGasto" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Categoría</label>
                   <select
+                    id="tipoGasto"
                     name="tipoGasto"
                     value={filters.tipoGasto}
                     onChange={handleFilterChange}
@@ -383,43 +373,13 @@ export default function GastosPage() {
             </table>
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-8 py-5 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:block">
-                {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredGastos.length)} de {filteredGastos.length}
-              </p>
-              <div className="flex items-center gap-1.5 mx-auto sm:mx-0">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(p => p - 1)}
-                  className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
-                >
-                  <FiChevronLeft size={16} />
-                </button>
-                {getPageNumbers(currentPage, totalPages).map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setCurrentPage(n)}
-                    className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all active:scale-95 ${
-                      currentPage === n
-                        ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg'
-                        : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-                <button
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
-                >
-                  <FiChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={filteredGastos.length}
+            itemsPerPage={itemsPerPage}
+          />
         </div>
 
         {/* Modal de confirmación de eliminación */}

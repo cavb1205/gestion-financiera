@@ -17,11 +17,12 @@ import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../../../../utils/format";
+import { apiFetch } from "../../../../utils/api";
 
 export default function EditarUtilidadPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const [utilidad, setUtilidad] = useState(null);
   const [formData, setFormData] = useState({ fecha: "", valor: "", comentario: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,11 +58,10 @@ export default function EditarUtilidadPage() {
     if (!selectedStore) return;
     setIsSubmitting(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/utilidades/${id}/update/t/${selectedStore.tienda.id}/`,
+      const response = await apiFetch(
+        `/utilidades/${id}/update/t/${selectedStore.tienda.id}/`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             fecha: formData.fecha,
             valor: formData.valor,

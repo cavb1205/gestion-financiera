@@ -16,6 +16,7 @@ import {
   FiInfo,
 } from "react-icons/fi";
 import { useAuth } from "../../../../context/AuthContext";
+import { apiFetch } from "../../../../utils/api";
 import LoadingSpinner from "../../../../components/LoadingSpinner";
 import { toast } from "react-toastify";
 import { formatMoney } from "../../../../utils/format";
@@ -24,7 +25,7 @@ export default function EliminarVentaPage() {
   const router = useRouter();
   const params = useParams();
   const ventaId = params.id;
-  const { token, selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading } = useAuth();
   
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -48,12 +49,8 @@ export default function EliminarVentaPage() {
     try {
       setIsLoading(true);
       const [response, pagosResponse] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        apiFetch(`/ventas/${ventaId}/`),
+        apiFetch(`/recaudos/list/${ventaId}/`),
       ]);
 
       if (!response.ok) throw new Error("No se pudieron cargar los datos de la venta");
@@ -81,9 +78,8 @@ export default function EliminarVentaPage() {
     setError("");
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/delete/t/${selectedStore.tienda.id}/`, {
+      const response = await apiFetch(`/ventas/${ventaId}/delete/t/${selectedStore.tienda.id}/`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!response.ok) {

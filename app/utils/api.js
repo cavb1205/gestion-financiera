@@ -57,10 +57,12 @@ export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('authToken');
   const url = path.startsWith('http') ? path : `${API_URL}${path}`;
 
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
+  const headers = { ...options.headers };
+
+  // Solo agregar Content-Type en requests con body (POST, PUT, PATCH)
+  if (options.body) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  }
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;

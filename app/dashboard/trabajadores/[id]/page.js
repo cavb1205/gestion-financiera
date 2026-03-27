@@ -24,11 +24,12 @@ import {
 import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { apiFetch } from "@/app/utils/api";
 
 export default function TrabajadorDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { token, isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [trabajador, setTrabajador] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -40,12 +41,11 @@ export default function TrabajadorDetailPage() {
 
   useEffect(() => {
     const fetchTrabajador = async () => {
-      if (!token || !id) return;
+      if (!id) return;
       try {
         setIsLoading(true);
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/trabajadores/${id}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
+        const response = await apiFetch(
+          `/trabajadores/${id}/`
         );
         if (!response.ok) throw new Error("No se pudo cargar el colaborador.");
         const data = await response.json();
@@ -58,14 +58,14 @@ export default function TrabajadorDetailPage() {
       }
     };
     fetchTrabajador();
-  }, [token, id]);
+  }, [id]);
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/trabajadores/${id}/delete/`,
-        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
+      const response = await apiFetch(
+        `/trabajadores/${id}/delete/`,
+        { method: "DELETE" }
       );
       if (!response.ok) throw new Error("Error al eliminar el colaborador.");
       toast.success("Colaborador eliminado correctamente.");
@@ -89,15 +89,11 @@ export default function TrabajadorDetailPage() {
     }
     setChangingPassword(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/trabajadores/password/${id}/`,
+      const response = await apiFetch(
+        `/trabajadores/password/${id}/`,
         {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ password: newPassword }),
+          method: "POST",
+          body: JSON.stringify({ passwordNuevo: newPassword }),
         }
       );
       if (!response.ok) throw new Error("Error al cambiar la contraseña");
@@ -242,11 +238,12 @@ export default function TrabajadorDetailPage() {
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                    <label htmlFor="nueva-contrasena" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
                       Nueva Contraseña
                     </label>
                     <div className="relative">
                       <input
+                        id="nueva-contrasena"
                         type={showPassword ? "text" : "password"}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
@@ -263,10 +260,11 @@ export default function TrabajadorDetailPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                    <label htmlFor="confirmar-contrasena" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
                       Confirmar Contraseña
                     </label>
                     <input
+                      id="confirmar-contrasena"
                       type={showPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -303,7 +301,7 @@ export default function TrabajadorDetailPage() {
               </div>
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                className="p-2.5 text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <FiX size={18} />
               </button>

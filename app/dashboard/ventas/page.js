@@ -16,20 +16,20 @@ import {
   FiUser,
   FiInfo,
   FiActivity,
-  FiChevronLeft,
-  FiChevronRight,
   FiCalendar,
   FiPieChart,
   FiArrowUpRight,
 } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
+import { apiFetch } from "../../utils/api";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../utils/format";
 import Link from "next/link";
+import Pagination from "../../components/Pagination";
 
 export default function VentasPage() {
   const router = useRouter();
-  const { token, selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading } = useAuth();
   const [ventas, setVentas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -57,13 +57,8 @@ export default function VentasPage() {
   const fetchVentas = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/t/${selectedStore.tienda.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await apiFetch(
+        `/ventas/activas/t/${selectedStore.tienda.id}/`
       );
 
       if (!response.ok) {
@@ -106,13 +101,6 @@ export default function VentasPage() {
   const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
   const indexOfLastItem = indexOfFirstItem + itemsPerPage;
   const currentVentas = filteredVentas.slice(indexOfFirstItem, indexOfLastItem);
-
-  const getPageNumbers = (current, total) => {
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    if (current <= 3) return [1, 2, 3, 4, 5];
-    if (current >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
-    return [current - 2, current - 1, current, current + 1, current + 2];
-  };
 
   const summary = filteredVentas.reduce(
     (acc, venta) => {
@@ -430,38 +418,12 @@ export default function VentasPage() {
           </div>
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-6">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 disabled:opacity-30 hover:text-indigo-600 active:scale-95 transition-all shadow-sm"
-            >
-              <FiChevronLeft size={16} />
-            </button>
-            {getPageNumbers(currentPage, totalPages).map(page => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`w-9 h-9 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 ${
-                  currentPage === page
-                    ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-lg"
-                    : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600"
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 disabled:opacity-30 hover:text-indigo-600 active:scale-95 transition-all shadow-sm"
-            >
-              <FiChevronRight size={16} />
-            </button>
-          </div>
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          centered
+        />
 
         {/* Financial Context Sidebar/Extra (Optional stats) */}
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -18,6 +18,7 @@ import {
   FiInfo,
 } from "react-icons/fi";
 import { useAuth } from "../../../../context/AuthContext";
+import { apiFetch } from "../../../../utils/api";
 import LoadingSpinner from "../../../../components/LoadingSpinner";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -28,7 +29,7 @@ export default function EditarVentaPage() {
   const router = useRouter();
   const params = useParams();
   const ventaId = params.id;
-  const { token, selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading } = useAuth();
   
   const [formData, setFormData] = useState({
     fecha_venta: new Date(),
@@ -61,12 +62,8 @@ export default function EditarVentaPage() {
     try {
       setIsLoading(true);
       const [response, pagosResponse] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${ventaId}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        apiFetch(`/ventas/${ventaId}/`),
+        apiFetch(`/recaudos/list/${ventaId}/`),
       ]);
 
       if (!response.ok) throw new Error("No se pudieron cargar los datos de la venta");
@@ -131,12 +128,8 @@ export default function EditarVentaPage() {
         tienda: selectedStore.tienda.id,
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ventas/${ventaId}/update/t/${selectedStore.tienda.id}/`, {
+      const response = await apiFetch(`/ventas/${ventaId}/update/t/${selectedStore.tienda.id}/`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(ventaData),
       });
 
@@ -239,9 +232,10 @@ export default function EditarVentaPage() {
                     </div>
                     <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha Original</label>
+                        <label htmlFor="fecha_venta" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha Original</label>
                         <div className={`relative group custom-datepicker ${hasPagos ? 'opacity-60 cursor-not-allowed' : ''}`}>
                           <DatePicker
+                            id="fecha_venta"
                             selected={formData.fecha_venta}
                             onChange={(date) => setFormData({ ...formData, fecha_venta: date })}
                             disabled={hasPagos}
@@ -252,8 +246,9 @@ export default function EditarVentaPage() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Observaciones</label>
+                        <label htmlFor="comentario" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Observaciones</label>
                         <textarea
+                          id="comentario"
                           value={formData.comentario}
                           onChange={(e) => setFormData({ ...formData, comentario: e.target.value })}
                           className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none resize-none h-[80px]"
@@ -274,10 +269,11 @@ export default function EditarVentaPage() {
                       
                       <div className={`grid grid-cols-1 gap-4 ${hasPagos ? 'opacity-60 grayscale-[0.5]' : ''}`}>
                          <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Monto del Préstamo *</label>
+                            <label htmlFor="valor_venta" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Monto del Préstamo *</label>
                             <div className="relative group">
                               <FiDollarSign className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-500 pointer-events-none" size={20} />
                               <input
+                                id="valor_venta"
                                 type="number"
                                 value={formData.valor_venta}
                                 disabled={hasPagos}
@@ -290,10 +286,11 @@ export default function EditarVentaPage() {
 
                       <div className={`grid grid-cols-2 gap-4 ${hasPagos ? 'opacity-60 grayscale-[0.5]' : ''}`}>
                          <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Tasa (%)</label>
+                            <label htmlFor="interes" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Tasa (%)</label>
                             <div className="relative group">
                               <FiPercent className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
                               <input
+                                id="interes"
                                 type="number"
                                 value={formData.interes}
                                 disabled={hasPagos}
@@ -303,10 +300,11 @@ export default function EditarVentaPage() {
                             </div>
                          </div>
                          <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Cuotas</label>
+                            <label htmlFor="cuotas" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Cuotas</label>
                             <div className="relative group">
                               <FiActivity className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
                               <input
+                                id="cuotas"
                                 type="number"
                                 value={formData.cuotas}
                                 disabled={hasPagos}

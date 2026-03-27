@@ -16,6 +16,7 @@ import {
   FiArrowDownRight,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
+import { apiFetch } from "../../../../utils/api";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../../../../utils/format";
@@ -23,7 +24,7 @@ import { formatMoney } from "../../../../utils/format";
 export default function EditarGastoPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { token, selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     tipo_gasto: "",
     fecha: "",
@@ -41,8 +42,8 @@ export default function EditarGastoPage() {
       try {
         setIsLoading(true);
         const [tiposResponse, gastoResponse] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/gastos/tipo/`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/gastos/${id}/`, { headers: { Authorization: `Bearer ${token}` } }),
+          apiFetch(`/gastos/tipo/`),
+          apiFetch(`/gastos/${id}/`),
         ]);
         if (!tiposResponse.ok) throw new Error("Error al obtener los tipos de gasto");
         if (!gastoResponse.ok) throw new Error("Error al obtener el gasto");
@@ -68,8 +69,8 @@ export default function EditarGastoPage() {
       }
     };
 
-    if (token && id) fetchData();
-  }, [token, id]);
+    if (isAuthenticated && id) fetchData();
+  }, [isAuthenticated, id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -84,12 +85,8 @@ export default function EditarGastoPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/gastos/${id}/update/t/${selectedStore.tienda.id}/`, {
+      const response = await apiFetch(`/gastos/${id}/update/t/${selectedStore.tienda.id}/`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           fecha: formData.fecha,
           valor: formData.valor,

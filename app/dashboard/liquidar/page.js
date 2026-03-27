@@ -3,11 +3,10 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/context/AuthContext";
+import { apiFetch } from "@/app/utils/api";
 import {
    FiCalendar,
    FiRefreshCw,
-   FiChevronLeft,
-   FiChevronRight,
    FiCheck,
    FiX,
    FiClock,
@@ -26,9 +25,10 @@ import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
 import { formatMoney, parseMoney } from "../../utils/format";
+import Pagination from "../../components/Pagination";
 
 export default function LiquidarCreditosPage() {
-   const { token, selectedStore, user, isAuthenticated, loading: authLoading } = useAuth();
+   const { selectedStore, user, isAuthenticated, loading: authLoading } = useAuth();
    const isWorker = !(user?.is_staff || user?.is_superuser);
    const [creditos, setCreditos] = useState([]);
    const [recaudos, setRecaudos] = useState([]);
@@ -62,20 +62,20 @@ export default function LiquidarCreditosPage() {
    // Obtener datos
    useEffect(() => {
       const fetchData = async () => {
-         if (!token || !selectedStore || !selectedDate) return;
+         if (!selectedStore || !selectedDate) return;
 
          setLoading(true);
          try {
-            const fetchJson = async (url) => {
-               const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+            const fetchJson = async (path) => {
+               const res = await apiFetch(path);
                if (!res.ok) return null;
                return res.json();
             };
 
             const [creditosData, activosData, recaudosData] = await Promise.all([
-               fetchJson(`${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/liquidar/${selectedDate}/t/${selectedStore.tienda.id}/`),
-               fetchJson(`${process.env.NEXT_PUBLIC_API_URL}/ventas/activas/t/${selectedStore.tienda.id}/`),
-               fetchJson(`${process.env.NEXT_PUBLIC_API_URL}/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`),
+               fetchJson(`/ventas/activas/liquidar/${selectedDate}/t/${selectedStore.tienda.id}/`),
+               fetchJson(`/ventas/activas/t/${selectedStore.tienda.id}/`),
+               fetchJson(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`),
             ]);
 
             setCreditos(Array.isArray(creditosData) ? creditosData : []);
@@ -91,7 +91,7 @@ export default function LiquidarCreditosPage() {
       };
 
       fetchData();
-   }, [token, selectedStore, selectedDate]);
+   }, [selectedStore, selectedDate]);
 
    useEffect(() => {
       if (selectedDate) {
@@ -114,12 +114,6 @@ export default function LiquidarCreditosPage() {
    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
    const totalPages = Math.ceil(filteredCreditos.length / itemsPerPage);
    const currentItems = filteredCreditos.slice(indexOfFirstItem, indexOfLastItem);
-   const getPageNumbers = (current, total) => {
-      if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-      if (current <= 3) return [1, 2, 3, 4, 5];
-      if (current >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
-      return [current - 2, current - 1, current, current + 1, current + 2];
-   };
 
    const getStatusBadge = (estado) => {
       switch (estado) {
@@ -260,7 +254,7 @@ export default function LiquidarCreditosPage() {
                         <div className="p-2 md:p-3 bg-white/20 rounded-xl md:rounded-2xl">
                            <FiCheck size={16} className="md:w-6 md:h-6" />
                         </div>
-                        <span className="hidden md:block text-[10px] font-bold text-white/60 uppercase tracking-widest">{porcentajeAvance}%</span>
+                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{porcentajeAvance}%</span>
                      </div>
                      <p className="text-base md:text-3xl font-black tracking-tighter mb-0.5 md:mb-1">
                         {formatMoney(totalRealizados)}
@@ -276,7 +270,7 @@ export default function LiquidarCreditosPage() {
             <div className="glass rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl mb-10">
                <div className="p-6 md:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 flex flex-col lg:flex-row items-center gap-6 md:gap-8">
                   <div className="w-full lg:w-1/3 space-y-2">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Periodo Contable</label>
+                     <label htmlFor="periodo-contable" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Periodo Contable</label>
                      {isWorker ? (
                         <div className="flex items-center gap-3 px-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-3xl">
                            <FiCalendar className="text-emerald-500" />
@@ -296,6 +290,7 @@ export default function LiquidarCreditosPage() {
                         >
                            <FiCalendar className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 transition-all pointer-events-none z-10" />
                            <input
+                              id="periodo-contable"
                               ref={dateInputRef}
                               type="date"
                               value={selectedDate}
@@ -310,10 +305,11 @@ export default function LiquidarCreditosPage() {
                   </div>
 
                   <div className="flex-1 w-full space-y-2">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Buscar Cliente</label>
+                     <label htmlFor="buscar-cliente" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Buscar Cliente</label>
                      <div className="relative group">
                         <FiSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-all pointer-events-none z-10" size={20} />
                         <input
+                           id="buscar-cliente"
                            type="text"
                            placeholder="Nombre del cliente..."
                            value={searchTerm}
@@ -388,7 +384,7 @@ export default function LiquidarCreditosPage() {
                                              <>
                                                 <a
                                                    href={`tel:${phone}`}
-                                                   className="p-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all"
+                                                   className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all"
                                                    title="Llamar"
                                                    onClick={(e) => e.stopPropagation()}
                                                 >
@@ -398,7 +394,7 @@ export default function LiquidarCreditosPage() {
                                                    href={`https://wa.me/${phone.replace(/[^0-9]/g, "")}`}
                                                    target="_blank"
                                                    rel="noopener noreferrer"
-                                                   className="p-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all"
+                                                   className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all"
                                                    title="WhatsApp"
                                                    onClick={(e) => e.stopPropagation()}
                                                 >
@@ -461,7 +457,7 @@ export default function LiquidarCreditosPage() {
                                        <div className="flex items-center justify-end gap-2">
                                           <button
                                              onClick={() => handleReportarFalla(credito)}
-                                             className="p-2 bg-white dark:bg-slate-800 text-slate-400 rounded-lg hover:text-rose-600 hover:shadow-lg transition-all border border-slate-100 dark:border-slate-700"
+                                             className="p-2.5 bg-white dark:bg-slate-800 text-slate-400 rounded-lg hover:text-rose-600 hover:shadow-lg transition-all border border-slate-100 dark:border-slate-700"
                                              title="Reportar Falla"
                                           >
                                              <FiX size={15} />
@@ -595,42 +591,13 @@ export default function LiquidarCreditosPage() {
                   )}
                </div>
 
-               {/* Pagination */}
-               {totalPages > 1 && (
-                  <div className="px-6 md:px-8 py-5 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
-                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:block">
-                        {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredCreditos.length)} de {filteredCreditos.length}
-                     </p>
-                     <div className="flex items-center gap-1.5 mx-auto sm:mx-0">
-                        <button
-                           disabled={currentPage === 1}
-                           onClick={() => setCurrentPage(p => p - 1)}
-                           className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
-                        >
-                           <FiChevronLeft size={16} />
-                        </button>
-                        {getPageNumbers(currentPage, totalPages).map(n => (
-                           <button
-                              key={n}
-                              onClick={() => setCurrentPage(n)}
-                              className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all active:scale-95 ${currentPage === n
-                                 ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg'
-                                 : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
-                                 }`}
-                           >
-                              {n}
-                           </button>
-                        ))}
-                        <button
-                           disabled={currentPage === totalPages}
-                           onClick={() => setCurrentPage(p => p + 1)}
-                           className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm active:scale-95"
-                        >
-                           <FiChevronRight size={16} />
-                        </button>
-                     </div>
-                  </div>
-               )}
+               <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  totalItems={filteredCreditos.length}
+                  itemsPerPage={itemsPerPage}
+               />
             </div>
 
             {/* Informative Footer */}

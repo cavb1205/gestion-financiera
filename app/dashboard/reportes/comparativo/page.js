@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
+import { apiFetch } from "../../../utils/api";
 import {
    FiTrendingUp,
    FiTrendingDown,
@@ -107,7 +108,7 @@ function VariacionBadge({ valor, invertir = false }) {
 }
 
 export default function ReporteComparativoPage() {
-   const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
+   const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
    const hoy = new Date();
    const prev = getPrevMonth(hoy.getFullYear(), hoy.getMonth());
    const [mesA, setMesA] = useState({ year: prev.year, month: prev.month }); // "base" (left)
@@ -119,27 +120,25 @@ export default function ReporteComparativoPage() {
    const fetchMes = async (year, month) => {
       const { inicio, fin } = getMonthRange(year, month);
       const tiendaId = selectedStore.tienda.id;
-      const headers = { Authorization: `Bearer ${token}` };
-      const base = process.env.NEXT_PUBLIC_API_URL;
 
-      const fetchJson = async (url) => {
-         const res = await fetch(url, { headers });
+      const fetchJson = async (path) => {
+         const res = await apiFetch(path);
          if (!res.ok) return [];
          const data = await res.json();
          return Array.isArray(data) ? data : [];
       };
 
       const [ventas, gastos, aportes] = await Promise.all([
-         fetchJson(`${base}/ventas/list/${inicio}/${fin}/t/${tiendaId}/`),
-         fetchJson(`${base}/gastos/list/${inicio}/${fin}/t/${tiendaId}/`),
-         fetchJson(`${base}/aportes/list/${inicio}/${fin}/t/${tiendaId}/`),
+         fetchJson(`/ventas/list/${inicio}/${fin}/t/${tiendaId}/`),
+         fetchJson(`/gastos/list/${inicio}/${fin}/t/${tiendaId}/`),
+         fetchJson(`/aportes/list/${inicio}/${fin}/t/${tiendaId}/`),
       ]);
 
       return procesarMes(ventas, gastos, aportes);
    };
 
    const generarComparativo = async () => {
-      if (!token || !selectedStore) return;
+      if (!selectedStore) return;
       setCargando(true);
       setError("");
       setDatos(null);
@@ -158,10 +157,10 @@ export default function ReporteComparativoPage() {
    };
 
    useEffect(() => {
-      if (token && selectedStore) {
+      if (selectedStore) {
          generarComparativo();
       }
-   }, [token, selectedStore, mesA, mesB]);
+   }, [selectedStore, mesA, mesB]);
 
    const exportarCSV = () => {
       if (!datos) return;
@@ -234,9 +233,10 @@ export default function ReporteComparativoPage() {
                <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
                   {/* Mes Base (A) */}
                   <div className="flex-1 w-full space-y-2">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Mes Base</label>
+                     <label htmlFor="mes-base" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Mes Base</label>
                      <div className="flex gap-2">
                         <select
+                           id="mes-base"
                            value={mesA.month}
                            onChange={(e) => setMesA(prev => ({ ...prev, month: parseInt(e.target.value) }))}
                            className="flex-1 px-4 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none appearance-none cursor-pointer"
@@ -262,9 +262,10 @@ export default function ReporteComparativoPage() {
 
                   {/* Mes Comparar (B) */}
                   <div className="flex-1 w-full space-y-2">
-                     <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-2">Comparar Con</label>
+                     <label htmlFor="mes-comparar" className="text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-2">Comparar Con</label>
                      <div className="flex gap-2">
                         <select
+                           id="mes-comparar"
                            value={mesB.month}
                            onChange={(e) => setMesB(prev => ({ ...prev, month: parseInt(e.target.value) }))}
                            className="flex-1 px-4 py-4 bg-slate-50 dark:bg-slate-800/50 border border-indigo-200 dark:border-indigo-800/40 rounded-2xl text-[13px] font-black text-indigo-600 dark:text-indigo-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none appearance-none cursor-pointer"

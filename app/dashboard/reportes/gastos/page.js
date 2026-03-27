@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../../context/AuthContext";
+import { apiFetch } from "../../../utils/api";
 import {
   FiDollarSign,
   FiTrendingDown,
@@ -33,7 +34,7 @@ const CATEGORY_COLORS = [
 ];
 
 export default function ReporteGastosPage() {
-  const { selectedStore, token, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [gastos, setGastos] = useState(null);
@@ -60,7 +61,7 @@ export default function ReporteGastosPage() {
 
   const generarReporte = useCallback(async (e) => {
     if (e) e.preventDefault();
-    if (!selectedStore || !token || !fechaInicio || !fechaFin) return;
+    if (!selectedStore || !fechaInicio || !fechaFin) return;
 
     setCargando(true);
     setError("");
@@ -71,9 +72,8 @@ export default function ReporteGastosPage() {
         throw new Error("La fecha de inicio no puede ser mayor que la fecha de fin");
       }
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/gastos/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await apiFetch(
+        `/gastos/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`
       );
 
       if (!res.ok) throw new Error("Error al consultar los gastos.");
@@ -93,14 +93,14 @@ export default function ReporteGastosPage() {
     } finally {
       setCargando(false);
     }
-  }, [selectedStore, token, fechaInicio, fechaFin]);
+  }, [selectedStore, fechaInicio, fechaFin]);
 
   // Auto-generate on mount after dates are set
   useEffect(() => {
-    if (fechasListas && selectedStore && token) {
+    if (fechasListas && selectedStore) {
       generarReporte();
     }
-  }, [fechasListas, selectedStore, token]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fechasListas, selectedStore]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 
@@ -203,8 +203,9 @@ export default function ReporteGastosPage() {
           <form onSubmit={generarReporte} className="flex flex-col lg:flex-row items-end gap-6">
             <div className="grid grid-cols-2 gap-4 flex-1 w-full">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Desde</label>
+                <label htmlFor="fechaInicio" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Desde</label>
                 <input
+                  id="fechaInicio"
                   type="date"
                   value={fechaInicio}
                   onChange={(e) => setFechaInicio(e.target.value)}
@@ -212,8 +213,9 @@ export default function ReporteGastosPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Hasta</label>
+                <label htmlFor="fechaFin" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Hasta</label>
                 <input
+                  id="fechaFin"
                   type="date"
                   value={fechaFin}
                   onChange={(e) => setFechaFin(e.target.value)}

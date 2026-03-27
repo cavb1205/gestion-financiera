@@ -18,9 +18,10 @@ import {
   FiActivity
 } from "react-icons/fi";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { apiFetch } from "@/app/utils/api";
 
 export default function ReportarFallaPage() {
-  const { token, isAuthenticated, selectedStore, loading: authLoading } = useAuth();
+  const { isAuthenticated, selectedStore, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -68,14 +69,10 @@ export default function ReportarFallaPage() {
     };
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/recaudos/create/nopay/t/${noPago.tienda}/`,
+      const response = await apiFetch(
+        `/recaudos/create/nopay/t/${noPago.tienda}/`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify(updatedNoPago),
         }
       );
@@ -201,8 +198,9 @@ export default function ReportarFallaPage() {
 
                       {/* Observaciones extra - Moved below options, above buttons on desktop, above buttons logically on mobile */}
                       <div className="space-y-4 order-2">
-                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Observaciones</label>
-                         <textarea 
+                         <label htmlFor="observaciones" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Observaciones</label>
+                         <textarea
+                            id="observaciones"
                             placeholder="Detalles sobre la falla (opcional)..."
                             rows="2"
                             value={comentario}
