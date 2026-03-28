@@ -43,6 +43,8 @@ export default function DetalleCliente({ params }) {
   const [creditos, setCreditos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [creditosPage, setCreditosPage] = useState(1);
+  const CREDITOS_PER_PAGE = 5;
   params = useParams();
 
   const clienteId = params.id;
@@ -437,27 +439,73 @@ export default function DetalleCliente({ params }) {
               </div>
 
               {resumenFinanciero.totalCreditos > 0 ? (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="flex items-end gap-3">
                     <span className={`text-6xl font-black tracking-tighter leading-none ${resumenFinanciero.bloqueado ? 'text-rose-600' : 'text-slate-900 dark:text-white'}`}>
                       {resumenFinanciero.calificacion.toFixed(0)}
                     </span>
                     <span className="text-xl font-black text-slate-300 mb-2">/100</span>
                   </div>
-                  
+
+                  {/* Label badge */}
+                  <div>
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest ${
+                      resumenFinanciero.bloqueado
+                        ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'
+                        : resumenFinanciero.calificacion >= 70
+                        ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                        : resumenFinanciero.calificacion >= 40
+                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+                        : 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'
+                    }`}>
+                      {resumenFinanciero.bloqueado
+                        ? 'Bloqueado'
+                        : resumenFinanciero.calificacion >= 70
+                        ? 'Excelente'
+                        : resumenFinanciero.calificacion >= 40
+                        ? 'Regular'
+                        : 'Riesgo'}
+                    </span>
+                  </div>
+
                   <div className="flex gap-1">
                     {[...Array(5)].map((_, i) => (
                       <div key={i} className={`h-2.5 flex-1 rounded-full transition-all duration-1000 ${
-                        i < resumenFinanciero.estrellas 
+                        i < resumenFinanciero.estrellas
                           ? (resumenFinanciero.estrellas > 3 ? 'bg-emerald-500' : 'bg-amber-500')
                           : 'bg-slate-100 dark:bg-slate-800'
                       }`} />
                     ))}
                   </div>
 
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    {resumenFinanciero.bloqueado ? "Cliente con historial de pérdidas" : "Basado en comportamiento de pago"}
-                  </p>
+                  {/* Behavioral breakdown */}
+                  <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">A tiempo</span>
+                      <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">{resumenFinanciero.creditosPagadosATiempo} crédito{resumenFinanciero.creditosPagadosATiempo !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Con atraso</span>
+                      <span className="text-[11px] font-black text-amber-600 dark:text-amber-400">
+                        {resumenFinanciero.creditosConAtraso} crédito{resumenFinanciero.creditosConAtraso !== 1 ? 's' : ''}
+                        {resumenFinanciero.creditosConAtraso > 0 && (
+                          <span className="ml-1 text-slate-400 font-bold">(~{resumenFinanciero.promedioAtraso}d)</span>
+                        )}
+                      </span>
+                    </div>
+                    {resumenFinanciero.creditosPerdidos > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Perdidos</span>
+                        <span className="text-[11px] font-black text-rose-600 dark:text-rose-400">{resumenFinanciero.creditosPerdidos} crédito{resumenFinanciero.creditosPerdidos !== 1 ? 's' : ''}</span>
+                      </div>
+                    )}
+                    {resumenFinanciero.creditosCompletados > 0 && (
+                      <div className="flex justify-between items-center pt-1 border-t border-slate-100 dark:border-slate-800">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Completados</span>
+                        <span className="text-[11px] font-black text-slate-600 dark:text-slate-300">{resumenFinanciero.creditosCompletados} / {resumenFinanciero.totalCreditos}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="py-10 text-center">
@@ -651,15 +699,18 @@ export default function DetalleCliente({ params }) {
                             <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Vencimiento</th>
                             <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Balance</th>
                             <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estado</th>
-                            <th className="px-8 py-5 text-right"></th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50 dark:divide-slate-800/30">
-                          {creditos.map((credito) => (
-                            <tr key={credito.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all cursor-pointer">
+                          {creditos.slice((creditosPage - 1) * CREDITOS_PER_PAGE, creditosPage * CREDITOS_PER_PAGE).map((credito) => (
+                            <tr
+                              key={credito.id}
+                              onClick={() => router.push(`/dashboard/ventas/${credito.id}`)}
+                              className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all cursor-pointer active:bg-indigo-50/50 dark:active:bg-indigo-900/10"
+                            >
                               <td className="px-8 py-6">
                                 <div className="flex items-center gap-3">
-                                   <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                   <div className="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></div>
                                    <span className="text-sm font-black text-slate-700 dark:text-slate-300 tracking-tight">Operación #{credito.id.toString().padStart(4, "0")}</span>
                                 </div>
                               </td>
@@ -675,18 +726,46 @@ export default function DetalleCliente({ params }) {
                               <td className="px-8 py-6">
                                 {getCreditStatus(credito.estado_venta)}
                               </td>
-                              <td className="px-8 py-6 text-right">
-                                <button
-                                  onClick={() => router.push(`/dashboard/ventas/${credito.id}`)}
-                                  className="p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
-                                >
-                                   <FiArrowLeft size={16} className="rotate-180" />
-                                </button>
-                              </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
+                      {creditos.length > CREDITOS_PER_PAGE && (
+                        <div className="flex items-center justify-between px-8 py-5 border-t border-slate-100 dark:border-slate-800/50">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            {(creditosPage - 1) * CREDITOS_PER_PAGE + 1}–{Math.min(creditosPage * CREDITOS_PER_PAGE, creditos.length)} de {creditos.length}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setCreditosPage(p => p - 1)}
+                              disabled={creditosPage === 1}
+                              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            >
+                              <FiArrowLeft size={14} />
+                            </button>
+                            {Array.from({ length: Math.ceil(creditos.length / CREDITOS_PER_PAGE) }, (_, i) => i + 1).map(page => (
+                              <button
+                                key={page}
+                                onClick={() => setCreditosPage(page)}
+                                className={`w-8 h-8 rounded-xl text-[11px] font-black transition-all ${
+                                  page === creditosPage
+                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/40'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600'
+                                }`}
+                              >
+                                {page}
+                              </button>
+                            ))}
+                            <button
+                              onClick={() => setCreditosPage(p => p + 1)}
+                              disabled={creditosPage === Math.ceil(creditos.length / CREDITOS_PER_PAGE)}
+                              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            >
+                              <FiArrowLeft size={14} className="rotate-180" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                </div>
