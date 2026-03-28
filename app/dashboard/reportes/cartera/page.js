@@ -108,8 +108,15 @@ export default function CarteraReportPage() {
   });
 
   // --- Top 10 Risky Clients ---
+  // Priority: Vencido first, then Atrasado. Within each group, sort by saldo desc.
+  const estadoPriority = { Vencido: 0, Atrasado: 1 };
   const topRiesgo = [...ventasMorosas]
-    .sort((a, b) => parseMoney(b.saldo_actual) - parseMoney(a.saldo_actual))
+    .sort((a, b) => {
+      const pa = estadoPriority[a.estado_venta] ?? 99;
+      const pb = estadoPriority[b.estado_venta] ?? 99;
+      if (pa !== pb) return pa - pb;
+      return parseMoney(b.saldo_actual) - parseMoney(a.saldo_actual);
+    })
     .slice(0, 10);
 
   // --- Distribution by Plazo ---
@@ -405,7 +412,7 @@ export default function CarteraReportPage() {
                   </div>
                   <div>
                     <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Top 10 Clientes en Riesgo</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Ordenados por saldo pendiente</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Vencidos primero · luego atrasados por saldo</p>
                   </div>
                 </div>
 

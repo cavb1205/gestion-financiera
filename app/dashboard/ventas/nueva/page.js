@@ -20,6 +20,10 @@ import {
   FiArrowUpRight,
   FiArrowRight,
   FiXCircle,
+  FiPlus,
+  FiX,
+  FiPhone,
+  FiMapPin,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
@@ -52,6 +56,15 @@ function NuevaVentaContent() {
   const [busquedaCliente, setBusquedaCliente] = useState("");
   const [clientesFiltrados, setClientesFiltrados] = useState([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+
+  // Create client inline
+  const [showCrearCliente, setShowCrearCliente] = useState(false);
+  const [nuevoCliente, setNuevoCliente] = useState({
+    identificacion: "", nombres: "", apellidos: "",
+    nombre_local: "", telefono_principal: "", telefono_opcional: "", direccion: "",
+  });
+  const [erroresCliente, setErroresCliente] = useState({});
+  const [creandoCliente, setCreandoCliente] = useState(false);
 
   useEffect(() => {
     if (!loading && isAuthenticated && selectedStore) {
@@ -112,6 +125,40 @@ function NuevaVentaContent() {
     setClienteSeleccionado(cliente);
     setBusquedaCliente("");
     setClientesFiltrados([]);
+  };
+
+  const handleCrearCliente = async (e) => {
+    e.preventDefault();
+    const requeridos = ["identificacion", "nombres", "apellidos", "telefono_principal", "direccion"];
+    const errs = {};
+    requeridos.forEach((f) => { if (!nuevoCliente[f].trim()) errs[f] = "Requerido"; });
+    if (Object.keys(errs).length) { setErroresCliente(errs); return; }
+
+    setCreandoCliente(true);
+    try {
+      const res = await apiFetch(`/clientes/create/t/${selectedStore.tienda.id}/`, {
+        method: "POST",
+        body: JSON.stringify({ ...nuevoCliente, tienda: selectedStore.tienda.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        const errsBack = {};
+        Object.keys(data).forEach((k) => { errsBack[k] = Array.isArray(data[k]) ? data[k].join(" ") : data[k]; });
+        setErroresCliente(errsBack);
+        return;
+      }
+      const creado = await res.json();
+      setClientes((prev) => [...prev, creado]);
+      seleccionarCliente(creado);
+      setShowCrearCliente(false);
+      setNuevoCliente({ identificacion: "", nombres: "", apellidos: "", nombre_local: "", telefono_principal: "", telefono_opcional: "", direccion: "" });
+      setErroresCliente({});
+      toast.success("Cliente creado y seleccionado");
+    } catch {
+      toast.error("Error al crear el cliente");
+    } finally {
+      setCreandoCliente(false);
+    }
   };
 
   const calcularTotalAPagar = () => {
@@ -244,7 +291,7 @@ function NuevaVentaContent() {
                             value={busquedaCliente}
                             onChange={(e) => filtrarClientes(e.target.value)}
                           />
-                          {clientesFiltrados.length > 0 && (
+                          {busquedaCliente.trim().length > 0 && (
                             <div className="absolute z-20 w-full mt-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden p-2">
                               {clientesFiltrados.map((c) => (
                                 <button
@@ -260,6 +307,21 @@ function NuevaVentaContent() {
                                   <FiArrowRight size={14} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
                                 </button>
                               ))}
+                              <button
+                                type="button"
+                                onClick={() => { setShowCrearCliente(true); setBusquedaCliente(""); setClientesFiltrados([]); }}
+                                className="w-full flex items-center gap-3 p-4 mt-1 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all group border-t border-slate-100 dark:border-slate-800"
+                              >
+                                <div className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center shrink-0">
+                                  <FiPlus size={14} className="text-white" />
+                                </div>
+                                <div className="text-left min-w-0">
+                                  <div className="text-[12px] font-black text-indigo-600 dark:text-indigo-400">Crear nuevo cliente</div>
+                                  {clientesFiltrados.length === 0 && (
+                                    <div className="text-[10px] font-bold text-slate-400">No se encontró &quot;{busquedaCliente}&quot;</div>
+                                  )}
+                                </div>
+                              </button>
                             </div>
                           )}
                         </div>
@@ -425,6 +487,148 @@ function NuevaVentaContent() {
         </form>
       </div>
       
+      {/* ── Modal Crear Cliente ── */}
+      {showCrearCliente && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowCrearCliente(false)} />
+          <div className="relative w-full max-w-md glass rounded-[2rem] overflow-hidden shadow-2xl shadow-black/40">
+            {/* Header */}
+            <div className="flex items-center justify-between px-7 pt-7 pb-5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-indigo-500 rounded-xl flex items-center justify-center">
+                  <FiPlus className="text-white" size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Nuevo Cliente</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registro rápido</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCrearCliente(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearCliente} className="p-7 space-y-4">
+              {/* Identificación */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                  <FiShield size={11} className="text-indigo-500" /> Documento *
+                </label>
+                <input
+                  type="text"
+                  value={nuevoCliente.identificacion}
+                  onChange={(e) => setNuevoCliente((p) => ({ ...p, identificacion: e.target.value }))}
+                  placeholder="Número de identificación"
+                  className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.identificacion ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                />
+                {erroresCliente.identificacion && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.identificacion}</p>}
+              </div>
+
+              {/* Nombres y Apellidos */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nombres *</label>
+                  <input
+                    type="text"
+                    value={nuevoCliente.nombres}
+                    onChange={(e) => setNuevoCliente((p) => ({ ...p, nombres: e.target.value }))}
+                    className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.nombres ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                  />
+                  {erroresCliente.nombres && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.nombres}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Apellidos *</label>
+                  <input
+                    type="text"
+                    value={nuevoCliente.apellidos}
+                    onChange={(e) => setNuevoCliente((p) => ({ ...p, apellidos: e.target.value }))}
+                    className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.apellidos ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                  />
+                  {erroresCliente.apellidos && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.apellidos}</p>}
+                </div>
+              </div>
+
+              {/* Teléfono + Opcional */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <FiPhone size={11} className="text-indigo-500" /> Teléfono *
+                  </label>
+                  <input
+                    type="tel"
+                    value={nuevoCliente.telefono_principal}
+                    onChange={(e) => setNuevoCliente((p) => ({ ...p, telefono_principal: e.target.value }))}
+                    className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.telefono_principal ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                  />
+                  {erroresCliente.telefono_principal && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.telefono_principal}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Alternativo</label>
+                  <input
+                    type="tel"
+                    value={nuevoCliente.telefono_opcional}
+                    onChange={(e) => setNuevoCliente((p) => ({ ...p, telefono_opcional: e.target.value }))}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Dirección */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                  <FiMapPin size={11} className="text-indigo-500" /> Dirección *
+                </label>
+                <input
+                  type="text"
+                  value={nuevoCliente.direccion}
+                  onChange={(e) => setNuevoCliente((p) => ({ ...p, direccion: e.target.value }))}
+                  className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.direccion ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                />
+                {erroresCliente.direccion && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.direccion}</p>}
+              </div>
+
+              {/* Nombre local (opcional) */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Establecimiento</label>
+                <input
+                  type="text"
+                  value={nuevoCliente.nombre_local}
+                  onChange={(e) => setNuevoCliente((p) => ({ ...p, nombre_local: e.target.value }))}
+                  placeholder="Nombre del negocio (opcional)"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                />
+              </div>
+
+              {/* Botones */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCrearCliente(false)}
+                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={creandoCliente}
+                  className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {creandoCliente ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <><FiCheckCircle size={14} /> Crear y Seleccionar</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <style jsx global>{`
         .custom-datepicker .react-datepicker-wrapper { width: 100%; }
         .react-datepicker {

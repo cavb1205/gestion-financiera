@@ -280,6 +280,9 @@ export default function VentaDetailPage() {
           <button onClick={() => setShowLossModal(true)} className="px-5 py-3.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm border border-rose-100 dark:border-rose-900/30 hover:bg-rose-100 active:scale-95 transition-all flex items-center gap-2">
             <FiAlertTriangle size={16} /> Pérdida
           </button>
+          <button onClick={() => router.push(`/dashboard/ventas/${ventaId}/eliminar`)} className="px-5 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-rose-500 dark:text-rose-400 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:bg-rose-50 dark:hover:bg-rose-900/20 active:scale-95 transition-all flex items-center gap-2">
+            <FiTrash2 size={16} /> Eliminar
+          </button>
         </div>
 
         {/* Resumen Financiero Top Metrics */}

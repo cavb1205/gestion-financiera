@@ -28,6 +28,7 @@ import {
   FiEye,
   FiSun,
   FiMoon,
+  FiHelpCircle,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -35,6 +36,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SessionTimeout from "../components/SessionTimeout";
+import OnboardingTour from "../components/OnboardingTour";
 
 // Menu items with role restrictions: adminOnly = true means only visible to admins (is_staff)
 const allMenuItems = [
@@ -84,6 +86,7 @@ export default function DashboardLayout({ children }) {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [reportesOpen, setReportesOpen] = useState(() => false);
+  const [showTour, setShowTour] = useState(false);
 
   // Auto-open reportes submenu when on a report page
   useEffect(() => {
@@ -91,6 +94,16 @@ export default function DashboardLayout({ children }) {
       setReportesOpen(true);
     }
   }, [pathname]);
+
+  // Show onboarding tour for first-time users
+  useEffect(() => {
+    if (isAuthenticated && selectedStore) {
+      const tourDone = localStorage.getItem('cartera_tour_done');
+      if (!tourDone) {
+        setShowTour(true);
+      }
+    }
+  }, [isAuthenticated, selectedStore]);
 
   useEffect(() => {
     if (!loading && (!isAuthenticated || !selectedStore)) {
@@ -194,6 +207,13 @@ export default function DashboardLayout({ children }) {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowTour(true)}
+            title="Tour de ayuda"
+            className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-indigo-500 dark:text-indigo-400"
+          >
+            <FiHelpCircle size={18} />
+          </button>
           <button
             onClick={toggleTheme}
             title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
@@ -406,7 +426,7 @@ export default function DashboardLayout({ children }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => router.push("/select-store")}
                 title="Cambiar Ruta"
@@ -420,6 +440,13 @@ export default function DashboardLayout({ children }) {
                 className="p-3 bg-slate-50 dark:bg-slate-800 text-amber-500 dark:text-indigo-400 rounded-xl hover:bg-amber-50 dark:hover:bg-indigo-900/40 transition-all flex justify-center"
               >
                 {theme === "dark" ? <FiSun size={16} /> : <FiMoon size={16} />}
+              </button>
+              <button
+                onClick={() => setShowTour(true)}
+                title="Tour de ayuda"
+                className="p-3 bg-slate-50 dark:bg-slate-800 text-indigo-500 dark:text-indigo-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition-all flex justify-center"
+              >
+                <FiHelpCircle size={16} />
               </button>
               <button
                 onClick={logout}
@@ -471,6 +498,16 @@ export default function DashboardLayout({ children }) {
 
       {/* Modal de inactividad con renovación de sesión */}
       <SessionTimeout />
+
+      {/* Tour de bienvenida */}
+      <OnboardingTour
+        isOpen={showTour}
+        onClose={() => {
+          localStorage.setItem('cartera_tour_done', '1');
+          setShowTour(false);
+        }}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }
