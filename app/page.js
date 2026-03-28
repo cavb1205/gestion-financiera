@@ -88,13 +88,21 @@ export default function Home() {
             <a href="#modulos" className="hover:text-white transition-colors">Módulos</a>
           </nav>
 
-          <Link
-            href="/login"
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-indigo-900/30"
-          >
-            Iniciar Sesión
-            <FiArrowRight size={14} />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/register"
+              className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95"
+            >
+              Registrarse
+            </Link>
+            <Link
+              href="/login"
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-indigo-900/30"
+            >
+              Iniciar Sesión
+              <FiArrowRight size={14} />
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -122,11 +130,17 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
-                  href="/login"
+                  href="/register"
                   className="flex items-center justify-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-indigo-900/30 group"
                 >
-                  Entrar al Sistema
+                  Crear Cuenta Gratis
                   <FiArrowRight className="group-hover:translate-x-1 transition-transform" size={16} />
+                </Link>
+                <Link
+                  href="/login"
+                  className="flex items-center justify-center gap-3 px-8 py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95"
+                >
+                  Iniciar Sesión
                 </Link>
               </div>
 

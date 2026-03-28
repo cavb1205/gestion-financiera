@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   FiUser,
   FiLock,
+  FiMail,
   FiEye,
   FiEyeOff,
   FiAlertCircle,
@@ -15,6 +15,7 @@ import {
   FiTrendingUp,
   FiDollarSign,
   FiPieChart,
+  FiMapPin,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 
@@ -24,64 +25,75 @@ const features = [
   { icon: FiPieChart, label: "Reportes e inteligencia de negocio" },
 ];
 
-export default function LoginPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+export default function RegisterPage() {
+  const [form, setForm] = useState({
+    username: "",
+    first_name: "",
+    last_name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    nombre_ruta: "",
+  });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, selectStore } = useAuth();
   const router = useRouter();
+
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
+    if (form.password !== form.confirmPassword) {
+      setError("Las contraseñas no coinciden");
+      setIsLoading(false);
+      return;
+    }
+
+    if (form.password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/register/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          username: form.username,
+          first_name: form.first_name,
+          last_name: form.last_name,
+          email: form.email,
+          password: form.password,
+          nombre_ruta: form.nombre_ruta,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Credenciales inválidas");
+        const msg =
+          data.detail ||
+          (data.username && `Usuario: ${data.username.join(" ")}`) ||
+          (data.email && `Email: ${data.email.join(" ")}`) ||
+          "Error al registrar el usuario";
+        throw new Error(msg);
       }
 
-      login(data);
-      toast.success("¡Bienvenido!", {
+      toast.success("¡Cuenta creada! Ahora inicia sesión", {
         position: "top-center",
-        autoClose: 2000,
+        autoClose: 3000,
         theme: "dark",
       });
-
-      // Workers: auto-select their store and go to liquidar
-      const isWorker = !(data.user.is_staff || data.user.is_superuser);
-      if (isWorker) {
-        try {
-          const storeRes = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/tiendas/detail/`,
-            { headers: { Authorization: `Bearer ${data.token}` } }
-          );
-          if (storeRes.ok) {
-            const storeData = await storeRes.json();
-            selectStore(storeData);
-            router.push("/dashboard/liquidar");
-          } else {
-            router.push("/dashboard");
-          }
-        } catch {
-          router.push("/dashboard");
-        }
-        return;
-      }
-
-      router.push("/select-store");
+      router.push("/login");
     } catch (err) {
-      const errorMsg = err.message || "Error en el inicio de sesión";
+      const errorMsg = err.message || "Error en el registro";
       setError(errorMsg);
       toast.error(errorMsg, {
         position: "top-center",
@@ -92,6 +104,9 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  const inputClass =
+    "w-full pl-12 pr-4 py-4 bg-white/5 border border-white/8 rounded-2xl text-sm font-semibold text-white placeholder:text-slate-700 focus:outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 focus:ring-4 focus:ring-indigo-500/10 transition-all";
 
   return (
     <div className="min-h-screen bg-slate-950 flex font-sans">
@@ -117,13 +132,13 @@ export default function LoginPage() {
         <div className="relative z-10 space-y-8">
           <div>
             <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-4">
-              Plataforma de gestión
+              Crea tu cuenta
             </p>
             <h2 className="text-5xl font-black text-white leading-[1.05] tracking-tighter">
-              Tu negocio,<br />bajo control.
+              Empieza a<br />gestionar hoy.
             </h2>
             <p className="mt-5 text-slate-400 font-medium text-base leading-relaxed max-w-xs">
-              Gestiona créditos, recaudos, gastos y utilidades desde un solo lugar.
+              Registra tu negocio y accede a todas las herramientas de gestión de cartera.
             </p>
           </div>
 
@@ -166,15 +181,104 @@ export default function LoginPage() {
           {/* Heading */}
           <div className="mb-10">
             <h2 className="text-3xl font-black text-white tracking-tighter leading-none mb-2">
-              Iniciar sesión
+              Crear cuenta
             </h2>
             <p className="text-sm font-medium text-slate-500">
-              Ingresa tus credenciales para continuar
+              Registra tu negocio y comienza a operar
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* Nombre de la ruta / tienda */}
+            <div className="space-y-2">
+              <label htmlFor="nombre_ruta" className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                Nombre del Negocio
+              </label>
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-400 transition-colors">
+                  <FiMapPin size={18} />
+                </div>
+                <input
+                  id="nombre_ruta"
+                  name="nombre_ruta"
+                  type="text"
+                  required
+                  placeholder="Mi Negocio"
+                  value={form.nombre_ruta}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            {/* Nombre y Apellido */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label htmlFor="first_name" className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                  Nombre
+                </label>
+                <div className="relative group">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-400 transition-colors">
+                    <FiUser size={18} />
+                  </div>
+                  <input
+                    id="first_name"
+                    name="first_name"
+                    type="text"
+                    required
+                    placeholder="Juan"
+                    value={form.first_name}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="last_name" className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                  Apellido
+                </label>
+                <div className="relative group">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-400 transition-colors">
+                    <FiUser size={18} />
+                  </div>
+                  <input
+                    id="last_name"
+                    name="last_name"
+                    type="text"
+                    required
+                    placeholder="Pérez"
+                    value={form.last_name}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                Correo Electrónico
+              </label>
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-400 transition-colors">
+                  <FiMail size={18} />
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="correo@ejemplo.com"
+                  value={form.email}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
+            </div>
 
             {/* Username */}
             <div className="space-y-2">
@@ -187,13 +291,14 @@ export default function LoginPage() {
                 </div>
                 <input
                   id="username"
+                  name="username"
                   type="text"
                   required
                   autoComplete="username"
                   placeholder="nombre_usuario"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/8 rounded-2xl text-sm font-semibold text-white placeholder:text-slate-700 focus:outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                  value={form.username}
+                  onChange={handleChange}
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -209,12 +314,13 @@ export default function LoginPage() {
                 </div>
                 <input
                   id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   required
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   placeholder="••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={form.password}
+                  onChange={handleChange}
                   className="w-full pl-12 pr-12 py-4 bg-white/5 border border-white/8 rounded-2xl text-sm font-semibold text-white placeholder:text-slate-700 focus:outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 focus:ring-4 focus:ring-indigo-500/10 transition-all"
                 />
                 <button
@@ -224,6 +330,29 @@ export default function LoginPage() {
                 >
                   {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
                 </button>
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                Confirmar Contraseña
+              </label>
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-400 transition-colors">
+                  <FiLock size={18} />
+                </div>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  autoComplete="new-password"
+                  placeholder="••••••••••"
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
               </div>
             </div>
 
@@ -245,11 +374,11 @@ export default function LoginPage() {
                 {isLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Verificando...</span>
+                    <span>Creando cuenta...</span>
                   </>
                 ) : (
                   <>
-                    <span>Ingresar</span>
+                    <span>Crear Cuenta</span>
                     <FiArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -257,12 +386,12 @@ export default function LoginPage() {
             </div>
           </form>
 
-          {/* Register link */}
+          {/* Link to login */}
           <div className="mt-8 pt-6 border-t border-white/5 text-center">
             <p className="text-sm text-slate-500">
-              ¿No tienes cuenta?{" "}
-              <Link href="/register" className="font-black text-indigo-400 hover:text-indigo-300 transition-colors">
-                Crear cuenta
+              ¿Ya tienes cuenta?{" "}
+              <Link href="/login" className="font-black text-indigo-400 hover:text-indigo-300 transition-colors">
+                Iniciar sesión
               </Link>
             </p>
           </div>

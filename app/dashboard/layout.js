@@ -26,8 +26,11 @@ import {
   FiShield,
   FiChevronDown,
   FiEye,
+  FiSun,
+  FiMoon,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -65,6 +68,7 @@ export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const { user, profile, logout, selectedStore, isAuthenticated, loading } =
     useAuth();
+  const { theme, toggleTheme } = useTheme();
   const isAdmin = user?.is_staff || user?.is_superuser;
   const isWorker = !isAdmin;
 
@@ -189,12 +193,21 @@ export default function DashboardLayout({ children }) {
                                   isActive("/dashboard/membresias") ? "Membresía" : "Dashboard"}
           </h1>
         </div>
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400"
-        >
-          {isMobileMenuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleTheme}
+            title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400"
+          >
+            {theme === "dark" ? <FiSun size={18} /> : <FiMoon size={18} />}
+          </button>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400"
+          >
+            {isMobileMenuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Sidebar Overlay */}
@@ -393,13 +406,20 @@ export default function DashboardLayout({ children }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => router.push("/select-store")}
                 title="Cambiar Ruta"
                 className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/40 hover:text-indigo-600 transition-all flex justify-center"
               >
                 <FiRefreshCw size={16} />
+              </button>
+              <button
+                onClick={toggleTheme}
+                title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+                className="p-3 bg-slate-50 dark:bg-slate-800 text-amber-500 dark:text-indigo-400 rounded-xl hover:bg-amber-50 dark:hover:bg-indigo-900/40 transition-all flex justify-center"
+              >
+                {theme === "dark" ? <FiSun size={16} /> : <FiMoon size={16} />}
               </button>
               <button
                 onClick={logout}
