@@ -26,10 +26,11 @@ import {
   FiArrowUpRight,
   FiMapPin,
   FiPhone,
+  FiRefreshCw,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
-import { formatMoney, parseMoney } from "../../../utils/format";
+import { formatMoney, parseMoney, calcularTotal, calcularCuota } from "../../../utils/format";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
@@ -55,6 +56,12 @@ export default function VentaDetailPage() {
   const [isDeletingRecaudo, setIsDeletingRecaudo] = useState(false);
 
   const [refreshData, setRefreshData] = useState(false);
+
+  // Renovación
+  const [showRenovarModal, setShowRenovarModal] = useState(false);
+  const [renovarForm, setRenovarForm] = useState({ cuotas: 20, fecha_venta: "" });
+  const [isRenovando, setIsRenovando] = useState(false);
+  const [renovarError, setRenovarError] = useState(null);
 
   const handleDeleteRecaudo = async () => {
     setIsDeletingRecaudo(true);
@@ -123,6 +130,63 @@ export default function VentaDetailPage() {
     } catch (err) {
       setError(err.message);
       setIsLoading(false);
+    }
+  };
+
+  const todayISO = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+
+  const openRenovarModal = () => {
+    setRenovarForm({ cuotas: venta.cuotas ?? 20, fecha_venta: todayISO(), interes: venta.interes ?? 20 });
+    setRenovarError(null);
+    setShowRenovarModal(true);
+  };
+
+  const handleRenovar = async () => {
+    if (!renovarForm.cuotas || renovarForm.cuotas < 1) {
+      setRenovarError("El plazo debe ser al menos 1 cuota");
+      return;
+    }
+    if (!renovarForm.fecha_venta) {
+      setRenovarError("Debes ingresar una fecha de inicio");
+      return;
+    }
+    setIsRenovando(true);
+    setRenovarError(null);
+    try {
+      // 1. Marcar crédito actual como pagado
+      const pagadoRes = await apiFetch(`/ventas/${ventaId}/pagado/`, { method: "PUT" });
+      if (!pagadoRes.ok) {
+        const err = await pagadoRes.json();
+        throw new Error(err.detail || "Error al liquidar el crédito anterior");
+      }
+      // 2. Crear nuevo crédito con el saldo actual
+      const nuevaRes = await apiFetch(`/ventas/create/t/${selectedStore.tienda.id}/`, {
+        method: "POST",
+        body: JSON.stringify({
+          fecha_venta: renovarForm.fecha_venta,
+          valor_venta: parseMoney(venta.saldo_actual),
+          interes: parseFloat(renovarForm.interes),
+          cuotas: parseInt(renovarForm.cuotas),
+          comentario: `Renovación de crédito #${ventaId}`,
+          cliente: venta.cliente.id,
+          id_tienda: selectedStore.tienda.id,
+        }),
+      });
+      if (!nuevaRes.ok) {
+        const err = await nuevaRes.json();
+        throw new Error(err.detail || "Error al crear el nuevo crédito");
+      }
+      const nuevaVenta = await nuevaRes.json();
+      toast.success("Crédito renovado exitosamente");
+      setShowRenovarModal(false);
+      router.push(`/dashboard/ventas/${nuevaVenta.id}`);
+    } catch (err) {
+      setRenovarError(err.message);
+    } finally {
+      setIsRenovando(false);
     }
   };
 
@@ -225,6 +289,103 @@ export default function VentaDetailPage() {
         </ConfirmModal>
       )}
 
+      {/* Modal Renovación */}
+      {showRenovarModal && venta && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-6">
+          <div className="glass max-w-md w-full rounded-[2.5rem] border-white/20 p-10 shadow-2xl">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-14 h-14 bg-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-indigo-200 dark:shadow-indigo-900/40 shrink-0">
+                <FiRefreshCw size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Renovar Crédito</h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Crédito #{ventaId} · {venta.cliente?.nombres} {venta.cliente?.apellidos}</p>
+              </div>
+            </div>
+
+            {/* Resumen del crédito anterior */}
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[1.5rem] p-5 mb-6 space-y-3 border border-slate-100 dark:border-slate-800">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monto a renovar</span>
+                <span className="text-base font-black text-slate-900 dark:text-white">{formatMoney(venta.saldo_actual)}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total a recaudar</span>
+                <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                  {formatMoney(calcularTotal(parseMoney(venta.saldo_actual), parseFloat(renovarForm.interes || 0)))}
+                </span>
+              </div>
+            </div>
+
+            {/* Campos editables */}
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Interés (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={renovarForm.interes}
+                  onChange={e => setRenovarForm(f => ({ ...f, interes: e.target.value }))}
+                  className="w-full px-4 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500/60 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Fecha de inicio</label>
+                <input
+                  type="date"
+                  value={renovarForm.fecha_venta}
+                  onChange={e => setRenovarForm(f => ({ ...f, fecha_venta: e.target.value }))}
+                  className="w-full px-4 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500/60 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Plazo (cuotas)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={renovarForm.cuotas}
+                  onChange={e => setRenovarForm(f => ({ ...f, cuotas: e.target.value }))}
+                  className="w-full px-4 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500/60 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                />
+                {renovarForm.cuotas > 0 && (
+                  <p className="text-[10px] font-black text-indigo-500 mt-2 uppercase tracking-widest">
+                    Cuota estimada: {formatMoney(calcularCuota(calcularTotal(parseMoney(venta.saldo_actual), parseFloat(renovarForm.interes || 0)), parseInt(renovarForm.cuotas)))}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {renovarError && (
+              <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/30 p-4 rounded-2xl text-rose-600 dark:text-rose-400 text-[11px] font-black uppercase tracking-widest mb-4">
+                {renovarError}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleRenovar}
+                disabled={isRenovando}
+                className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-200 dark:shadow-indigo-900/40 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+              >
+                {isRenovando ? (
+                  <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Procesando...</>
+                ) : (
+                  <><FiRefreshCw size={15} /> Confirmar Renovación</>
+                )}
+              </button>
+              <button
+                onClick={() => setShowRenovarModal(false)}
+                disabled={isRenovando}
+                className="w-full py-4 text-slate-400 font-bold text-xs uppercase tracking-widest"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal Perdida */}
       {showLossModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-6">
@@ -277,6 +438,11 @@ export default function VentaDetailPage() {
           <button onClick={() => router.push(`/dashboard/ventas/${ventaId}/editar`)} className="px-5 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:bg-slate-50 active:scale-95 transition-all flex items-center gap-2">
             <FiEdit size={16} /> Editar
           </button>
+          {venta.estado_venta === "Vencido" && (
+            <button onClick={openRenovarModal} className="px-5 py-3.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm border border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-100 active:scale-95 transition-all flex items-center gap-2">
+              <FiRefreshCw size={16} /> Renovar
+            </button>
+          )}
           <button onClick={() => setShowLossModal(true)} className="px-5 py-3.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm border border-rose-100 dark:border-rose-900/30 hover:bg-rose-100 active:scale-95 transition-all flex items-center gap-2">
             <FiAlertTriangle size={16} /> Pérdida
           </button>
