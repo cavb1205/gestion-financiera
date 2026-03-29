@@ -21,6 +21,7 @@ import {
   FiMapPin,
   FiPhone,
   FiRefreshCw,
+  FiMessageCircle,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
@@ -56,6 +57,10 @@ export default function VentaDetailPage() {
   const [renovarForm, setRenovarForm] = useState({ cuotas: 20, fecha_venta: "" });
   const [isRenovando, setIsRenovando] = useState(false);
   const [renovarError, setRenovarError] = useState(null);
+
+  // Paginación historial
+  const PAGOS_PER_PAGE = 8;
+  const [pagosPage, setPagosPage] = useState(1);
 
   const handleDeleteRecaudo = async () => {
     setIsDeletingRecaudo(true);
@@ -231,6 +236,30 @@ export default function VentaDetailPage() {
         return <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-full">{estado}</span>;
     }
   };
+
+  const whatsappUrl = (() => {
+    try {
+      const raw = (venta?.cliente?.telefono_principal || "").replace(/[^0-9]/g, "");
+      const nombre = venta?.cliente?.nombres || "";
+      const saldo = formatMoney(venta?.saldo_actual);
+      const cuota = formatMoney(venta?.valor_cuota);
+      const abonado = formatMoney(venta?.total_abonado);
+      const mora = Math.round(venta?.dias_atrasados || 0);
+      const pagosRealizados = Math.round(venta?.pagos_realizados || 0);
+      const totalCuotas = Math.round(venta?.cuotas || 0);
+      const estadoTexto = venta?.estado_venta === "Vencido"
+        ? `vencido con *${mora} días* de mora`
+        : `con saldo pendiente`;
+      const msg =
+        `Hola ${nombre}, le recordamos que tiene un crédito ${estadoTexto}.\n\n` +
+        `💰 Saldo pendiente: *${saldo}*\n` +
+        `✅ Total abonado: *${abonado}*\n` +
+        `📅 Progreso: *${pagosRealizados}/${totalCuotas} días*\n` +
+        `📋 Valor cuota: *${cuota}*\n\n` +
+        `Por favor comuníquese con nosotros para coordinar su pago. ¡Gracias!`;
+      return `https://api.whatsapp.com/send?phone=${raw}&text=${encodeURIComponent(msg)}`;
+    } catch { return "https://api.whatsapp.com/"; }
+  })();
 
   const totalPagado = pagos.reduce((sum, pago) => sum + parseMoney(pago.valor_recaudo), 0);
   const progresoPago = venta ? (totalPagado / parseMoney(venta.total_a_pagar)) * 100 : 0;
@@ -442,6 +471,14 @@ export default function VentaDetailPage() {
           <button onClick={() => router.push(`/dashboard/ventas/${ventaId}/editar`)} className="px-5 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:bg-slate-50 active:scale-95 transition-all flex items-center gap-2">
             <FiEdit size={16} /> Editar
           </button>
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-5 py-3.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm border border-emerald-100 dark:border-emerald-900/30 hover:bg-emerald-100 active:scale-95 transition-all flex items-center gap-2"
+          >
+            <FiMessageCircle size={16} /> WhatsApp
+          </a>
           {venta.estado_venta === "Vencido" && (
             <button onClick={openRenovarModal} className="px-5 py-3.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm border border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-100 active:scale-95 transition-all flex items-center gap-2">
               <FiRefreshCw size={16} /> Renovar
@@ -601,7 +638,7 @@ export default function VentaDetailPage() {
                         </td>
                       </tr>
                     ) : (
-                      pagos.map(pago => {
+                      pagos.slice((pagosPage - 1) * PAGOS_PER_PAGE, pagosPage * PAGOS_PER_PAGE).map(pago => {
                         const valor = parseFloat(pago.valor_recaudo);
                         const isFallida = valor === 0 && pago.visita_blanco;
                         return (
@@ -633,6 +670,40 @@ export default function VentaDetailPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Paginación */}
+              {pagos.length > PAGOS_PER_PAGE && (
+                <div className="px-8 py-5 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    {(pagosPage - 1) * PAGOS_PER_PAGE + 1}–{Math.min(pagosPage * PAGOS_PER_PAGE, pagos.length)} de {pagos.length}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPagosPage(p => Math.max(1, p - 1))}
+                      disabled={pagosPage === 1}
+                      className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                    >
+                      <FiArrowLeft size={14} />
+                    </button>
+                    {Array.from({ length: Math.ceil(pagos.length / PAGOS_PER_PAGE) }, (_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setPagosPage(i + 1)}
+                        className={`w-8 h-8 rounded-xl text-[11px] font-black transition-all ${pagosPage === i + 1 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/40' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setPagosPage(p => Math.min(Math.ceil(pagos.length / PAGOS_PER_PAGE), p + 1))}
+                      disabled={pagosPage === Math.ceil(pagos.length / PAGOS_PER_PAGE)}
+                      className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                    >
+                      <FiArrowUpRight size={14} className="rotate-90" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
