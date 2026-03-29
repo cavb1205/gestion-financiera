@@ -56,6 +56,7 @@ function NuevaVentaContent() {
   const [busquedaCliente, setBusquedaCliente] = useState("");
   const [clientesFiltrados, setClientesFiltrados] = useState([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  const [creditosActivosCliente, setCreditosActivosCliente] = useState(0);
 
   // Create client inline
   const [showCrearCliente, setShowCrearCliente] = useState(false);
@@ -120,11 +121,19 @@ function NuevaVentaContent() {
     setClientesFiltrados(filtrados);
   };
 
-  const seleccionarCliente = (cliente) => {
+  const seleccionarCliente = async (cliente) => {
     setFormData({ ...formData, cliente: cliente.id });
     setClienteSeleccionado(cliente);
     setBusquedaCliente("");
     setClientesFiltrados([]);
+    setCreditosActivosCliente(0);
+    try {
+      const res = await apiFetch(`/ventas/activas/${cliente.id}/t/${selectedStore.tienda.id}/`);
+      if (res.ok) {
+        const data = await res.json();
+        setCreditosActivosCliente(Array.isArray(data) ? data.filter(v => ["Vigente","Atrasado","Vencido"].includes(v.estado_venta)).length : 0);
+      }
+    } catch { /* silencioso */ }
   };
 
   const handleCrearCliente = async (e) => {
@@ -273,14 +282,30 @@ function NuevaVentaContent() {
                             </div>
                             <button
                               type="button"
-                              onClick={() => { setFormData({ ...formData, cliente: "" }); setClienteSeleccionado(null); }}
+                              onClick={() => { setFormData({ ...formData, cliente: "" }); setClienteSeleccionado(null); setCreditosActivosCliente(0); }}
                               className="p-3 bg-white/10 hover:bg-rose-500 rounded-xl transition-all shrink-0"
                             >
                               <FiXCircle size={18} />
                             </button>
                           </div>
                         </div>
-                      ) : (
+                      ) : null}
+
+                      {clienteSeleccionado && creditosActivosCliente > 0 && (
+                        <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl">
+                          <FiAlertCircle className="text-amber-500 shrink-0 mt-0.5" size={16} />
+                          <div>
+                            <p className="text-xs font-black text-amber-700 dark:text-amber-400 leading-snug">
+                              Este cliente ya tiene {creditosActivosCliente} crédito{creditosActivosCliente > 1 ? "s" : ""} activo{creditosActivosCliente > 1 ? "s" : ""}
+                            </p>
+                            <p className="text-[10px] font-bold text-amber-600/70 dark:text-amber-500/70 mt-0.5 uppercase tracking-wider">
+                              Puedes continuar — el sistema permite múltiples créditos
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {!clienteSeleccionado && (
                         <div className="relative group">
                           <FiSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
                           <input
