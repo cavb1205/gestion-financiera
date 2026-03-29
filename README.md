@@ -45,9 +45,6 @@ Lo que queda por hacer
 5	Bloqueo de rutas + auto-vencimiento — pendiente del endpoint backend que te pasé	Baja (con endpoint)
 
 
-1. Renovación / Refinanciamiento de crédito
-El escenario más común: el cliente no puede pagar, pero quiere continuar. Hoy no hay forma de tomar el saldo pendiente de un crédito y convertirlo en uno nuevo sin ir a crear una venta manualmente y liquidar la anterior. Un botón "Refinanciar" en el detalle de venta que haga eso automáticamente ahorraría mucho tiempo.
-
 4. WhatsApp masivo / recordatorios
 Hoy solo hay WhatsApp individual. Un botón "Enviar recordatorio a todos los morosos" que abra una lista con mensajes pre-redactados sería muy valioso para el cobrador. No requiere API — basta generar un mensaje con wa.me por cada cliente.
 
@@ -56,5 +53,4 @@ El cobrador trabaja en la calle con señal inestable. Configurar el app como PWA
 
 11. Confirmación por WhatsApp al cliente — Al registrar un pago, opción de enviar recibo por WhatsApp al número del cliente.
 
-12. Límite de crédito por cliente — Definir un monto máximo de deuda total por cliente y alertar si se supera. si ya tiene un credito activo mostrar alerta y permitirle continuar
 

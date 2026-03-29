@@ -14,8 +14,14 @@ const inter = Inter({ subsets: ['latin'] });
 
 // Opcional: Metadata para tu aplicación, útil para SEO
 export const metadata = {
-  title: 'My Money App',
-  description: 'Aplicación de gestión de finanzas',
+  title: 'Cartera - Control Panel',
+  description: 'Gestión de créditos, recaudos y cartera',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Cartera',
+  },
 };
 
 
@@ -28,6 +34,17 @@ export default function RootLayout({ children }) {
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}})();`,
+          }}
+        />
+        {/* PWA */}
+        <meta name="theme-color" content="#4f46e5" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <link rel="apple-touch-icon" href="/icons/icon.svg" />
+        <link rel="manifest" href="/manifest.json" />
+        {/* Service Worker registration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});})}`,
           }}
         />
       </head>
