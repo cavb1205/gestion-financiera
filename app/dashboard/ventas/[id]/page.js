@@ -7,19 +7,13 @@ import {
   FiArrowLeft,
   FiDollarSign,
   FiCreditCard,
-  FiCalendar,
   FiUser,
-  FiClock,
   FiBarChart2,
-  FiPercent,
-  FiCheckCircle,
   FiAlertCircle,
   FiEdit,
   FiTrash2,
   FiPlus,
-  FiTrendingUp,
   FiTrendingDown,
-  FiXCircle,
   FiAlertTriangle,
   FiActivity,
   FiShield,
@@ -156,18 +150,28 @@ export default function VentaDetailPage() {
     setIsRenovando(true);
     setRenovarError(null);
     try {
-      // 1. Marcar crédito actual como pagado
-      const pagadoRes = await apiFetch(`/ventas/${ventaId}/pagado/`, { method: "PUT" });
-      if (!pagadoRes.ok) {
-        const err = await pagadoRes.json();
+      const saldoActual = parseMoney(venta.saldo_actual);
+
+      // 1. Abonar el saldo completo → el backend marca el crédito como Pagado automáticamente
+      const recaudoRes = await apiFetch(`/recaudos/create/t/${selectedStore.tienda.id}/`, {
+        method: "POST",
+        body: JSON.stringify({
+          fecha_recaudo: renovarForm.fecha_venta,
+          valor_recaudo: saldoActual,
+          venta: venta.id,
+        }),
+      });
+      if (!recaudoRes.ok) {
+        const err = await recaudoRes.json();
         throw new Error(err.detail || "Error al liquidar el crédito anterior");
       }
-      // 2. Crear nuevo crédito con el saldo actual
+
+      // 2. Crear nuevo crédito con el saldo anterior como capital
       const nuevaRes = await apiFetch(`/ventas/create/t/${selectedStore.tienda.id}/`, {
         method: "POST",
         body: JSON.stringify({
           fecha_venta: renovarForm.fecha_venta,
-          valor_venta: parseMoney(venta.saldo_actual),
+          valor_venta: saldoActual,
           interes: parseFloat(renovarForm.interes),
           cuotas: parseInt(renovarForm.cuotas),
           comentario: `Renovación de crédito #${ventaId}`,
