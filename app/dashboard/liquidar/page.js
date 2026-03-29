@@ -141,6 +141,28 @@ export default function LiquidarCreditosPage() {
       return phone.replace(/\s+/g, "").replace(/^0/, "");
    };
 
+   const buildWhatsAppUrl = (credito) => {
+      const raw = (credito.cliente.telefono_principal || "").replace(/[^0-9]/g, "");
+      const nombre = credito.cliente.nombres;
+      const saldo = formatMoney(credito.saldo_actual);
+      const cuota = formatMoney(credito.valor_cuota);
+      const abonado = formatMoney(credito.total_abonado);
+      const mora = Math.round(credito.dias_atrasados || 0);
+      const pagosRealizados = Math.round(credito.pagos_realizados || 0);
+      const totalCuotas = Math.round(credito.cuotas || 0);
+      const estadoTexto = credito.estado_venta === "Vencido"
+         ? `vencido con *${mora} días* de mora`
+         : `con saldo pendiente`;
+      const msg =
+         `Hola ${nombre}, le recordamos que tiene un crédito ${estadoTexto}.\n\n` +
+         `💰 Saldo pendiente: *${saldo}*\n` +
+         `✅ Total abonado: *${abonado}*\n` +
+         `📅 Progreso: *${pagosRealizados}/${totalCuotas} días*\n` +
+         `📋 Valor cuota: *${cuota}*\n\n` +
+         `Por favor comuníquese con nosotros para coordinar su pago. ¡Gracias!`;
+      return `https://api.whatsapp.com/send?phone=${raw}&text=${encodeURIComponent(msg)}`;
+   };
+
    const handleAbonar = (credito) => {
       const valorAbono = Math.min(parseMoney(credito.saldo_actual), parseMoney(credito.valor_cuota));
       const abono = {
@@ -391,7 +413,7 @@ export default function LiquidarCreditosPage() {
                                                    <FiPhone size={13} />
                                                 </a>
                                                 <a
-                                                   href={`https://wa.me/${phone.replace(/[^0-9]/g, "")}`}
+                                                   href={buildWhatsAppUrl(credito)}
                                                    target="_blank"
                                                    rel="noopener noreferrer"
                                                    className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all"
@@ -533,7 +555,7 @@ export default function LiquidarCreditosPage() {
                                           <FiPhone size={12} /> {credito.cliente.telefono_principal}
                                        </a>
                                        <a
-                                          href={`https://wa.me/${phone.replace(/[^0-9]/g, "")}`}
+                                          href={buildWhatsAppUrl(credito)}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl text-[10px] font-black active:scale-95 transition-all"
