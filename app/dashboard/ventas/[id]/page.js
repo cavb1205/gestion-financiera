@@ -22,6 +22,9 @@ import {
   FiPhone,
   FiRefreshCw,
   FiMessageCircle,
+  FiCalendar,
+  FiExternalLink,
+  FiFilter,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
@@ -61,6 +64,13 @@ export default function VentaDetailPage() {
   // Paginación historial
   const PAGOS_PER_PAGE = 8;
   const [pagosPage, setPagosPage] = useState(1);
+
+  // Filtro historial
+  const [filtroRecaudos, setFiltroRecaudos] = useState("todos");
+  const setFiltro = (f) => { setFiltroRecaudos(f); setPagosPage(1); };
+
+  // Confirmación pérdida
+  const [lossConfirmText, setLossConfirmText] = useState("");
 
   const handleDeleteRecaudo = async () => {
     setIsDeletingRecaudo(true);
@@ -215,6 +225,7 @@ export default function VentaDetailPage() {
       toast.success("Venta marcada como pérdida");
       setRefreshData(prev => !prev);
       setShowLossModal(false);
+      setLossConfirmText("");
     } catch (err) {
       setLossError(err.message);
     } finally {
@@ -236,6 +247,29 @@ export default function VentaDetailPage() {
         return <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-full">{estado}</span>;
     }
   };
+
+  // Proyección de cierre real basada en promedio de pago
+  const proyeccionCierre = (() => {
+    const saldo = parseMoney(venta?.saldo_actual);
+    const promedio = parseMoney(venta?.promedio_pago);
+    if (promedio <= 0 || saldo <= 0) return null;
+    const diasRestantes = Math.ceil(saldo / promedio);
+    const fecha = new Date();
+    fecha.setDate(fecha.getDate() + diasRestantes);
+    return fecha.toISOString().split("T")[0];
+  })();
+
+  // ID del pago más reciente
+  const lastPagoId = pagos.length > 0
+    ? pagos.reduce((a, b) => a.fecha_recaudo >= b.fecha_recaudo ? a : b).id
+    : null;
+
+  // Pagos filtrados según pestaña activa
+  const pagosFiltrados = filtroRecaudos === "abonos"
+    ? pagos.filter(p => parseFloat(p.valor_recaudo) > 0)
+    : filtroRecaudos === "fallidas"
+    ? pagos.filter(p => parseFloat(p.valor_recaudo) === 0 && p.visita_blanco)
+    : pagos;
 
   const whatsappUrl = (() => {
     try {
@@ -435,11 +469,22 @@ export default function VentaDetailPage() {
 
             {lossError && <div className="bg-rose-50 p-4 rounded-xl text-rose-600 text-[10px] font-black uppercase mb-6">{lossError}</div>}
 
+            <div className="mb-6">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Escribe CONFIRMAR para continuar</p>
+              <input
+                type="text"
+                value={lossConfirmText}
+                onChange={e => setLossConfirmText(e.target.value)}
+                placeholder="CONFIRMAR"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:border-rose-500/60 transition-all"
+              />
+            </div>
+
             <div className="flex flex-col gap-3">
-              <button onClick={markAsLoss} disabled={isSendingLoss} className="w-full py-5 bg-rose-600 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all">
+              <button onClick={markAsLoss} disabled={isSendingLoss || lossConfirmText !== "CONFIRMAR"} className="w-full py-5 bg-rose-600 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all">
                 {isSendingLoss ? "Procesando..." : "Confirmar Pérdida"}
               </button>
-              <button onClick={() => setShowLossModal(false)} disabled={isSendingLoss} className="w-full py-5 bg-transparent text-slate-400 font-bold text-xs uppercase tracking-widest">Cancelar Proceso</button>
+              <button onClick={() => { setShowLossModal(false); setLossConfirmText(""); }} disabled={isSendingLoss} className="w-full py-5 bg-transparent text-slate-400 font-bold text-xs uppercase tracking-widest">Cancelar Proceso</button>
             </div>
           </div>
         </div>
@@ -454,8 +499,18 @@ export default function VentaDetailPage() {
           </button>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none capitalize truncate">{venta.cliente?.nombres} {venta.cliente?.apellidos}</h1>
+              <button
+                onClick={() => router.push(`/dashboard/clientes/${venta.cliente.id}`)}
+                className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none capitalize truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              >
+                {venta.cliente?.nombres} {venta.cliente?.apellidos}
+              </button>
               {getStatusBadge(venta.estado_venta)}
+              {venta.estado_venta === "Vencido" && venta.dias_atrasados > 0 && (
+                <span className="px-2.5 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-rose-200 dark:border-rose-800">
+                  {Math.round(venta.dias_atrasados)}d mora
+                </span>
+              )}
             </div>
             <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none mt-1">
               Crédito #{ventaId} • <span className="opacity-60">{selectedStore?.tienda?.nombre}</span>
@@ -583,6 +638,14 @@ export default function VentaDetailPage() {
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tasa Pactada</p>
                   <p className="text-sm font-black text-indigo-600">{venta.interes}%</p>
                 </div>
+                {proyeccionCierre && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Proyección de Cierre Real</p>
+                    <p className="text-sm font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                      <FiCalendar size={13} /> {proyeccionCierre}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-700 group">
@@ -609,14 +672,32 @@ export default function VentaDetailPage() {
 
             {/* Historial de Pagos Section */}
             <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl">
-              <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-xl"><FiActivity size={20} /></div>
-                  <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Bitácora de Recaudos</h2>
+              <div className="p-8 border-b border-slate-50 dark:border-slate-800">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-xl"><FiActivity size={20} /></div>
+                    <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Bitácora de Recaudos</h2>
+                  </div>
+                  <button onClick={handleRegistrarPago} className="px-5 py-2.5 bg-slate-900 dark:bg-slate-800 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2">
+                    <FiPlus /> Nuevo Registro
+                  </button>
                 </div>
-                <button onClick={handleRegistrarPago} className="px-5 py-2.5 bg-slate-900 dark:bg-slate-800 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2">
-                  <FiPlus /> Nuevo Registro
-                </button>
+                <div className="flex items-center gap-2">
+                  <FiFilter size={12} className="text-slate-400" />
+                  {[
+                    { key: "todos", label: "Todos" },
+                    { key: "abonos", label: "Abonos" },
+                    { key: "fallidas", label: "Visitas fallidas" },
+                  ].map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => setFiltro(key)}
+                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filtroRecaudos === key ? "bg-slate-900 dark:bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="overflow-x-auto">
@@ -630,7 +711,7 @@ export default function VentaDetailPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                    {pagos.length === 0 ? (
+                    {pagosFiltrados.length === 0 ? (
                       <tr>
                         <td colSpan="4" className="px-8 py-20 text-center">
                           <FiActivity className="mx-auto text-4xl text-slate-200 mb-4" />
@@ -638,12 +719,19 @@ export default function VentaDetailPage() {
                         </td>
                       </tr>
                     ) : (
-                      pagos.slice((pagosPage - 1) * PAGOS_PER_PAGE, pagosPage * PAGOS_PER_PAGE).map(pago => {
+                      pagosFiltrados.slice((pagosPage - 1) * PAGOS_PER_PAGE, pagosPage * PAGOS_PER_PAGE).map(pago => {
                         const valor = parseFloat(pago.valor_recaudo);
                         const isFallida = valor === 0 && pago.visita_blanco;
                         return (
-                          <tr key={pago.id} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
-                            <td className="px-8 py-5 whitespace-nowrap text-xs font-bold text-slate-500">{pago.fecha_recaudo}</td>
+                          <tr key={pago.id} className={`group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all ${pago.id === lastPagoId ? "bg-emerald-50/40 dark:bg-emerald-900/10" : ""}`}>
+                            <td className="px-8 py-5 whitespace-nowrap text-xs font-bold text-slate-500">
+                              <div className="flex flex-col gap-1">
+                                {pago.fecha_recaudo}
+                                {pago.id === lastPagoId && (
+                                  <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-md inline-block w-fit border border-emerald-100 dark:border-emerald-800">Último</span>
+                                )}
+                              </div>
+                            </td>
                             <td className="px-8 py-5">
                               {isFallida ? (
                                 <div className="flex flex-col">
@@ -672,10 +760,10 @@ export default function VentaDetailPage() {
               </div>
 
               {/* Paginación */}
-              {pagos.length > PAGOS_PER_PAGE && (
+              {pagosFiltrados.length > PAGOS_PER_PAGE && (
                 <div className="px-8 py-5 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    {(pagosPage - 1) * PAGOS_PER_PAGE + 1}–{Math.min(pagosPage * PAGOS_PER_PAGE, pagos.length)} de {pagos.length}
+                    {(pagosPage - 1) * PAGOS_PER_PAGE + 1}–{Math.min(pagosPage * PAGOS_PER_PAGE, pagosFiltrados.length)} de {pagosFiltrados.length}
                   </p>
                   <div className="flex items-center gap-2">
                     <button
@@ -685,7 +773,7 @@ export default function VentaDetailPage() {
                     >
                       <FiArrowLeft size={14} />
                     </button>
-                    {Array.from({ length: Math.ceil(pagos.length / PAGOS_PER_PAGE) }, (_, i) => (
+                    {Array.from({ length: Math.ceil(pagosFiltrados.length / PAGOS_PER_PAGE) }, (_, i) => (
                       <button
                         key={i}
                         onClick={() => setPagosPage(i + 1)}
@@ -695,8 +783,8 @@ export default function VentaDetailPage() {
                       </button>
                     ))}
                     <button
-                      onClick={() => setPagosPage(p => Math.min(Math.ceil(pagos.length / PAGOS_PER_PAGE), p + 1))}
-                      disabled={pagosPage === Math.ceil(pagos.length / PAGOS_PER_PAGE)}
+                      onClick={() => setPagosPage(p => Math.min(Math.ceil(pagosFiltrados.length / PAGOS_PER_PAGE), p + 1))}
+                      disabled={pagosPage === Math.ceil(pagosFiltrados.length / PAGOS_PER_PAGE)}
                       className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
                     >
                       <FiArrowUpRight size={14} className="rotate-90" />
@@ -719,7 +807,13 @@ export default function VentaDetailPage() {
                 <div className="w-24 h-24 bg-indigo-50 dark:bg-slate-800 border-4 border-white dark:border-slate-900 rounded-[2.5rem] flex items-center justify-center text-4xl text-indigo-500 font-black shadow-2xl mb-6">
                   {venta.cliente.nombres.charAt(0)}
                 </div>
-                <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none mb-1">{venta.cliente.nombres} {venta.cliente.apellidos}</h3>
+                <button
+                  onClick={() => router.push(`/dashboard/clientes/${venta.cliente.id}`)}
+                  className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none mb-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5"
+                >
+                  {venta.cliente.nombres} {venta.cliente.apellidos}
+                  <FiExternalLink size={14} className="opacity-40" />
+                </button>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{venta.cliente.identificacion}</p>
                 <div className="mt-4">{venta.cliente.estado_cliente === "Activo" ? <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">Solvente</span> : <span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-rose-100">Bloqueado</span>}</div>
               </div>
