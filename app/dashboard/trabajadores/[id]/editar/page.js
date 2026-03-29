@@ -85,7 +85,7 @@ export default function EditarTrabajadorPage() {
 
   const validateForm = () => {
     const newErrors = {};
-    ["username", "first_name", "last_name", "identificacion"].forEach((field) => {
+    ["username", "first_name", "last_name", "identificacion", "telefono"].forEach((field) => {
       if (!formData[field].trim()) newErrors[field] = "Campo obligatorio";
     });
     setErrors(newErrors);
@@ -172,7 +172,7 @@ export default function EditarTrabajadorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent pb-20 md:pb-12">
+    <div className="min-h-screen bg-transparent pb-48 md:pb-12">
       <div className="max-w-4xl mx-auto px-4 md:px-0">
 
         {/* Compact Header */}
@@ -246,7 +246,7 @@ export default function EditarTrabajadorPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="telefono" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono</label>
+                    <label htmlFor="telefono" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono *</label>
                     <div className="relative">
                       <FiPhone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                       <input
@@ -255,9 +255,10 @@ export default function EditarTrabajadorPage() {
                         name="telefono"
                         value={formData.telefono}
                         onChange={handleChange}
-                        className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                        className={`w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.telefono ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
                       />
                     </div>
+                    {errors.telefono && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.telefono}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -297,9 +298,10 @@ export default function EditarTrabajadorPage() {
                   </div>
 
                   {/* Toggle: Activo */}
-                  <div
+                  <button
+                    type="button"
                     onClick={() => toggleBool("is_active")}
-                    className="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl cursor-pointer hover:border-indigo-300 transition-all"
+                    className="w-full flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl hover:border-indigo-300 active:scale-[0.98] transition-all text-left"
                   >
                     <div>
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Estado de Cuenta</p>
@@ -308,15 +310,16 @@ export default function EditarTrabajadorPage() {
                       </p>
                     </div>
                     {formData.is_active
-                      ? <FiToggleRight className="text-emerald-500" size={32} />
-                      : <FiToggleLeft className="text-slate-300" size={32} />
+                      ? <FiToggleRight className="text-emerald-500 shrink-0" size={32} />
+                      : <FiToggleLeft className="text-slate-300 shrink-0" size={32} />
                     }
-                  </div>
+                  </button>
 
                   {/* Toggle: Admin */}
-                  <div
+                  <button
+                    type="button"
                     onClick={() => toggleBool("is_staff")}
-                    className="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl cursor-pointer hover:border-indigo-300 transition-all"
+                    className="w-full flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl hover:border-indigo-300 active:scale-[0.98] transition-all text-left"
                   >
                     <div>
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Rol de Sistema</p>
@@ -325,10 +328,10 @@ export default function EditarTrabajadorPage() {
                       </p>
                     </div>
                     {formData.is_staff
-                      ? <FiToggleRight className="text-amber-500" size={32} />
-                      : <FiToggleLeft className="text-slate-300" size={32} />
+                      ? <FiToggleRight className="text-amber-500 shrink-0" size={32} />
+                      : <FiToggleLeft className="text-slate-300 shrink-0" size={32} />
                     }
-                  </div>
+                  </button>
                 </div>
               </div>
 
