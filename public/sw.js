@@ -1,5 +1,7 @@
-const CACHE_NAME = 'cartera-shell-v1';
-const STATIC_CACHE = 'cartera-static-v1';
+// Incrementar VERSION al desplegar cambios para forzar actualización de caché
+const VERSION = '2';
+const CACHE_NAME = `cartera-shell-v${VERSION}`;
+const STATIC_CACHE = `cartera-static-v${VERSION}`;
 const API_HOST = self.location.hostname;
 
 // Rutas del app shell que se precargan al instalar

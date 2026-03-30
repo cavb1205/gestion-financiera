@@ -68,21 +68,35 @@ export async function apiFetch(path, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  let response = await fetch(url, { ...options, headers });
+  // Timeout de 15 segundos para evitar que la app se congele
+  const timeout = options.timeout || 15000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-  // Si es 401, intentar refresh y reintentar una vez
-  if (response.status === 401 && token) {
-    const newToken = await tryRefreshToken();
-    if (newToken) {
-      headers['Authorization'] = `Bearer ${newToken}`;
-      response = await fetch(url, { ...options, headers });
-    } else {
-      forceLogout();
-      throw new Error('Sesión expirada');
+  try {
+    let response = await fetch(url, { ...options, headers, signal: controller.signal });
+
+    // Si es 401, intentar refresh y reintentar una vez
+    if (response.status === 401 && token) {
+      const newToken = await tryRefreshToken();
+      if (newToken) {
+        headers['Authorization'] = `Bearer ${newToken}`;
+        response = await fetch(url, { ...options, headers, signal: controller.signal });
+      } else {
+        forceLogout();
+        throw new Error('Sesión expirada');
+      }
     }
-  }
 
-  return response;
+    return response;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('El servidor no respondió. Verifica tu conexión e intenta de nuevo.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export { tryRefreshToken };
