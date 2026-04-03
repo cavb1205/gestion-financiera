@@ -5,13 +5,10 @@
       <stop offset="100%" stop-color="#4338ca"/>
     </linearGradient>
   </defs>
-  <!-- Rounded square background -->
   <rect width="512" height="512" rx="108" fill="url(#bg)"/>
-  <!-- Three ascending bars (financial growth / cartera) -->
   <rect x="76"  y="302" width="96" height="146" rx="20" fill="white" opacity="0.55"/>
   <rect x="208" y="202" width="96" height="246" rx="20" fill="white" opacity="0.78"/>
   <rect x="340" y="96"  width="96" height="352" rx="20" fill="white"/>
-  <!-- Trend line connecting bar tops -->
   <polyline
     points="124,302 256,202 388,96"
     fill="none"
@@ -21,6 +18,5 @@
     stroke-linejoin="round"
     opacity="0.45"
   />
-  <!-- Dot at the top of the tallest bar -->
   <circle cx="388" cy="96" r="22" fill="white" opacity="0.9"/>
 </svg>
