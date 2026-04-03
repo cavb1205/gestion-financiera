@@ -12,8 +12,12 @@ import {
   FiDollarSign,
   FiCheckCircle,
   FiPackage,
-  FiCalendar,
   FiLayers,
+  FiMessageCircle,
+  FiStar,
+  FiRefreshCw,
+  FiBookOpen,
+  FiBarChart2,
 } from "react-icons/fi";
 
 const features = [
@@ -23,14 +27,19 @@ const features = [
     desc: "Controla cada crédito en tiempo real. Visualiza mora, adelantos y estado de cobro por cliente.",
   },
   {
-    icon: FiUsers,
-    title: "Gestión de Clientes",
-    desc: "Directorio completo con historial de créditos, datos de contacto y seguimiento por sucursal.",
+    icon: FiMessageCircle,
+    title: "WhatsApp Integrado",
+    desc: "Envía recordatorios de pago directamente desde la app. El mensaje se genera solo con el saldo, cuota y total abonado.",
   },
   {
-    icon: FiPackage,
-    title: "Recaudos Diarios",
-    desc: "Registra cobros, visitas fallidas y abonos. El flujo de caja siempre actualizado al momento.",
+    icon: FiStar,
+    title: "Score de Clientes",
+    desc: "Cada cliente tiene un puntaje 0–100 calculado automáticamente según su historial de pagos y atrasos.",
+  },
+  {
+    icon: FiRefreshCw,
+    title: "Renovación de Créditos",
+    desc: "Renueva créditos vencidos sin perder el historial. El capital del crédito anterior pasa automáticamente al nuevo.",
   },
   {
     icon: FiPieChart,
@@ -38,14 +47,9 @@ const features = [
     desc: "Reportes de rentabilidad por periodo. Analiza intereses, gastos y márgenes netos reales.",
   },
   {
-    icon: FiSmartphone,
-    title: "Diseño para Campo",
-    desc: "Interfaz optimizada para móvil. Tu equipo puede operar desde cualquier dispositivo en ruta.",
-  },
-  {
-    icon: FiShield,
-    title: "Multi-Sucursal",
-    desc: "Administra varias tiendas desde una sola cuenta. Cada sucursal con sus propios datos y personal.",
+    icon: FiPackage,
+    title: "Recaudos Diarios",
+    desc: "Registra cobros, visitas fallidas y abonos. Cierre de caja diario con historial de balances.",
   },
 ];
 
@@ -57,7 +61,8 @@ const modules = [
   { label: "Aportes", color: "bg-amber-500" },
   { label: "Utilidades", color: "bg-purple-500" },
   { label: "Liquidación", color: "bg-cyan-500" },
-  { label: "Trabajadores", color: "bg-orange-500" },
+  { label: "Cierre de Caja", color: "bg-teal-500" },
+  { label: "Sueldos", color: "bg-orange-500" },
   { label: "Reportes", color: "bg-emerald-600" },
 ];
 
@@ -76,16 +81,20 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-900/40">
-              <FiActivity className="text-white" size={18} />
+              <FiBarChart2 className="text-white" size={18} />
             </div>
             <span className="text-lg font-black tracking-tight">
-              Cartera<span className="text-indigo-400">Core</span>
+              Cartera<span className="text-indigo-400">Financiera</span>
             </span>
           </div>
 
           <nav className="hidden md:flex items-center gap-8 text-[11px] font-bold uppercase tracking-widest text-slate-500">
             <a href="#funciones" className="hover:text-white transition-colors">Funciones</a>
             <a href="#modulos" className="hover:text-white transition-colors">Módulos</a>
+            <Link href="/guia-rapida" className="hover:text-white transition-colors flex items-center gap-1.5">
+              <FiBookOpen size={13} />
+              Guía
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -125,37 +134,38 @@ export default function Home() {
               </h1>
 
               <p className="text-slate-400 text-lg leading-relaxed mb-10 max-w-md">
-                Gestiona créditos, recaudos y clientes desde una plataforma diseñada para negocios de campo. Todo en tiempo real, desde cualquier dispositivo.
+                Gestiona créditos, recaudos y clientes desde una plataforma diseñada para negocios de campo. WhatsApp integrado, score de clientes y reportes en tiempo real.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
-                  href="/register"
+                  href="/login"
                   className="flex items-center justify-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-indigo-900/30 group"
                 >
-                  Crear Cuenta Gratis
+                  Ingresar al Sistema
                   <FiArrowRight className="group-hover:translate-x-1 transition-transform" size={16} />
                 </Link>
                 <Link
-                  href="/login"
+                  href="/guia-rapida"
                   className="flex items-center justify-center gap-3 px-8 py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95"
                 >
-                  Iniciar Sesión
+                  <FiBookOpen size={16} />
+                  Ver Guía Rápida
                 </Link>
               </div>
 
-              <div className="mt-12 flex items-center gap-8">
+              <div className="mt-12 flex flex-wrap items-center gap-6">
                 <div className="flex items-center gap-2 text-slate-500">
                   <FiCheckCircle className="text-emerald-500" size={15} />
-                  <span className="text-[11px] font-bold uppercase tracking-widest">Multi-sucursal</span>
+                  <span className="text-[11px] font-bold uppercase tracking-widest">WhatsApp integrado</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-500">
                   <FiCheckCircle className="text-emerald-500" size={15} />
-                  <span className="text-[11px] font-bold uppercase tracking-widest">Acceso móvil</span>
+                  <span className="text-[11px] font-bold uppercase tracking-widest">Score de clientes</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-500">
                   <FiCheckCircle className="text-emerald-500" size={15} />
-                  <span className="text-[11px] font-bold uppercase tracking-widest">Tiempo real</span>
+                  <span className="text-[11px] font-bold uppercase tracking-widest">Instalable en celular</span>
                 </div>
               </div>
             </div>
@@ -196,10 +206,10 @@ export default function Home() {
                       <div className="h-full w-3/5 bg-blue-400 rounded-full" />
                     </div>
                   </div>
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                    <div className="h-1.5 w-10 bg-white/20 rounded-full mb-3" />
-                    <div className="h-5 w-18 bg-white/50 rounded-lg mb-1" />
-                    <div className="h-1.5 w-10 bg-amber-500/40 rounded-full" />
+                  <div className="bg-emerald-600/20 border border-emerald-500/20 rounded-2xl p-4">
+                    <div className="h-1.5 w-10 bg-emerald-400/30 rounded-full mb-3" />
+                    <div className="h-5 w-18 bg-emerald-400/50 rounded-lg mb-1" />
+                    <div className="h-1.5 w-10 bg-emerald-500/40 rounded-full" />
                   </div>
                 </div>
 
@@ -290,7 +300,7 @@ export default function Home() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-[80px] rounded-full pointer-events-none" />
             <div className="relative z-10">
               <div className="w-14 h-14 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-8">
-                <FiDollarSign size={26} />
+                <FiBarChart2 size={26} />
               </div>
               <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-4">
                 Listo para gestionar<br />
@@ -299,13 +309,22 @@ export default function Home() {
               <p className="text-slate-500 text-base mb-10 leading-relaxed">
                 Accede al sistema y empieza a controlar tus créditos, recaudos y clientes desde hoy.
               </p>
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-3 px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-indigo-900/30 group"
-              >
-                Ingresar al Sistema
-                <FiArrowRight className="group-hover:translate-x-1 transition-transform" size={16} />
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center justify-center gap-3 px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-indigo-900/30 group"
+                >
+                  Ingresar al Sistema
+                  <FiArrowRight className="group-hover:translate-x-1 transition-transform" size={16} />
+                </Link>
+                <Link
+                  href="/guia-rapida"
+                  className="inline-flex items-center justify-center gap-3 px-10 py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95"
+                >
+                  <FiBookOpen size={16} />
+                  Ver Guía Rápida
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -316,21 +335,29 @@ export default function Home() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="bg-indigo-600/20 p-2 rounded-xl">
-              <FiActivity className="text-indigo-400" size={16} />
+              <FiBarChart2 className="text-indigo-400" size={16} />
             </div>
             <span className="font-black tracking-tight text-slate-400">
-              Cartera<span className="text-indigo-400">Core</span>
+              Cartera<span className="text-indigo-400">Financiera</span>
             </span>
           </div>
           <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.4em]">
             &copy; {new Date().getFullYear()} — Sistema de Gestión de Cartera
           </p>
-          <Link
-            href="/login"
-            className="text-[11px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-1.5"
-          >
-            Iniciar Sesión <FiArrowRight size={12} />
-          </Link>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/guia-rapida"
+              className="text-[11px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-1.5"
+            >
+              <FiBookOpen size={12} /> Guía Rápida
+            </Link>
+            <Link
+              href="/login"
+              className="text-[11px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-1.5"
+            >
+              Iniciar Sesión <FiArrowRight size={12} />
+            </Link>
+          </div>
         </div>
       </footer>
 

@@ -11,12 +11,9 @@ import {
   FiCheckCircle,
   FiAlertTriangle,
   FiXCircle,
-  FiCalendar,
-  FiClock,
   FiZap,
   FiStar,
   FiUser,
-  FiFilter,
   FiActivity,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
@@ -56,6 +53,9 @@ export default function AdminRutasPage() {
   const [activating, setActivating] = useState(null); // "mensual-<id>" | "anual-<id>"
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newNombre, setNewNombre] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const fetchTiendas = async () => {
     setLoading(true);
@@ -126,6 +126,28 @@ export default function AdminRutasPage() {
     });
   };
 
+  const handleCrear = async (e) => {
+    e.preventDefault();
+    if (!newNombre.trim()) return;
+    setCreating(true);
+    try {
+      const response = await apiFetch("/tiendas/create/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: newNombre.trim(), administrador: user.id }),
+      });
+      if (!response.ok) throw new Error("Error al crear la ruta");
+      toast.success(`Ruta "${newNombre.trim()}" creada con membresía de prueba (7 días)`);
+      setNewNombre("");
+      setShowCreateModal(false);
+      fetchTiendas();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const handleActivar = async (tiendaMembresiaId, tipo) => {
     const key = `${tipo}-${tiendaMembresiaId}`;
     setActivating(key);
@@ -185,15 +207,24 @@ export default function AdminRutasPage() {
               </p>
             </div>
           </div>
-          <button
-            onClick={fetchTiendas}
-            className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
-          >
-            <FiRefreshCw
-              size={20}
-              className="group-hover:rotate-180 transition-transform duration-500"
-            />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95"
+            >
+              <FiPlus size={16} />
+              Nueva Ruta
+            </button>
+            <button
+              onClick={fetchTiendas}
+              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
+            >
+              <FiRefreshCw
+                size={20}
+                className="group-hover:rotate-180 transition-transform duration-500"
+              />
+            </button>
+          </div>
         </div>
 
         {/* KPI Cards */}
@@ -316,7 +347,6 @@ export default function AdminRutasPage() {
                     currentItems.map((tm) => {
                       const days = getDaysRemaining(tm.fecha_vencimiento);
                       const cfg = STATUS_CONFIG[tm.estado] || STATUS_CONFIG.Activa;
-                      const StatusIcon = cfg.icon;
                       const daysColor =
                         days > 15
                           ? "text-emerald-600"
@@ -446,11 +476,86 @@ export default function AdminRutasPage() {
           <FiActivity className="text-slate-300 dark:text-slate-600 shrink-0 mt-0.5" size={16} />
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
             Al activar un plan, la fecha de vencimiento se recalcula desde hoy.
-            Para bloquear una ruta manualmente se requiere un endpoint adicional
-            en el backend.
+            Las rutas nuevas se crean con membresía de prueba de 7 días.
           </p>
         </div>
       </div>
+
+      {/* ── Modal Nueva Ruta ──────────────────────────────────────── */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            onClick={() => setShowCreateModal(false)}
+          />
+          <div className="relative glass rounded-[2rem] p-8 w-full max-w-md shadow-2xl border border-white/60 dark:border-slate-700">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-7">
+              <div className="flex items-center gap-3">
+                <div className="bg-indigo-600 p-2.5 rounded-xl">
+                  <FiPlus className="text-white" size={18} />
+                </div>
+                <div>
+                  <h2 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-tight">
+                    Nueva Ruta
+                  </h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Membresía de prueba 7 días
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCrear} className="space-y-5">
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                  Nombre de la ruta
+                </label>
+                <input
+                  type="text"
+                  value={newNombre}
+                  onChange={(e) => setNewNombre(e.target.value)}
+                  placeholder="Ej: Ruta Norte, Tienda Centro..."
+                  autoFocus
+                  required
+                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-[13px] font-medium text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating || !newNombre.trim()}
+                  className="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95"
+                >
+                  {creating ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <FiPlus size={14} />
+                      Crear Ruta
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

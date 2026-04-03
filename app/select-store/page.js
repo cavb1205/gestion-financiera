@@ -4,15 +4,17 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
-import { 
-  FiArrowLeft, 
-  FiCheck, 
-  FiLogOut, 
-  FiShoppingCart, 
-  FiTrendingUp, 
+import {
+  FiArrowLeft,
+  FiCheck,
+  FiLogOut,
+  FiShoppingCart,
+  FiTrendingUp,
   FiDollarSign,
   FiShoppingBag,
-  FiActivity
+  FiActivity,
+  FiPlus,
+  FiX,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -25,6 +27,24 @@ export default function SelectStorePage() {
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newNombre, setNewNombre] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  const fetchStores = async () => {
+    try {
+      setLoading(true);
+      const response = await apiFetch(`/tiendas/list/tiendas/admin/`);
+      if (!response.ok) throw new Error("Error al obtener las tiendas asociadas");
+      const data = await response.json();
+      setStores(data);
+    } catch (err) {
+      setError(err.message || "Error al cargar las tiendas");
+      toast.error("Error al sincronizar sucursales");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!token) {
@@ -51,25 +71,6 @@ export default function SelectStorePage() {
       return;
     }
 
-    const fetchStores = async () => {
-      try {
-        setLoading(true);
-        const response = await apiFetch(`/tiendas/list/tiendas/admin/`);
-
-        if (!response.ok) {
-          throw new Error("Error al obtener las tiendas asociadas");
-        }
-
-        const data = await response.json();
-        setStores(data);
-      } catch (err) {
-        setError(err.message || "Error al cargar las tiendas");
-        toast.error("Error al sincronizar sucursales");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchStores();
   }, [token, router]);
 
@@ -80,6 +81,27 @@ export default function SelectStorePage() {
     router.push("/dashboard");
   };
 
+  const handleCrear = async (e) => {
+    e.preventDefault();
+    if (!newNombre.trim()) return;
+    setCreating(true);
+    try {
+      const response = await apiFetch("/tiendas/create/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: newNombre.trim(), administrador: user.id }),
+      });
+      if (!response.ok) throw new Error("Error al crear la ruta");
+      toast.success(`Ruta "${newNombre.trim()}" creada — membresía de prueba 7 días activa`);
+      setNewNombre("");
+      setShowCreateModal(false);
+      fetchStores();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
@@ -115,13 +137,22 @@ export default function SelectStorePage() {
              )}
           </div>
 
-          <button
-            onClick={logout}
-            className="flex items-center gap-2 md:gap-3 px-4 md:px-6 py-3 md:py-4 bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 rounded-xl md:rounded-2xl border border-white/5 hover:border-rose-500/30 transition-all font-black text-[10px] uppercase tracking-widest shadow-xl group shrink-0"
-          >
-            <FiLogOut size={14} className="group-hover:-translate-x-1 transition-transform" />
-            <span className="hidden md:inline">Cerrar Sesión</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 md:px-6 py-3 md:py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl md:rounded-2xl border border-indigo-500 transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-900/30 active:scale-95"
+            >
+              <FiPlus size={14} />
+              <span className="hidden md:inline">Nueva Ruta</span>
+            </button>
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 md:gap-3 px-4 md:px-6 py-3 md:py-4 bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 rounded-xl md:rounded-2xl border border-white/5 hover:border-rose-500/30 transition-all font-black text-[10px] uppercase tracking-widest shadow-xl group shrink-0"
+            >
+              <FiLogOut size={14} className="group-hover:-translate-x-1 transition-transform" />
+              <span className="hidden md:inline">Cerrar Sesión</span>
+            </button>
+          </div>
         </div>
 
         {error ? (
@@ -207,13 +238,15 @@ export default function SelectStorePage() {
                <FiShoppingCart size={40} />
             </div>
             <h2 className="text-3xl font-black text-white tracking-tight uppercase mb-6 italic leading-none">Sin Sucursales Asignadas</h2>
-            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest leading-loose mb-12">No hemos detectado ninguna sucursal operativa vinculada a su perfil de administrador core.</p>
+            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest leading-loose mb-12">
+              Aún no tienes rutas creadas. Crea tu primera ruta para comenzar.
+            </p>
             <button
-              onClick={logout}
-              className="px-12 py-6 bg-rose-600 hover:bg-rose-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all flex items-center gap-3 mx-auto"
+              onClick={() => setShowCreateModal(true)}
+              className="px-12 py-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all flex items-center gap-3 mx-auto active:scale-95"
             >
-              <FiLogOut size={16} />
-              Cerrar Sesión
+              <FiPlus size={16} />
+              Crear Primera Ruta
             </button>
           </div>
         )}
@@ -223,6 +256,82 @@ export default function SelectStorePage() {
       <div className="absolute bottom-10 left-10 opacity-5 pointer-events-none rotate-12">
         <FiTrendingUp size={300} className="text-white" />
       </div>
+
+      {/* ── Modal Nueva Ruta ──────────────────────────────────────── */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+            onClick={() => setShowCreateModal(false)}
+          />
+          <div className="relative bg-slate-900 border border-white/10 rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-7">
+              <div className="flex items-center gap-3">
+                <div className="bg-indigo-600 p-2.5 rounded-xl">
+                  <FiPlus className="text-white" size={18} />
+                </div>
+                <div>
+                  <h2 className="text-base font-black text-white uppercase tracking-tight">
+                    Nueva Ruta
+                  </h2>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    Membresía de prueba · 7 días
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-2 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all"
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCrear} className="space-y-5">
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                  Nombre de la ruta
+                </label>
+                <input
+                  type="text"
+                  value={newNombre}
+                  onChange={(e) => setNewNombre(e.target.value)}
+                  placeholder="Ej: Ruta Norte, Tienda Centro..."
+                  autoFocus
+                  required
+                  className="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-[13px] font-medium text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 py-3.5 bg-white/5 text-slate-300 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating || !newNombre.trim()}
+                  className="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg active:scale-95"
+                >
+                  {creating ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <FiPlus size={14} />
+                      Crear Ruta
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
