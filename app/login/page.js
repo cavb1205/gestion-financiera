@@ -49,11 +49,13 @@ export default function LoginPage() {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.detail || "Credenciales inválidas");
+        let msg = "Credenciales inválidas";
+        try { const e = await response.json(); msg = e.detail || msg; } catch {}
+        throw new Error(msg);
       }
+
+      const data = await response.json();
 
       login(data);
       toast.success("¡Bienvenido!", {
@@ -271,13 +273,20 @@ export default function LoginPage() {
           </form>
 
           {/* Register link */}
-          <div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/5 text-center">
+          <div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/5 text-center space-y-3">
             <p className="text-sm text-slate-500">
               ¿No tienes cuenta?{" "}
               <Link href="/register" className="font-black text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors">
                 Crear cuenta
               </Link>
             </p>
+            <Link
+              href="/guia-rapida"
+              className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-500 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              Ver guía rápida
+            </Link>
           </div>
         </div>
       </div>

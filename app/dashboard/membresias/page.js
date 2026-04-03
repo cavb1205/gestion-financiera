@@ -14,6 +14,8 @@ import {
   FiStar,
   FiShield,
   FiInfo,
+  FiMessageCircle,
+  FiArrowRight,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -251,17 +253,14 @@ export default function MembresiasPage() {
                   </p>
                 )}
 
-                <button
-                  // onClick={() => activarPlan("mensual")}
-                  disabled={true}
-                  className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-indigo-100 dark:shadow-none disabled:opacity-50"
+                <a
+                  href={`https://api.whatsapp.com/send?phone=${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP}&text=${encodeURIComponent(`Hola, quiero renovar al *Plan Mensual* (30 días) para la tienda *${selectedStore?.tienda?.nombre}*. Por favor indíqueme los datos de pago.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-indigo-100 dark:shadow-none hover:bg-indigo-700"
                 >
-                  {activating === "mensual" ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <><FiCheckCircle size={15} /> Activar Mensual</>
-                  )}
-                </button>
+                  <FiMessageCircle size={15} /> Solicitar Plan Mensual
+                </a>
               </div>
             </div>
 
@@ -288,28 +287,38 @@ export default function MembresiasPage() {
                   </p>
                 )}
 
-                <button
-                  // onClick={() => activarPlan("anual")}
-                  disabled={true}
-                  className="w-full py-3.5 bg-white text-slate-900 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-white/90 disabled:opacity-50"
+                <a
+                  href={`https://api.whatsapp.com/send?phone=${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP}&text=${encodeURIComponent(`Hola, quiero renovar al *Plan Anual* (365 días) para la tienda *${selectedStore?.tienda?.nombre}*. Por favor indíqueme los datos de pago.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 bg-white text-slate-900 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-white/90"
                 >
-                  {activating === "anual" ? (
-                    <div className="w-4 h-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
-                  ) : (
-                    <><FiStar size={15} /> Activar Anual</>
-                  )}
-                </button>
+                  <FiMessageCircle size={15} /> Solicitar Plan Anual
+                </a>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Info note */}
-        <div className="flex items-start gap-4 px-5 py-4 bg-white/40 dark:bg-slate-900/40 rounded-2xl border border-white/60 dark:border-slate-800/50">
-          <FiInfo className="text-slate-300 dark:text-slate-600 shrink-0 mt-0.5" size={16} />
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-            Al activar un plan, la fecha de vencimiento se extiende desde la fecha actual. Contacte al administrador del sistema para gestionar pagos y facturación.
-          </p>
+        {/* Proceso de pago */}
+        <div className="glass rounded-[1.5rem] p-6 border border-white/60 dark:border-slate-800">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">¿Cómo funciona?</p>
+          <div className="space-y-3">
+            {[
+              "Toca el botón del plan que quieres activar",
+              "Se abre WhatsApp con el mensaje ya escrito",
+              "Recibes los datos de la cuenta para transferir",
+              "Realizas el pago y nos confirmas",
+              "Activamos tu plan en minutos",
+            ].map((step, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="w-6 h-6 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-black flex items-center justify-center shrink-0">
+                  {i + 1}
+                </span>
+                <p className="text-[12px] font-semibold text-slate-600 dark:text-slate-300">{step}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
       </div>

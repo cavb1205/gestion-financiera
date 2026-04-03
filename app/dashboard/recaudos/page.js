@@ -197,7 +197,7 @@ export default function RecaudosPage() {
 
           <div className="flex items-center gap-3">
              <button 
-              onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+              onClick={() => { const d = new Date(); setSelectedDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`); }}
               className="px-6 py-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 font-black text-[10px] uppercase tracking-widest hover:text-indigo-600 transition-all shadow-sm"
              >
                Hoy

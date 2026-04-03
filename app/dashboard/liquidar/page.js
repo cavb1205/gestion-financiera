@@ -102,7 +102,7 @@ export default function LiquidarCreditosPage() {
    // Filtrado de búsqueda
    useEffect(() => {
       const filtered = creditos.filter(c => {
-         const fullName = `${c.cliente.nombres} ${c.cliente.apellidos}`.toLowerCase();
+         const fullName = `${c.cliente?.nombres ?? ''} ${c.cliente?.apellidos ?? ''}`.toLowerCase();
          return fullName.includes(searchTerm.toLowerCase());
       });
       setFilteredCreditos(filtered);

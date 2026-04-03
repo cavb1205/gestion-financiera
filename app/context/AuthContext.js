@@ -58,7 +58,6 @@ export const AuthProvider = ({ children }) => {
       const tokenExpired = tokenAge > 60 * 60 * 1000; // 60 minutos
       
       if (tokenExpired) {
-        console.log('Token expirado al cargar, limpiando sesión');
         clearAuth();
         setLoading(false);
         // Solo redirigir si no estamos ya en login
@@ -78,14 +77,9 @@ export const AuthProvider = ({ children }) => {
       
       // Programar expiración basada en el tiempo restante real
       const timeLeft = Math.max(0, 60 * 60 * 1000 - tokenAge);
-      console.log(`Token válido, expira en ${Math.round(timeLeft / 60000)} minutos`);
-      
-      // Limpiar timeout anterior si existe y programar nuevo
+
       clearTimeout(tokenTimeoutRef.current);
-      tokenTimeoutRef.current = setTimeout(() => {
-        console.log('Token expirado por timeout');
-        logout();
-      }, timeLeft);
+      tokenTimeoutRef.current = setTimeout(logout, timeLeft);
     } catch (error) {
       console.error('Error parsing auth data:', error);
       clearAuth();
@@ -112,7 +106,6 @@ export const AuthProvider = ({ children }) => {
             const tokenAge = now - parseInt(tokenTimestamp, 10);
             // Intentar refresh proactivo a los 55 minutos
             if (tokenAge > 55 * 60 * 1000 && tokenAge <= 60 * 60 * 1000) {
-                console.log('Token próximo a expirar, intentando refresh proactivo');
                 const newToken = await tryRefreshToken();
                 if (newToken) {
                     setToken(newToken);
@@ -120,7 +113,6 @@ export const AuthProvider = ({ children }) => {
                     tokenTimeoutRef.current = setTimeout(logout, 60 * 60 * 1000);
                 }
             } else if (tokenAge > 60 * 60 * 1000) {
-                console.log('Token expirado detectado por intervalo');
                 logout();
             }
         }

@@ -38,11 +38,6 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 
 
-Lo que queda por hacer
-
-3	Búsqueda Global — buscador en el header del layout, busca en clientes/ventas/recaudos	Media
-
-5	Bloqueo de rutas + auto-vencimiento — pendiente del endpoint backend que te pasé	Baja (con endpoint)
 
 
 
