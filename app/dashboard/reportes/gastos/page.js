@@ -100,7 +100,7 @@ export default function ReporteGastosPage() {
     if (fechasListas && selectedStore) {
       generarReporte();
     }
-  }, [fechasListas, selectedStore]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fechasListas, selectedStore]);
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 

@@ -109,7 +109,6 @@ export default function DashboardPage() {
     });
     fetchTienda();
     fetchAlertas();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore.tienda.id]);
 
   if (authLoading || !tienda) {
