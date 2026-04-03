@@ -72,6 +72,7 @@ export default function SelectStorePage() {
     }
 
     fetchStores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, router]);
 
   const handleSelectStore = (store) => {
