@@ -19,6 +19,7 @@ import {
    FiPhone,
    FiMapPin,
    FiMessageCircle,
+   FiDollarSign,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -34,6 +35,7 @@ export default function LiquidarCreditosPage() {
    const [recaudos, setRecaudos] = useState([]);
    const [creditosActivos, setCreditosActivos] = useState([]);
    const [filteredCreditos, setFilteredCreditos] = useState([]);
+   const [caja, setCaja] = useState(null);
    const [loading, setLoading] = useState(true);
    const [selectedDate, setSelectedDate] = useState("");
    const [currentPage, setCurrentPage] = useState(1);
@@ -72,15 +74,17 @@ export default function LiquidarCreditosPage() {
                return res.json();
             };
 
-            const [creditosData, activosData, recaudosData] = await Promise.all([
+            const [creditosData, activosData, recaudosData, tiendaData] = await Promise.all([
                fetchJson(`/ventas/activas/liquidar/${selectedDate}/t/${selectedStore.tienda.id}/`),
                fetchJson(`/ventas/activas/t/${selectedStore.tienda.id}/`),
                fetchJson(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`),
+               fetchJson(`/tiendas/detail/`),
             ]);
 
             setCreditos(Array.isArray(creditosData) ? creditosData : []);
             setCreditosActivos(Array.isArray(activosData) ? activosData : []);
             setRecaudos(Array.isArray(recaudosData) ? recaudosData : []);
+            if (tiendaData?.tienda?.caja !== undefined) setCaja(tiendaData.tienda.caja);
             setFilteredCreditos(Array.isArray(creditosData) ? creditosData : []);
          } catch (error) {
             console.error("Error:", error);
@@ -237,6 +241,26 @@ export default function LiquidarCreditosPage() {
                   </button>
                </div>
             </div>
+
+            {/* Caja Disponible — solo workers */}
+            {isWorker && caja !== null && (
+               <div className={`flex items-center justify-between px-6 py-5 rounded-[1.5rem] md:rounded-[2rem] mb-6 border ${caja >= 0 ? 'bg-emerald-600 border-emerald-500 shadow-xl shadow-emerald-200 dark:shadow-none' : 'bg-rose-600 border-rose-500 shadow-xl shadow-rose-200 dark:shadow-none'}`}>
+                  <div className="flex items-center gap-4">
+                     <div className="p-2.5 bg-white/20 rounded-xl">
+                        <FiDollarSign className="text-white" size={22} />
+                     </div>
+                     <div>
+                        <p className="text-[9px] font-black text-white/70 uppercase tracking-[0.25em]">Caja Disponible</p>
+                        <p className="text-2xl md:text-3xl font-black text-white tracking-tighter leading-none">{formatMoney(caja)}</p>
+                     </div>
+                  </div>
+                  <div className="text-right">
+                     <p className="text-[9px] font-black text-white/60 uppercase tracking-widest">
+                        {caja >= 0 ? 'Para nuevos créditos' : 'Saldo negativo'}
+                     </p>
+                  </div>
+               </div>
+            )}
 
             {/* Global Metrics Area */}
             <div className="grid grid-cols-3 gap-3 md:gap-6 mb-8">

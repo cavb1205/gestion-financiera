@@ -33,6 +33,7 @@ import {
   FiKey,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
+import { formatMoney } from "../utils/format";
 import { useTheme } from "../context/ThemeContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -306,6 +307,12 @@ export default function DashboardLayout({ children }) {
                 <div>
                   <p className="text-xs font-black truncate">{profile?.trabajador || "Usuario"}</p>
                   <p className="text-[10px] text-slate-400 font-bold truncate max-w-[180px]">{storeInfo?.nombre}</p>
+                  {isWorker && selectedStore?.tienda?.caja !== undefined && (
+                    <div className={`mt-1.5 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest w-fit ${selectedStore.tienda.caja >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600' : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600'}`}>
+                      <FiDollar size={10} />
+                      Caja: {formatMoney(selectedStore.tienda.caja)}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -441,6 +448,12 @@ export default function DashboardLayout({ children }) {
                     {isAdmin ? 'ADMIN' : 'COBRADOR'}
                   </span>
                 </div>
+                {isWorker && selectedStore?.tienda?.caja !== undefined && (
+                  <div className={`mt-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest w-fit ${selectedStore.tienda.caja >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600' : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600'}`}>
+                    <FiDollar size={10} />
+                    Caja: {formatMoney(selectedStore.tienda.caja)}
+                  </div>
+                )}
               </div>
             </div>
 
