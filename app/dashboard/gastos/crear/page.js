@@ -21,7 +21,8 @@ import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../../../utils/format";
 
 export default function CrearGastoPage() {
-  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading, user } = useAuth();
+  const isWorker = !(user?.is_staff || user?.is_superuser);
   const router = useRouter();
   const [formData, setFormData] = useState({
     tipo_gasto: "",
@@ -159,14 +160,21 @@ export default function CrearGastoPage() {
                               <FiCalendar className="text-rose-500" size={14} />
                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</span>
                            </div>
-                           <input
-                             type="date"
-                             name="fecha"
-                             value={formData.fecha}
-                             onChange={handleChange}
-                             required
-                             className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white outline-none"
-                           />
+                           {isWorker ? (
+                             <div className="w-full px-5 py-3.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
+                               <span className="text-[13px] font-black text-slate-800 dark:text-white">{formData.fecha}</span>
+                               <FiCalendar className="text-slate-400" size={14} />
+                             </div>
+                           ) : (
+                             <input
+                               type="date"
+                               name="fecha"
+                               value={formData.fecha}
+                               onChange={handleChange}
+                               required
+                               className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white outline-none"
+                             />
+                           )}
                         </div>
 
                         {/* Valor */}

@@ -29,7 +29,8 @@ import Pagination from "../../components/Pagination";
 
 export default function VentasPage() {
   const router = useRouter();
-  const { selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading, user } = useAuth();
+  const isWorker = !(user?.is_staff || user?.is_superuser);
   const [ventas, setVentas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -171,7 +172,7 @@ export default function VentasPage() {
             >
               <FiActivity size={20} className="group-hover:rotate-12 transition-transform" />
             </button>
-            <Link 
+            <Link
               href="/dashboard/ventas/nueva"
               className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all"
             >

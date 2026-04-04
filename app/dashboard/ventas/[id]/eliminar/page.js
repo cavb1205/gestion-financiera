@@ -25,7 +25,7 @@ export default function EliminarVentaPage() {
   const router = useRouter();
   const params = useParams();
   const ventaId = params.id;
-  const { selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading, user } = useAuth();
   
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -43,7 +43,11 @@ export default function EliminarVentaPage() {
     if (!loading && (!isAuthenticated || !selectedStore)) {
       router.push("/select-store");
     }
-  }, [loading, isAuthenticated, selectedStore, router]);
+    const isWorker = !(user?.is_staff || user?.is_superuser);
+    if (!loading && isAuthenticated && isWorker) {
+      router.push("/dashboard/ventas");
+    }
+  }, [loading, isAuthenticated, selectedStore, user, router]);
 
   const fetchVenta = async () => {
     try {

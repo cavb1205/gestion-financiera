@@ -38,7 +38,8 @@ function NuevaVentaContent() {
   const searchParams = useSearchParams();
   const clienteIdParam = searchParams.get("clienteId");
   
-  const { selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading, user } = useAuth();
+  const isWorker = !(user?.is_staff || user?.is_superuser);
 
   const [formData, setFormData] = useState({
     fecha_venta: new Date(),
@@ -360,14 +361,25 @@ function NuevaVentaContent() {
                          <FiCalendar className="text-indigo-500" size={14} />
                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</span>
                       </div>
-                      <div className="relative group custom-datepicker">
-                        <DatePicker
-                          selected={formData.fecha_venta}
-                          onChange={(date) => setFormData({ ...formData, fecha_venta: date })}
-                          className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white transition-all outline-none"
-                          dateFormat="dd/MM/yyyy"
-                        />
-                      </div>
+                      {isWorker ? (
+                        <div className="w-full px-5 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
+                          <span className="text-[13px] font-black text-slate-800 dark:text-white">
+                            {formData.fecha_venta instanceof Date
+                              ? `${String(formData.fecha_venta.getDate()).padStart(2,'0')}/${String(formData.fecha_venta.getMonth()+1).padStart(2,'0')}/${formData.fecha_venta.getFullYear()}`
+                              : ""}
+                          </span>
+                          <FiCalendar className="text-slate-400" size={14} />
+                        </div>
+                      ) : (
+                        <div className="relative group custom-datepicker">
+                          <DatePicker
+                            selected={formData.fecha_venta}
+                            onChange={(date) => setFormData({ ...formData, fecha_venta: date })}
+                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white transition-all outline-none"
+                            dateFormat="dd/MM/yyyy"
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 px-1">
@@ -410,12 +422,19 @@ function NuevaVentaContent() {
                            <FiPercent className="text-indigo-500" size={14} />
                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Interés %</span>
                         </div>
-                        <input
-                          type="number"
-                          value={formData.interes}
-                          onChange={(e) => setFormData({ ...formData, interes: e.target.value })}
-                          className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
-                        />
+                        {isWorker ? (
+                          <div className="w-full px-5 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
+                            <span className="text-[13px] font-black text-slate-800 dark:text-white">{formData.interes}%</span>
+                            <FiPercent className="text-slate-400" size={14} />
+                          </div>
+                        ) : (
+                          <input
+                            type="number"
+                            value={formData.interes}
+                            onChange={(e) => setFormData({ ...formData, interes: e.target.value })}
+                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                          />
+                        )}
                      </div>
                      <div className="space-y-4">
                         <div className="flex items-center gap-2 px-1">

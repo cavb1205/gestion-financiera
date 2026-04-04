@@ -38,7 +38,8 @@ export default function VentaDetailPage() {
   const router = useRouter();
   const params = useParams();
   const ventaId = params.id;
-  const { selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading, user } = useAuth();
+  const isWorker = !(user?.is_staff || user?.is_superuser);
 
   const [venta, setVenta] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -523,9 +524,11 @@ export default function VentaDetailPage() {
           <button onClick={handleRegistrarPago} className="flex-1 md:flex-none px-6 py-3.5 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
             <FiPlus size={16} /> Registrar Abono
           </button>
-          <button onClick={() => router.push(`/dashboard/ventas/${ventaId}/editar`)} className="px-5 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:bg-slate-50 active:scale-95 transition-all flex items-center gap-2">
-            <FiEdit size={16} /> Editar
-          </button>
+          {!isWorker && (
+            <button onClick={() => router.push(`/dashboard/ventas/${ventaId}/editar`)} className="px-5 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:bg-slate-50 active:scale-95 transition-all flex items-center gap-2">
+              <FiEdit size={16} /> Editar
+            </button>
+          )}
           <a
             href={whatsappUrl}
             target="_blank"
@@ -534,17 +537,21 @@ export default function VentaDetailPage() {
           >
             <FiMessageCircle size={16} /> WhatsApp
           </a>
-          {venta.estado_venta === "Vencido" && (
+          {!isWorker && venta.estado_venta === "Vencido" && (
             <button onClick={openRenovarModal} className="px-5 py-3.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm border border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-100 active:scale-95 transition-all flex items-center gap-2">
               <FiRefreshCw size={16} /> Renovar
             </button>
           )}
-          <button onClick={() => setShowLossModal(true)} className="px-5 py-3.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm border border-rose-100 dark:border-rose-900/30 hover:bg-rose-100 active:scale-95 transition-all flex items-center gap-2">
-            <FiAlertTriangle size={16} /> Pérdida
-          </button>
-          <button onClick={() => router.push(`/dashboard/ventas/${ventaId}/eliminar`)} className="px-5 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-rose-500 dark:text-rose-400 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:bg-rose-50 dark:hover:bg-rose-900/20 active:scale-95 transition-all flex items-center gap-2">
-            <FiTrash2 size={16} /> Eliminar
-          </button>
+          {!isWorker && (
+            <button onClick={() => setShowLossModal(true)} className="px-5 py-3.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm border border-rose-100 dark:border-rose-900/30 hover:bg-rose-100 active:scale-95 transition-all flex items-center gap-2">
+              <FiAlertTriangle size={16} /> Pérdida
+            </button>
+          )}
+          {!isWorker && (
+            <button onClick={() => router.push(`/dashboard/ventas/${ventaId}/eliminar`)} className="px-5 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-rose-500 dark:text-rose-400 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:bg-rose-50 dark:hover:bg-rose-900/20 active:scale-95 transition-all flex items-center gap-2">
+              <FiTrash2 size={16} /> Eliminar
+            </button>
+          )}
         </div>
 
         {/* Resumen Financiero Top Metrics */}
@@ -707,7 +714,7 @@ export default function VentaDetailPage() {
                       <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</th>
                       <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Concepto</th>
                       <th className="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Abono</th>
-                      <th className="px-8 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Acciones</th>
+                      {!isWorker && <th className="px-8 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Acciones</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -745,12 +752,14 @@ export default function VentaDetailPage() {
                             <td className="px-8 py-5 text-right">
                               <span className={`text-sm font-black ${valor > 0 ? 'text-emerald-600' : 'text-slate-300'}`}>{formatMoney(valor)}</span>
                             </td>
-                            <td className="px-8 py-5 text-center">
-                              <div className="flex items-center justify-center gap-3">
-                                {valor > 0 && <button onClick={() => setEditingRecaudo(pago)} className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-indigo-600 transition-colors"><FiEdit size={14} /></button>}
-                                <button onClick={() => setDeletingRecaudo(pago)} className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-rose-600 transition-colors"><FiTrash2 size={14} /></button>
-                              </div>
-                            </td>
+                            {!isWorker && (
+                              <td className="px-8 py-5 text-center">
+                                <div className="flex items-center justify-center gap-3">
+                                  {valor > 0 && <button onClick={() => setEditingRecaudo(pago)} className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-indigo-600 transition-colors"><FiEdit size={14} /></button>}
+                                  <button onClick={() => setDeletingRecaudo(pago)} className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-lg hover:text-rose-600 transition-colors"><FiTrash2 size={14} /></button>
+                                </div>
+                              </td>
+                            )}
                           </tr>
                         )
                       })

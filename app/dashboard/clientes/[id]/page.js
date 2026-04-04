@@ -38,7 +38,8 @@ import { formatMoney } from "../../../utils/format";
 
 export default function DetalleCliente({ params }) {
   const router = useRouter();
-  const { selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading, user } = useAuth();
+  const isWorker = !(user?.is_staff || user?.is_superuser);
   const [cliente, setCliente] = useState(null);
   const [creditos, setCreditos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -409,12 +410,14 @@ export default function DetalleCliente({ params }) {
             <FiEdit size={16} />
             Modificar Perfil
           </button>
-          <button
-            onClick={() => router.push(`/dashboard/clientes/${clienteId}/eliminar`)}
-            className="p-3.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl hover:bg-rose-100 active:scale-95 transition-all border border-rose-100 dark:border-rose-900/30"
-          >
-            <FiTrash2 size={18} />
-          </button>
+          {!isWorker && (
+            <button
+              onClick={() => router.push(`/dashboard/clientes/${clienteId}/eliminar`)}
+              className="p-3.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl hover:bg-rose-100 active:scale-95 transition-all border border-rose-100 dark:border-rose-900/30"
+            >
+              <FiTrash2 size={18} />
+            </button>
+          )}
         </div>
 
         {/* Malla de Indicadores Financieros */}

@@ -30,6 +30,7 @@ import {
   FiMoon,
   FiHelpCircle,
   FiBookOpen,
+  FiKey,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -43,13 +44,13 @@ import OnboardingTour from "../components/OnboardingTour";
 const allMenuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: FiHome, adminOnly: true },
   { path: '/dashboard/aportes', label: 'Gestión Aportes', icon: FiDollar, adminOnly: true },
-  { path: '/dashboard/gastos', label: 'Control Gastos', icon: FiTrendingDown, adminOnly: true },
+  { path: '/dashboard/gastos', label: 'Control Gastos', icon: FiTrendingDown },
   { path: '/dashboard/utilidades', label: 'Utilidades', icon: FiTrendingUp, adminOnly: true },
-  { path: '/dashboard/ventas', label: 'Ventas Activas', icon: FiShoppingCart, adminOnly: true },
+  { path: '/dashboard/ventas', label: 'Ventas Activas', icon: FiShoppingCart },
   { path: '/dashboard/ventas/perdidas', label: 'Ventas Pérdida', icon: FiTrendingDown, adminOnly: true },
   { path: '/dashboard/liquidar', label: 'Liquidación', icon: FiCheckCircle },
   { path: '/dashboard/recaudos', label: 'Recaudos', icon: FiPackage },
-  { path: '/dashboard/clientes', label: 'Clientes', icon: FiUsers, adminOnly: true },
+  { path: '/dashboard/clientes', label: 'Clientes', icon: FiUsers },
   { path: '/dashboard/trabajadores', label: 'Trabajadores', icon: FiUsers, adminOnly: true },
   { path: '/dashboard/sueldos', label: 'Cálculo Sueldo', icon: FiTablet, adminOnly: true },
   { path: '/dashboard/cierre-caja', label: 'Cierre de Caja', icon: FiCreditCard },
@@ -118,7 +119,7 @@ export default function DashboardLayout({ children }) {
   }, [loading, isAuthenticated, selectedStore, router]);
 
   // Route guard: redirect workers away from admin-only pages
-  const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja'];
+  const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja', '/dashboard/ventas', '/dashboard/clientes', '/dashboard/gastos', '/dashboard/perfil'];
   useEffect(() => {
     if (!loading && isAuthenticated && isWorker) {
       const isAllowed = workerAllowedPaths.some(p => pathname.startsWith(p));
@@ -308,7 +309,7 @@ export default function DashboardLayout({ children }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
@@ -326,6 +327,14 @@ export default function DashboardLayout({ children }) {
                 >
                   <FiBookOpen size={16} />
                   Guía
+                </Link>
+                <Link
+                  href="/dashboard/perfil"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 py-3.5 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all active:scale-95"
+                >
+                  <FiKey size={16} />
+                  Clave
                 </Link>
                 <button
                   onClick={() => {
@@ -465,13 +474,22 @@ export default function DashboardLayout({ children }) {
                 <FiLogOut size={16} />
               </button>
             </div>
-            <Link
-              href="/guia-rapida"
-              className="mt-2 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
-            >
-              <FiBookOpen size={13} />
-              Guía Rápida
-            </Link>
+            <div className="grid grid-cols-2 gap-1 mt-2">
+              <Link
+                href="/guia-rapida"
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
+              >
+                <FiBookOpen size={13} />
+                Guía
+              </Link>
+              <Link
+                href="/dashboard/perfil"
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all"
+              >
+                <FiKey size={13} />
+                Contraseña
+              </Link>
+            </div>
           </div>
         </div>
       </aside>

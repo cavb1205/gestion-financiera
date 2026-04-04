@@ -24,7 +24,8 @@ import { apiFetch } from "../../utils/api";
 import Pagination from "../../components/Pagination";
 
 export default function CierreCajaPage() {
-  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading, user } = useAuth();
+  const isWorker = !(user?.is_staff || user?.is_superuser);
   const router = useRouter();
 
   const [cierres, setCierres] = useState([]);
@@ -228,13 +229,20 @@ export default function CierreCajaPage() {
             <label htmlFor="fecha-cierre" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
               Fecha del Cierre
             </label>
-            <input
-              id="fecha-cierre"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="block w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 transition-all"
-            />
+            {isWorker ? (
+              <div className="block w-full px-6 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
+                <span className="text-[13px] font-bold text-slate-800 dark:text-white">{selectedDate}</span>
+                <FiCalendar className="text-slate-400" size={14} />
+              </div>
+            ) : (
+              <input
+                id="fecha-cierre"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="block w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 transition-all"
+              />
+            )}
           </div>
 
           {/* Caja Anterior */}

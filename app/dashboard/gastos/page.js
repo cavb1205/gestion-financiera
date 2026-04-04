@@ -30,7 +30,8 @@ import { formatMoney, parseMoney } from "../../utils/format";
 import Pagination from "../../components/Pagination";
 
 export default function GastosPage() {
-  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading, user } = useAuth();
+  const isWorker = !(user?.is_staff || user?.is_superuser);
   const [gastos, setGastos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tiposGasto, setTiposGasto] = useState([]);
@@ -305,7 +306,7 @@ export default function GastosPage() {
                   <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Clasificación</th>
                   <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Descripción / Nota</th>
                   <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Importe</th>
-                  <th className="px-4 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Acciones</th>
+                  {!isWorker && <th className="px-4 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -350,22 +351,24 @@ export default function GastosPage() {
                           {formatMoney(gasto.valor)}
                         </p>
                       </td>
-                      <td className="px-4 py-6 whitespace-nowrap text-center">
-                        <div className="flex items-center justify-center gap-2">
-                           <button 
-                            onClick={() => router.push(`/dashboard/gastos/${gasto.id}/editar`)}
-                            className="p-3 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-indigo-600 hover:shadow-lg transition-all"
-                           >
+                      {!isWorker && (
+                        <td className="px-4 py-6 whitespace-nowrap text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => router.push(`/dashboard/gastos/${gasto.id}/editar`)}
+                              className="p-3 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-indigo-600 hover:shadow-lg transition-all"
+                            >
                               <FiEdit size={16} />
-                           </button>
-                           <button 
-                            onClick={() => setGastoToDelete(gasto)}
-                            className="p-3 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-rose-600 hover:shadow-lg transition-all"
-                           >
+                            </button>
+                            <button
+                              onClick={() => setGastoToDelete(gasto)}
+                              className="p-3 bg-white dark:bg-slate-800 text-slate-400 rounded-xl hover:text-rose-600 hover:shadow-lg transition-all"
+                            >
                               <FiTrash2 size={16} />
-                           </button>
-                        </div>
-                      </td>
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}

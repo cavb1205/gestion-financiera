@@ -25,7 +25,7 @@ export default function EliminarCliente() {
   const router = useRouter();
   const params = useParams();
   const clienteId = params.id;
-  const { selectedStore, isAuthenticated, loading } = useAuth();
+  const { selectedStore, isAuthenticated, loading, user } = useAuth();
   
   const [cliente, setCliente] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,7 +45,11 @@ export default function EliminarCliente() {
     if (!loading && (!isAuthenticated || !selectedStore)) {
       router.push("/select-store");
     }
-  }, [loading, isAuthenticated, selectedStore, router]);
+    const isWorker = !(user?.is_staff || user?.is_superuser);
+    if (!loading && isAuthenticated && isWorker) {
+      router.push("/dashboard/clientes");
+    }
+  }, [loading, isAuthenticated, selectedStore, user, router]);
 
   const fetchCliente = async () => {
     try {

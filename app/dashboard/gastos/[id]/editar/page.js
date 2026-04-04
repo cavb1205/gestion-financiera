@@ -24,7 +24,7 @@ import { formatMoney } from "../../../../utils/format";
 export default function EditarGastoPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading, user } = useAuth();
   const [formData, setFormData] = useState({
     tipo_gasto: "",
     fecha: "",
@@ -69,8 +69,13 @@ export default function EditarGastoPage() {
       }
     };
 
+    const isWorker = !(user?.is_staff || user?.is_superuser);
+    if (!authLoading && isAuthenticated && isWorker) {
+      router.push("/dashboard/gastos");
+      return;
+    }
     if (isAuthenticated && id) fetchData();
-  }, [isAuthenticated, id]);
+  }, [isAuthenticated, authLoading, user, id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

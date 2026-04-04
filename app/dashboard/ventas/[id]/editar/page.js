@@ -29,8 +29,8 @@ export default function EditarVentaPage() {
   const router = useRouter();
   const params = useParams();
   const ventaId = params.id;
-  const { selectedStore, isAuthenticated, loading } = useAuth();
-  
+  const { selectedStore, isAuthenticated, loading, user } = useAuth();
+
   const [formData, setFormData] = useState({
     fecha_venta: new Date(),
     valor_venta: "",
@@ -56,7 +56,11 @@ export default function EditarVentaPage() {
     if (!loading && (!isAuthenticated || !selectedStore)) {
       router.push("/select-store");
     }
-  }, [loading, isAuthenticated, selectedStore, router]);
+    const isWorker = !(user?.is_staff || user?.is_superuser);
+    if (!loading && isAuthenticated && isWorker) {
+      router.push("/dashboard/ventas");
+    }
+  }, [loading, isAuthenticated, selectedStore, user, router]);
 
   const fetchVenta = async () => {
     try {
