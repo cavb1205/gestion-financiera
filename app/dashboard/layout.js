@@ -109,7 +109,7 @@ export default function DashboardLayout({ children }) {
   }, [isAuthenticated, selectedStore]);
 
   useEffect(() => {
-    if (!loading && (!isAuthenticated || !selectedStore)) {
+    if (!loading && (!isAuthenticated || (!selectedStore && user?.username !== 'root'))) {
       router.push("/login");
     } else if (selectedStore) {
       setStoreInfo({
@@ -117,7 +117,7 @@ export default function DashboardLayout({ children }) {
         id: selectedStore.tienda.id,
       });
     }
-  }, [loading, isAuthenticated, selectedStore, router]);
+  }, [loading, isAuthenticated, selectedStore, user, router]);
 
   // Route guard: redirect workers away from admin-only pages
   const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja', '/dashboard/ventas', '/dashboard/clientes', '/dashboard/gastos', '/dashboard/perfil'];
@@ -171,7 +171,7 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  if (!isAuthenticated || !selectedStore) {
+  if (!isAuthenticated || (!selectedStore && user?.username !== 'root')) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <LoadingSpinner />

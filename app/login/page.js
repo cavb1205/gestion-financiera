@@ -64,6 +64,12 @@ export default function LoginPage() {
         theme: "dark",
       });
 
+      // Root user: go directly to admin routes dashboard
+      if (data.user.username === 'root') {
+        router.push("/dashboard/admin/rutas");
+        return;
+      }
+
       // Workers: auto-select their store and go to liquidar
       const isWorker = !(data.user.is_staff || data.user.is_superuser);
       if (isWorker) {
