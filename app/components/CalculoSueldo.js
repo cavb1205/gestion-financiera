@@ -12,9 +12,16 @@ import {
   FiUserCheck,
   FiCalendar,
   FiHash,
+  FiPlusCircle,
+  FiSave,
+  FiX,
+  FiTag,
+  FiInfo,
+  FiArrowDownRight,
 } from "react-icons/fi";
 import { formatMoney } from "../utils/format";
 import { apiFetch } from "../utils/api";
+import { toast } from "react-toastify";
 
 const CalculoSueldo = ({ tienda }) => {
   const [fechaInicio, setFechaInicio] = useState("");
@@ -23,6 +30,12 @@ const CalculoSueldo = ({ tienda }) => {
   const [resultados, setResultados] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
+
+  // Gasto modal state
+  const [showGastoModal, setShowGastoModal] = useState(false);
+  const [tiposGasto, setTiposGasto] = useState([]);
+  const [gastoForm, setGastoForm] = useState({ tipo_gasto: "", valor: "", comentario: "", fecha: "" });
+  const [submittingGasto, setSubmittingGasto] = useState(false);
 
   const getLocalDateString = (date) => {
     const year = date.getFullYear();
@@ -55,6 +68,54 @@ const CalculoSueldo = ({ tienda }) => {
     setFechaInicio(getLocalDateString(lunes));
     setFechaFin(getLocalDateString(sabado));
     setPorcentaje(3.0);
+  };
+
+  const abrirModalGasto = async () => {
+    try {
+      const res = await apiFetch(`/gastos/tipo/`);
+      const tipos = res.ok ? await res.json() : [];
+      setTiposGasto(Array.isArray(tipos) ? tipos : []);
+
+      const sueldoTipo = tipos.find((t) =>
+        t.tipo_gasto?.toLowerCase().includes("sueldo")
+      );
+
+      const today = new Date();
+      const fecha = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
+        .toISOString()
+        .split("T")[0];
+
+      setGastoForm({
+        tipo_gasto: sueldoTipo ? String(sueldoTipo.id) : "",
+        valor: String(resultados.sueldo_calculado),
+        comentario: `Sueldo vendedor — ${resultados.fecha_inicio} al ${resultados.fecha_fin}`,
+        fecha,
+      });
+      setShowGastoModal(true);
+    } catch {
+      toast.error("No se pudieron cargar las categorías de gasto.");
+    }
+  };
+
+  const registrarGasto = async (e) => {
+    e.preventDefault();
+    setSubmittingGasto(true);
+    try {
+      const res = await apiFetch(`/gastos/create/t/${tienda.tienda.id}/`, {
+        method: "POST",
+        body: JSON.stringify(gastoForm),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || err.message || "Error al registrar el gasto.");
+      }
+      toast.success("Gasto de sueldo registrado correctamente.");
+      setShowGastoModal(false);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSubmittingGasto(false);
+    }
   };
 
   const calcularSueldo = async (e) => {
@@ -265,7 +326,136 @@ const CalculoSueldo = ({ tienda }) => {
                   <FiUserCheck size={28} />
                 </div>
               </div>
+
+              {/* Register expense button */}
+              <button
+                type="button"
+                onClick={abrirModalGasto}
+                className="w-full flex items-center justify-center gap-3 py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-rose-100 dark:shadow-none"
+              >
+                <FiPlusCircle size={16} />
+                Registrar como Gasto
+              </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Gasto Modal */}
+      {showGastoModal && (
+        <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowGastoModal(false)} />
+          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-7 py-5 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest leading-none mb-1">Egreso</p>
+                <h3 className="text-base font-black text-slate-800 dark:text-white tracking-tight">Registrar Sueldo como Gasto</h3>
+              </div>
+              <button
+                onClick={() => setShowGastoModal(false)}
+                className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl transition-all"
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={registrarGasto} className="p-7 space-y-5">
+              {/* Categoría */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <FiTag className="text-rose-500" size={13} />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Categoría</span>
+                </div>
+                <div className="relative">
+                  <select
+                    value={gastoForm.tipo_gasto}
+                    onChange={(e) => setGastoForm((p) => ({ ...p, tipo_gasto: e.target.value }))}
+                    required
+                    className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all appearance-none outline-none"
+                  >
+                    <option value="">Seleccione categoría</option>
+                    {tiposGasto.map((t) => (
+                      <option key={t.id} value={t.id}>{t.tipo_gasto}</option>
+                    ))}
+                  </select>
+                  <FiArrowDownRight className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300" size={15} />
+                </div>
+              </div>
+
+              {/* Valor */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <FiDollarSign className="text-rose-500" size={13} />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monto</span>
+                </div>
+                <div className="relative">
+                  <FiDollarSign className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-500" size={20} />
+                  <input
+                    type="number"
+                    value={gastoForm.valor}
+                    onChange={(e) => setGastoForm((p) => ({ ...p, valor: e.target.value }))}
+                    required
+                    min="0"
+                    step="any"
+                    className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-xl font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Fecha */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <FiCalendar className="text-rose-500" size={13} />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</span>
+                </div>
+                <input
+                  type="date"
+                  value={gastoForm.fecha}
+                  onChange={(e) => setGastoForm((p) => ({ ...p, fecha: e.target.value }))}
+                  required
+                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all outline-none"
+                />
+              </div>
+
+              {/* Comentario */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <FiInfo className="text-rose-500" size={13} />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Justificación</span>
+                </div>
+                <textarea
+                  value={gastoForm.comentario}
+                  onChange={(e) => setGastoForm((p) => ({ ...p, comentario: e.target.value }))}
+                  rows={2}
+                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all outline-none resize-none"
+                  placeholder="Observaciones..."
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowGastoModal(false)}
+                  className="flex-1 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingGasto || !gastoForm.tipo_gasto || !gastoForm.valor}
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 shadow-lg shadow-rose-100 dark:shadow-none"
+                >
+                  {submittingGasto ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <><FiSave size={14} /> Confirmar Gasto</>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
