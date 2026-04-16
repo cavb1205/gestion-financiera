@@ -264,7 +264,7 @@ function NuevaVentaContent() {
         <form onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           <div className="xl:col-span-8 space-y-8">
             <div className="glass p-8 md:p-12 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10 pb-28 md:pb-0">
                 {/* Left Column: Client & Core Terms */}
                 <div className="space-y-8">
                   <div className="space-y-4">
@@ -355,7 +355,27 @@ function NuevaVentaContent() {
                     </div>
                   </div>
 
+                  {/* Capital — visible en móvil en la columna izquierda (order-last en lg) */}
+                  <div className="space-y-4 lg:hidden">
+                    <div className="flex items-center gap-2 px-1">
+                       <FiDollarSign className="text-indigo-500" size={14} />
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Inversión (Capital)</span>
+                    </div>
+                    <div className="relative group">
+                      <FiDollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 transition-colors pointer-events-none" size={24} />
+                      <input
+                        type="number"
+                        value={formData.valor_venta}
+                        onChange={(e) => setFormData({ ...formData, valor_venta: e.target.value })}
+                        onWheel={(e) => e.target.blur()}
+                        placeholder="0"
+                        className="w-full pl-16 pr-6 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-2xl font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                      />
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
+                    {/* Fecha */}
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 px-1">
                          <FiCalendar className="text-indigo-500" size={14} />
@@ -381,6 +401,7 @@ function NuevaVentaContent() {
                         </div>
                       )}
                     </div>
+                    {/* Cuotas */}
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 px-1">
                          <FiActivity className="text-indigo-500" size={14} />
@@ -393,11 +414,45 @@ function NuevaVentaContent() {
                         className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                       />
                     </div>
+                    {/* Interés % — visible en móvil dentro de la columna izquierda */}
+                    <div className="space-y-4 lg:hidden">
+                      <div className="flex items-center gap-2 px-1">
+                         <FiPercent className="text-indigo-500" size={14} />
+                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Interés %</span>
+                      </div>
+                      {isWorker ? (
+                        <div className="w-full px-5 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
+                          <span className="text-[13px] font-black text-slate-800 dark:text-white">{formData.interes}%</span>
+                          <FiPercent className="text-slate-400" size={14} />
+                        </div>
+                      ) : (
+                        <input
+                          type="number"
+                          value={formData.interes}
+                          onChange={(e) => setFormData({ ...formData, interes: e.target.value })}
+                          className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                        />
+                      )}
+                    </div>
+                    {/* Nota — visible en móvil dentro de la columna izquierda */}
+                    <div className="space-y-4 lg:hidden">
+                      <div className="flex items-center gap-2 px-1">
+                         <FiInfo className="text-indigo-500" size={14} />
+                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nota</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={formData.comentario}
+                        onChange={(e) => setFormData({ ...formData, comentario: e.target.value })}
+                        placeholder="Ob..."
+                        className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* Right Column: Financial Parameters */}
-                <div className="space-y-8">
+                {/* Right Column: Financial Parameters — solo visible en desktop (lg+) */}
+                <div className="hidden lg:block space-y-8">
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 px-1">
                        <FiDollarSign className="text-indigo-500" size={14} />
