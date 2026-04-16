@@ -63,24 +63,46 @@ export default function LiquidarCreditosPage() {
       }
    }, [isWorker]);
 
-   // Solicitar permiso GPS proactivamente al montar (solo workers)
+   // Verificar/solicitar permiso GPS (solo workers)
    useEffect(() => {
       if (!isWorker || typeof navigator === "undefined" || !navigator.geolocation) {
          if (isWorker) setGpsPermission("denied");
          return;
       }
-      navigator.geolocation.getCurrentPosition(
-         () => setGpsPermission("granted"),
-         (error) => {
-            if (error.code === error.PERMISSION_DENIED) {
-               setGpsPermission("denied");
-            } else {
-               // Timeout u otro error técnico — el permiso sí existe, solo falló la señal
-               setGpsPermission("granted");
-            }
-         },
-         { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
-      );
+
+      const checkPermission = () => {
+         if (navigator.permissions) {
+            navigator.permissions.query({ name: "geolocation" }).then((result) => {
+               if (result.state === "granted") {
+                  setGpsPermission("granted");
+               } else if (result.state === "denied") {
+                  setGpsPermission("denied");
+               } else {
+                  // "prompt" — disparar el diálogo nativo
+                  navigator.geolocation.getCurrentPosition(
+                     () => setGpsPermission("granted"),
+                     (error) => setGpsPermission(error.code === error.PERMISSION_DENIED ? "denied" : "granted"),
+                     { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+                  );
+               }
+            });
+         } else {
+            navigator.geolocation.getCurrentPosition(
+               () => setGpsPermission("granted"),
+               (error) => setGpsPermission(error.code === error.PERMISSION_DENIED ? "denied" : "granted"),
+               { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+            );
+         }
+      };
+
+      checkPermission();
+
+      // Re-verificar cuando el usuario vuelve a la pestaña (ej. después de cambiar ajustes)
+      const handleVisibility = () => {
+         if (document.visibilityState === "visible") checkPermission();
+      };
+      document.addEventListener("visibilitychange", handleVisibility);
+      return () => document.removeEventListener("visibilitychange", handleVisibility);
    }, [isWorker]);
 
    // Obtener datos
