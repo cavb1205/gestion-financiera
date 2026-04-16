@@ -31,6 +31,7 @@ import {
   FiHelpCircle,
   FiBookOpen,
   FiKey,
+  FiMapPin,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { formatMoney } from "../utils/format";
@@ -62,6 +63,7 @@ const allMenuItems = [
       { path: '/dashboard/reportes/gastos', label: 'Gastos', icon: FiDollar },
       { path: '/dashboard/reportes/visitas', label: 'Visitas', icon: FiEye },
       { path: '/dashboard/reportes/comparativo', label: 'Comparativo', icon: FiBarChart2 },
+      { path: '/dashboard/reportes/ubicaciones', label: 'Mapa de Cobros', icon: FiMapPin },
     ]
   },
   { path: '/dashboard/membresias', label: 'Membresía', icon: FiShield, adminOnly: true },

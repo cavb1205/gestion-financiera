@@ -15,12 +15,14 @@ import {
   FiShield,
   FiInfo,
   FiTrendingDown,
-  FiTarget
+  FiTarget,
+  FiMapPin
 } from "react-icons/fi";
 import Link from "next/link";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, roundMoney } from "../../../utils/format";
 import { apiFetch } from "../../../utils/api";
+import { captureLocation } from "../../../utils/geolocation";
 
 export default function PagarAbonoPage() {
   const { isAuthenticated, selectedStore, loading: authLoading } = useAuth();
@@ -31,6 +33,7 @@ export default function PagarAbonoPage() {
   const [cliente, setCliente] = useState(null);
   const [valorAbono, setValorAbono] = useState(0);
   const [maximoAbonable, setMaximoAbonable] = useState(0);
+  const [gpsStatus, setGpsStatus] = useState("idle"); // idle | capturing | ok | fail
 
   useEffect(() => {
     const storedAbono = localStorage.getItem("abono");
@@ -74,7 +77,11 @@ export default function PagarAbonoPage() {
     }
 
     setSubmitting(true);
-    const abonoToSend = { ...abono, valor_recaudo: valorNumerico };
+    setGpsStatus("capturing");
+    const location = await captureLocation();
+    setGpsStatus(location ? "ok" : "fail");
+
+    const abonoToSend = { ...abono, valor_recaudo: valorNumerico, ...(location || {}) };
 
     try {
       const response = await apiFetch(
@@ -170,6 +177,16 @@ export default function PagarAbonoPage() {
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Fecha</p>
                           <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-none">{abono?.fecha_recaudo}</p>
                         </div>
+                        <FiMapPin
+                          size={14}
+                          className={`ml-auto shrink-0 transition-colors ${
+                            gpsStatus === "ok" ? "text-emerald-500" :
+                            gpsStatus === "fail" ? "text-slate-300" :
+                            gpsStatus === "capturing" ? "text-amber-400 animate-pulse" :
+                            "text-slate-300"
+                          }`}
+                          title={gpsStatus === "ok" ? "GPS capturado" : gpsStatus === "fail" ? "Sin GPS" : "GPS..."}
+                        />
                       </div>
 
                       <button

@@ -5,20 +5,22 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { 
-  FiArrowLeft, 
-  FiAlertTriangle, 
-  FiCheck, 
-  FiUser, 
-  FiCalendar, 
-  FiMessageSquare, 
-  FiShield, 
+import {
+  FiArrowLeft,
+  FiAlertTriangle,
+  FiCheck,
+  FiUser,
+  FiCalendar,
+  FiMessageSquare,
+  FiShield,
   FiInfo,
   FiXCircle,
-  FiActivity
+  FiActivity,
+  FiMapPin
 } from "react-icons/fi";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { apiFetch } from "@/app/utils/api";
+import { captureLocation } from "@/app/utils/geolocation";
 
 export default function ReportarFallaPage() {
   const { isAuthenticated, selectedStore, loading: authLoading } = useAuth();
@@ -29,6 +31,7 @@ export default function ReportarFallaPage() {
   const [tipoFalla, setTipoFalla] = useState("");
   const [comentario, setComentario] = useState("");
   const [cliente, setCliente] = useState(null);
+  const [gpsStatus, setGpsStatus] = useState("idle"); // idle | capturing | ok | fail
 
   useEffect(() => {
     const storedNoPago = localStorage.getItem("noPago");
@@ -63,8 +66,13 @@ export default function ReportarFallaPage() {
     }
 
     setSubmitting(true);
+    setGpsStatus("capturing");
+    const location = await captureLocation();
+    setGpsStatus(location ? "ok" : "fail");
+
     const updatedNoPago = {
       ...noPago,
+      ...(location || {}),
       visita_blanco: { comentario, tipo_falla: tipoFalla },
     };
 
@@ -177,6 +185,16 @@ export default function ReportarFallaPage() {
                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Fecha</p>
                                    <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-none">{noPago?.fecha_recaudo}</p>
                                 </div>
+                                <FiMapPin
+                                  size={14}
+                                  className={`ml-auto shrink-0 transition-colors ${
+                                    gpsStatus === "ok" ? "text-emerald-500" :
+                                    gpsStatus === "fail" ? "text-slate-300" :
+                                    gpsStatus === "capturing" ? "text-amber-400 animate-pulse" :
+                                    "text-slate-300"
+                                  }`}
+                                  title={gpsStatus === "ok" ? "GPS capturado" : gpsStatus === "fail" ? "Sin GPS" : "GPS..."}
+                                />
                              </div>
                              
                              <button 

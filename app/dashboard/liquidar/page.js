@@ -31,6 +31,8 @@ import Pagination from "../../components/Pagination";
 export default function LiquidarCreditosPage() {
    const { selectedStore, user, isAuthenticated, loading: authLoading } = useAuth();
    const isWorker = !(user?.is_staff || user?.is_superuser);
+   const [gpsPermission, setGpsPermission] = useState(null); // null | "granted" | "denied" | "prompt"
+   const [gpsBannerDismissed, setGpsBannerDismissed] = useState(false);
    const [creditos, setCreditos] = useState([]);
    const [recaudos, setRecaudos] = useState([]);
    const [creditosActivos, setCreditosActivos] = useState([]);
@@ -59,6 +61,26 @@ export default function LiquidarCreditosPage() {
          const storedDate = localStorage.getItem("liquidarFecha");
          setSelectedDate(storedDate || formattedDate);
       }
+   }, [isWorker]);
+
+   // Solicitar permiso GPS proactivamente al montar (solo workers)
+   useEffect(() => {
+      if (!isWorker || typeof navigator === "undefined" || !navigator.geolocation) {
+         if (isWorker) setGpsPermission("denied");
+         return;
+      }
+      navigator.geolocation.getCurrentPosition(
+         () => setGpsPermission("granted"),
+         (error) => {
+            if (error.code === error.PERMISSION_DENIED) {
+               setGpsPermission("denied");
+            } else {
+               // Timeout u otro error técnico — el permiso sí existe, solo falló la señal
+               setGpsPermission("granted");
+            }
+         },
+         { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+      );
    }, [isWorker]);
 
    // Obtener datos
@@ -241,6 +263,20 @@ export default function LiquidarCreditosPage() {
                   </button>
                </div>
             </div>
+
+            {/* Banner GPS — solo workers cuando el permiso no está concedido */}
+            {isWorker && !gpsBannerDismissed && gpsPermission === "denied" && (
+               <div className="flex items-start gap-4 px-5 py-4 mb-6 bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-[1.5rem]">
+                  <FiMapPin className="text-rose-500 shrink-0 mt-0.5" size={16} />
+                  <div className="flex-1 min-w-0">
+                     <p className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest leading-none mb-1">Ubicación bloqueada</p>
+                     <p className="text-[9px] font-bold text-rose-400 uppercase tracking-tight leading-relaxed">
+                        Para activarla: abre la configuración de tu navegador → Permisos del sitio → Ubicación → permite esta página. Los cobros funcionan sin GPS pero quedarán sin ubicación registrada.
+                     </p>
+                  </div>
+                  <button onClick={() => setGpsBannerDismissed(true)} className="text-rose-300 hover:text-rose-500 transition-colors shrink-0 text-lg leading-none">&times;</button>
+               </div>
+            )}
 
             {/* Caja Disponible — solo workers */}
             {isWorker && caja !== null && (
