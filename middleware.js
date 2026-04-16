@@ -13,7 +13,7 @@ export function middleware(request) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
   // Permisos de funcionalidades del navegador
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
 
   // Forzar HTTPS en producción
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
