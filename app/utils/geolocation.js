@@ -14,13 +14,13 @@ export function captureLocation() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         resolve({
-          latitud: pos.coords.latitude,
-          longitud: pos.coords.longitude,
+          latitud: parseFloat(pos.coords.latitude.toFixed(7)),
+          longitud: parseFloat(pos.coords.longitude.toFixed(7)),
           precision_gps: pos.coords.accuracy,
         });
       },
       () => resolve(null),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
     );
   });
 }
