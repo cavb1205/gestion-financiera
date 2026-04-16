@@ -13,6 +13,7 @@ import {
   FiCreditCard,
   FiBarChart2,
   FiTrendingDown,
+  FiMapPin,
 } from "react-icons/fi";
 
 const GUIDE_SECTIONS = [
@@ -60,8 +61,9 @@ const GUIDE_SECTIONS = [
       'Toca "Registrar Pago" cuando el cliente pague',
       "Ingresa el monto recibido y confirma",
       'Si no encontraste al cliente, usa "Visita Fallida" con el motivo',
+      "El sistema captura tu ubicación GPS automáticamente al confirmar",
     ],
-    tip: "El teléfono y la dirección del cliente siempre están visibles en la lista — no necesitas salir a buscarlo.",
+    tip: "Permite el acceso a tu ubicación cuando el navegador lo solicite — así queda registrado dónde se realizó cada cobro.",
   },
   {
     id: "whatsapp",
@@ -156,6 +158,22 @@ const GUIDE_SECTIONS = [
       "Los datos se calculan automático con toda la información registrada",
     ],
     tip: "El reporte de Cartera muestra el envejecimiento de la mora: 1–5 días, 6–15 días, 16–30 días y más de 30 días.",
+  },
+  {
+    id: "mapa",
+    colorHex: "#4f46e5",
+    colorLight: "#eef2ff",
+    colorBorder: "#c7d2fe",
+    icon: FiMapPin,
+    title: "10. Mapa de cobros en campo",
+    steps: [
+      'Ve a "Reportes" → "Mapa de Cobros" (solo administradores)',
+      "Selecciona la fecha que quieres revisar",
+      "El mapa muestra la ruta exacta que hizo el cobrador ese día",
+      "Punto verde = cobro recibido · Punto rojo = visita fallida",
+      "Los cobros sin ubicación aparecen en la lista inferior",
+    ],
+    tip: "Verifica que los cobradores realmente salieron a campo: si un cobro no tiene punto en el mapa, el GPS estaba desactivado al momento de registrarlo.",
   },
 ];
 
@@ -325,7 +343,7 @@ export default function GuiaRapidaPage() {
               Contacta a tu administrador o escríbenos por WhatsApp.
             </p>
             <p className="text-[10px] text-slate-400 mt-2 uppercase tracking-widest font-bold">
-              carterafinanciera.com · Guía v1.0
+              carterafinanciera.com · Guía v1.1 · Actualizado abril 2026
             </p>
           </div>
 
