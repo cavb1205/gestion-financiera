@@ -124,7 +124,7 @@ export default function DashboardLayout({ children }) {
   }, [loading, isAuthenticated, selectedStore, user, router]);
 
   // Route guard: redirect workers away from admin-only pages
-  const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja', '/dashboard/ventas', '/dashboard/clientes', '/dashboard/gastos', '/dashboard/perfil'];
+  const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja', '/dashboard/ventas', '/dashboard/clientes', '/dashboard/gastos', '/dashboard/perfil', '/dashboard/publicidad'];
   useEffect(() => {
     if (!loading && isAuthenticated && isWorker) {
       const isAllowed = workerAllowedPaths.some(p => pathname.startsWith(p));
