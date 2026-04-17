@@ -175,6 +175,41 @@ const GUIDE_SECTIONS = [
     ],
     tip: "Verifica que los cobradores realmente salieron a campo: si un cobro no tiene punto en el mapa, el GPS estaba desactivado al momento de registrarlo.",
   },
+  {
+    id: "publicidad-worker",
+    colorHex: "#7c3aed",
+    colorLight: "#f5f3ff",
+    colorBorder: "#ddd6fe",
+    icon: FiMapPin,
+    title: "11. Marcar puntos de publicidad (cobrador)",
+    steps: [
+      'Ve a "Publicidad" en el menú lateral',
+      "Permite el acceso a tu ubicación si el navegador lo solicita",
+      'Toca el botón "Marcar punto aquí" en cada local que visites',
+      "Escribe una nota opcional con el nombre del local (ej: Panadería La Esquina)",
+      'Toca "Marcar" — el GPS se captura automáticamente',
+      "El punto aparece en tu lista del día con la hora exacta",
+      "Puedes borrar un punto tocando el ícono de basura (solo del día actual)",
+    ],
+    tip: "Sin GPS activado el botón queda bloqueado. Si ves el banner rojo, activa la ubicación en la configuración del navegador.",
+  },
+  {
+    id: "publicidad-admin",
+    colorHex: "#0891b2",
+    colorLight: "#ecfeff",
+    colorBorder: "#a5f3fc",
+    icon: FiMapPin,
+    title: "12. Mapa de publicidad (administrador)",
+    steps: [
+      'Ve a "Reportes" → "Mapa de Publicidad" (solo administradores)',
+      "Selecciona la fecha que quieres revisar",
+      "Filtra por trabajador si quieres ver la ruta de uno solo",
+      "El mapa muestra todos los puntos marcados en orden cronológico",
+      "Toca cualquier punto para ver la hora y nota del local visitado",
+      "La lista inferior detalla cada punto con hora y nombre del trabajador",
+    ],
+    tip: "Usa el filtro de trabajador para comparar cuántos puntos marcó cada cobrador en el mismo día — útil para verificar quién realmente salió a terreno.",
+  },
 ];
 
 export default function GuiaRapidaPage() {
@@ -343,7 +378,7 @@ export default function GuiaRapidaPage() {
               Contacta a tu administrador o escríbenos por WhatsApp.
             </p>
             <p className="text-[10px] text-slate-400 mt-2 uppercase tracking-widest font-bold">
-              carterafinanciera.com · Guía v1.1 · Actualizado abril 2026
+              carterafinanciera.com · Guía v1.2 · Actualizado abril 2026
             </p>
           </div>
 
