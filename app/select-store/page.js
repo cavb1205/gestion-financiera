@@ -30,6 +30,8 @@ export default function SelectStorePage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newNombre, setNewNombre] = useState("");
   const [creating, setCreating] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState(null);
+  const [removing, setRemoving] = useState(false);
 
   const fetchStores = async () => {
     try {
@@ -79,6 +81,22 @@ export default function SelectStorePage() {
     selectStore(store);
     toast.success(`Accediendo a ${store.tienda.nombre}`, { autoClose: 1500 });
     router.push("/dashboard");
+  };
+
+  const handleRemove = async () => {
+    if (!removeTarget) return;
+    setRemoving(true);
+    try {
+      const res = await apiFetch(`/tiendas/${removeTarget.tienda.id}/admin/remove/`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast.success(`"${removeTarget.tienda.nombre}" quitada de tu lista`);
+      setRemoveTarget(null);
+      fetchStores();
+    } catch {
+      toast.error("No se pudo quitar la tienda");
+    } finally {
+      setRemoving(false);
+    }
   };
 
   const handleCrear = async (e) => {
@@ -177,6 +195,14 @@ export default function SelectStorePage() {
                 onClick={() => handleSelectStore(store)}
                 className="glass group cursor-pointer border-white/5 hover:border-emerald-500/50 transition-all duration-300 rounded-[2.5rem] overflow-hidden hover:scale-[1.02] active:scale-[0.98] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative"
               >
+                {/* Botón quitar (top-left, visible en hover) */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setRemoveTarget(store); }}
+                  className="absolute top-4 left-4 z-10 p-2 rounded-xl bg-white/5 text-slate-600 opacity-0 group-hover:opacity-100 hover:bg-rose-500/20 hover:text-rose-400 transition-all"
+                  title="Quitar de mi lista"
+                >
+                  <FiX size={14} />
+                </button>
                 {/* Visual indicator of selection on hover */}
                 <div className="absolute top-0 right-0 p-8 transform translate-x-10 -translate-y-10 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-500 opacity-0 group-hover:opacity-100">
                    <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-2xl">
@@ -256,6 +282,41 @@ export default function SelectStorePage() {
       <div className="absolute bottom-10 left-10 opacity-5 pointer-events-none rotate-12">
         <FiTrendingUp size={300} className="text-white" />
       </div>
+
+      {/* ── Modal Quitar tienda ──────────────────────────────────── */}
+      {removeTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setRemoveTarget(null)} />
+          <div className="relative bg-slate-900 border border-white/10 rounded-[2rem] p-8 w-full max-w-sm shadow-2xl">
+            <h2 className="text-base font-black text-white uppercase tracking-tight mb-2">
+              Quitar de tu lista
+            </h2>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+              {removeTarget.tienda.nombre}
+            </p>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-7">
+              La tienda y sus datos no se eliminan — solo deja de aparecer en tu panel.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setRemoveTarget(null)}
+                className="flex-1 py-3.5 bg-white/5 text-slate-300 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleRemove}
+                disabled={removing}
+                className="flex-1 py-3.5 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+              >
+                {removing ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : "Quitar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal Nueva Ruta ──────────────────────────────────────── */}
       {showCreateModal && (
