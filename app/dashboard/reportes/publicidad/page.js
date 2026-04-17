@@ -142,7 +142,7 @@ export default function PublicidadReportePage() {
                   <option value="">Todos</option>
                   {trabajadores.map((t) => (
                     <option key={t.id} value={String(t.id)}>
-                      {t.trabajador?.first_name} {t.trabajador?.last_name}
+                      {t.trabajador}
                     </option>
                   ))}
                 </select>
