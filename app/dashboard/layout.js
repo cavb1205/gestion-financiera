@@ -52,6 +52,7 @@ const allMenuItems = [
   { path: '/dashboard/ventas/perdidas', label: 'Ventas Pérdida', icon: FiTrendingDown, adminOnly: true },
   { path: '/dashboard/liquidar', label: 'Liquidación', icon: FiCheckCircle },
   { path: '/dashboard/recaudos', label: 'Recaudos', icon: FiPackage },
+  { path: '/dashboard/publicidad', label: 'Publicidad', icon: FiMapPin },
   { path: '/dashboard/clientes', label: 'Clientes', icon: FiUsers },
   { path: '/dashboard/trabajadores', label: 'Trabajadores', icon: FiUsers, adminOnly: true },
   { path: '/dashboard/sueldos', label: 'Cálculo Sueldo', icon: FiTablet, adminOnly: true },
@@ -64,6 +65,7 @@ const allMenuItems = [
       { path: '/dashboard/reportes/visitas', label: 'Visitas', icon: FiEye },
       { path: '/dashboard/reportes/comparativo', label: 'Comparativo', icon: FiBarChart2 },
       { path: '/dashboard/reportes/ubicaciones', label: 'Mapa de Cobros', icon: FiMapPin },
+      { path: '/dashboard/reportes/publicidad', label: 'Mapa de Publicidad', icon: FiMapPin },
     ]
   },
   { path: '/dashboard/membresias', label: 'Membresía', icon: FiShield, adminOnly: true },
@@ -206,6 +208,7 @@ export default function DashboardLayout({ children }) {
                         isActive("/dashboard/sueldos") ? "Sueldos" :
                           isActive("/dashboard/liquidar") ? "Créditos" :
                             isActive("/dashboard/recaudos") ? "Recaudos" :
+                              isActive("/dashboard/publicidad") ? "Publicidad" :
                               isActive("/dashboard/cierre-caja") ? "Cierre de Caja" :
                                 isActive("/dashboard/reportes") ? "Reportes" :
                                   isActive("/dashboard/membresias") ? "Membresía" : "Dashboard"}
