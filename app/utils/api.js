@@ -3,31 +3,43 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+// Singleton: si ya hay un refresh en vuelo, todas las llamadas comparten la misma promesa
+// para evitar que dos refreshes simultáneos invaliden el token del otro.
+let refreshPromise = null;
+
 /**
  * Intenta renovar el access token usando el refresh token.
  * Retorna el nuevo token o null si falla.
+ * Garantiza que solo haya una petición de refresh activa a la vez.
  */
 async function tryRefreshToken() {
-  const refreshToken = localStorage.getItem('refreshToken');
-  if (!refreshToken) return null;
+  if (refreshPromise) return refreshPromise;
 
-  try {
-    const res = await fetch(`${API_URL}/token/refresh/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh: refreshToken }),
-    });
+  refreshPromise = (async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) return null;
 
-    if (!res.ok) return null;
+    try {
+      const res = await fetch(`${API_URL}/token/refresh/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh: refreshToken }),
+      });
 
-    const data = await res.json();
-    // Simple JWT retorna { access: "..." }
-    localStorage.setItem('authToken', data.access);
-    localStorage.setItem('tokenTimestamp', new Date().getTime().toString());
-    return data.access;
-  } catch {
-    return null;
-  }
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      localStorage.setItem('authToken', data.access);
+      localStorage.setItem('tokenTimestamp', new Date().getTime().toString());
+      return data.access;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 /**

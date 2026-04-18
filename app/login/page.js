@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/app/context/AuthContext";
+import { apiFetch } from "@/app/utils/api";
 import { useTheme } from "@/app/context/ThemeContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -43,9 +44,8 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login/`, {
+      const response = await apiFetch("/login/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
 
@@ -74,10 +74,7 @@ export default function LoginPage() {
       const isWorker = !(data.user.is_staff || data.user.is_superuser);
       if (isWorker) {
         try {
-          const storeRes = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/tiendas/detail/`,
-            { headers: { Authorization: `Bearer ${data.token}` } }
-          );
+          const storeRes = await apiFetch("/tiendas/detail/");
           if (storeRes.ok) {
             const storeData = await storeRes.json();
             selectStore(storeData);

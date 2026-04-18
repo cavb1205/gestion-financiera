@@ -1,5 +1,5 @@
 // Incrementar VERSION al desplegar cambios para forzar actualización de caché
-const VERSION = '2';
+const VERSION = '3';
 const CACHE_NAME = `cartera-shell-v${VERSION}`;
 const STATIC_CACHE = `cartera-static-v${VERSION}`;
 const API_HOST = self.location.hostname;

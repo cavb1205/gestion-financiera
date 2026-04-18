@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
 import {
-  FiArrowLeft,
   FiCheck,
   FiLogOut,
   FiShoppingCart,
@@ -22,7 +21,7 @@ import { formatMoney } from "../utils/format";
 import { apiFetch } from "../utils/api";
 
 export default function SelectStorePage() {
-  const { token, logout, selectStore, user } = useAuth();
+  const { logout, selectStore, user } = useAuth();
   const router = useRouter();
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,13 +48,25 @@ export default function SelectStorePage() {
   };
 
   useEffect(() => {
-    if (!token) {
+    // Leer localStorage directamente — evita race conditions con el estado de React
+    const storedToken = localStorage.getItem('authToken');
+    const tokenTimestamp = localStorage.getItem('tokenTimestamp');
+
+    if (!storedToken || !tokenTimestamp) {
       router.push("/login");
       return;
     }
 
-    // Workers should not be on this page — auto-select their store
-    const isWorker = !(user?.is_staff || user?.is_superuser);
+    const tokenAge = Date.now() - parseInt(tokenTimestamp, 10);
+    if (tokenAge > 60 * 60 * 1000) {
+      router.push("/login");
+      return;
+    }
+
+    const storedUser = localStorage.getItem('userData');
+    const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+    const isWorker = !(parsedUser?.is_staff || parsedUser?.is_superuser);
+
     if (isWorker) {
       const autoSelectWorkerStore = async () => {
         try {
@@ -74,7 +85,8 @@ export default function SelectStorePage() {
     }
 
     fetchStores();
-  }, [token, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSelectStore = (store) => {
     if (!store) return;

@@ -42,6 +42,8 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import SessionTimeout from "../components/SessionTimeout";
 import OnboardingTour from "../components/OnboardingTour";
 
+const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja', '/dashboard/ventas', '/dashboard/clientes', '/dashboard/gastos', '/dashboard/perfil', '/dashboard/publicidad'];
+
 // Menu items with role restrictions: adminOnly = true means only visible to admins (is_staff)
 const allMenuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: FiHome, adminOnly: true },
@@ -116,6 +118,10 @@ export default function DashboardLayout({ children }) {
     if (!loading && (!isAuthenticated || (!selectedStore && user?.username !== 'root'))) {
       router.push("/login");
     } else if (selectedStore) {
+      if (!selectedStore.tienda?.id) {
+        router.push("/select-store");
+        return;
+      }
       setStoreInfo({
         nombre: selectedStore.tienda.nombre,
         id: selectedStore.tienda.id,
@@ -124,7 +130,6 @@ export default function DashboardLayout({ children }) {
   }, [loading, isAuthenticated, selectedStore, user, router]);
 
   // Route guard: redirect workers away from admin-only pages
-  const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja', '/dashboard/ventas', '/dashboard/clientes', '/dashboard/gastos', '/dashboard/perfil', '/dashboard/publicidad'];
   useEffect(() => {
     if (!loading && isAuthenticated && isWorker) {
       const isAllowed = workerAllowedPaths.some(p => pathname.startsWith(p));
