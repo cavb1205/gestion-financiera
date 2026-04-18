@@ -18,20 +18,23 @@ import {
 import { useAuth } from "@/app/context/AuthContext";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { apiFetch } from "@/app/utils/api";
+import { useForm } from "@/app/hooks/useForm";
+import FormField, { inputClass } from "@/app/components/FormField";
+
+const INITIAL = {
+  first_name: "",
+  last_name: "",
+  username: "",
+  password: "",
+  identificacion: "",
+  telefono: "",
+  direccion: "",
+};
 
 export default function CrearTrabajadorPage() {
   const router = useRouter();
   const { selectedStore, isAuthenticated, loading } = useAuth();
-  const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    username: "",
-    password: "",
-    identificacion: "",
-    telefono: "",
-    direccion: "",
-  });
-  const [errors, setErrors] = useState({});
+  const { values, errors, setErrors, handleChange } = useForm(INITIAL);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -42,21 +45,12 @@ export default function CrearTrabajadorPage() {
     }
   }, [loading, isAuthenticated, selectedStore, router]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
-    }
-    if (submitError) setSubmitError("");
-  };
-
   const validateForm = () => {
     const newErrors = {};
     ["first_name", "last_name", "username", "password", "identificacion"].forEach((field) => {
-      if (!formData[field].trim()) newErrors[field] = "Campo obligatorio";
+      if (!values[field].trim()) newErrors[field] = "Campo obligatorio";
     });
-    if (formData.password && formData.password.length < 6) {
+    if (values.password && values.password.length < 6) {
       newErrors.password = "Mínimo 6 caracteres";
     }
     setErrors(newErrors);
@@ -72,10 +66,7 @@ export default function CrearTrabajadorPage() {
     try {
       const response = await apiFetch(
         `/trabajadores/create/t/${selectedStore.tienda.id}/`,
-        {
-          method: "POST",
-          body: JSON.stringify(formData),
-        }
+        { method: "POST", body: JSON.stringify(values) }
       );
 
       if (!response.ok) {
@@ -105,7 +96,6 @@ export default function CrearTrabajadorPage() {
     <div className="min-h-screen bg-transparent pb-20 md:pb-12">
       <div className="max-w-4xl mx-auto px-4 md:px-0">
 
-        {/* Compact Header */}
         <div className="flex items-center gap-4 mb-8">
           <button
             onClick={() => router.push("/dashboard/trabajadores")}
@@ -120,7 +110,6 @@ export default function CrearTrabajadorPage() {
         </div>
 
         <div className="glass rounded-[2rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl">
-          {/* Desktop header bar */}
           <div className="hidden md:block bg-slate-900 dark:bg-indigo-600 p-8 text-white relative overflow-hidden">
             <div className="relative z-10 flex items-center gap-5">
               <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-md">
@@ -155,7 +144,7 @@ export default function CrearTrabajadorPage() {
               <form onSubmit={handleSubmit} className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
 
-                  {/* Left: Identidad */}
+                  {/* Identidad */}
                   <div className="space-y-5">
                     <div className="flex items-center gap-2 px-1">
                       <FiShield className="text-indigo-500" size={14} />
@@ -163,116 +152,50 @@ export default function CrearTrabajadorPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <label htmlFor="first_name" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres *</label>
-                        <input
-                          id="first_name"
-                          type="text"
-                          name="first_name"
-                          value={formData.first_name}
-                          onChange={handleChange}
-                          className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.first_name ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
-                        />
-                        {errors.first_name && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.first_name}</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <label htmlFor="last_name" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos *</label>
-                        <input
-                          id="last_name"
-                          type="text"
-                          name="last_name"
-                          value={formData.last_name}
-                          onChange={handleChange}
-                          className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.last_name ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
-                        />
-                        {errors.last_name && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.last_name}</p>}
-                      </div>
+                      <FormField label="Nombres *" error={errors.first_name}>
+                        <input id="first_name" type="text" name="first_name" value={values.first_name} onChange={handleChange} className={inputClass(!!errors.first_name)} />
+                      </FormField>
+                      <FormField label="Apellidos *" error={errors.last_name}>
+                        <input id="last_name" type="text" name="last_name" value={values.last_name} onChange={handleChange} className={inputClass(!!errors.last_name)} />
+                      </FormField>
                     </div>
 
-                    <div className="space-y-2">
-                      <label htmlFor="identificacion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Documento *</label>
+                    <FormField label="Documento *" error={errors.identificacion}>
                       <div className="relative">
                         <FiCreditCard className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
-                        <input
-                          id="identificacion"
-                          type="text"
-                          name="identificacion"
-                          value={formData.identificacion}
-                          onChange={handleChange}
-                          placeholder="Número de identificación"
-                          className={`w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.identificacion ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
-                        />
+                        <input id="identificacion" type="text" name="identificacion" value={values.identificacion} onChange={handleChange} placeholder="Número de identificación" className={inputClass(!!errors.identificacion, "pl-12 pr-5")} />
                       </div>
-                      {errors.identificacion && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.identificacion}</p>}
-                    </div>
+                    </FormField>
 
-                    <div className="space-y-2">
-                      <label htmlFor="telefono" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono</label>
+                    <FormField label="Teléfono">
                       <div className="relative">
                         <FiPhone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
-                        <input
-                          id="telefono"
-                          type="tel"
-                          name="telefono"
-                          value={formData.telefono}
-                          onChange={handleChange}
-                          className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
-                        />
+                        <input id="telefono" type="tel" name="telefono" value={values.telefono} onChange={handleChange} className={inputClass(false, "pl-12 pr-5")} />
                       </div>
-                    </div>
+                    </FormField>
 
-                    <div className="space-y-2">
-                      <label htmlFor="direccion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección</label>
+                    <FormField label="Dirección">
                       <div className="relative">
                         <FiMapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
-                        <input
-                          id="direccion"
-                          type="text"
-                          name="direccion"
-                          value={formData.direccion}
-                          onChange={handleChange}
-                          className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
-                        />
+                        <input id="direccion" type="text" name="direccion" value={values.direccion} onChange={handleChange} className={inputClass(false, "pl-12 pr-5")} />
                       </div>
-                    </div>
+                    </FormField>
                   </div>
 
-                  {/* Right: Credenciales */}
+                  {/* Credenciales */}
                   <div className="space-y-5">
                     <div className="flex items-center gap-2 px-1">
                       <FiLock className="text-indigo-500" size={14} />
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Credenciales de Acceso</span>
                     </div>
 
-                    <div className="space-y-2">
-                      <label htmlFor="username" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Usuario (Login) *</label>
-                      <input
-                        id="username"
-                        type="text"
-                        name="username"
-                        value={formData.username}
-                        onChange={handleChange}
-                        placeholder="Nombre de usuario único"
-                        autoComplete="off"
-                        className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.username ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
-                      />
-                      {errors.username && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.username}</p>}
-                    </div>
+                    <FormField label="Usuario (Login) *" error={errors.username}>
+                      <input id="username" type="text" name="username" value={values.username} onChange={handleChange} placeholder="Nombre de usuario único" autoComplete="off" className={inputClass(!!errors.username)} />
+                    </FormField>
 
-                    <div className="space-y-2">
-                      <label htmlFor="password" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Contraseña *</label>
-                      <input
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        placeholder="Mínimo 6 caracteres"
-                        autoComplete="new-password"
-                        className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.password ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
-                      />
-                      {errors.password && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.password}</p>}
-                    </div>
+                    <FormField label="Contraseña *" error={errors.password}>
+                      <input id="password" type="password" name="password" value={values.password} onChange={handleChange} placeholder="Mínimo 6 caracteres" autoComplete="new-password" className={inputClass(!!errors.password)} />
+                    </FormField>
 
                     <div className="mt-4 p-5 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/20 rounded-2xl">
                       <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest leading-relaxed">
@@ -282,7 +205,6 @@ export default function CrearTrabajadorPage() {
                   </div>
                 </div>
 
-                {/* Sticky Action Bar */}
                 <div className="fixed bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-[100] md:relative md:bottom-auto md:bg-transparent md:border-t-0 md:p-0 md:backdrop-blur-none md:z-auto md:pt-6">
                   <div className="flex flex-col md:flex-row items-center justify-end gap-3 max-w-4xl mx-auto">
                     <button
@@ -291,15 +213,9 @@ export default function CrearTrabajadorPage() {
                       className="w-full md:w-auto md:px-12 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-indigo-100 dark:shadow-none disabled:opacity-50 order-1 md:order-2"
                     >
                       {isSubmitting ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                          Guardando...
-                        </>
+                        <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>Guardando...</>
                       ) : (
-                        <>
-                          <FiSave size={16} />
-                          Registrar Colaborador
-                        </>
+                        <><FiSave size={16} />Registrar Colaborador</>
                       )}
                     </button>
                     <button

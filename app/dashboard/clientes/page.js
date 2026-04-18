@@ -8,6 +8,8 @@ import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../utils/api';
 import LoadingSpinner from "../../components/LoadingSpinner";
 import Pagination from "../../components/Pagination";
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { SkeletonCard, SkeletonTableRows } from "../../components/Skeleton";
 
 export default function ClientesPage() {
   const router = useRouter();
@@ -17,6 +19,7 @@ export default function ClientesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [filters, setFilters] = useState({
     estado: 'Todos',
     telefono: ''
@@ -68,8 +71,8 @@ export default function ClientesPage() {
     let result = [...clientes];
     
     // Aplicar búsqueda
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
+    if (debouncedSearch) {
+      const term = debouncedSearch.toLowerCase();
       result = result.filter(cliente => 
         (cliente.nombres?.toLowerCase().includes(term) || '') ||
         (cliente.apellidos?.toLowerCase().includes(term) || '') ||
@@ -92,7 +95,7 @@ export default function ClientesPage() {
     
     setFilteredClientes(result);
     setCurrentPage(1); // Resetear a la primera página al cambiar filtros
-  }, [clientes, searchTerm, filters]);
+  }, [clientes, debouncedSearch, filters]);
 
   // Calcular clientes para la página actual
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -188,7 +191,7 @@ export default function ClientesPage() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10" aria-hidden={isLoading}>
           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
@@ -319,9 +322,12 @@ export default function ClientesPage() {
         </div>
 
         {isLoading ? (
-          <div className="min-h-[400px] flex flex-col items-center justify-center bg-transparent">
-            <LoadingSpinner />
-            <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Procesando Registros...</p>
+          <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl">
+            <table className="min-w-full">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <SkeletonTableRows rows={8} cols={5} />
+              </tbody>
+            </table>
           </div>
         ) : error ? (
           <div className="glass bg-rose-50/50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/30 p-8 rounded-[2.5rem] flex flex-col items-center text-center">

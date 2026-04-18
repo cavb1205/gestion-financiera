@@ -26,6 +26,8 @@ import LoadingSpinner from "../../components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../utils/format";
 import Link from "next/link";
 import Pagination from "../../components/Pagination";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { SkeletonCard, SkeletonTableRows } from "../../components/Skeleton";
 
 export default function VentasPage() {
   const router = useRouter();
@@ -35,6 +37,7 @@ export default function VentasPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [filters, setFilters] = useState({
     estado: "Todos",
     montoMin: "",
@@ -84,19 +87,19 @@ export default function VentasPage() {
     if (filters.montoMin && parseFloat(venta.saldo_actual) < parseFloat(filters.montoMin)) return false;
     if (filters.montoMax && parseFloat(venta.saldo_actual) > parseFloat(filters.montoMax)) return false;
 
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
+    if (debouncedSearch) {
+      const searchLower = debouncedSearch.toLowerCase();
       const matchesCliente =
         venta.cliente.nombres.toLowerCase().includes(searchLower) ||
         venta.cliente.apellidos.toLowerCase().includes(searchLower) ||
         venta.cliente.identificacion.toLowerCase().includes(searchLower);
-      const matchesVenta = venta.id.toString().includes(searchTerm);
+      const matchesVenta = venta.id.toString().includes(debouncedSearch);
       return matchesCliente || matchesVenta;
     }
     return true;
   });
 
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, filters]);
+  useEffect(() => { setCurrentPage(1); }, [debouncedSearch, filters]);
 
   const totalPages = Math.ceil(filteredVentas.length / itemsPerPage);
   const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
@@ -138,15 +141,6 @@ export default function VentasPage() {
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center bg-transparent">
-        <LoadingSpinner />
-        <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Sincronizando Cartera Activa</p>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-transparent pb-12">
       <div className="w-full">
@@ -183,7 +177,12 @@ export default function VentasPage() {
         </div>
 
         {/* Metrics Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+          </div>
+        ) : null}
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 ${isLoading ? "hidden" : ""}`}>
           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
@@ -332,7 +331,9 @@ export default function VentasPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredVentas.length === 0 ? (
+                {isLoading ? (
+                  <SkeletonTableRows rows={8} cols={6} />
+                ) : filteredVentas.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="px-8 py-24 text-center">
                       <div className="bg-indigo-50 dark:bg-indigo-900/20 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">

@@ -25,6 +25,7 @@ import ResumenGeneral from "../components/dashboard/ResumenGeneral";
 import Grafico from "../components/dashboard/Grafico";
 import UltimosMovimientos from "../components/dashboard/UltimosMovimientos";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { SkeletonCard } from "../components/Skeleton";
 import { formatMoney } from "../utils/format";
 
 const formatDate = (s) => {
@@ -113,8 +114,14 @@ export default function DashboardPage() {
 
   if (authLoading || !tienda) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner />
+      <div className="space-y-6 pb-12">
+        <div className="h-10 w-64 animate-pulse bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+        </div>
       </div>
     );
   }

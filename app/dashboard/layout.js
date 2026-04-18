@@ -32,6 +32,7 @@ import {
   FiBookOpen,
   FiKey,
   FiMapPin,
+  FiSearch,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { formatMoney } from "../utils/format";
@@ -41,6 +42,7 @@ import { usePathname } from "next/navigation";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SessionTimeout from "../components/SessionTimeout";
 import OnboardingTour from "../components/OnboardingTour";
+import GlobalSearch from "../components/GlobalSearch";
 
 const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja', '/dashboard/ventas', '/dashboard/clientes', '/dashboard/gastos', '/dashboard/perfil', '/dashboard/publicidad'];
 
@@ -96,6 +98,7 @@ export default function DashboardLayout({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [reportesOpen, setReportesOpen] = useState(() => false);
   const [showTour, setShowTour] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // Auto-open reportes submenu when on a report page
   useEffect(() => {
@@ -103,6 +106,18 @@ export default function DashboardLayout({ children }) {
       setReportesOpen(true);
     }
   }, [pathname]);
+
+  // Global search shortcut ⌘K / Ctrl+K
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   // Show onboarding tour for first-time users
   useEffect(() => {
@@ -220,6 +235,13 @@ export default function DashboardLayout({ children }) {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSearchOpen(true)}
+            title="Buscar (Ctrl+K)"
+            className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400"
+          >
+            <FiSearch size={18} />
+          </button>
           <button
             onClick={() => setShowTour(true)}
             title="Tour de ayuda"
@@ -531,6 +553,15 @@ export default function DashboardLayout({ children }) {
           </div>
 
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSearchOpen(true)}
+              title="Buscar (⌘K)"
+              className="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 hover:text-indigo-500 hover:border-indigo-200 dark:hover:border-indigo-700 transition-all shadow-sm group"
+            >
+              <FiSearch size={15} />
+              <span className="text-[11px] font-black uppercase tracking-widest">Buscar</span>
+              <kbd className="hidden lg:flex items-center gap-0.5 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[9px] font-black text-slate-400 uppercase">⌘K</kbd>
+            </button>
             <div className="h-10 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
             <div className="flex items-center gap-4 pl-2">
               <div className="text-right hidden sm:block">
@@ -552,6 +583,9 @@ export default function DashboardLayout({ children }) {
         </main>
 
       </div>
+
+      {/* Búsqueda global */}
+      <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* Modal de inactividad con renovación de sesión */}
       <SessionTimeout />

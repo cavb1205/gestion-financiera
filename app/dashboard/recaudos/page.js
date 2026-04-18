@@ -26,6 +26,7 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { SkeletonTableRows } from "@/app/components/Skeleton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatMoney, parseMoney } from "../../utils/format";
@@ -314,10 +315,11 @@ export default function RecaudosPage() {
            {/* Table Section */}
            <div className="overflow-x-auto min-h-[400px]">
               {loading ? (
-                <div className="flex flex-col items-center justify-center py-24">
-                   <LoadingSpinner />
-                   <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Sincronizando Base de Datos</p>
-                </div>
+                <table className="w-full border-collapse">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <SkeletonTableRows rows={8} cols={5} />
+                  </tbody>
+                </table>
               ) : filteredRecaudos.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 px-10 text-center">
                    <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 rounded-[2rem] flex items-center justify-center mb-6">
