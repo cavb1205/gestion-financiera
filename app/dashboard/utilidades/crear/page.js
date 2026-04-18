@@ -17,6 +17,8 @@ import {
   FiInfo,
   FiActivity,
   FiArrowUpRight,
+  FiPlus,
+  FiX,
 } from "react-icons/fi";
 import Link from "next/link";
 import { toast } from "react-toastify";
@@ -31,6 +33,9 @@ export default function NuevaUtilidadPage() {
   const [loadingTrabajadores, setLoadingTrabajadores] = useState(true);
   const [error, setError] = useState(null);
   const [trabajadores, setTrabajadores] = useState([]);
+  const [showNuevoModal, setShowNuevoModal] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState("");
+  const [creatingInv, setCreatingInv] = useState(false);
 
   const [formData, setFormData] = useState({
     trabajador: "",
@@ -63,6 +68,41 @@ export default function NuevaUtilidadPage() {
 
     fetchTrabajadores();
   }, [selectedStore]);
+
+  const handleCrearBeneficiario = async () => {
+    const nombre = nuevoNombre.trim();
+    if (!nombre) return;
+    setCreatingInv(true);
+    try {
+      const partes = nombre.split(" ");
+      const firstName = partes[0];
+      const lastName = partes.slice(1).join(" ") || firstName;
+      const username = `${nombre.toLowerCase().replace(/\s+/g, "")}${Math.floor(1000 + Math.random() * 9000)}`;
+      const password = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+
+      const res = await apiFetch(`/trabajadores/create/t/${selectedStore.tienda.id}/`, {
+        method: "POST",
+        body: JSON.stringify({
+          username, first_name: firstName, last_name: lastName, password,
+          identificacion: "0", telefono: "0", direccion: "-",
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+
+      const updated = await apiFetch(`/trabajadores/t/${selectedStore.tienda.id}/`);
+      const lista = updated.ok ? await updated.json() : trabajadores;
+      setTrabajadores(Array.isArray(lista) ? lista : trabajadores);
+      setFormData((prev) => ({ ...prev, trabajador: String(data.id) }));
+      setNuevoNombre("");
+      setShowNuevoModal(false);
+      toast.success(`Beneficiario "${nombre}" creado`);
+    } catch {
+      toast.error("No se pudo crear el beneficiario");
+    } finally {
+      setCreatingInv(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -146,9 +186,18 @@ export default function NuevaUtilidadPage() {
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Trabajador */}
                         <div className="space-y-4">
-                           <div className="flex items-center gap-2 px-1">
-                              <FiUser className="text-emerald-500" size={14} />
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Beneficiario</span>
+                           <div className="flex items-center justify-between px-1">
+                              <div className="flex items-center gap-2">
+                                <FiUser className="text-emerald-500" size={14} />
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Beneficiario</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setShowNuevoModal(true)}
+                                className="flex items-center gap-1 text-[9px] font-black text-emerald-500 uppercase tracking-widest hover:text-emerald-700 transition-colors"
+                              >
+                                <FiPlus size={11} /> Nuevo
+                              </button>
                            </div>
                            <div className="relative group">
                               <select
@@ -280,6 +329,51 @@ export default function NuevaUtilidadPage() {
           </div>
         </div>
       </div>
+      {/* Modal: nuevo beneficiario */}
+      {showNuevoModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-50 p-4">
+          <div className="glass w-full max-w-sm rounded-[2rem] p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Nuevo Beneficiario</h2>
+              <button onClick={() => { setShowNuevoModal(false); setNuevoNombre(""); }} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                <FiX size={18} />
+              </button>
+            </div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+              Nombre completo del beneficiario
+            </p>
+            <input
+              type="text"
+              value={nuevoNombre}
+              onChange={(e) => setNuevoNombre(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleCrearBeneficiario()}
+              placeholder="Ej: Juan Pérez"
+              maxLength={80}
+              autoFocus
+              className="w-full px-4 py-3 mb-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm text-slate-700 dark:text-slate-200 placeholder-slate-300 focus:outline-none focus:border-emerald-500 transition-colors"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowNuevoModal(false); setNuevoNombre(""); }}
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCrearBeneficiario}
+                disabled={creatingInv || !nuevoNombre.trim()}
+                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-black uppercase tracking-widest text-xs rounded-2xl transition-colors flex items-center justify-center gap-2"
+              >
+                {creatingInv ? (
+                  <span className="animate-spin border-2 border-white/30 border-t-white rounded-full w-4 h-4" />
+                ) : (
+                  <><FiPlus size={13} /> Crear</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
