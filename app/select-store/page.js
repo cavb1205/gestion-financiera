@@ -195,10 +195,10 @@ export default function SelectStorePage() {
                 onClick={() => handleSelectStore(store)}
                 className="glass group cursor-pointer border-white/5 hover:border-emerald-500/50 transition-all duration-300 rounded-[2.5rem] overflow-hidden hover:scale-[1.02] active:scale-[0.98] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative"
               >
-                {/* Botón quitar (top-left, visible en hover) */}
+                {/* Botón quitar (siempre visible en móvil, hover en desktop) */}
                 <button
                   onClick={(e) => { e.stopPropagation(); setRemoveTarget(store); }}
-                  className="absolute top-4 left-4 z-10 p-2 rounded-xl bg-white/5 text-slate-600 opacity-0 group-hover:opacity-100 hover:bg-rose-500/20 hover:text-rose-400 transition-all"
+                  className="absolute top-4 left-4 z-10 p-2 rounded-xl bg-white/5 text-slate-500 md:opacity-0 md:group-hover:opacity-100 hover:bg-rose-500/20 hover:text-rose-400 active:bg-rose-500/20 active:text-rose-400 transition-all"
                   title="Quitar de mi lista"
                 >
                   <FiX size={14} />
