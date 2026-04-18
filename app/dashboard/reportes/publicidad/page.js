@@ -44,7 +44,7 @@ export default function PublicidadReportePage() {
     apiFetch(`/trabajadores/t/${selectedStore.tienda.id}/`)
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => setTrabajadores(Array.isArray(data) ? data : []))
-      .catch(() => {});
+      .catch((err) => { console.error("Error al cargar trabajadores:", err); toast.error("Error al cargar trabajadores"); });
   }, [selectedStore]);
 
   const fetchPuntos = useCallback(async () => {

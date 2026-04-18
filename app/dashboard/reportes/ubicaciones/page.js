@@ -85,7 +85,7 @@ export default function UbicacionesPage() {
               apiFetch(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`)
                 .then((r) => r.ok ? r.json() : [])
                 .then((data) => setRecaudos(Array.isArray(data) ? data : []))
-                .catch(() => {})
+                .catch((err) => { console.error("Error al recargar recaudos:", err); toast.error("Error al cargar recaudos"); })
                 .finally(() => setLoading(false));
             }}
             className="p-3 md:p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
