@@ -14,6 +14,8 @@ import {
   FiPackage,
   FiShield,
   FiInfo,
+  FiPlus,
+  FiX,
 } from "react-icons/fi";
 import Link from "next/link";
 import { toast } from "react-toastify";
@@ -28,6 +30,9 @@ export default function NuevoAportePage() {
   const [loadingTrabajadores, setLoadingTrabajadores] = useState(true);
   const [error, setError] = useState(null);
   const [trabajadores, setTrabajadores] = useState([]);
+  const [showNuevoModal, setShowNuevoModal] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState("");
+  const [creatingInv, setCreatingInv] = useState(false);
 
   const [formData, setFormData] = useState({
     trabajador: "",
@@ -62,6 +67,48 @@ export default function NuevoAportePage() {
 
     fetchTrabajadores();
   }, [selectedStore]);
+
+  const handleCrearInversionista = async () => {
+    const nombre = nuevoNombre.trim();
+    if (!nombre) return;
+    setCreatingInv(true);
+    try {
+      const partes = nombre.split(" ");
+      const firstName = partes[0];
+      const lastName = partes.slice(1).join(" ") || firstName;
+      const username = `${nombre.toLowerCase().replace(/\s+/g, "")}${Math.floor(1000 + Math.random() * 9000)}`;
+      const password = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+
+      const res = await apiFetch(`/trabajadores/create/t/${selectedStore.tienda.id}/`, {
+        method: "POST",
+        body: JSON.stringify({
+          username,
+          first_name: firstName,
+          last_name: lastName,
+          password,
+          identificacion: "0",
+          telefono: "0",
+          direccion: "-",
+        }),
+      });
+
+      if (!res.ok) throw new Error("Error al crear inversionista");
+      const data = await res.json();
+
+      // Refetch lista y auto-seleccionar el nuevo
+      const updated = await apiFetch(`/trabajadores/t/${selectedStore.tienda.id}/`);
+      const lista = updated.ok ? await updated.json() : trabajadores;
+      setTrabajadores(Array.isArray(lista) ? lista : trabajadores);
+      setFormData((prev) => ({ ...prev, trabajador: String(data.id) }));
+      setNuevoNombre("");
+      setShowNuevoModal(false);
+      toast.success(`Inversionista "${nombre}" creado`);
+    } catch {
+      toast.error("No se pudo crear el inversionista");
+    } finally {
+      setCreatingInv(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -157,7 +204,16 @@ export default function NuevoAportePage() {
 
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label htmlFor="trabajador" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Inversionista *</label>
+                        <div className="flex items-center justify-between ml-1">
+                          <label htmlFor="trabajador" className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Inversionista *</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowNuevoModal(true)}
+                            className="flex items-center gap-1 text-[9px] font-black text-indigo-500 uppercase tracking-widest hover:text-indigo-700 transition-colors"
+                          >
+                            <FiPlus size={11} /> Nuevo
+                          </button>
+                        </div>
                         <div className="relative group">
                           <FiUser className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 pointer-events-none" />
                           <select
@@ -292,6 +348,52 @@ export default function NuevoAportePage() {
           </div>
         </div>
       </div>
+
+      {/* Modal: nuevo inversionista */}
+      {showNuevoModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-50 p-4">
+          <div className="glass w-full max-w-sm rounded-[2rem] p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Nuevo Inversionista</h2>
+              <button onClick={() => { setShowNuevoModal(false); setNuevoNombre(""); }} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                <FiX size={18} />
+              </button>
+            </div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+              Nombre completo del inversionista
+            </p>
+            <input
+              type="text"
+              value={nuevoNombre}
+              onChange={(e) => setNuevoNombre(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleCrearInversionista()}
+              placeholder="Ej: Juan Pérez"
+              maxLength={80}
+              autoFocus
+              className="w-full px-4 py-3 mb-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm text-slate-700 dark:text-slate-200 placeholder-slate-300 focus:outline-none focus:border-indigo-500 transition-colors"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowNuevoModal(false); setNuevoNombre(""); }}
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCrearInversionista}
+                disabled={creatingInv || !nuevoNombre.trim()}
+                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-black uppercase tracking-widest text-xs rounded-2xl transition-colors flex items-center justify-center gap-2"
+              >
+                {creatingInv ? (
+                  <span className="animate-spin border-2 border-white/30 border-t-white rounded-full w-4 h-4" />
+                ) : (
+                  <><FiPlus size={13} /> Crear</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
