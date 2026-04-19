@@ -197,6 +197,26 @@ function NuevaVentaContent() {
       return;
     }
 
+    const capital = parseFloat(formData.valor_venta);
+    const cuotas = parseInt(formData.cuotas);
+    const interes = parseFloat(formData.interes);
+
+    if (isNaN(capital) || capital <= 0) {
+      toast.error("El capital debe ser mayor a cero");
+      setIsSubmitting(false);
+      return;
+    }
+    if (isNaN(cuotas) || cuotas < 1 || cuotas > 120) {
+      toast.error("Las cuotas deben estar entre 1 y 120");
+      setIsSubmitting(false);
+      return;
+    }
+    if (isNaN(interes) || interes < 0 || interes > 100) {
+      toast.error("El interés debe estar entre 0% y 100%");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const ventaData = {
         fecha_venta: formatDateToLocalISO(formData.fecha_venta),

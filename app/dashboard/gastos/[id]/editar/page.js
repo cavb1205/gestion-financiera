@@ -87,6 +87,9 @@ export default function EditarGastoPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedStore) return;
+    const monto = parseFloat(formData.valor);
+    if (isNaN(monto) || monto <= 0) { toast.error("El monto debe ser mayor a cero"); return; }
+    if (monto > 999_999_999) { toast.error("Monto demasiado alto"); return; }
     setIsSubmitting(true);
 
     try {

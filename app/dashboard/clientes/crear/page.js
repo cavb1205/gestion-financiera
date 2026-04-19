@@ -233,6 +233,7 @@ export default function CrearCliente() {
                             onChange={handleChange}
                             className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.nombres ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
                           />
+                          {errors.nombres && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.nombres}</p>}
                         </div>
                         <div className="space-y-2">
                           <label htmlFor="apellidos" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos *</label>
@@ -244,6 +245,7 @@ export default function CrearCliente() {
                             onChange={handleChange}
                             className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.apellidos ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
                           />
+                          {errors.apellidos && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.apellidos}</p>}
                         </div>
                       </div>
                     </div>

@@ -33,6 +33,7 @@ export default function CrearGastoPage() {
   const [tiposGasto, setTiposGasto] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [errors, setErrors] = useState({});
 
   // Obtener tipos de gasto
   useEffect(() => {
@@ -61,6 +62,16 @@ export default function CrearGastoPage() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    if (errors[name]) setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
+  };
+
+  const validateForm = () => {
+    const errs = {};
+    const monto = parseFloat(formData.valor);
+    if (!formData.valor || isNaN(monto) || monto <= 0) errs.valor = "El monto debe ser mayor a cero";
+    else if (monto > 999_999_999) errs.valor = "Monto demasiado alto";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const handleSubmit = async (e) => {
@@ -69,6 +80,7 @@ export default function CrearGastoPage() {
        toast.error("Seleccione una tienda operativa.");
        return;
     }
+    if (!validateForm()) return;
     setIsSubmitting(true);
 
     try {
@@ -191,12 +203,13 @@ export default function CrearGastoPage() {
                                 value={formData.valor}
                                 onChange={handleChange}
                                 required
-                                min="0"
+                                min="0.01"
                                 step="any"
                                 placeholder="0.00"
-                                className="w-full pl-16 pr-6 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-2xl font-black text-slate-800 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all outline-none"
+                                className={`w-full pl-16 pr-6 py-5 bg-slate-50 dark:bg-slate-800/50 border ${errors.valor ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-2xl font-black text-slate-800 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all outline-none`}
                               />
                            </div>
+                           {errors.valor && <p className="text-[10px] text-rose-500 font-black uppercase tracking-tight ml-1 mt-1">{errors.valor}</p>}
                         </div>
 
                         {/* Comentario */}
