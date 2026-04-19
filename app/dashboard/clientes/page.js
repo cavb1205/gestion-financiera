@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiUser, FiUsers, FiSearch, FiPlus, FiEdit, FiEye, FiFilter, FiX, FiPhone, FiMapPin, FiActivity, FiShield, FiAlertCircle } from 'react-icons/fi';
+import { FiUser, FiUsers, FiSearch, FiPlus, FiEdit, FiEye, FiFilter, FiX, FiPhone, FiMapPin, FiActivity, FiShield, FiAlertCircle, FiBarChart2, FiChevronUp, FiChevronDown } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../utils/api';
 import LoadingSpinner from "../../components/LoadingSpinner";
@@ -27,6 +27,8 @@ export default function ClientesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
+  const [scores, setScores] = useState({});
+  const [sortByScore, setSortByScore] = useState(null);
 
   useEffect(() => {
     // Redirigir si no está autenticado o no tiene tienda seleccionada
@@ -58,6 +60,11 @@ export default function ClientesPage() {
       const clientesData = Array.isArray(data) ? data : [];
       setClientes(clientesData);
       setFilteredClientes(clientesData);
+
+      apiFetch(`/clientes/scores/t/${selectedStore.tienda.id}/`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) setScores(d); })
+        .catch(() => {});
     } catch (err) {
       setError(err.message || 'Error al cargar los clientes');
       console.error('Error fetching clients:', err);
@@ -98,10 +105,19 @@ export default function ClientesPage() {
   }, [clientes, debouncedSearch, filters]);
 
   // Calcular clientes para la página actual
+  const sortedClientes = sortByScore
+    ? [...filteredClientes].sort((a, b) => {
+        const sa = scores[a.id]?.score ?? -1;
+        const sb = scores[b.id]?.score ?? -1;
+        return sortByScore === 'desc' ? sb - sa : sa - sb;
+      })
+    : filteredClientes;
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentClientes = filteredClientes.slice(indexOfFirstItem, indexOfLastItem);
+  const currentClientes = sortedClientes.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
+
+  const toggleScoreSort = () => setSortByScore(s => s === 'desc' ? 'asc' : s === 'asc' ? null : 'desc');
 
 
   // Resetear filtros
@@ -355,6 +371,13 @@ export default function ClientesPage() {
                       <th className="hidden md:table-cell px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Contacto Directo</th>
                       <th className="hidden md:table-cell px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Establecimiento</th>
                       <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado</th>
+                      <th className="px-4 py-6 text-left cursor-pointer select-none" onClick={toggleScoreSort}>
+                        <span className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-500 transition-colors">
+                          <FiBarChart2 size={12} />
+                          Score
+                          {sortByScore === 'desc' ? <FiChevronDown size={12} className="text-indigo-500" /> : sortByScore === 'asc' ? <FiChevronUp size={12} className="text-indigo-500" /> : <FiChevronDown size={12} className="opacity-30" />}
+                        </span>
+                      </th>
                       <th className="px-4 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Gestión</th>
                     </tr>
                   </thead>
@@ -401,6 +424,25 @@ export default function ClientesPage() {
                           <td className="px-4 py-6 whitespace-nowrap">
                             {getStatusBadge(cliente.estado_cliente)}
                           </td>
+                          <td className="px-4 py-6 whitespace-nowrap">
+                            {scores[cliente.id] ? (
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-black ${
+                                scores[cliente.id].sin_historial
+                                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                                  : scores[cliente.id].score >= 80
+                                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                  : scores[cliente.id].score >= 60
+                                  ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400'
+                                  : scores[cliente.id].score >= 40
+                                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                                  : 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400'
+                              }`}>
+                                {scores[cliente.id].sin_historial ? '—' : scores[cliente.id].score}
+                              </span>
+                            ) : (
+                              <span className="w-8 h-5 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-lg inline-block" />
+                            )}
+                          </td>
                           <td className="px-4 py-6 whitespace-nowrap text-right">
                             <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                               <button
@@ -423,7 +465,7 @@ export default function ClientesPage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="5" className="px-8 py-24 text-center">
+                        <td colSpan="6" className="px-8 py-24 text-center">
                           <div className="bg-indigo-50 dark:bg-indigo-900/20 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                             <FiUsers className="text-4xl text-indigo-400" />
                           </div>

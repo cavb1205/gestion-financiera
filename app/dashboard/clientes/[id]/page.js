@@ -45,6 +45,7 @@ export default function DetalleCliente({ params }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [creditosPage, setCreditosPage] = useState(1);
+  const [score, setScore] = useState(null);
   const CREDITOS_PER_PAGE = 5;
   params = useParams();
 
@@ -236,9 +237,10 @@ export default function DetalleCliente({ params }) {
       setIsLoading(true);
       setError("");
 
-      const [clienteResponse, creditosResponse] = await Promise.all([
+      const [clienteResponse, creditosResponse, scoreResponse] = await Promise.all([
         apiFetch(`/clientes/${clienteId}/`),
         apiFetch(`/ventas/activas/${clienteId}/t/${selectedStore.tienda.id}/`),
+        apiFetch(`/clientes/${clienteId}/score/t/${selectedStore.tienda.id}/`),
       ]);
 
       if (!clienteResponse.ok) throw new Error("Error al obtener los detalles del cliente");
@@ -251,6 +253,7 @@ export default function DetalleCliente({ params }) {
 
       setCliente(clienteData);
       setCreditos(creditosData);
+      if (scoreResponse.ok) setScore(await scoreResponse.json());
     } catch (err) {
       setError(err.message || "Error al cargar los datos del cliente");
     } finally {
@@ -422,7 +425,7 @@ export default function DetalleCliente({ params }) {
 
         {/* Malla de Indicadores Financieros */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
-           {/* Card: Calificación */}
+           {/* Card: Score Crediticio (backend) */}
           <div className="lg:col-span-2 glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-8">
@@ -430,7 +433,7 @@ export default function DetalleCliente({ params }) {
                   <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Score Crediticio</p>
                   <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Análisis de Confianza</h3>
                 </div>
-                {resumenFinanciero.bloqueado ? (
+                {score?.detalle?.perdidos > 0 ? (
                   <div className="bg-rose-100 dark:bg-rose-900/40 p-3 rounded-2xl">
                     <FaBan className="text-rose-600 text-2xl" />
                   </div>
@@ -441,83 +444,79 @@ export default function DetalleCliente({ params }) {
                 )}
               </div>
 
-              {resumenFinanciero.totalCreditos > 0 ? (
+              {score ? (
                 <div className="space-y-4">
                   <div className="flex items-end gap-3">
-                    <span className={`text-6xl font-black tracking-tighter leading-none ${resumenFinanciero.bloqueado ? 'text-rose-600' : 'text-slate-900 dark:text-white'}`}>
-                      {resumenFinanciero.calificacion.toFixed(0)}
+                    <span className={`text-6xl font-black tracking-tighter leading-none ${
+                      score.score >= 80 ? 'text-emerald-600 dark:text-emerald-400'
+                      : score.score >= 60 ? 'text-slate-900 dark:text-white'
+                      : score.score >= 40 ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-rose-600 dark:text-rose-400'
+                    }`}>
+                      {score.sin_historial ? '—' : score.score}
                     </span>
                     <span className="text-xl font-black text-slate-300 mb-2">/100</span>
                   </div>
 
-                  {/* Label badge */}
                   <div>
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest ${
-                      resumenFinanciero.bloqueado
-                        ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'
-                        : resumenFinanciero.calificacion >= 70
+                      score.sin_historial
+                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                        : score.nivel === 'Excelente'
                         ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-                        : resumenFinanciero.calificacion >= 40
+                        : score.nivel === 'Bueno'
+                        ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+                        : score.nivel === 'Regular'
                         ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
                         : 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'
                     }`}>
-                      {resumenFinanciero.bloqueado
-                        ? 'Bloqueado'
-                        : resumenFinanciero.calificacion >= 70
-                        ? 'Excelente'
-                        : resumenFinanciero.calificacion >= 40
-                        ? 'Regular'
-                        : 'Riesgo'}
+                      {score.sin_historial ? 'Sin historial' : score.nivel}
                     </span>
                   </div>
 
-                  <div className="flex gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className={`h-2.5 flex-1 rounded-full transition-all duration-1000 ${
-                        i < resumenFinanciero.estrellas
-                          ? (resumenFinanciero.estrellas > 3 ? 'bg-emerald-500' : 'bg-amber-500')
-                          : 'bg-slate-100 dark:bg-slate-800'
-                      }`} />
-                    ))}
-                  </div>
+                  {!score.sin_historial && (
+                    <div className="flex gap-1">
+                      {[...Array(5)].map((_, i) => {
+                        const umbral = i < Math.ceil(score.score / 20);
+                        return (
+                          <div key={i} className={`h-2.5 flex-1 rounded-full transition-all duration-700 ${
+                            umbral
+                              ? score.score >= 80 ? 'bg-emerald-500' : score.score >= 60 ? 'bg-indigo-500' : score.score >= 40 ? 'bg-amber-500' : 'bg-rose-500'
+                              : 'bg-slate-100 dark:bg-slate-800'
+                          }`} />
+                        );
+                      })}
+                    </div>
+                  )}
 
-                  {/* Behavioral breakdown */}
                   <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">A tiempo</span>
-                      <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">{resumenFinanciero.creditosPagadosATiempo} crédito{resumenFinanciero.creditosPagadosATiempo !== 1 ? 's' : ''}</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Pagos registrados</span>
+                      <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">{score.detalle.pagos}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Con atraso</span>
-                      <span className="text-[11px] font-black text-amber-600 dark:text-amber-400">
-                        {resumenFinanciero.creditosConAtraso} crédito{resumenFinanciero.creditosConAtraso !== 1 ? 's' : ''}
-                        {resumenFinanciero.creditosConAtraso > 0 && (
-                          <span className="ml-1 text-slate-400 font-bold">(~{resumenFinanciero.promedioAtraso}d)</span>
-                        )}
-                      </span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">No pagos</span>
+                      <span className="text-[11px] font-black text-amber-600 dark:text-amber-400">{score.detalle.no_pagos}</span>
                     </div>
-                    {resumenFinanciero.creditosPerdidos > 0 && (
+                    {score.detalle.perdidos > 0 && (
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Perdidos</span>
-                        <span className="text-[11px] font-black text-rose-600 dark:text-rose-400">{resumenFinanciero.creditosPerdidos} crédito{resumenFinanciero.creditosPerdidos !== 1 ? 's' : ''}</span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Créditos perdidos</span>
+                        <span className="text-[11px] font-black text-rose-600 dark:text-rose-400">{score.detalle.perdidos}</span>
                       </div>
                     )}
-                    {resumenFinanciero.creditosCompletados > 0 && (
-                      <div className="flex justify-between items-center pt-1 border-t border-slate-100 dark:border-slate-800">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Completados</span>
-                        <span className="text-[11px] font-black text-slate-600 dark:text-slate-300">{resumenFinanciero.creditosCompletados} / {resumenFinanciero.totalCreditos}</span>
-                      </div>
-                    )}
+                    <div className="flex justify-between items-center pt-1 border-t border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Liquidados</span>
+                      <span className="text-[11px] font-black text-slate-600 dark:text-slate-300">{score.detalle.liquidados} / {score.detalle.total_creditos}</span>
+                    </div>
                   </div>
                 </div>
               ) : (
                 <div className="py-10 text-center">
                    <FiActivity className="mx-auto text-4xl text-slate-200 mb-2" />
-                   <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Sin historial previo</p>
+                   <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Calculando score...</p>
                 </div>
               )}
             </div>
-            {/* Decorative background circle */}
             <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-500/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
           </div>
 
