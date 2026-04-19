@@ -11,6 +11,7 @@ import {
   FiSave,
   FiShield,
   FiUser,
+  FiPhone,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/app/utils/api";
@@ -20,10 +21,15 @@ export default function PerfilPage() {
   const router = useRouter();
   const { user, profile, selectedStore } = useAuth();
 
+  const isAdmin = user?.is_staff || user?.is_superuser;
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [prefijo, setPrefijo] = useState(selectedStore?.tienda?.prefijo_telefono || "56");
+  const [savingPrefijo, setSavingPrefijo] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,6 +54,28 @@ export default function PerfilPage() {
       toast.error(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSavePrefijo = async () => {
+    const val = prefijo.replace(/\D/g, "");
+    if (!val || val.length > 4) {
+      toast.error("Ingresa un prefijo válido (ej: 57, 56, 52)");
+      return;
+    }
+    setSavingPrefijo(true);
+    try {
+      const response = await apiFetch(`/tiendas/${selectedStore.tienda.id}/settings/`, {
+        method: "PATCH",
+        body: JSON.stringify({ prefijo_telefono: val }),
+      });
+      if (!response.ok) throw new Error();
+      toast.success("Prefijo actualizado");
+      setPrefijo(val);
+    } catch {
+      toast.error("Error al guardar el prefijo");
+    } finally {
+      setSavingPrefijo(false);
     }
   };
 
@@ -153,6 +181,56 @@ export default function PerfilPage() {
             </button>
           </form>
         </div>
+
+        {/* Store settings — admin only */}
+        {isAdmin && (
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 mt-6">
+            <div className="flex items-center gap-3 mb-7">
+              <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-xl">
+                <FiPhone size={18} />
+              </div>
+              <div>
+                <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Prefijo de País</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Para links de WhatsApp</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Código de país (sin +)
+                </label>
+                <input
+                  type="text"
+                  value={prefijo}
+                  onChange={(e) => setPrefijo(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="57"
+                  maxLength={4}
+                  className="block w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                />
+                <p className="text-[9px] font-bold text-slate-400 ml-1">
+                  Colombia: 57 &nbsp;·&nbsp; Chile: 56 &nbsp;·&nbsp; México: 52 &nbsp;·&nbsp; Perú: 51
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSavePrefijo}
+                disabled={savingPrefijo}
+                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-indigo-100 dark:shadow-none active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                {savingPrefijo ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <FiSave size={15} />
+                    Guardar Prefijo
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Security note */}
         <div className="flex items-start gap-3 mt-6 px-2 opacity-60">

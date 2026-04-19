@@ -275,25 +275,38 @@ export default function CrearCliente() {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2">
                           <label htmlFor="telefono_principal" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono *</label>
-                          <input
-                            id="telefono_principal"
-                            type="tel"
-                            name="telefono_principal"
-                            value={formData.telefono_principal}
-                            onChange={handleChange}
-                            className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.telefono_principal ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white transition-all outline-none`}
-                          />
+                          <div className={`flex items-center bg-slate-50 dark:bg-slate-800/50 border ${errors.telefono_principal ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl overflow-hidden transition-all focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10`}>
+                            <span className="px-3 py-4 text-[13px] font-black text-slate-400 dark:text-slate-500 border-r border-slate-200 dark:border-slate-700 shrink-0 select-none">
+                              +{selectedStore?.tienda?.prefijo_telefono || '56'}
+                            </span>
+                            <input
+                              id="telefono_principal"
+                              type="tel"
+                              name="telefono_principal"
+                              value={formData.telefono_principal}
+                              onChange={handleChange}
+                              placeholder="3001234567"
+                              className="flex-1 px-4 py-4 bg-transparent text-[14px] font-bold text-slate-900 dark:text-white outline-none"
+                            />
+                          </div>
+                          {errors.telefono_principal && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.telefono_principal}</p>}
                         </div>
                         <div className="space-y-2">
                           <label htmlFor="telefono_opcional" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Opcional</label>
-                          <input
-                            id="telefono_opcional"
-                            type="tel"
-                            name="telefono_opcional"
-                            value={formData.telefono_opcional}
-                            onChange={handleChange}
-                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white transition-all outline-none"
-                          />
+                          <div className="flex items-center bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
+                            <span className="px-3 py-4 text-[13px] font-black text-slate-400 dark:text-slate-500 border-r border-slate-200 dark:border-slate-700 shrink-0 select-none">
+                              +{selectedStore?.tienda?.prefijo_telefono || '56'}
+                            </span>
+                            <input
+                              id="telefono_opcional"
+                              type="tel"
+                              name="telefono_opcional"
+                              value={formData.telefono_opcional}
+                              onChange={handleChange}
+                              placeholder="Opcional"
+                              className="flex-1 px-4 py-4 bg-transparent text-[14px] font-bold text-slate-900 dark:text-white outline-none"
+                            />
+                          </div>
                         </div>
                       </div>
 

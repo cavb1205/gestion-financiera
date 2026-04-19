@@ -274,7 +274,9 @@ export default function VentaDetailPage() {
 
   const whatsappUrl = (() => {
     try {
-      const raw = (venta?.cliente?.telefono_principal || "").replace(/[^0-9]/g, "");
+      const prefijo = selectedStore?.tienda?.prefijo_telefono || '56';
+      const digits = (venta?.cliente?.telefono_principal || "").replace(/[^0-9]/g, "");
+      const raw = digits.startsWith(prefijo) ? digits : prefijo + digits;
       const nombre = venta?.cliente?.nombres || "";
       const saldo = formatMoney(venta?.saldo_actual);
       const cuota = formatMoney(venta?.valor_cuota);
@@ -292,8 +294,8 @@ export default function VentaDetailPage() {
         `📅 Progreso: *${pagosRealizados}/${totalCuotas} días*\n` +
         `📋 Valor cuota: *${cuota}*\n\n` +
         `Por favor comuníquese con nosotros para coordinar su pago. ¡Gracias!`;
-      return `https://api.whatsapp.com/send?phone=${raw}&text=${encodeURIComponent(msg)}`;
-    } catch { return "https://api.whatsapp.com/"; }
+      return `https://wa.me/${raw}?text=${encodeURIComponent(msg)}`;
+    } catch { return "https://wa.me/"; }
   })();
 
   const totalPagado = pagos.reduce((sum, pago) => sum + parseMoney(pago.valor_recaudo), 0);
