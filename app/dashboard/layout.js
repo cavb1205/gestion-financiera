@@ -31,6 +31,7 @@ import {
   FiHelpCircle,
   FiBookOpen,
   FiKey,
+  FiSettings,
   FiMapPin,
   FiSearch,
 } from "react-icons/fi";
@@ -99,6 +100,29 @@ export default function DashboardLayout({ children }) {
   const [reportesOpen, setReportesOpen] = useState(() => false);
   const [showTour, setShowTour] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [badgeVencer, setBadgeVencer] = useState(0);
+
+  // Badge: créditos que vencen en ≤3 días
+  useEffect(() => {
+    if (!selectedStore?.tienda?.id) return;
+    const calcDias = (s) => {
+      if (!s) return Infinity;
+      const [y, m, d] = s.split("-").map(Number);
+      return Math.ceil((new Date(y, m - 1, d, 23, 59, 59) - new Date()) / 86400000);
+    };
+    apiFetch(`/ventas/activas/t/${selectedStore.tienda.id}/`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        const activos = Array.isArray(data) ? data : [];
+        const count = activos.filter(c => {
+          if (c.estado_venta !== "Vigente") return false;
+          const dias = calcDias(c.fecha_vencimiento);
+          return dias >= 0 && dias <= 3;
+        }).length;
+        setBadgeVencer(count);
+      })
+      .catch(() => {});
+  }, [selectedStore?.tienda?.id]);
 
   // Auto-open reportes submenu when on a report page
   useEffect(() => {
@@ -320,13 +344,20 @@ export default function DashboardLayout({ children }) {
                   key={item.path}
                   href={item.path}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${isActive(item.path) && (item.path !== '/dashboard' || (pathname === '/dashboard'))
+                  className={`flex items-center justify-between gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${isActive(item.path) && (item.path !== '/dashboard' || (pathname === '/dashboard'))
                     ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none translate-x-1"
                     : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                 >
-                  <item.icon size={18} />
-                  {item.label}
+                  <div className="flex items-center gap-3">
+                    <item.icon size={18} />
+                    {item.label}
+                  </div>
+                  {item.path === '/dashboard/ventas' && badgeVencer > 0 && (
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${isActive(item.path) && pathname !== '/dashboard' ? 'bg-white/20 text-white' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'}`}>
+                      {badgeVencer}
+                    </span>
+                  )}
                 </Link>
               ))}
             </nav>
@@ -370,10 +401,10 @@ export default function DashboardLayout({ children }) {
                 <Link
                   href="/dashboard/perfil"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 py-3.5 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all active:scale-95"
+                  className={`flex items-center justify-center gap-2 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${isAdmin ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40'}`}
                 >
-                  <FiKey size={16} />
-                  Clave
+                  {isAdmin ? <FiSettings size={16} /> : <FiKey size={16} />}
+                  {isAdmin ? "Ajustes" : "Clave"}
                 </Link>
                 <button
                   onClick={() => {
@@ -457,9 +488,16 @@ export default function DashboardLayout({ children }) {
                 <item.icon size={18} className={`${isActive(item.path) ? "text-white" : "group-hover:text-indigo-600"}`} />
                 <span className="tracking-tight">{item.label}</span>
               </div>
-              {isActive(item.path) && (
-                <div className="w-1 h-5 bg-white rounded-full relative z-10"></div>
-              )}
+              <div className="flex items-center gap-2 relative z-10">
+                {item.path === '/dashboard/ventas' && badgeVencer > 0 && (
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${isActive(item.path) ? 'bg-white/20 text-white' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'}`}>
+                    {badgeVencer}
+                  </span>
+                )}
+                {isActive(item.path) && (item.path !== '/dashboard' || pathname === '/dashboard') && (
+                  <div className="w-1 h-5 bg-white rounded-full"></div>
+                )}
+              </div>
             </Link>
           ))}
         </nav>
@@ -529,10 +567,10 @@ export default function DashboardLayout({ children }) {
               </Link>
               <Link
                 href="/dashboard/perfil"
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all"
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
               >
-                <FiKey size={13} />
-                Contraseña
+                {isAdmin ? <FiSettings size={13} /> : <FiKey size={13} />}
+                {isAdmin ? "Ajustes" : "Contraseña"}
               </Link>
             </div>
           </div>

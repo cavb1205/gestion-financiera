@@ -46,7 +46,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [tienda, setTienda] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [alertas, setAlertas] = useState({ vencidos: 0, moraGrave: 0, montoMora: 0, fallasHoy: 0, cajaNegativa: false });
+  const [alertas, setAlertas] = useState({ vencidos: 0, moraGrave: 0, montoMora: 0, fallasHoy: 0, cajaNegativa: false, proximosVencer: 0, montoProximosVencer: 0 });
 
   const fetchTienda = async () => {
     if (!selectedStore) return null;
@@ -90,12 +90,20 @@ export default function DashboardPage() {
       const moraGrave = vencidos.filter(c => (c.dias_atrasados || 0) >= 15);
       const montoMora = vencidos.reduce((acc, c) => acc + Math.round(parseFloat(c.saldo_actual) || 0), 0);
       const fallasHoy = recaudosHoy.filter(r => r.visita_blanco).length;
+      const proximosVencer = activos.filter(c => {
+        if (c.estado_venta !== "Vigente") return false;
+        const dias = calcDiasRestantes(c.fecha_vencimiento);
+        return dias >= 0 && dias <= 3;
+      });
+      const montoProximosVencer = proximosVencer.reduce((acc, c) => acc + Math.round(parseFloat(c.saldo_actual) || 0), 0);
       setAlertas({
         vencidos: vencidos.length,
         moraGrave: moraGrave.length,
         montoMora,
         fallasHoy,
         cajaNegativa: (selectedStore.tienda.caja ?? 0) < 0,
+        proximosVencer: proximosVencer.length,
+        montoProximosVencer,
       });
     } catch (err) {
       console.error("Error al cargar alertas:", err);
@@ -242,8 +250,28 @@ export default function DashboardPage() {
       )}
 
       {/* ── Alertas operativas ──────────────────────────────────── */}
-      {(alertas.vencidos > 0 || alertas.fallasHoy > 0 || alertas.cajaNegativa) && (
+      {(alertas.vencidos > 0 || alertas.fallasHoy > 0 || alertas.cajaNegativa || alertas.proximosVencer > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {alertas.proximosVencer > 0 && (
+            <button
+              onClick={() => router.push("/dashboard/ventas")}
+              className="flex items-center gap-4 p-4 bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800/40 rounded-2xl hover:border-amber-400 transition-all group text-left"
+            >
+              <div className="p-2.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
+                <FiClock size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black text-amber-700 dark:text-amber-400 tracking-tight">
+                  {alertas.proximosVencer} crédito{alertas.proximosVencer !== 1 ? "s" : ""} vence{alertas.proximosVencer !== 1 ? "n" : ""} en 3 días
+                </p>
+                <p className="text-[10px] font-bold text-amber-500/70 uppercase tracking-widest">
+                  {formatMoney(alertas.montoProximosVencer)} por cobrar
+                </p>
+              </div>
+              <FiChevronRight className="text-amber-300 group-hover:translate-x-1 transition-transform shrink-0" size={16} />
+            </button>
+          )}
+
           {alertas.vencidos > 0 && (
             <button
               onClick={() => router.push("/dashboard/reportes/cartera")}
