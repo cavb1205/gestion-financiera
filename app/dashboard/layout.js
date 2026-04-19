@@ -36,6 +36,7 @@ import {
   FiSearch,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
+import { apiFetch } from "../utils/api";
 import { formatMoney } from "../utils/format";
 import { useTheme } from "../context/ThemeContext";
 import Link from "next/link";
