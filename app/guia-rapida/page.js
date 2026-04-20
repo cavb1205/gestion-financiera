@@ -176,12 +176,28 @@ const GUIDE_SECTIONS = [
     tip: "Verifica que los cobradores realmente salieron a campo: si un cobro no tiene punto en el mapa, el GPS estaba desactivado al momento de registrarlo.",
   },
   {
+    id: "alertas",
+    colorHex: "#d97706",
+    colorLight: "#fffbeb",
+    colorBorder: "#fde68a",
+    icon: FiAlertCircle,
+    title: "11. Alertas de créditos por vencer",
+    steps: [
+      "Al entrar al Panel Principal verás tarjetas de alerta en la parte superior",
+      "La tarjeta amarilla muestra cuántos créditos vencen en los próximos 3 días",
+      "La tarjeta roja muestra créditos ya vencidos pendientes de cobro",
+      "Toca cualquier tarjeta para ir directo a Ventas Activas y gestionarlos",
+      "El menú lateral también muestra un número en rojo sobre «Ventas Activas» si hay próximos a vencer",
+    ],
+    tip: "Revisa las alertas cada mañana antes de salir a campo — te permite priorizar qué clientes contactar ese día.",
+  },
+  {
     id: "publicidad-worker",
     colorHex: "#7c3aed",
     colorLight: "#f5f3ff",
     colorBorder: "#ddd6fe",
     icon: FiMapPin,
-    title: "11. Marcar puntos de publicidad (cobrador)",
+    title: "12. Marcar puntos de publicidad (cobrador)",
     steps: [
       'Ve a "Publicidad" en el menú lateral',
       "Permite el acceso a tu ubicación si el navegador lo solicita",
@@ -199,7 +215,7 @@ const GUIDE_SECTIONS = [
     colorLight: "#ecfeff",
     colorBorder: "#a5f3fc",
     icon: FiMapPin,
-    title: "12. Mapa de publicidad (administrador)",
+    title: "13. Mapa de publicidad (administrador)",
     steps: [
       'Ve a "Reportes" → "Mapa de Publicidad" (solo administradores)',
       "Selecciona la fecha que quieres revisar",
@@ -378,7 +394,7 @@ export default function GuiaRapidaPage() {
               Contacta a tu administrador o escríbenos por WhatsApp.
             </p>
             <p className="text-[10px] text-slate-400 mt-2 uppercase tracking-widest font-bold">
-              carterafinanciera.com · Guía v1.2 · Actualizado abril 2026
+              carterafinanciera.com · Guía v1.3 · Actualizado abril 2026
             </p>
           </div>
 
