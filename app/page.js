@@ -267,7 +267,7 @@ export default function Home() {
               </h1>
 
               <p className="text-slate-400 text-lg leading-relaxed mb-10 max-w-md">
-                La plataforma diseñada para prestamistas profesionales. Controla créditos, cobradores y utilidades desde un solo lugar — con GPS, alertas y WhatsApp integrados.
+                La plataforma diseñada para tus necesidades profesionales. Controla créditos, cobradores y utilidades desde un solo lugar — con GPS, alertas y WhatsApp integrados.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
