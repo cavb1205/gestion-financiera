@@ -103,22 +103,21 @@ export default function DashboardLayout({ children }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [badgeVencer, setBadgeVencer] = useState(0);
 
-  // Badge: créditos que vencen en ≤3 días
+  // Badge: créditos a ≤3 cuotas de vencer (por visitas, no por fecha)
   useEffect(() => {
     if (!selectedStore?.tienda?.id) return;
-    const calcDias = (s) => {
-      if (!s) return Infinity;
-      const [y, m, d] = s.split("-").map(Number);
-      return Math.ceil((new Date(y, m - 1, d, 23, 59, 59) - new Date()) / 86400000);
-    };
     apiFetch(`/ventas/activas/t/${selectedStore.tienda.id}/`)
       .then(r => r.ok ? r.json() : [])
       .then(data => {
         const activos = Array.isArray(data) ? data : [];
         const count = activos.filter(c => {
-          if (c.estado_venta !== "Vigente") return false;
-          const dias = calcDias(c.fecha_vencimiento);
-          return dias >= 0 && dias <= 3;
+          if (c.estado_venta !== "Vigente" && c.estado_venta !== "Atrasado") return false;
+          const cuotas = parseFloat(c.cuotas);
+          const pagos = parseFloat(c.pagos_realizados);
+          const atraso = parseFloat(c.dias_atrasados);
+          if (isNaN(cuotas) || isNaN(pagos) || isNaN(atraso)) return false;
+          const vr = Math.round(cuotas - pagos - atraso);
+          return vr >= 0 && vr <= 3;
         }).length;
         setBadgeVencer(count);
       })

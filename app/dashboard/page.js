@@ -91,9 +91,13 @@ export default function DashboardPage() {
       const montoMora = vencidos.reduce((acc, c) => acc + Math.round(parseFloat(c.saldo_actual) || 0), 0);
       const fallasHoy = recaudosHoy.filter(r => r.visita_blanco).length;
       const proximosVencer = activos.filter(c => {
-        if (c.estado_venta !== "Vigente") return false;
-        const dias = calcDiasRestantes(c.fecha_vencimiento);
-        return dias >= 0 && dias <= 3;
+        if (c.estado_venta !== "Vigente" && c.estado_venta !== "Atrasado") return false;
+        const cuotas = parseFloat(c.cuotas);
+        const pagos = parseFloat(c.pagos_realizados);
+        const atraso = parseFloat(c.dias_atrasados);
+        if (isNaN(cuotas) || isNaN(pagos) || isNaN(atraso)) return false;
+        const visitasRestantes = Math.round(cuotas - pagos - atraso);
+        return visitasRestantes >= 0 && visitasRestantes <= 3;
       });
       const montoProximosVencer = proximosVencer.reduce((acc, c) => acc + Math.round(parseFloat(c.saldo_actual) || 0), 0);
       setAlertas({
@@ -262,7 +266,7 @@ export default function DashboardPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-black text-amber-700 dark:text-amber-400 tracking-tight">
-                  {alertas.proximosVencer} crédito{alertas.proximosVencer !== 1 ? "s" : ""} vence{alertas.proximosVencer !== 1 ? "n" : ""} en 3 días
+                  {alertas.proximosVencer} crédito{alertas.proximosVencer !== 1 ? "s" : ""} a ≤3 cuotas de vencer
                 </p>
                 <p className="text-[10px] font-bold text-amber-500/70 uppercase tracking-widest">
                   {formatMoney(alertas.montoProximosVencer)} por cobrar

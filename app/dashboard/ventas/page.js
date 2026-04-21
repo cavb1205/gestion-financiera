@@ -29,6 +29,14 @@ import Pagination from "../../components/Pagination";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { SkeletonCard, SkeletonTableRows } from "../../components/Skeleton";
 
+function calcVisitasRestantes(venta) {
+  const cuotas = parseFloat(venta.cuotas);
+  const pagos = parseFloat(venta.pagos_realizados);
+  const atraso = parseFloat(venta.dias_atrasados);
+  if (isNaN(cuotas) || isNaN(pagos) || isNaN(atraso)) return null;
+  return Math.round(cuotas - pagos - atraso);
+}
+
 export default function VentasPage() {
   const router = useRouter();
   const { selectedStore, isAuthenticated, loading, user } = useAuth();
@@ -83,7 +91,11 @@ export default function VentasPage() {
   const ventasOrdered = [...ventas].sort((a, b) => b.id - a.id);
 
   const filteredVentas = ventasOrdered.filter((venta) => {
-    if (filters.estado !== "Todos" && venta.estado_venta !== filters.estado) return false;
+    if (filters.estado === "PorVencer") {
+      if (venta.estado_venta !== "Vigente" && venta.estado_venta !== "Atrasado") return false;
+      const vr = calcVisitasRestantes(venta);
+      if (vr === null || vr < 0 || vr > 3) return false;
+    } else if (filters.estado !== "Todos" && venta.estado_venta !== filters.estado) return false;
     if (filters.montoMin && parseFloat(venta.saldo_actual) < parseFloat(filters.montoMin)) return false;
     if (filters.montoMax && parseFloat(venta.saldo_actual) > parseFloat(filters.montoMax)) return false;
 
@@ -307,6 +319,7 @@ export default function VentasPage() {
                       className="w-full pl-12 pr-10 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest appearance-none focus:ring-4 focus:ring-indigo-500/10 transition-all cursor-pointer relative z-0"
                     >
                       <option value="Todos">Todos los Estados</option>
+                      <option value="PorVencer">⚠️ Por vencer (≤3 días)</option>
                       <option value="Vigente">🟢 Vigente</option>
                       <option value="Atrasado">🟡 Atrasado</option>
                       <option value="Vencido">🔴 Vencido</option>
@@ -356,11 +369,14 @@ export default function VentasPage() {
                     </td>
                   </tr>
                 ) : (
-                  currentVentas.map((venta) => (
-                    <tr 
-                      key={venta.id} 
+                  currentVentas.map((venta) => {
+                    const visitasRestantes = calcVisitasRestantes(venta);
+                    const proxVencer = (venta.estado_venta === "Vigente" || venta.estado_venta === "Atrasado") && visitasRestantes !== null && visitasRestantes >= 0 && visitasRestantes <= 3;
+                    return (
+                    <tr
+                      key={venta.id}
                       onClick={() => router.push(`/dashboard/ventas/${venta.id}`)}
-                      className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all cursor-pointer"
+                      className={`group transition-all cursor-pointer ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/40 hover:bg-amber-100/60 dark:hover:bg-amber-950/60 border-l-4 border-amber-400" : "hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 border-l-4 border-transparent"}`}
                     >
                       <td className="hidden md:table-cell px-4 py-6 whitespace-nowrap">
                          <span className="text-xs font-black text-slate-400 group-hover:text-indigo-600 transition-colors">#{venta.id}</span>
@@ -400,12 +416,17 @@ export default function VentasPage() {
                       <td className="px-4 py-6 whitespace-nowrap text-center">
                         <div className="flex flex-col items-center gap-2">
                            {getStatusBadge(venta.estado_venta)}
-                           {venta.dias_atrasados > 0 && (
+                           {proxVencer && (
+                             <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-amber-300 dark:border-amber-700 animate-pulse">
+                               ⚠ {visitasRestantes === 0 ? "Última cuota" : `${visitasRestantes} ${visitasRestantes === 1 ? "cuota" : "cuotas"} p/ vencer`}
+                             </span>
+                           )}
+                           {!proxVencer && venta.dias_atrasados > 0 && (
                              <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest">
                                {Math.round(venta.dias_atrasados)} Días Mora
                              </span>
                            )}
-                           {venta.dias_atrasados < 0 && (
+                           {!proxVencer && venta.dias_atrasados < 0 && (
                              <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">
                                {Math.round(Math.abs(venta.dias_atrasados))} Días Adelantado
                              </span>
@@ -413,7 +434,8 @@ export default function VentasPage() {
                         </div>
                       </td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>

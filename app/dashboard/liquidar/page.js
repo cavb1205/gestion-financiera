@@ -176,6 +176,14 @@ export default function LiquidarCreditosPage() {
       }
    };
 
+   const calcVisitasRestantes = (c) => {
+      const cuotas = parseFloat(c.cuotas);
+      const pagos = parseFloat(c.pagos_realizados);
+      const atraso = parseFloat(c.dias_atrasados);
+      if (isNaN(cuotas) || isNaN(pagos) || isNaN(atraso)) return null;
+      return Math.round(cuotas - pagos - atraso);
+   };
+
    const getMoraBorderColor = (dias) => {
       if (dias >= 30) return "border-l-rose-500";
       if (dias >= 15) return "border-l-orange-500";
@@ -464,8 +472,10 @@ export default function LiquidarCreditosPage() {
                            {currentItems.map((credito) => {
                               const mora = Math.round(credito.dias_atrasados || 0);
                               const phone = formatPhone(credito.cliente.telefono_principal);
+                              const vr = calcVisitasRestantes(credito);
+                              const proxVencer = (credito.estado_venta === "Vigente" || credito.estado_venta === "Atrasado") && vr !== null && vr >= 0 && vr <= 3;
                               return (
-                                 <tr key={credito.id} className={`group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all border-l-4 ${getMoraBorderColor(mora)}`}>
+                                 <tr key={credito.id} className={`group transition-all border-l-4 ${getMoraBorderColor(mora)} ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/40 hover:bg-amber-100/60 dark:hover:bg-amber-950/60" : "hover:bg-slate-50/50 dark:hover:bg-indigo-500/5"}`}>
                                     <td className="px-5 py-5 whitespace-nowrap">
                                        <div className="flex items-center gap-3">
                                           <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl flex items-center justify-center font-black text-sm uppercase shrink-0">
@@ -545,6 +555,11 @@ export default function LiquidarCreditosPage() {
                                     <td className="px-4 py-5 whitespace-nowrap">
                                        <div className="flex flex-col items-start gap-1">
                                           {getStatusBadge(credito.estado_venta)}
+                                          {proxVencer && (
+                                             <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-amber-300 dark:border-amber-700 animate-pulse">
+                                                ⚠ {vr === 0 ? "Última cuota" : `${vr} ${vr === 1 ? "cuota" : "cuotas"} p/ vencer`}
+                                             </span>
+                                          )}
                                           {mora > 0 && (
                                              <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest">
                                                 {mora}d mora
@@ -597,8 +612,10 @@ export default function LiquidarCreditosPage() {
                      currentItems.map((credito) => {
                         const mora = Math.round(credito.dias_atrasados || 0);
                         const phone = formatPhone(credito.cliente.telefono_principal);
+                        const vr = calcVisitasRestantes(credito);
+                        const proxVencer = (credito.estado_venta === "Vigente" || credito.estado_venta === "Atrasado") && vr !== null && vr >= 0 && vr <= 3;
                         return (
-                           <div key={credito.id} className={`glass p-5 rounded-[2rem] border-l-4 ${getMoraBorderColor(mora)} border-white/60 dark:border-slate-800 shadow-lg space-y-4`}>
+                           <div key={credito.id} className={`glass p-5 rounded-[2rem] border-l-4 ${getMoraBorderColor(mora)} border-white/60 dark:border-slate-800 shadow-lg space-y-4 ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/30" : ""}`}>
                               {/* Client name → clickable to detail */}
                               <div className="flex items-start justify-between gap-3">
                                  <div
@@ -610,6 +627,11 @@ export default function LiquidarCreditosPage() {
                                     </p>
                                     <div className="flex flex-wrap items-center gap-1.5">
                                        {getStatusBadge(credito.estado_venta)}
+                                       {proxVencer && (
+                                          <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-black uppercase tracking-widest rounded-lg border border-amber-300 dark:border-amber-700 animate-pulse">
+                                             ⚠ {vr === 0 ? "Última cuota" : `${vr}c p/ vencer`}
+                                          </span>
+                                       )}
                                        {mora > 0 && (
                                           <span className="px-2 py-0.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-rose-100 dark:border-rose-800">{mora}d Mora</span>
                                        )}
