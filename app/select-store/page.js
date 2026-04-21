@@ -38,7 +38,7 @@ export default function SelectStorePage() {
       const response = await apiFetch(`/tiendas/list/tiendas/admin/`);
       if (!response.ok) throw new Error("Error al obtener las tiendas asociadas");
       const data = await response.json();
-      setStores(data);
+      setStores(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message || "Error al cargar las tiendas");
       toast.error("Error al sincronizar sucursales");
