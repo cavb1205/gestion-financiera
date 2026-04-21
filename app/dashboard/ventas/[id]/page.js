@@ -292,8 +292,7 @@ export default function VentaDetailPage() {
         `💰 Saldo pendiente: *${saldo}*\n` +
         `✅ Total abonado: *${abonado}*\n` +
         `📅 Progreso: *${pagosRealizados}/${totalCuotas} días*\n` +
-        `📋 Valor cuota: *${cuota}*\n\n` +
-        `Por favor comuníquese con nosotros para coordinar su pago. ¡Gracias!`;
+        `📋 Valor cuota: *${cuota}*\n\n`;
       return `https://wa.me/${raw}?text=${encodeURIComponent(msg)}`;
     } catch { return "https://wa.me/"; }
   })();

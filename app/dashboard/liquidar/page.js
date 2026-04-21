@@ -214,8 +214,7 @@ export default function LiquidarCreditosPage() {
          `💰 Saldo pendiente: *${saldo}*\n` +
          `✅ Total abonado: *${abonado}*\n` +
          `📅 Progreso: *${pagosRealizados}/${totalCuotas} días*\n` +
-         `📋 Valor cuota: *${cuota}*\n\n` +
-         `Por favor comuníquese con nosotros para coordinar su pago. ¡Gracias!`;
+         `📋 Valor cuota: *${cuota}*\n\n` ;
       return `https://api.whatsapp.com/send?phone=${raw}&text=${encodeURIComponent(msg)}`;
    };
 
