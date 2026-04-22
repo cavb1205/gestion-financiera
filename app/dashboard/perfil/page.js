@@ -12,6 +12,7 @@ import {
   FiShield,
   FiUser,
   FiPhone,
+  FiDollarSign,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/app/utils/api";
@@ -30,6 +31,11 @@ export default function PerfilPage() {
 
   const [prefijo, setPrefijo] = useState(selectedStore?.tienda?.prefijo_telefono || "56");
   const [savingPrefijo, setSavingPrefijo] = useState(false);
+
+  const [cupoMinimo, setCupoMinimo] = useState(
+    selectedStore?.tienda?.cupo_minimo_nuevo ? String(parseInt(selectedStore.tienda.cupo_minimo_nuevo)) : "100000"
+  );
+  const [savingCupo, setSavingCupo] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,6 +60,28 @@ export default function PerfilPage() {
       toast.error(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveCupo = async () => {
+    const val = parseInt(cupoMinimo.replace(/\D/g, ""), 10);
+    if (!val || val < 10000) {
+      toast.error("El cupo mínimo debe ser mayor a $10,000");
+      return;
+    }
+    setSavingCupo(true);
+    try {
+      const response = await apiFetch(`/tiendas/${selectedStore.tienda.id}/settings/`, {
+        method: "PATCH",
+        body: JSON.stringify({ cupo_minimo_nuevo: val }),
+      });
+      if (!response.ok) throw new Error();
+      toast.success("Cupo mínimo actualizado");
+      setCupoMinimo(String(val));
+    } catch {
+      toast.error("Error al guardar el cupo mínimo");
+    } finally {
+      setSavingCupo(false);
     }
   };
 
@@ -225,6 +253,55 @@ export default function PerfilPage() {
                   <>
                     <FiSave size={15} />
                     Guardar Prefijo
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Cupo mínimo para clientes nuevos — admin only */}
+        {isAdmin && (
+          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 mt-6">
+            <div className="flex items-center gap-3 mb-7">
+              <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-xl">
+                <FiDollarSign size={18} />
+              </div>
+              <div>
+                <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Cupo Mínimo — Clientes Nuevos</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Para recomendación automática de crédito</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Monto inicial aprobado
+                </label>
+                <input
+                  type="text"
+                  value={cupoMinimo}
+                  onChange={(e) => setCupoMinimo(e.target.value.replace(/\D/g, ""))}
+                  placeholder="100000"
+                  className="block w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none"
+                />
+                <p className="text-[9px] font-bold text-slate-400 ml-1">
+                  Cupo que se asigna a clientes sin historial crediticio
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSaveCupo}
+                disabled={savingCupo}
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-emerald-100 dark:shadow-none active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                {savingCupo ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <FiSave size={15} />
+                    Guardar Cupo Mínimo
                   </>
                 )}
               </button>

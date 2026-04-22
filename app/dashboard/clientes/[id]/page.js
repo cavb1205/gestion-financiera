@@ -67,7 +67,6 @@ export default function DetalleCliente({ params }) {
         creditosPerdidos: 0,
         creditosCompletados: 0,
         promedioAtraso: "0.0",
-        montoRecomendado: 0,
         creditoVigente: false,
         estadoCreditoVigente: null,
         beneficioNeto: 0,
@@ -173,29 +172,6 @@ export default function DetalleCliente({ params }) {
             : 1;
       }
 
-      // Calcular monto recomendado para nuevo crédito
-      let montoRecomendado = 0;
-      if (!bloqueado && totalCreditos > 0) {
-        const promedioMonto = totalMontoCreditos / totalCreditos;
-
-        // Factor de ajuste basado en calificación
-        let factor = 1;
-        if (calificacion >= 80) factor = 1.2; // Excelente historial
-        else if (calificacion >= 60) factor = 1.0; // Buen historial
-        else if (calificacion >= 40) factor = 0.8; // Historial regular
-        else factor = 0.5; // Mal historial
-
-        montoRecomendado = Math.round(promedioMonto * factor);
-
-        // Si el cliente tiene atrasos, reducir el monto
-        if (creditosConAtraso > 0) {
-          montoRecomendado = Math.round(montoRecomendado * 0.7);
-        }
-
-        // Mínimo de $10,000 para no recomendar montos insignificantes
-        montoRecomendado = Math.max(10000, montoRecomendado);
-      }
-
       return {
         totalCreditos,
         totalMontoNeto,
@@ -213,7 +189,6 @@ export default function DetalleCliente({ params }) {
           creditosConAtraso > 0
             ? (totalDiasAtraso / creditosConAtraso).toFixed(1)
             : "0.0",
-        montoRecomendado,
         creditoVigente,
         estadoCreditoVigente,
         beneficioNeto,
@@ -630,32 +605,41 @@ export default function DetalleCliente({ params }) {
             </div>
 
             {/* Smart Recommendation Card */}
-            {!resumenFinanciero.bloqueado && resumenFinanciero.totalCreditos > 0 && (
+            {score && score.cupo_recomendado > 0 && (
               <div className="bg-slate-900 dark:bg-indigo-600 rounded-[2.5rem] p-10 text-white relative overflow-hidden group">
                  <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-6">
                        <FiTarget className="text-indigo-400" size={24} />
-                       <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-200">Recomendación IA</span>
+                       <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-200">Cupo Recomendado</span>
                     </div>
                     <p className="text-slate-400 text-sm font-bold mb-2">Cupo Sugerido de Inversión:</p>
-                    <div className="flex items-end gap-2 mb-8">
-                       <span className="text-4xl font-black tracking-tighter">{formatMoney(resumenFinanciero.montoRecomendado)}</span>
+                    <div className="flex items-end gap-2 mb-4">
+                       <span className="text-4xl font-black tracking-tighter">{formatMoney(score.cupo_recomendado)}</span>
                     </div>
-                    
+                    {score.justificacion?.razon && (
+                      <p className="text-[11px] text-indigo-200 font-bold mb-6 leading-relaxed">{score.justificacion.razon}</p>
+                    )}
                     <div className="space-y-3">
-                       <div className="flex items-center gap-3 p-3 bg-white/10 rounded-xl border border-white/5">
-                          <FiCheck className="text-emerald-400" />
-                          <span className="text-[11px] font-bold">Historial de cumplimiento sólido</span>
-                       </div>
+                       {score.justificacion?.factor_vigente < 1 && (
+                          <div className="flex items-center gap-3 p-3 bg-white/10 rounded-xl border border-white/5">
+                             <FiAlertCircle className="text-amber-400 shrink-0" />
+                             <span className="text-[11px] font-bold">Crédito activo con atraso — cupo reducido 40%</span>
+                          </div>
+                       )}
+                       {score.justificacion?.factor_recencia < 1 && (
+                          <div className="flex items-center gap-3 p-3 bg-white/10 rounded-xl border border-white/5">
+                             <FiAlertCircle className="text-amber-400 shrink-0" />
+                             <span className="text-[11px] font-bold">Cliente con baja actividad reciente</span>
+                          </div>
+                       )}
                        {resumenFinanciero.creditoVigente && (
                           <div className="flex items-center gap-3 p-3 bg-white/10 rounded-xl border border-white/5">
-                             <FiAlertCircle className="text-amber-400" />
-                             <span className="text-[11px] font-bold">Cuenta con crédito vigente</span>
+                             <FiCheck className="text-emerald-400 shrink-0" />
+                             <span className="text-[11px] font-bold">Cuenta con crédito vigente en curso</span>
                           </div>
                        )}
                     </div>
                  </div>
-                 {/* Decorative spheres */}
                  <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-white/5 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-1000"></div>
               </div>
             )}
