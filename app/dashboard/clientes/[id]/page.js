@@ -643,6 +643,21 @@ export default function DetalleCliente({ params }) {
                  <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-white/5 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-1000"></div>
               </div>
             )}
+
+            {/* Cupo bloqueado */}
+            {score && score.cupo_recomendado === 0 && score.justificacion?.bloqueado && (
+              <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 rounded-[2.5rem] p-8">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2.5 bg-rose-100 dark:bg-rose-900/40 rounded-xl">
+                    <FiAlertCircle className="text-rose-500" size={18} />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-rose-500">Cupo Bloqueado</span>
+                </div>
+                <p className="text-sm font-bold text-rose-700 dark:text-rose-300 leading-relaxed">
+                  {score.justificacion.razon}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Columna Derecha: Historial y Métricas Detalladas */}
