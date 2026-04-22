@@ -171,6 +171,26 @@ export const AuthProvider = ({ children }) => {
     });
   }, []);
 
+  const refreshSelectedStore = useCallback(async () => {
+    const storedToken = localStorage.getItem('authToken');
+    const storedStore = localStorage.getItem('selectedStore');
+    if (!storedToken || !storedStore) return;
+    const current = JSON.parse(storedStore);
+    const tiendaId = current?.tienda?.id;
+    if (!tiendaId) return;
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/tiendas/detail/admin/${tiendaId}/`,
+        { headers: { Authorization: `Bearer ${storedToken}` } }
+      );
+      if (res.ok) {
+        const fresh = await res.json();
+        setSelectedStore(fresh);
+        localStorage.setItem('selectedStore', JSON.stringify(fresh));
+      }
+    } catch (_) {}
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -184,6 +204,7 @@ export const AuthProvider = ({ children }) => {
         refreshAuthToken,
         selectStore,
         updateStoreData,
+        refreshSelectedStore,
         isAuthenticated: !!token,
       }}
     >

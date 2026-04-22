@@ -81,7 +81,7 @@ const allMenuItems = [
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, profile, logout, selectedStore, isAuthenticated, loading } =
+  const { user, profile, logout, selectedStore, isAuthenticated, loading, refreshSelectedStore } =
     useAuth();
   const { theme, toggleTheme } = useTheme();
   const isAdmin = user?.is_staff || user?.is_superuser;
@@ -182,7 +182,8 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
-  }, [pathname]);
+    if (isAuthenticated) refreshSelectedStore();
+  }, [pathname, isAuthenticated, refreshSelectedStore]);
 
   useEffect(() => {
     if (selectedStore) {
