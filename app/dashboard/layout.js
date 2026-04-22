@@ -204,18 +204,10 @@ export default function DashboardLayout({ children }) {
       const expired = diffDays < 0;
       setIsExpired(expired);
 
-      if (expired) {
-        if (isWorker) {
-          // Workers no pueden renovar — se les permite sus páginas normales para no quedar bloqueados
-          const isOnWorkerPage = workerAllowedPaths.some(p => pathname.startsWith(p));
-          if (!isOnWorkerPage && pathname !== '/dashboard') {
-            router.push('/dashboard/liquidar');
-          }
-        } else {
-          // Admins: solo dashboard y membresías para poder renovar
-          const adminOk = pathname === '/dashboard' || pathname.includes('/select-store') || pathname.includes('/membresias') || pathname.includes('/admin/rutas');
-          if (!adminOk) router.push('/dashboard');
-        }
+      if (expired && !isWorker) {
+        // Admins: solo dashboard y membresías para poder renovar
+        const adminOk = pathname === '/dashboard' || pathname.includes('/select-store') || pathname.includes('/membresias') || pathname.includes('/admin/rutas');
+        if (!adminOk) router.push('/dashboard');
       }
     }
   }, [selectedStore, pathname, router, isWorker]);
@@ -232,6 +224,30 @@ export default function DashboardLayout({ children }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (isExpired && isWorker) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-6">
+        <div className="max-w-sm w-full text-center">
+          <div className="w-20 h-20 bg-rose-100 dark:bg-rose-900/30 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+            <FiShield className="text-rose-500" size={36} />
+          </div>
+          <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight mb-3">
+            Acceso Suspendido
+          </h1>
+          <p className="text-sm font-bold text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+            La suscripción de <span className="text-slate-700 dark:text-slate-200">{selectedStore?.tienda?.nombre}</span> ha vencido. Contacta al administrador para reactivar el acceso.
+          </p>
+          <button
+            onClick={() => { logout(); router.push('/login'); }}
+            className="px-8 py-3 bg-rose-500 hover:bg-rose-400 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
       </div>
     );
   }
