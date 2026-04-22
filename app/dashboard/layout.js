@@ -204,12 +204,21 @@ export default function DashboardLayout({ children }) {
       const expired = diffDays < 0;
       setIsExpired(expired);
 
-      // Si está expirado, solo permitir dashboard y membresías (para poder renovar)
-      if (expired && pathname !== '/dashboard' && !pathname.includes('/select-store') && !pathname.includes('/membresias') && !pathname.includes('/admin/rutas')) {
-        router.push('/dashboard');
+      if (expired) {
+        if (isWorker) {
+          // Workers no pueden renovar — se les permite sus páginas normales para no quedar bloqueados
+          const isOnWorkerPage = workerAllowedPaths.some(p => pathname.startsWith(p));
+          if (!isOnWorkerPage && pathname !== '/dashboard') {
+            router.push('/dashboard/liquidar');
+          }
+        } else {
+          // Admins: solo dashboard y membresías para poder renovar
+          const adminOk = pathname === '/dashboard' || pathname.includes('/select-store') || pathname.includes('/membresias') || pathname.includes('/admin/rutas');
+          if (!adminOk) router.push('/dashboard');
+        }
       }
     }
-  }, [selectedStore, pathname, router]);
+  }, [selectedStore, pathname, router, isWorker]);
 
   if (loading) {
     return (
