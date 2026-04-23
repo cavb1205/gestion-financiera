@@ -222,7 +222,7 @@ export default function CrearCliente() {
                         {errors.identificacion && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.identificacion}</p>}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
                         <div className="space-y-2">
                           <label htmlFor="nombres" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres *</label>
                           <input
@@ -272,7 +272,7 @@ export default function CrearCliente() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
                         <div className="space-y-2">
                           <label htmlFor="telefono_principal" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono *</label>
                           <div className={`flex items-center bg-slate-50 dark:bg-slate-800/50 border ${errors.telefono_principal ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl overflow-hidden transition-all focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10`}>
@@ -311,7 +311,7 @@ export default function CrearCliente() {
                       </div>
 
                       <div className="space-y-2">
-                        <label htmlFor="direccion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección Exacta</label>
+                        <label htmlFor="direccion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección Exacta *</label>
                         <input
                           id="direccion"
                           type="text"

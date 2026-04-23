@@ -608,11 +608,11 @@ function NuevaVentaContent() {
       
       {/* ── Modal Crear Cliente ── */}
       {showCrearCliente && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
           <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowCrearCliente(false)} />
-          <div className="relative w-full max-w-md glass rounded-[2rem] overflow-hidden shadow-2xl shadow-black/40">
+          <div className="relative w-full sm:max-w-md glass rounded-t-[2rem] sm:rounded-[2rem] max-h-[92vh] flex flex-col shadow-2xl shadow-black/40">
             {/* Header */}
-            <div className="flex items-center justify-between px-7 pt-7 pb-5 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-indigo-500 rounded-xl flex items-center justify-center">
                   <FiPlus className="text-white" size={16} />
@@ -631,7 +631,7 @@ function NuevaVentaContent() {
               </button>
             </div>
 
-            <form onSubmit={handleCrearCliente} className="p-7 space-y-4">
+            <form onSubmit={handleCrearCliente} className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
               {/* Identificación */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -642,20 +642,20 @@ function NuevaVentaContent() {
                   value={nuevoCliente.identificacion}
                   onChange={(e) => setNuevoCliente((p) => ({ ...p, identificacion: e.target.value }))}
                   placeholder="Número de identificación"
-                  className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.identificacion ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                  className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.identificacion ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
                 />
                 {erroresCliente.identificacion && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.identificacion}</p>}
               </div>
 
               {/* Nombres y Apellidos */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nombres *</label>
                   <input
                     type="text"
                     value={nuevoCliente.nombres}
                     onChange={(e) => setNuevoCliente((p) => ({ ...p, nombres: e.target.value }))}
-                    className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.nombres ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                    className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.nombres ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
                   />
                   {erroresCliente.nombres && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.nombres}</p>}
                 </div>
@@ -665,38 +665,13 @@ function NuevaVentaContent() {
                     type="text"
                     value={nuevoCliente.apellidos}
                     onChange={(e) => setNuevoCliente((p) => ({ ...p, apellidos: e.target.value }))}
-                    className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.apellidos ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                    className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.apellidos ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
                   />
                   {erroresCliente.apellidos && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.apellidos}</p>}
                 </div>
               </div>
 
-              {/* Teléfono + Opcional */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                    <FiPhone size={11} className="text-indigo-500" /> Teléfono *
-                  </label>
-                  <input
-                    type="tel"
-                    value={nuevoCliente.telefono_principal}
-                    onChange={(e) => setNuevoCliente((p) => ({ ...p, telefono_principal: e.target.value }))}
-                    className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.telefono_principal ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
-                  />
-                  {erroresCliente.telefono_principal && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.telefono_principal}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Alternativo</label>
-                  <input
-                    type="tel"
-                    value={nuevoCliente.telefono_opcional}
-                    onChange={(e) => setNuevoCliente((p) => ({ ...p, telefono_opcional: e.target.value }))}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Dirección */}
+              {/* Dirección — primero por ser obligatoria y de campo */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                   <FiMapPin size={11} className="text-indigo-500" /> Dirección *
@@ -705,9 +680,35 @@ function NuevaVentaContent() {
                   type="text"
                   value={nuevoCliente.direccion}
                   onChange={(e) => setNuevoCliente((p) => ({ ...p, direccion: e.target.value }))}
-                  className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.direccion ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                  placeholder="Barrio, calle, número de casa"
+                  className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.direccion ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
                 />
                 {erroresCliente.direccion && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.direccion}</p>}
+              </div>
+
+              {/* Teléfono + Opcional */}
+              <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <FiPhone size={11} className="text-indigo-500" /> Teléfono *
+                  </label>
+                  <input
+                    type="tel"
+                    value={nuevoCliente.telefono_principal}
+                    onChange={(e) => setNuevoCliente((p) => ({ ...p, telefono_principal: e.target.value }))}
+                    className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.telefono_principal ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                  />
+                  {erroresCliente.telefono_principal && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.telefono_principal}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tel. Alternativo</label>
+                  <input
+                    type="tel"
+                    value={nuevoCliente.telefono_opcional}
+                    onChange={(e) => setNuevoCliente((p) => ({ ...p, telefono_opcional: e.target.value }))}
+                    className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                  />
+                </div>
               </div>
 
               {/* Nombre local (opcional) */}
@@ -718,23 +719,23 @@ function NuevaVentaContent() {
                   value={nuevoCliente.nombre_local}
                   onChange={(e) => setNuevoCliente((p) => ({ ...p, nombre_local: e.target.value }))}
                   placeholder="Nombre del negocio (opcional)"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-slate-400"
                 />
               </div>
 
               {/* Botones */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-1 pb-2">
                 <button
                   type="button"
                   onClick={() => setShowCrearCliente(false)}
-                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                  className="flex-1 py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={creandoCliente}
-                  className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
+                  className="flex-[2] py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
                   {creandoCliente ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
