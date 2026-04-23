@@ -55,7 +55,7 @@ export default function PerfilPage() {
       });
       if (!response.ok) throw new Error("Error al cambiar la contraseña");
       toast.success("Contraseña actualizada correctamente");
-      router.push("/dashboard/liquidar");
+      router.back();
     } catch (err) {
       toast.error(err.message);
     } finally {

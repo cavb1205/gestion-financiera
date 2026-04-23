@@ -298,7 +298,9 @@ export default function GastosPage() {
 
         {/* Table Section */}
         <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl">
-          <div className="overflow-x-auto">
+
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-800/20">
@@ -374,6 +376,65 @@ export default function GastosPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden">
+            {currentItems.length === 0 ? (
+              <div className="px-6 py-16 text-center">
+                <div className="bg-rose-50 dark:bg-rose-900/20 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
+                  <FiTrendingDown className="text-2xl text-rose-400" />
+                </div>
+                <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">Sin gastos reportados</h3>
+                <p className="text-[10px] font-bold text-slate-400 mb-5">No se encontraron egresos en este periodo.</p>
+                <button
+                  onClick={() => router.push("/dashboard/gastos/crear")}
+                  className="px-6 py-3 bg-rose-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Registrar Gasto
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {currentItems.map((gasto) => (
+                  <div key={gasto.id} className="p-5 space-y-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center text-rose-600 shrink-0">
+                          <FiTag size={14} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-black text-slate-800 dark:text-white uppercase truncate">{gasto.tipo_gasto.tipo_gasto}</p>
+                          <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mt-0.5">
+                            <FiCalendar size={9} /> {gasto.fecha}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-base font-black text-rose-600 dark:text-rose-400 shrink-0">{formatMoney(gasto.valor)}</p>
+                    </div>
+                    {gasto.comentario && (
+                      <p className="text-[11px] font-bold text-slate-400 pl-12 truncate">{gasto.comentario}</p>
+                    )}
+                    {!isWorker && (
+                      <div className="flex gap-2 pl-12">
+                        <button
+                          onClick={() => router.push(`/dashboard/gastos/${gasto.id}/editar`)}
+                          className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                        >
+                          <FiEdit size={12} /> Editar
+                        </button>
+                        <button
+                          onClick={() => setGastoToDelete(gasto)}
+                          className="flex-1 py-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                        >
+                          <FiTrash2 size={12} /> Eliminar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <Pagination

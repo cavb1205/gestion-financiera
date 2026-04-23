@@ -230,7 +230,7 @@ export default function CierreCajaPage() {
               Fecha del Cierre
             </label>
             {isWorker ? (
-              <div className="block w-full px-6 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
+              <div className="w-full px-6 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
                 <span className="text-[13px] font-bold text-slate-800 dark:text-white">{selectedDate}</span>
                 <FiCalendar className="text-slate-400" size={14} />
               </div>
@@ -409,13 +409,15 @@ export default function CierreCajaPage() {
                         </span>
                       </td>
                       <td className="px-8 py-6 text-right">
-                        <button
-                          onClick={() => setCierreToDelete(cierre)}
-                          className="p-3 text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all"
-                          title="Eliminar cierre"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
+                        {!isWorker && (
+                          <button
+                            onClick={() => setCierreToDelete(cierre)}
+                            className="p-3 text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all"
+                            title="Eliminar cierre"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -440,12 +442,14 @@ export default function CierreCajaPage() {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setCierreToDelete(cierre)}
-                    className="p-3 text-slate-300 hover:text-rose-600 rounded-xl transition-all"
-                  >
-                    <FiTrash2 size={16} />
-                  </button>
+                  {!isWorker && (
+                    <button
+                      onClick={() => setCierreToDelete(cierre)}
+                      className="p-3 text-slate-300 hover:text-rose-600 rounded-xl transition-all"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

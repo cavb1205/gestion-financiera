@@ -35,11 +35,15 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 import Pagination from "../../components/Pagination";
 
 export default function RecaudosPage() {
-  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, loading: authLoading, user } = useAuth();
   const router = useRouter();
+  const isWorker = !(user?.is_staff || user?.is_superuser);
   const [recaudos, setRecaudos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState("");
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const canEditDelete = !isWorker || selectedDate === todayStr;
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
@@ -312,8 +316,8 @@ export default function RecaudosPage() {
               </div>
            </div>
 
-           {/* Table Section */}
-           <div className="overflow-x-auto min-h-[400px]">
+           {/* Desktop Table */}
+           <div className="hidden md:block overflow-x-auto min-h-[400px]">
               {loading ? (
                 <table className="w-full border-collapse">
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -355,7 +359,7 @@ export default function RecaudosPage() {
                           <tr key={recaudo.id} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
                              <td className="px-4 py-6 whitespace-nowrap">
                                 <div className="flex items-center gap-4">
-                                   <button 
+                                   <button
                                      onClick={() => recaudo.venta?.id && router.push(`/dashboard/ventas/${recaudo.venta.id}`)}
                                      className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm font-black text-sm uppercase transition-all hover:scale-110 ${
                                       esFalla ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-600' : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600'
@@ -394,28 +398,109 @@ export default function RecaudosPage() {
                                 </p>
                              </td>
                              <td className="px-4 py-6 text-right whitespace-nowrap">
-                                <div className="flex items-center justify-end gap-2">
-                                   <button 
-                                     onClick={() => setEditingRecaudo(recaudo)}
-                                     className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm"
-                                     title="Editar Registro"
-                                   >
-                                      <FiEdit size={16} />
-                                   </button>
-                                   <button 
-                                     onClick={() => setDeletingRecaudo(recaudo)}
-                                     className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-rose-600 rounded-xl transition-all shadow-sm"
-                                     title="Anular Recaudo"
-                                   >
-                                      <FiTrash2 size={16} />
-                                   </button>
-                                </div>
+                                {canEditDelete ? (
+                                  <div className="flex items-center justify-end gap-2">
+                                     <button
+                                       onClick={() => setEditingRecaudo(recaudo)}
+                                       className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm"
+                                       title="Editar Registro"
+                                     >
+                                        <FiEdit size={16} />
+                                     </button>
+                                     <button
+                                       onClick={() => setDeletingRecaudo(recaudo)}
+                                       className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-rose-600 rounded-xl transition-all shadow-sm"
+                                       title="Anular Recaudo"
+                                     >
+                                        <FiTrash2 size={16} />
+                                     </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Solo lectura</span>
+                                )}
                              </td>
                           </tr>
                         );
                       })}
                    </tbody>
                 </table>
+              )}
+           </div>
+
+           {/* Mobile Cards */}
+           <div className="md:hidden">
+              {loading ? (
+                <div className="flex justify-center py-12"><LoadingSpinner /></div>
+              ) : filteredRecaudos.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                   <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 rounded-[1.5rem] flex items-center justify-center mb-4">
+                      <FiPackage size={28} className="text-emerald-400" />
+                   </div>
+                   <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">Sin recaudos</p>
+                   <p className="text-[10px] font-bold text-slate-400 mb-5">No hay recaudos para este periodo.</p>
+                   <button
+                     onClick={() => router.push("/dashboard/liquidar")}
+                     className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                   >
+                     Ir a Liquidación
+                   </button>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                   {currentItems.map((recaudo) => {
+                     const cliente = recaudo.venta?.cliente || {};
+                     const esFalla = parseFloat(recaudo.valor_recaudo) === 0;
+                     return (
+                       <div key={recaudo.id} className="p-5 space-y-3">
+                         <div className="flex items-start justify-between gap-3">
+                           <button
+                             onClick={() => recaudo.venta?.id && router.push(`/dashboard/ventas/${recaudo.venta.id}`)}
+                             className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                           >
+                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm uppercase shrink-0 ${
+                               esFalla ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-600' : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600'
+                             }`}>
+                               {cliente.nombres?.charAt(0) || <FiUser size={14} />}
+                             </div>
+                             <div className="min-w-0">
+                               <p className="text-[14px] font-black text-slate-800 dark:text-white uppercase truncate leading-tight">{cliente.nombres} {cliente.apellidos}</p>
+                               <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">REC #{recaudo.id} • VTA #{recaudo.venta?.id}</p>
+                             </div>
+                           </button>
+                           <span className={`inline-flex px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest shrink-0 ${
+                             esFalla ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600'
+                           }`}>
+                             {esFalla ? 'Falla' : 'Abono'}
+                           </span>
+                         </div>
+                         <div className="flex items-center justify-between px-1">
+                           <p className={`text-[11px] font-black uppercase truncate max-w-[60%] ${esFalla ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400'}`}>
+                             {esFalla ? (recaudo.visita_blanco?.tipo_falla || "Sin Detalle") : "Pago registrado"}
+                           </p>
+                           <p className={`text-base font-black tracking-tight ${esFalla ? 'text-slate-400' : 'text-emerald-500'}`}>
+                             {formatMoney(recaudo.valor_recaudo)}
+                           </p>
+                         </div>
+                         {canEditDelete && (
+                           <div className="flex gap-2">
+                             <button
+                               onClick={() => setEditingRecaudo(recaudo)}
+                               className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                             >
+                               <FiEdit size={12} /> Editar
+                             </button>
+                             <button
+                               onClick={() => setDeletingRecaudo(recaudo)}
+                               className="flex-1 py-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                             >
+                               <FiTrash2 size={12} /> Anular
+                             </button>
+                           </div>
+                         )}
+                       </div>
+                     );
+                   })}
+                </div>
               )}
            </div>
 
