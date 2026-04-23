@@ -40,11 +40,6 @@ export default function SelectStorePage() {
       const data = await response.json();
       const list = Array.isArray(data) ? data : [];
       setStores(list);
-      // Si solo hay 1 tienda, entrar directo sin mostrar la pantalla de selección
-      if (list.length === 1) {
-        selectStore(list[0]);
-        router.push("/dashboard");
-      }
     } catch (err) {
       setError(err.message || "Error al cargar las tiendas");
       toast.error("Error al sincronizar sucursales");
