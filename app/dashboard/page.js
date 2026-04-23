@@ -37,8 +37,10 @@ const formatDate = (s) => {
 const calcDiasRestantes = (s) => {
   if (!s) return Number.MAX_SAFE_INTEGER;
   const [y, m, d] = s.split("-").map(Number);
-  const vence = new Date(y, m - 1, d, 23, 59, 59);
-  return Math.ceil((vence - new Date()) / 86400000);
+  const vence = new Date(y, m - 1, d);
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  return Math.ceil((vence - hoy) / 86400000);
 };
 
 export default function DashboardPage() {
@@ -239,7 +241,7 @@ export default function DashboardPage() {
 
       {/* ── Alerta de membresía próxima a vencer ─────────────────── */}
       {memStatus === "warn" && (
-        <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl">
+        <div className="hidden md:flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl">
           <FiAlertCircle className="text-amber-500 shrink-0" size={18} />
           <p className="text-[11px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wide flex-1">
             Tu membresía vence en <span className="text-amber-900 dark:text-amber-300">{dias} días</span> — {formatDate(tienda.fecha_vencimiento)}
