@@ -198,131 +198,123 @@ export default function CrearCliente() {
                 <p className="text-slate-500 font-bold uppercase text-[9px] tracking-widest">Sincronizando con la red...</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
-                  {/* Left Column */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-2 px-1">
-                       <FiShield className="text-indigo-500" size={14} />
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identidad</span>
+              <form onSubmit={handleSubmit} className="space-y-5">
+
+                {/* Documento */}
+                <div className="space-y-2">
+                  <label htmlFor="identificacion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                    <FiShield size={11} className="text-indigo-500" /> Documento *
+                  </label>
+                  <input
+                    id="identificacion"
+                    type="text"
+                    name="identificacion"
+                    value={formData.identificacion}
+                    onChange={handleChange}
+                    placeholder="Número de identificación"
+                    className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.identificacion ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
+                  />
+                  {errors.identificacion && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.identificacion}</p>}
+                </div>
+
+                {/* Nombres y Apellidos */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <label htmlFor="nombres" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres *</label>
+                    <input
+                      id="nombres"
+                      type="text"
+                      name="nombres"
+                      value={formData.nombres}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.nombres ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
+                    />
+                    {errors.nombres && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.nombres}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="apellidos" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos *</label>
+                    <input
+                      id="apellidos"
+                      type="text"
+                      name="apellidos"
+                      value={formData.apellidos}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.apellidos ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
+                    />
+                    {errors.apellidos && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.apellidos}</p>}
+                  </div>
+                </div>
+
+                {/* Dirección — campo crítico de campo, visible sin scroll */}
+                <div className="space-y-2">
+                  <label htmlFor="direccion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                    <FiMapPin size={11} className="text-indigo-500" /> Dirección Exacta *
+                  </label>
+                  <input
+                    id="direccion"
+                    type="text"
+                    name="direccion"
+                    value={formData.direccion}
+                    onChange={handleChange}
+                    placeholder="Barrio, calle, número de casa"
+                    className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.direccion ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
+                  />
+                  {errors.direccion && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.direccion}</p>}
+                </div>
+
+                {/* Teléfonos */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <label htmlFor="telefono_principal" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono *</label>
+                    <div className={`flex items-center bg-slate-50 dark:bg-slate-800/50 border ${errors.telefono_principal ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl overflow-hidden transition-all focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10`}>
+                      <span className="px-3 py-4 text-[13px] font-black text-slate-400 dark:text-slate-500 border-r border-slate-200 dark:border-slate-700 shrink-0 select-none">
+                        +{selectedStore?.tienda?.prefijo_telefono || '56'}
+                      </span>
+                      <input
+                        id="telefono_principal"
+                        type="tel"
+                        name="telefono_principal"
+                        value={formData.telefono_principal}
+                        onChange={handleChange}
+                        placeholder="123456"
+                        className="flex-1 px-3 py-4 bg-transparent text-[14px] font-bold text-slate-900 dark:text-white outline-none"
+                      />
                     </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label htmlFor="identificacion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Documento *</label>
-                        <input
-                          id="identificacion"
-                          type="text"
-                          name="identificacion"
-                          value={formData.identificacion}
-                          onChange={handleChange}
-                          placeholder="Número de identificación"
-                          className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.identificacion ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
-                        />
-                        {errors.identificacion && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.identificacion}</p>}
-                      </div>
-
-                      <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <label htmlFor="nombres" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres *</label>
-                          <input
-                            id="nombres"
-                            type="text"
-                            name="nombres"
-                            value={formData.nombres}
-                            onChange={handleChange}
-                            className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.nombres ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
-                          />
-                          {errors.nombres && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.nombres}</p>}
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor="apellidos" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos *</label>
-                          <input
-                            id="apellidos"
-                            type="text"
-                            name="apellidos"
-                            value={formData.apellidos}
-                            onChange={handleChange}
-                            className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.apellidos ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
-                          />
-                          {errors.apellidos && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.apellidos}</p>}
-                        </div>
-                      </div>
+                    {errors.telefono_principal && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.telefono_principal}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="telefono_opcional" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Opcional</label>
+                    <div className="flex items-center bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
+                      <span className="px-3 py-4 text-[13px] font-black text-slate-400 dark:text-slate-500 border-r border-slate-200 dark:border-slate-700 shrink-0 select-none">
+                        +{selectedStore?.tienda?.prefijo_telefono || '56'}
+                      </span>
+                      <input
+                        id="telefono_opcional"
+                        type="tel"
+                        name="telefono_opcional"
+                        value={formData.telefono_opcional}
+                        onChange={handleChange}
+                        placeholder="Opcional"
+                        className="flex-1 px-3 py-4 bg-transparent text-[14px] font-bold text-slate-900 dark:text-white outline-none"
+                      />
                     </div>
                   </div>
+                </div>
 
-                  {/* Right Column */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-2 px-1">
-                       <FiHome className="text-indigo-500" size={14} />
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contacto & Local</span>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label htmlFor="nombre_local" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Establecimiento</label>
-                        <input
-                          id="nombre_local"
-                          type="text"
-                          name="nombre_local"
-                          value={formData.nombre_local}
-                          onChange={handleChange}
-                          placeholder="Nombre del local"
-                          className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <label htmlFor="telefono_principal" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Teléfono *</label>
-                          <div className={`flex items-center bg-slate-50 dark:bg-slate-800/50 border ${errors.telefono_principal ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl overflow-hidden transition-all focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10`}>
-                            <span className="px-3 py-4 text-[13px] font-black text-slate-400 dark:text-slate-500 border-r border-slate-200 dark:border-slate-700 shrink-0 select-none">
-                              +{selectedStore?.tienda?.prefijo_telefono || '56'}
-                            </span>
-                            <input
-                              id="telefono_principal"
-                              type="tel"
-                              name="telefono_principal"
-                              value={formData.telefono_principal}
-                              onChange={handleChange}
-                              placeholder="3001234567"
-                              className="flex-1 px-4 py-4 bg-transparent text-[14px] font-bold text-slate-900 dark:text-white outline-none"
-                            />
-                          </div>
-                          {errors.telefono_principal && <p className="text-[9px] text-rose-500 font-black uppercase tracking-tight ml-1">{errors.telefono_principal}</p>}
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor="telefono_opcional" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Opcional</label>
-                          <div className="flex items-center bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                            <span className="px-3 py-4 text-[13px] font-black text-slate-400 dark:text-slate-500 border-r border-slate-200 dark:border-slate-700 shrink-0 select-none">
-                              +{selectedStore?.tienda?.prefijo_telefono || '56'}
-                            </span>
-                            <input
-                              id="telefono_opcional"
-                              type="tel"
-                              name="telefono_opcional"
-                              value={formData.telefono_opcional}
-                              onChange={handleChange}
-                              placeholder="Opcional"
-                              className="flex-1 px-4 py-4 bg-transparent text-[14px] font-bold text-slate-900 dark:text-white outline-none"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label htmlFor="direccion" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Dirección Exacta *</label>
-                        <input
-                          id="direccion"
-                          type="text"
-                          name="direccion"
-                          value={formData.direccion}
-                          onChange={handleChange}
-                          className={`w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border ${errors.direccion ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white transition-all outline-none`}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                {/* Establecimiento */}
+                <div className="space-y-2">
+                  <label htmlFor="nombre_local" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                    <FiHome size={11} className="text-indigo-500" /> Establecimiento
+                  </label>
+                  <input
+                    id="nombre_local"
+                    type="text"
+                    name="nombre_local"
+                    value={formData.nombre_local}
+                    onChange={handleChange}
+                    placeholder="Nombre del local (opcional)"
+                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                  />
                 </div>
 
                 {/* Action Button - Sticky Mobile */}
