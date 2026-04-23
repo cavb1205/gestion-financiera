@@ -31,6 +31,17 @@ export default function SelectStorePage() {
   const [creating, setCreating] = useState(false);
   const [removeTarget, setRemoveTarget] = useState(null);
   const [removing, setRemoving] = useState(false);
+  const [newPrefijo, setNewPrefijo] = useState("57");
+  const [newCupo, setNewCupo] = useState("");
+
+  const PAISES = [
+    { code: "CO", name: "Colombia",  prefijo: "57",  cupo: 100000, emoji: "🇨🇴" },
+    { code: "CL", name: "Chile",     prefijo: "56",  cupo: 50000,  emoji: "🇨🇱" },
+    { code: "MX", name: "México",    prefijo: "52",  cupo: 2000,   emoji: "🇲🇽" },
+    { code: "PE", name: "Perú",      prefijo: "51",  cupo: 300,    emoji: "🇵🇪" },
+    { code: "EC", name: "Ecuador",   prefijo: "593", cupo: 200,    emoji: "🇪🇨" },
+    { code: "OTHER", name: "Otro",   prefijo: "",    cupo: "",     emoji: "🌎" },
+  ];
 
   const fetchStores = async () => {
     try {
@@ -123,8 +134,24 @@ export default function SelectStorePage() {
         body: JSON.stringify({ nombre: newNombre.trim(), administrador: user.id }),
       });
       if (!response.ok) throw new Error("Error al crear la ruta");
+      const created = await response.json();
+      const tiendaId = created.id;
+
+      if (tiendaId && (newPrefijo || newCupo)) {
+        const settings = {};
+        if (newPrefijo) settings.prefijo_telefono = newPrefijo;
+        if (newCupo) settings.cupo_minimo_nuevo = parseFloat(newCupo);
+        await apiFetch(`/tiendas/${tiendaId}/settings/`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(settings),
+        });
+      }
+
       toast.success(`Ruta "${newNombre.trim()}" creada — membresía de prueba 7 días activa`);
       setNewNombre("");
+      setNewPrefijo("57");
+      setNewCupo("");
       setShowCreateModal(false);
       fetchStores();
     } catch (err) {
@@ -377,6 +404,49 @@ export default function SelectStorePage() {
                   required
                   className="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-[13px] font-medium text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
                 />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                  País / Prefijo telefónico
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {PAISES.map((p) => (
+                    <button
+                      key={p.code}
+                      type="button"
+                      onClick={() => {
+                        setNewPrefijo(p.prefijo);
+                        if (p.cupo) setNewCupo(String(p.cupo));
+                      }}
+                      className={`py-2.5 px-3 rounded-xl border text-[11px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5 ${
+                        newPrefijo === p.prefijo
+                          ? "bg-indigo-600 border-indigo-500 text-white"
+                          : "bg-slate-800/50 border-slate-700 text-slate-400 hover:border-indigo-500/50"
+                      }`}
+                    >
+                      <span>{p.emoji}</span>
+                      <span>{p.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                  Cupo base para nuevos clientes
+                </label>
+                <input
+                  type="number"
+                  value={newCupo}
+                  onChange={(e) => setNewCupo(e.target.value)}
+                  placeholder="Ej: 100000"
+                  min="0"
+                  className="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-[13px] font-medium text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+                />
+                <p className="text-[10px] text-slate-500 mt-1.5 pl-1">
+                  Valor de crédito sugerido al registrar un cliente nuevo.
+                </p>
               </div>
 
               <div className="flex gap-3 pt-2">
