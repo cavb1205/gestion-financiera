@@ -38,7 +38,13 @@ export default function SelectStorePage() {
       const response = await apiFetch(`/tiendas/list/tiendas/admin/`);
       if (!response.ok) throw new Error("Error al obtener las tiendas asociadas");
       const data = await response.json();
-      setStores(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setStores(list);
+      // Si solo hay 1 tienda, entrar directo sin mostrar la pantalla de selección
+      if (list.length === 1) {
+        selectStore(list[0]);
+        router.push("/dashboard");
+      }
     } catch (err) {
       setError(err.message || "Error al cargar las tiendas");
       toast.error("Error al sincronizar sucursales");
@@ -251,7 +257,7 @@ export default function SelectStorePage() {
                         </p>
                       </div>
                       <div className="p-5 bg-emerald-500/10 rounded-3xl border border-emerald-500/10 flex flex-col justify-center">
-                        <p className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest mb-1 font-extrabold">Total Valor</p>
+                        <p className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest mb-1">Total Valor</p>
                         <p className="text-sm font-black text-emerald-500 tracking-tighter">
                           {formatMoney(store.tienda.caja + store.tienda.dinero_x_cobrar)}
                         </p>

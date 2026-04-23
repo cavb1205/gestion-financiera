@@ -44,6 +44,7 @@ import { usePathname } from "next/navigation";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SessionTimeout from "../components/SessionTimeout";
 import OnboardingTour from "../components/OnboardingTour";
+import OnboardingWizard from "../components/OnboardingWizard";
 import GlobalSearch from "../components/GlobalSearch";
 
 const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja', '/dashboard/ventas', '/dashboard/clientes', '/dashboard/gastos', '/dashboard/perfil', '/dashboard/publicidad'];
@@ -100,6 +101,7 @@ export default function DashboardLayout({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [reportesOpen, setReportesOpen] = useState(() => false);
   const [showTour, setShowTour] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [badgeVencer, setBadgeVencer] = useState(0);
 
@@ -143,15 +145,20 @@ export default function DashboardLayout({ children }) {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Show onboarding tour for first-time users
+  // Show wizard for new registrations, tour for existing first-time users
   useEffect(() => {
-    if (isAuthenticated && selectedStore) {
+    if (isAuthenticated && selectedStore && isAdmin) {
+      const isNew = localStorage.getItem('cartera_onboarding_new') === '1';
+      if (isNew) {
+        setShowWizard(true);
+        return; // wizard reemplaza al tour para nuevos usuarios
+      }
       const tourDone = localStorage.getItem('cartera_tour_done');
       if (!tourDone) {
         setShowTour(true);
       }
     }
-  }, [isAuthenticated, selectedStore]);
+  }, [isAuthenticated, selectedStore, isAdmin]);
 
   useEffect(() => {
     if (!loading && (!isAuthenticated || (!selectedStore && user?.username !== 'root'))) {
@@ -179,6 +186,7 @@ export default function DashboardLayout({ children }) {
   }, [loading, isAuthenticated, isWorker, pathname, router]);
 
   const [isExpired, setIsExpired] = useState(false);
+  const [daysRemaining, setDaysRemaining] = useState(null);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -204,6 +212,7 @@ export default function DashboardLayout({ children }) {
       // Permitimos el acceso hasta el final del día de vencimiento (diffDays >= 0)
       const expired = diffDays < 0;
       setIsExpired(expired);
+      setDaysRemaining(diffDays);
 
       if (expired && !isWorker) {
         // Admins: solo dashboard y membresías para poder renovar
@@ -252,6 +261,12 @@ export default function DashboardLayout({ children }) {
       </div>
     );
   }
+
+  const isTrial = selectedStore?.membresia?.nombre === 'Prueba';
+  const showMembershipBadge = isAdmin && !isExpired && daysRemaining !== null && (isTrial || daysRemaining <= 7);
+  const badgeColor = daysRemaining !== null && daysRemaining <= 3
+    ? { pill: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-500/10', border: 'border-rose-200 dark:border-rose-500/20' }
+    : { pill: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-200 dark:border-amber-500/20' };
 
   const isActive = (path) => {
     if (path === '/dashboard/ventas') {
@@ -314,6 +329,21 @@ export default function DashboardLayout({ children }) {
           </button>
         </div>
       </div>
+
+      {/* Mobile — Banner trial/vencimiento */}
+      {showMembershipBadge && (
+        <div className={`md:hidden ${badgeColor.bg} border-b ${badgeColor.border} px-4 py-2 flex items-center justify-between gap-3`}>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`w-1.5 h-1.5 rounded-full ${badgeColor.pill} shrink-0 animate-pulse`} />
+            <span className={`text-[10px] font-black uppercase tracking-widest ${badgeColor.text} truncate`}>
+              {isTrial ? `Prueba · ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''} restante${daysRemaining !== 1 ? 's' : ''}` : `Plan vence en ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''}`}
+            </span>
+          </div>
+          <Link href="/dashboard/membresias" className={`shrink-0 px-3 py-1 rounded-lg ${badgeColor.pill} text-white text-[9px] font-black uppercase tracking-widest`}>
+            Activar
+          </Link>
+        </div>
+      )}
 
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
@@ -553,6 +583,29 @@ export default function DashboardLayout({ children }) {
               </div>
             </div>
 
+            {/* Badge trial / vencimiento */}
+            {showMembershipBadge && (
+              <Link
+                href="/dashboard/membresias"
+                className={`flex items-center justify-between gap-2 mb-4 px-3.5 py-2.5 rounded-2xl ${badgeColor.bg} border ${badgeColor.border} hover:opacity-80 transition-opacity group`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-1.5 h-1.5 rounded-full ${badgeColor.pill} shrink-0 animate-pulse`} />
+                  <div className="min-w-0">
+                    <p className={`text-[9px] font-black uppercase tracking-widest ${badgeColor.text} truncate`}>
+                      {isTrial ? 'Prueba gratuita' : 'Plan por vencer'}
+                    </p>
+                    <p className={`text-[10px] font-black ${badgeColor.text}`}>
+                      {daysRemaining} día{daysRemaining !== 1 ? 's' : ''} restante{daysRemaining !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+                <span className={`shrink-0 px-2.5 py-1 rounded-xl ${badgeColor.pill} text-white text-[9px] font-black uppercase tracking-widest`}>
+                  Activar
+                </span>
+              </Link>
+            )}
+
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => router.push("/select-store")}
@@ -654,7 +707,18 @@ export default function DashboardLayout({ children }) {
       {/* Modal de inactividad con renovación de sesión */}
       <SessionTimeout />
 
-      {/* Tour de bienvenida */}
+      {/* Wizard de configuración inicial (solo nuevos registros) */}
+      <OnboardingWizard
+        isOpen={showWizard}
+        onClose={() => {
+          localStorage.removeItem('cartera_onboarding_new');
+          localStorage.setItem('cartera_tour_done', '1');
+          setShowWizard(false);
+        }}
+        tienda={selectedStore?.tienda}
+      />
+
+      {/* Tour de bienvenida (usuarios existentes sin tour previo) */}
       <OnboardingTour
         isOpen={showTour}
         onClose={() => {
