@@ -63,7 +63,7 @@ function NuevaVentaContent() {
   const [showCrearCliente, setShowCrearCliente] = useState(false);
   const [nuevoCliente, setNuevoCliente] = useState({
     identificacion: "", nombres: "", apellidos: "",
-    nombre_local: "", telefono_principal: "", telefono_opcional: "", direccion: "",
+    nombre_local: "", telefono_principal: "", direccion: "",
   });
   const [erroresCliente, setErroresCliente] = useState({});
   const [creandoCliente, setCreandoCliente] = useState(false);
@@ -161,7 +161,7 @@ function NuevaVentaContent() {
       setClientes((prev) => [...prev, creado]);
       seleccionarCliente(creado);
       setShowCrearCliente(false);
-      setNuevoCliente({ identificacion: "", nombres: "", apellidos: "", nombre_local: "", telefono_principal: "", telefono_opcional: "", direccion: "" });
+      setNuevoCliente({ identificacion: "", nombres: "", apellidos: "", nombre_local: "", telefono_principal: "", direccion: "" });
       setErroresCliente({});
       toast.success("Cliente creado y seleccionado");
     } catch {
@@ -686,29 +686,19 @@ function NuevaVentaContent() {
                 {erroresCliente.direccion && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.direccion}</p>}
               </div>
 
-              {/* Teléfono + Opcional */}
-              <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                    <FiPhone size={11} className="text-indigo-500" /> Teléfono *
-                  </label>
-                  <input
-                    type="tel"
-                    value={nuevoCliente.telefono_principal}
-                    onChange={(e) => setNuevoCliente((p) => ({ ...p, telefono_principal: e.target.value }))}
-                    className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.telefono_principal ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
-                  />
-                  {erroresCliente.telefono_principal && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.telefono_principal}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tel. Alternativo</label>
-                  <input
-                    type="tel"
-                    value={nuevoCliente.telefono_opcional}
-                    onChange={(e) => setNuevoCliente((p) => ({ ...p, telefono_opcional: e.target.value }))}
-                    className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                  />
-                </div>
+              {/* Teléfono */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                  <FiPhone size={11} className="text-indigo-500" /> Teléfono *
+                </label>
+                <input
+                  type="tel"
+                  value={nuevoCliente.telefono_principal}
+                  onChange={(e) => setNuevoCliente((p) => ({ ...p, telefono_principal: e.target.value }))}
+                  placeholder="Número de teléfono"
+                  className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${erroresCliente.telefono_principal ? "border-rose-400" : "border-slate-100 dark:border-slate-700"} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all`}
+                />
+                {erroresCliente.telefono_principal && <p className="text-[10px] text-rose-500 font-black">{erroresCliente.telefono_principal}</p>}
               </div>
 
               {/* Nombre local (opcional) */}
