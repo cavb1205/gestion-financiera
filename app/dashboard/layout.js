@@ -186,7 +186,9 @@ export default function DashboardLayout({ children }) {
   }, [loading, isAuthenticated, isWorker, pathname, router]);
 
   const [isExpired, setIsExpired] = useState(false);
+  const [isGrace, setIsGrace] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState(null);
+  const [graceDaysRemaining, setGraceDaysRemaining] = useState(null);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -195,7 +197,7 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     if (selectedStore) {
-      // Ajuste de Zona Horaria: Crear fecha local 00:00 basada en la fecha UTC parseada
+      // Parsear fecha_vencimiento como medianoche local (sin distorsión de zona horaria)
       const fechaBase = new Date(selectedStore.fecha_vencimiento);
       const vencimiento = new Date(
         fechaBase.getUTCFullYear(),
@@ -206,13 +208,21 @@ export default function DashboardLayout({ children }) {
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
 
-      const diffTime = vencimiento - hoy;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      // Espejo exacto del backend: pendiente_pago = vencimiento+1d, vencida = vencimiento+3d
+      const pendientePagoDate = new Date(vencimiento);
+      pendientePagoDate.setDate(pendientePagoDate.getDate() + 1);
+      const vencidaDate = new Date(vencimiento);
+      vencidaDate.setDate(vencidaDate.getDate() + 3);
 
-      // Permitimos el acceso hasta el final del día de vencimiento (diffDays >= 0)
-      const expired = diffDays < 0;
+      const diffDays = Math.ceil((vencimiento - hoy) / (1000 * 60 * 60 * 24));
+      const grace = hoy >= pendientePagoDate && hoy < vencidaDate;
+      const graceDays = Math.ceil((vencidaDate - hoy) / (1000 * 60 * 60 * 24));
+      const expired = hoy >= vencidaDate;
+
       setIsExpired(expired);
+      setIsGrace(grace);
       setDaysRemaining(diffDays);
+      setGraceDaysRemaining(graceDays);
 
       if (expired && !isWorker) {
         // Admins: solo dashboard y membresías para poder renovar
@@ -263,10 +273,17 @@ export default function DashboardLayout({ children }) {
   }
 
   const isTrial = selectedStore?.membresia?.nombre === 'Prueba';
-  const showMembershipBadge = isAdmin && !isExpired && daysRemaining !== null && (isTrial || daysRemaining <= 7);
-  const badgeColor = daysRemaining !== null && daysRemaining <= 3
+  const showMembershipBadge = isAdmin && !isExpired && daysRemaining !== null && (isTrial || isGrace || daysRemaining <= 7);
+  const badgeColor = isGrace || (daysRemaining !== null && daysRemaining <= 3)
     ? { pill: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-500/10', border: 'border-rose-200 dark:border-rose-500/20' }
     : { pill: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-200 dark:border-amber-500/20' };
+  const badgeLabel = isGrace
+    ? `Gracia · ${graceDaysRemaining} día${graceDaysRemaining !== 1 ? 's' : ''} para bloqueo`
+    : daysRemaining <= 0
+      ? `Vence hoy · ${graceDaysRemaining} día${graceDaysRemaining !== 1 ? 's' : ''} de gracia`
+      : isTrial
+        ? `Prueba · ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''} restante${daysRemaining !== 1 ? 's' : ''}`
+        : `Plan vence en ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''}`;
 
   const isActive = (path) => {
     if (path === '/dashboard/ventas') {
@@ -336,7 +353,7 @@ export default function DashboardLayout({ children }) {
           <div className="flex items-center gap-2 min-w-0">
             <div className={`w-1.5 h-1.5 rounded-full ${badgeColor.pill} shrink-0 animate-pulse`} />
             <span className={`text-[10px] font-black uppercase tracking-widest ${badgeColor.text} truncate`}>
-              {isTrial ? `Prueba · ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''} restante${daysRemaining !== 1 ? 's' : ''}` : `Plan vence en ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''}`}
+              {badgeLabel}
             </span>
           </div>
           <Link href="/dashboard/membresias" className={`shrink-0 px-3 py-1 rounded-lg ${badgeColor.pill} text-white text-[9px] font-black uppercase tracking-widest`}>
@@ -593,10 +610,10 @@ export default function DashboardLayout({ children }) {
                   <div className={`w-1.5 h-1.5 rounded-full ${badgeColor.pill} shrink-0 animate-pulse`} />
                   <div className="min-w-0">
                     <p className={`text-[9px] font-black uppercase tracking-widest ${badgeColor.text} truncate`}>
-                      {isTrial ? 'Prueba gratuita' : 'Plan por vencer'}
+                      {isGrace ? 'Período de gracia' : isTrial ? 'Prueba gratuita' : 'Plan por vencer'}
                     </p>
                     <p className={`text-[10px] font-black ${badgeColor.text}`}>
-                      {daysRemaining} día{daysRemaining !== 1 ? 's' : ''} restante{daysRemaining !== 1 ? 's' : ''}
+                      {badgeLabel}
                     </p>
                   </div>
                 </div>

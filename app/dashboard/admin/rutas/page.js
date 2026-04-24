@@ -105,12 +105,23 @@ export default function AdminRutasPage() {
     return { total: tiendas.length, activas, pendientes, vencidas };
   }, [tiendas]);
 
-  const getDaysRemaining = (fechaVencimiento) => {
-    if (!fechaVencimiento) return 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const exp = new Date(fechaVencimiento + "T00:00:00");
-    return Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+  const getMembresiaInfo = (fechaVencimiento) => {
+    if (!fechaVencimiento) return { days: 0, graceDays: 0, status: "expired", label: "—" };
+    const [y, m, d] = fechaVencimiento.split("-").map(Number);
+    const vence = new Date(y, m - 1, d);
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const pendientePago = new Date(vence); pendientePago.setDate(pendientePago.getDate() + 1);
+    const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 3);
+    const days = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24));
+    const graceDays = Math.ceil((vencida - hoy) / (1000 * 60 * 60 * 24));
+
+    let status, label;
+    if (hoy >= vencida) { status = "expired"; label = "Bloqueada"; }
+    else if (hoy >= pendientePago) { status = "grace"; label = `Gracia · ${graceDays}d`; }
+    else if (days === 0) { status = "today"; label = `Vence hoy · ${graceDays}d gracia`; }
+    else { status = days <= 7 ? "warn" : "ok"; label = `${days}d`; }
+
+    return { days, graceDays, status, label };
   };
 
   const formatDate = (dateStr) => {
@@ -311,12 +322,12 @@ export default function AdminRutasPage() {
                     </tr>
                   ) : (
                     currentItems.map((tm) => {
-                      const days = getDaysRemaining(tm.fecha_vencimiento);
+                      const { days, status: memStatus, label: daysLabel } = getMembresiaInfo(tm.fecha_vencimiento);
                       const cfg = STATUS_CONFIG[tm.estado] || STATUS_CONFIG.Activa;
                       const daysColor =
-                        days > 15
+                        memStatus === "ok"
                           ? "text-emerald-600"
-                          : days > 5
+                          : memStatus === "warn" || memStatus === "today"
                           ? "text-amber-600"
                           : "text-rose-600";
 
@@ -376,7 +387,7 @@ export default function AdminRutasPage() {
                             <p
                               className={`text-sm font-black ${daysColor} tracking-tight`}
                             >
-                              {days > 0 ? days : 0}
+                              {daysLabel}
                             </p>
                           </td>
 

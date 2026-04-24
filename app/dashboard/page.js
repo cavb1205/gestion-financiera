@@ -43,6 +43,20 @@ const calcDiasRestantes = (s) => {
   return Math.ceil((vence - hoy) / 86400000);
 };
 
+// Espejo del backend: Activa → Pendiente Pago (gracia 2d) → Vencida
+const calcEstadoMembresia = (s) => {
+  if (!s) return "ok";
+  const [y, m, d] = s.split("-").map(Number);
+  const vence = new Date(y, m - 1, d);
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const pendientePago = new Date(vence); pendientePago.setDate(pendientePago.getDate() + 1);
+  const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 3);
+  if (hoy >= vencida) return "expired";
+  if (hoy >= pendientePago) return "grace";
+  if (Math.ceil((vence - hoy) / 86400000) <= 7) return "warn";
+  return "ok";
+};
+
 export default function DashboardPage() {
   const { selectedStore, token, updateStoreData, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -142,7 +156,7 @@ export default function DashboardPage() {
 
   const t = tienda.tienda;
   const dias = calcDiasRestantes(tienda.fecha_vencimiento);
-  const memStatus = dias > 7 ? "ok" : dias > 0 ? "warn" : "expired";
+  const memStatus = calcEstadoMembresia(tienda.fecha_vencimiento);
   const cajaPositiva = (t.caja ?? 0) >= 0;
 
   // ── Membresía vencida ───────────────────────────────────────────
@@ -223,9 +237,11 @@ export default function DashboardPage() {
             <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${
               memStatus === "ok"
                 ? "bg-slate-100 dark:bg-slate-800 text-slate-500"
-                : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                : memStatus === "grace"
+                  ? "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400"
+                  : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
             }`}>
-              {memStatus === "ok" ? `Plan ${tienda.membresia?.nombre}` : `${dias}d para vencer`}
+              {memStatus === "ok" ? `Plan ${tienda.membresia?.nombre}` : memStatus === "grace" ? "Período de gracia" : dias <= 0 ? "Vence hoy" : `${dias}d para vencer`}
             </span>
           </div>
         </div>
@@ -244,11 +260,27 @@ export default function DashboardPage() {
         <div className="hidden md:flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl">
           <FiAlertCircle className="text-amber-500 shrink-0" size={18} />
           <p className="text-[11px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wide flex-1">
-            Tu membresía vence en <span className="text-amber-900 dark:text-amber-300">{dias} días</span> — {formatDate(tienda.fecha_vencimiento)}
+            {dias <= 0 ? 'Tu membresía vence hoy' : <>Tu membresía vence en <span className="text-amber-900 dark:text-amber-300">{dias} día{dias !== 1 ? 's' : ''}</span></>} — {formatDate(tienda.fecha_vencimiento)}
           </p>
           <button
             onClick={() => router.push("/dashboard/membresias")}
             className="shrink-0 px-4 py-2 bg-amber-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+          >
+            Renovar
+          </button>
+        </div>
+      )}
+
+      {/* ── Alerta período de gracia ────────────────────────────── */}
+      {memStatus === "grace" && (
+        <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/40 rounded-2xl">
+          <FiAlertTriangle className="text-rose-500 shrink-0" size={18} />
+          <p className="text-[11px] font-black text-rose-700 dark:text-rose-400 uppercase tracking-wide flex-1">
+            Membresía vencida · período de gracia activo. Renueva para no perder el acceso.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard/membresias")}
+            className="shrink-0 px-4 py-2 bg-rose-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
           >
             Renovar
           </button>

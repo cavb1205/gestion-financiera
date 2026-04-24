@@ -77,13 +77,21 @@ export default function MembresiasPage() {
     }
   };
 
-  const getDaysRemaining = () => {
-    if (!membresia) return 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const exp = new Date(membresia.fecha_vencimiento);
-    exp.setHours(0, 0, 0, 0);
-    return Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+  const getMembresiaInfo = () => {
+    if (!membresia) return { days: 0, graceDays: 0, memStatus: "expired" };
+    const [y, m, d] = membresia.fecha_vencimiento.split("-").map(Number);
+    const vence = new Date(y, m - 1, d);
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const pendientePago = new Date(vence); pendientePago.setDate(pendientePago.getDate() + 1);
+    const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 3);
+    const days = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24));
+    const graceDays = Math.ceil((vencida - hoy) / (1000 * 60 * 60 * 24));
+    let memStatus;
+    if (hoy >= vencida) memStatus = "expired";
+    else if (hoy >= pendientePago) memStatus = "grace";
+    else if (days === 0) memStatus = "today";
+    else memStatus = days <= 7 ? "warn" : "ok";
+    return { days, graceDays, memStatus };
   };
 
   const getPeriodProgress = () => {
@@ -116,16 +124,24 @@ export default function MembresiasPage() {
     );
   }
 
-  const daysRemaining = getDaysRemaining();
+  const { days: daysRemaining, graceDays, memStatus } = getMembresiaInfo();
   const periodProgress = getPeriodProgress();
   const statusCfg = STATUS_CONFIG[membresia?.estado] || STATUS_CONFIG["Activa"];
   const planNombre = membresia?.membresia?.nombre || "—";
 
-  const daysColor = daysRemaining > 15
+  const daysColor = memStatus === "ok"
     ? { bar: "bg-emerald-500", text: "text-emerald-600" }
-    : daysRemaining > 5
+    : memStatus === "warn" || memStatus === "today"
       ? { bar: "bg-amber-500", text: "text-amber-600" }
       : { bar: "bg-rose-500", text: "text-rose-600" };
+
+  const daysLabel = memStatus === "expired"
+    ? "Acceso bloqueado"
+    : memStatus === "grace"
+      ? `Gracia · ${graceDays} día${graceDays !== 1 ? "s" : ""} para bloqueo`
+      : memStatus === "today"
+        ? `Vence hoy · ${graceDays} día${graceDays !== 1 ? "s" : ""} de gracia`
+        : `${daysRemaining} día${daysRemaining !== 1 ? "s" : ""} restantes`;
 
   return (
     <div className="min-h-screen bg-transparent pb-12">
@@ -171,7 +187,7 @@ export default function MembresiasPage() {
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vigencia del Plan</p>
                 <p className={`text-[11px] font-black uppercase tracking-widest ${daysColor.text}`}>
-                  {daysRemaining > 0 ? `${daysRemaining} días restantes` : "Vencida"}
+                  {daysLabel}
                 </p>
               </div>
               <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -200,7 +216,7 @@ export default function MembresiasPage() {
                   <FiClock className={daysColor.text + " "} size={13} />
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Vencimiento</p>
                 </div>
-                <p className={`text-[13px] font-black ${daysRemaining <= 5 ? daysColor.text : "text-slate-700 dark:text-slate-200"}`}>
+                <p className={`text-[13px] font-black ${memStatus !== "ok" ? daysColor.text : "text-slate-700 dark:text-slate-200"}`}>
                   {formatDate(membresia?.fecha_vencimiento)}
                 </p>
               </div>
