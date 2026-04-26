@@ -4,7 +4,20 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { useRouter } from 'next/navigation';
 import { tryRefreshToken } from '../utils/api';
 
-const AuthContext = createContext();
+const AuthContext = createContext({
+  user: null,
+  profile: null,
+  token: null,
+  selectedStore: null,
+  loading: true,
+  login: () => {},
+  logout: () => {},
+  refreshAuthToken: () => {},
+  selectStore: () => {},
+  updateStoreData: () => {},
+  refreshSelectedStore: async () => {},
+  isAuthenticated: false,
+});
 
 export const AuthProvider = ({ children }) => {
   const router = useRouter();
