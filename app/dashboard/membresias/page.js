@@ -160,7 +160,14 @@ export default function MembresiasPage() {
         throw new Error(err.error || "Error al generar el código de pago.");
       }
       const data = await res.json();
-      setSolicitud({ ...data, estado: "pendiente" });
+      setSolicitud({
+        ...data,
+        estado: "pendiente",
+        cuenta_banco:    process.env.NEXT_PUBLIC_CUENTA_BANCO    || '',
+        cuenta_numero:   process.env.NEXT_PUBLIC_CUENTA_NUMERO   || '',
+        cuenta_titular:  process.env.NEXT_PUBLIC_CUENTA_TITULAR  || '',
+        cuenta_tipo:     process.env.NEXT_PUBLIC_CUENTA_TIPO     || '',
+      });
       startPolling(data.codigo);
     } catch (error) {
       toast.error(error.message);
