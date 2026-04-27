@@ -153,7 +153,7 @@ export default function MembresiasPage() {
       const res = await apiFetch("/tiendas/solicitar-pago/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, tienda_id: selectedStore.tienda.id }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
