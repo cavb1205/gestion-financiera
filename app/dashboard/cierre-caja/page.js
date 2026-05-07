@@ -13,6 +13,11 @@ import {
   FiActivity,
   FiShield,
   FiClock,
+  FiBarChart2,
+  FiTrendingUp,
+  FiTrendingDown,
+  FiCreditCard,
+  FiPackage,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -46,6 +51,10 @@ export default function CierreCajaPage() {
 
   // Caja anterior
   const [cajaAnterior, setCajaAnterior] = useState(null);
+
+  // Resumen del día
+  const [resumenDia, setResumenDia] = useState(null);
+  const [loadingResumen, setLoadingResumen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || !selectedStore)) {
@@ -100,9 +109,67 @@ export default function CierreCajaPage() {
     }
   }, [selectedStore]);
 
+  // Fetch resumen del día para la fecha seleccionada
+  const fetchResumenDia = async () => {
+    if (!selectedStore || !selectedDate) return;
+    setLoadingResumen(true);
+    try {
+      const id = selectedStore.tienda.id;
+      const toArr = async (promise) => {
+        const r = await promise;
+        if (!r.ok) return [];
+        const d = await r.json();
+        return Array.isArray(d) ? d : [];
+      };
+      const [aportes, gastos, utilidades, recaudos, ventas] = await Promise.all([
+        toArr(apiFetch(`/aportes/list/${selectedDate}/t/${id}/`)),
+        toArr(apiFetch(`/gastos/list/${selectedDate}/t/${id}/`)),
+        toArr(apiFetch(`/utilidades/list/${selectedDate}/t/${id}/`)),
+        toArr(apiFetch(`/recaudos/list/${selectedDate}/t/${id}/`)),
+        toArr(apiFetch(`/ventas/list/${selectedDate}/t/${id}/`)),
+      ]);
+      const sum = (arr, field) => arr.reduce((acc, item) => acc + parseFloat(item[field] || 0), 0);
+      const cierreDelDia = cierres.find(c => c.fecha_cierre === selectedDate);
+      const hoyStr = (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      })();
+      const esHoy = selectedDate === hoyStr;
+
+      let saldo_cierre, estado_saldo;
+      if (cierreDelDia) {
+        saldo_cierre = cierreDelDia.valor;
+        estado_saldo = "registrado";
+      } else if (esHoy) {
+        saldo_cierre = selectedStore.tienda.caja;
+        estado_saldo = "pendiente";
+      } else {
+        saldo_cierre = null;
+        estado_saldo = "sin_registro";
+      }
+
+      setResumenDia({
+        aportes:        sum(aportes, "valor"),
+        gastos:         sum(gastos, "valor"),
+        utilidades:     sum(utilidades, "valor"),
+        recaudos:       sum(recaudos, "valor_recaudo"),
+        count_recaudos: recaudos.length,
+        ventas:         sum(ventas, "valor_venta"),
+        count_ventas:   ventas.length,
+        saldo_cierre,
+        estado_saldo,
+      });
+    } catch {
+      setResumenDia(null);
+    } finally {
+      setLoadingResumen(false);
+    }
+  };
+
   useEffect(() => {
     if (selectedStore && selectedDate) {
       fetchCajaAnterior();
+      fetchResumenDia();
     }
   }, [selectedStore, selectedDate]);
 
@@ -177,6 +244,25 @@ export default function CierreCajaPage() {
       year: "numeric",
     });
   };
+
+  // Validación: solo se puede registrar cierre del día actual sin cierre previo
+  const hoyStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+  const yaTieneCierre = cierres.some(c => c.fecha_cierre === selectedDate);
+  const esHoy = selectedDate === hoyStr;
+  const esFuturo = selectedDate > hoyStr;
+
+  let motivoBloqueo = null;
+  if (yaTieneCierre) {
+    motivoBloqueo = "Ya existe un cierre registrado para esta fecha";
+  } else if (esFuturo) {
+    motivoBloqueo = "No puedes registrar cierre de una fecha futura";
+  } else if (!esHoy) {
+    motivoBloqueo = "Solo puedes registrar el cierre del día actual";
+  }
+  const puedeRegistrar = !motivoBloqueo;
 
   if (authLoading || loading) {
     return (
@@ -263,23 +349,138 @@ export default function CierreCajaPage() {
           </div>
 
           {/* Botón Crear */}
-          <button
-            onClick={handleCrearCierre}
-            disabled={creating}
-            className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
-          >
-            {creating ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                Procesando...
-              </>
-            ) : (
-              <>
-                <FiCheck size={20} />
-                Registrar Cierre
-              </>
+          <div className="space-y-2">
+            <button
+              onClick={handleCrearCierre}
+              disabled={creating || !puedeRegistrar}
+              className="w-full flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed"
+              title={motivoBloqueo || ""}
+            >
+              {creating ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <FiCheck size={20} />
+                  Registrar Cierre
+                </>
+              )}
+            </button>
+            {motivoBloqueo && (
+              <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest text-center px-2">
+                {motivoBloqueo}
+              </p>
             )}
-          </button>
+          </div>
+        </div>
+
+        {/* Resumen del Día */}
+        <div className="mt-10 border-t border-slate-100 dark:border-slate-800 pt-8">
+          <div className="flex items-center gap-2 mb-6">
+            <FiBarChart2 size={14} className="text-indigo-500" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              Resumen — {formatDate(selectedDate)}
+            </span>
+            {loadingResumen && (
+              <div className="w-3 h-3 border-2 border-slate-200 border-t-indigo-500 rounded-full animate-spin ml-1" />
+            )}
+          </div>
+
+          {!loadingResumen && resumenDia && (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+                {/* Aportes */}
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl px-4 py-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <FiTrendingUp size={12} className="text-emerald-500" />
+                    <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Aportes</span>
+                  </div>
+                  <p className="text-sm font-black text-slate-800 dark:text-white">{formatMoney(resumenDia.aportes)}</p>
+                </div>
+
+                {/* Recaudos */}
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl px-4 py-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <FiDollarSign size={12} className="text-indigo-500" />
+                    <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Recaudos</span>
+                  </div>
+                  <p className="text-sm font-black text-slate-800 dark:text-white">{formatMoney(resumenDia.recaudos)}</p>
+                  <p className="text-[9px] font-bold text-slate-400 mt-0.5">{resumenDia.count_recaudos} cobro{resumenDia.count_recaudos !== 1 ? "s" : ""}</p>
+                </div>
+
+                {/* Créditos nuevos */}
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl px-4 py-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <FiCreditCard size={12} className="text-amber-500" />
+                    <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">Créditos</span>
+                  </div>
+                  <p className="text-sm font-black text-slate-800 dark:text-white">{formatMoney(resumenDia.ventas)}</p>
+                  <p className="text-[9px] font-bold text-slate-400 mt-0.5">{resumenDia.count_ventas} crédito{resumenDia.count_ventas !== 1 ? "s" : ""}</p>
+                </div>
+
+                {/* Gastos */}
+                <div className="bg-rose-50 dark:bg-rose-900/20 rounded-2xl px-4 py-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <FiTrendingDown size={12} className="text-rose-500" />
+                    <span className="text-[9px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest">Gastos</span>
+                  </div>
+                  <p className="text-sm font-black text-slate-800 dark:text-white">{formatMoney(resumenDia.gastos)}</p>
+                </div>
+
+                {/* Utilidades */}
+                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-2xl px-4 py-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <FiPackage size={12} className="text-purple-500" />
+                    <span className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest">Utilidades</span>
+                  </div>
+                  <p className="text-sm font-black text-slate-800 dark:text-white">{formatMoney(resumenDia.utilidades)}</p>
+                </div>
+              </div>
+
+              {/* Saldo de cierre */}
+              {resumenDia.estado_saldo === "sin_registro" ? (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/40 rounded-2xl px-6 py-5 flex items-center justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-xl">
+                      <FiInfo size={16} className="text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-0.5">
+                        Sin Cierre Registrado
+                      </p>
+                      <p className="text-[10px] font-bold text-amber-600/70 dark:text-amber-400/70">
+                        No se hizo cierre para esta fecha — saldo no disponible
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-lg font-black text-amber-600/40 dark:text-amber-400/40 tracking-tighter">—</p>
+                </div>
+              ) : (
+                <div className="bg-slate-900 dark:bg-slate-800 rounded-2xl px-6 py-5 flex items-center justify-between">
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                      {resumenDia.estado_saldo === "registrado" ? "Cierre Registrado" : "Saldo Actual de Caja"}
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-500">
+                      {resumenDia.estado_saldo === "registrado" ? "Valor consolidado al cierre del día" : "Se registrará al hacer el cierre"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${resumenDia.estado_saldo === "registrado" ? "bg-emerald-400" : "bg-indigo-400 animate-pulse"}`} />
+                    <p className="text-2xl font-black text-white tracking-tighter">{formatMoney(resumenDia.saldo_cierre)}</p>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {!loadingResumen && !resumenDia && (
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              Sin actividad registrada para esta fecha
+            </p>
+          )}
         </div>
 
         {/* Info */}

@@ -192,7 +192,7 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
-    if (isAuthenticated) refreshSelectedStore();
+    if (isAuthenticated) refreshSelectedStore?.();
   }, [pathname, isAuthenticated, refreshSelectedStore]);
 
   useEffect(() => {
