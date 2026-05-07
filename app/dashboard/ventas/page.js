@@ -331,115 +331,217 @@ export default function VentasPage() {
 
         {/* Table Section */}
         <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 dark:bg-slate-800/20">
-                  <th className="hidden md:table-cell px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Referencia</th>
-                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Titular del Crédito</th>
-                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha Venta</th>
-                  <th className="px-12 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Valor Venta</th>
-                  <th className="px-12 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Saldo Pendiente</th>
-                  <th className="px-8 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estado / Mora</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {isLoading ? (
-                  <SkeletonTableRows rows={8} cols={6} />
-                ) : filteredVentas.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="px-8 py-24 text-center">
-                      <div className="bg-indigo-50 dark:bg-indigo-900/20 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                        <FiShoppingBag className="text-4xl text-indigo-400" />
-                      </div>
-                      <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">
-                        {searchTerm ? "Sin coincidencias" : "Sin ventas activas"}
-                      </h3>
-                      <p className="text-xs font-bold text-slate-400 mb-6 max-w-xs mx-auto">
-                        {searchTerm ? "Ningún crédito coincide con tu búsqueda." : "Crea tu primera venta a crédito para comenzar."}
-                      </p>
-                      {!searchTerm && (
-                        <button
-                          onClick={() => router.push("/dashboard/ventas/nueva")}
-                          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95 transition-all"
-                        >
-                          Crear Primera Venta
-                        </button>
-                      )}
-                    </td>
+          {/* Empty state */}
+          {!isLoading && filteredVentas.length === 0 && (
+            <div className="px-8 py-24 text-center">
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                <FiShoppingBag className="text-4xl text-indigo-400" />
+              </div>
+              <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">
+                {searchTerm ? "Sin coincidencias" : "Sin ventas activas"}
+              </h3>
+              <p className="text-xs font-bold text-slate-400 mb-6 max-w-xs mx-auto">
+                {searchTerm ? "Ningún crédito coincide con tu búsqueda." : "Crea tu primera venta a crédito para comenzar."}
+              </p>
+              {!searchTerm && (
+                <button
+                  onClick={() => router.push("/dashboard/ventas/nueva")}
+                  className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95 transition-all"
+                >
+                  Crear Primera Venta
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Desktop: Table */}
+          {(isLoading || filteredVentas.length > 0) && (
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/50 dark:bg-slate-800/20">
+                    <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Referencia</th>
+                    <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Titular del Crédito</th>
+                    <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha Venta</th>
+                    <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Valor Venta</th>
+                    <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Abonado</th>
+                    <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Saldo</th>
+                    <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estado / Mora</th>
                   </tr>
-                ) : (
-                  currentVentas.map((venta) => {
-                    const visitasRestantes = calcVisitasRestantes(venta);
-                    const proxVencer = (venta.estado_venta === "Vigente" || venta.estado_venta === "Atrasado") && visitasRestantes !== null && visitasRestantes >= 0 && visitasRestantes <= 3;
-                    return (
-                    <tr
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {isLoading ? (
+                    <SkeletonTableRows rows={8} cols={7} />
+                  ) : (
+                    currentVentas.map((venta) => {
+                      const visitasRestantes = calcVisitasRestantes(venta);
+                      const proxVencer = (venta.estado_venta === "Vigente" || venta.estado_venta === "Atrasado") && visitasRestantes !== null && visitasRestantes >= 0 && visitasRestantes <= 3;
+                      return (
+                      <tr
+                        key={venta.id}
+                        onClick={() => router.push(`/dashboard/ventas/${venta.id}`)}
+                        className={`group transition-all cursor-pointer ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/40 hover:bg-amber-100/60 dark:hover:bg-amber-950/60 border-l-4 border-amber-400" : "hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 border-l-4 border-transparent"}`}
+                      >
+                        <td className="px-6 py-6 whitespace-nowrap">
+                           <span className="text-xs font-black text-slate-400 group-hover:text-indigo-600 transition-colors">#{venta.id}</span>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 font-black text-sm group-hover:scale-110 transition-transform">
+                              {venta.cliente.nombres.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-slate-800 dark:text-white leading-none mb-1">
+                                {venta.cliente.nombres} {venta.cliente.apellidos}
+                              </p>
+                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">
+                                {venta.cliente.identificacion}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap">
+                           <div className="flex items-center gap-2 text-slate-500">
+                              <FiCalendar className="text-slate-300" />
+                              <span className="text-xs font-bold">{venta.fecha_venta}</span>
+                           </div>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap text-right">
+                          <p className="text-sm font-black text-slate-800 dark:text-slate-200 leading-none">
+                            {formatMoney(venta.valor_venta)}
+                          </p>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap text-right">
+                          <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 leading-none">
+                            {formatMoney(venta.total_abonado)}
+                          </p>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap text-right">
+                          <p className={`text-lg font-black tracking-tight leading-none ${venta.saldo_actual > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600'}`}>
+                            {formatMoney(venta.saldo_actual)}
+                          </p>
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap text-center">
+                          <div className="flex flex-col items-center gap-2">
+                             {getStatusBadge(venta.estado_venta)}
+                             {proxVencer && (
+                               <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-amber-300 dark:border-amber-700 animate-pulse">
+                                 ⚠ {visitasRestantes === 0 ? "Última cuota" : `${visitasRestantes} ${visitasRestantes === 1 ? "cuota" : "cuotas"} p/ vencer`}
+                               </span>
+                             )}
+                             {!proxVencer && venta.dias_atrasados > 0 && (
+                               <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest">
+                                 {Math.round(venta.dias_atrasados)} Días Mora
+                               </span>
+                             )}
+                             {!proxVencer && venta.dias_atrasados < 0 && (
+                               <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">
+                                 {Math.round(Math.abs(venta.dias_atrasados))} Días Adelantado
+                               </span>
+                             )}
+                          </div>
+                        </td>
+                      </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Mobile: Cards */}
+          {(isLoading || filteredVentas.length > 0) && (
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="p-5">
+                    <div className="animate-pulse space-y-3">
+                      <div className="flex gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-slate-200 dark:bg-slate-800" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-2/3" />
+                          <div className="h-2 bg-slate-200 dark:bg-slate-800 rounded w-1/3" />
+                        </div>
+                      </div>
+                      <div className="h-16 bg-slate-100 dark:bg-slate-800/50 rounded-2xl" />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                currentVentas.map((venta) => {
+                  const visitasRestantes = calcVisitasRestantes(venta);
+                  const proxVencer = (venta.estado_venta === "Vigente" || venta.estado_venta === "Atrasado") && visitasRestantes !== null && visitasRestantes >= 0 && visitasRestantes <= 3;
+                  return (
+                    <div
                       key={venta.id}
                       onClick={() => router.push(`/dashboard/ventas/${venta.id}`)}
-                      className={`group transition-all cursor-pointer ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/40 hover:bg-amber-100/60 dark:hover:bg-amber-950/60 border-l-4 border-amber-400" : "hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 border-l-4 border-transparent"}`}
+                      className={`p-5 active:bg-slate-50 dark:active:bg-slate-800/30 transition-colors cursor-pointer ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/30 border-l-4 border-amber-400" : "border-l-4 border-transparent"}`}
                     >
-                      <td className="hidden md:table-cell px-4 py-6 whitespace-nowrap">
-                         <span className="text-xs font-black text-slate-400 group-hover:text-indigo-600 transition-colors">#{venta.id}</span>
-                      </td>
-                      <td className="px-4 py-6 whitespace-nowrap">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 font-black text-sm group-hover:scale-110 transition-transform">
+                      {/* Header: avatar + nombre + estado */}
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="w-10 h-10 shrink-0 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 font-black text-sm">
                             {venta.cliente.nombres.charAt(0)}
                           </div>
-                          <div>
-                            <p className="text-sm font-black text-slate-800 dark:text-white leading-none mb-1">
+                          <div className="min-w-0">
+                            <p className="text-sm font-black text-slate-800 dark:text-white leading-tight truncate">
                               {venta.cliente.nombres} {venta.cliente.apellidos}
                             </p>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">
-                              {venta.cliente.identificacion}
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                              #{venta.id} · {venta.fecha_venta}
                             </p>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-4 py-6 whitespace-nowrap">
-                         <div className="flex items-center gap-2 text-slate-500">
-                            <FiCalendar className="text-slate-300" />
-                            <span className="text-xs font-bold">{venta.fecha_venta}</span>
-                         </div>
-                      </td>
-                      <td className="px-6 py-6 whitespace-nowrap text-right">
-                        <p className="text-sm font-black text-slate-800 dark:text-slate-200 leading-none">
-                          {formatMoney(venta.valor_venta)}
-                        </p>
-                      </td>
-                      <td className="px-6 py-6 whitespace-nowrap text-right">
-                        <p className={`text-lg font-black tracking-tight leading-none mb-1 ${venta.saldo_actual > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600'}`}>
-                          {formatMoney(venta.saldo_actual)}
-                        </p>
-                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Saldo Restante</p>
-                      </td>
-                      <td className="px-4 py-6 whitespace-nowrap text-center">
-                        <div className="flex flex-col items-center gap-2">
-                           {getStatusBadge(venta.estado_venta)}
-                           {proxVencer && (
-                             <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-amber-300 dark:border-amber-700 animate-pulse">
-                               ⚠ {visitasRestantes === 0 ? "Última cuota" : `${visitasRestantes} ${visitasRestantes === 1 ? "cuota" : "cuotas"} p/ vencer`}
-                             </span>
-                           )}
-                           {!proxVencer && venta.dias_atrasados > 0 && (
-                             <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest">
-                               {Math.round(venta.dias_atrasados)} Días Mora
-                             </span>
-                           )}
-                           {!proxVencer && venta.dias_atrasados < 0 && (
-                             <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">
-                               {Math.round(Math.abs(venta.dias_atrasados))} Días Adelantado
-                             </span>
-                           )}
+                        <div className="shrink-0">{getStatusBadge(venta.estado_venta)}</div>
+                      </div>
+
+                      {/* 3-col grid: Saldo · Abonado · Venta */}
+                      <div className="grid grid-cols-3 gap-2 p-4 bg-slate-50/50 dark:bg-slate-800/20 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Saldo</p>
+                          <p className={`text-sm font-black tracking-tight ${venta.saldo_actual > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600'}`}>
+                            {formatMoney(venta.saldo_actual)}
+                          </p>
                         </div>
-                      </td>
-                    </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                        <div className="text-center space-y-0.5">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Abonado</p>
+                          <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                            {formatMoney(venta.total_abonado)}
+                          </p>
+                        </div>
+                        <div className="text-right space-y-0.5">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Venta</p>
+                          <p className="text-sm font-black text-slate-800 dark:text-white tracking-tight">
+                            {formatMoney(venta.valor_venta)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Mora / por vencer */}
+                      {(proxVencer || venta.dias_atrasados > 0 || venta.dias_atrasados < 0) && (
+                        <div className="mt-3 text-center">
+                          {proxVencer ? (
+                            <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-amber-300 dark:border-amber-700 animate-pulse">
+                              ⚠ {visitasRestantes === 0 ? "Última cuota" : `${visitasRestantes} ${visitasRestantes === 1 ? "cuota" : "cuotas"} p/ vencer`}
+                            </span>
+                          ) : venta.dias_atrasados > 0 ? (
+                            <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">
+                              {Math.round(venta.dias_atrasados)} Días en Mora
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
+                              {Math.round(Math.abs(venta.dias_atrasados))} Días Adelantado
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
         </div>
 
         <Pagination

@@ -487,7 +487,11 @@ export default function LiquidarCreditosPage() {
                                              <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none group-hover/name:text-indigo-600 transition-colors">
                                                 {credito.cliente.nombres} {credito.cliente.apellidos}
                                              </p>
-                                             <p className="text-[9px] font-bold text-slate-400 mt-1">Saldo: <span className="text-rose-500">{formatMoney(credito.saldo_actual)}</span></p>
+                                             <p className="text-[9px] font-bold text-slate-400 mt-1">
+                                                Saldo: <span className="text-rose-500">{formatMoney(credito.saldo_actual)}</span>
+                                                <span className="mx-1.5 text-slate-300">·</span>
+                                                Abonado: <span className="text-emerald-600 dark:text-emerald-400">{formatMoney(credito.total_abonado)}</span>
+                                             </p>
                                           </div>
                                        </div>
                                     </td>
@@ -683,10 +687,14 @@ export default function LiquidarCreditosPage() {
                               </div>
 
                               {/* Financial info */}
-                              <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50/50 dark:bg-slate-800/20 rounded-2xl border border-slate-100 dark:border-slate-800">
+                              <div className="grid grid-cols-3 gap-3 p-4 bg-slate-50/50 dark:bg-slate-800/20 rounded-2xl border border-slate-100 dark:border-slate-800">
                                  <div className="space-y-0.5">
                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Saldo</p>
                                     <p className="text-sm font-black text-rose-500 tracking-tight">{formatMoney(credito.saldo_actual)}</p>
+                                 </div>
+                                 <div className="text-center space-y-0.5">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Abonado</p>
+                                    <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 tracking-tight">{formatMoney(credito.total_abonado)}</p>
                                  </div>
                                  <div className="text-right space-y-0.5">
                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Progreso</p>
