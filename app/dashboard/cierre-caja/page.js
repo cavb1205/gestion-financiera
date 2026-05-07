@@ -121,20 +121,35 @@ export default function CierreCajaPage() {
         const d = await r.json();
         return Array.isArray(d) ? d : [];
       };
-      const [aportes, gastos, utilidades, recaudos, ventas] = await Promise.all([
-        toArr(apiFetch(`/aportes/list/${selectedDate}/t/${id}/`)),
-        toArr(apiFetch(`/gastos/list/${selectedDate}/t/${id}/`)),
-        toArr(apiFetch(`/utilidades/list/${selectedDate}/t/${id}/`)),
-        toArr(apiFetch(`/recaudos/list/${selectedDate}/t/${id}/`)),
-        toArr(apiFetch(`/ventas/list/${selectedDate}/t/${id}/`)),
+      const fetchDayData = (fecha) => Promise.all([
+        toArr(apiFetch(`/aportes/list/${fecha}/t/${id}/`)),
+        toArr(apiFetch(`/gastos/list/${fecha}/t/${id}/`)),
+        toArr(apiFetch(`/utilidades/list/${fecha}/t/${id}/`)),
+        toArr(apiFetch(`/recaudos/list/${fecha}/t/${id}/`)),
+        toArr(apiFetch(`/ventas/list/${fecha}/t/${id}/`)),
       ]);
-      const sum = (arr, field) => arr.reduce((acc, item) => acc + parseFloat(item[field] || 0), 0);
-      const cierreDelDia = cierres.find(c => c.fecha_cierre === selectedDate);
+
       const hoyStr = (() => {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       })();
       const esHoy = selectedDate === hoyStr;
+
+      // Fetch datos de la fecha seleccionada y, si es distinta, también de hoy
+      const [datosFecha, datosHoy] = await Promise.all([
+        fetchDayData(selectedDate),
+        esHoy ? Promise.resolve(null) : fetchDayData(hoyStr),
+      ]);
+      const [aportes, gastos, utilidades, recaudos, ventas] = datosFecha;
+
+      const sum = (arr, field) => arr.reduce((acc, item) => acc + parseFloat(item[field] || 0), 0);
+      const cierreDelDia = cierres.find(c => c.fecha_cierre === selectedDate);
+
+      // ¿Hubo movimientos hoy?
+      const movsHoy = datosHoy ?? datosFecha; // si esHoy, usar datosFecha
+      const hoyTieneMovimientos =
+        movsHoy[0].length > 0 || movsHoy[1].length > 0 || movsHoy[2].length > 0 ||
+        movsHoy[3].length > 0 || movsHoy[4].length > 0;
 
       let saldo_cierre, estado_saldo;
       if (cierreDelDia) {
@@ -158,6 +173,7 @@ export default function CierreCajaPage() {
         count_ventas:   ventas.length,
         saldo_cierre,
         estado_saldo,
+        hoy_tiene_movimientos: hoyTieneMovimientos,
       });
     } catch {
       setResumenDia(null);
@@ -245,22 +261,39 @@ export default function CierreCajaPage() {
     });
   };
 
-  // Validación: solo se puede registrar cierre del día actual sin cierre previo
+  // Validación: se puede cerrar hoy (sin cierre previo)
+  // o ayer (sin cierre previo y sin movimientos hoy — saldo actual = saldo al cierre de ayer)
   const hoyStr = (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   })();
+  const ayerStr = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
   const yaTieneCierre = cierres.some(c => c.fecha_cierre === selectedDate);
   const esHoy = selectedDate === hoyStr;
+  const esAyer = selectedDate === ayerStr;
   const esFuturo = selectedDate > hoyStr;
+  const hoyTieneMovimientos = resumenDia?.hoy_tiene_movimientos ?? false;
 
   let motivoBloqueo = null;
+  let avisoInfo = null;
   if (yaTieneCierre) {
     motivoBloqueo = "Ya existe un cierre registrado para esta fecha";
   } else if (esFuturo) {
     motivoBloqueo = "No puedes registrar cierre de una fecha futura";
-  } else if (!esHoy) {
-    motivoBloqueo = "Solo puedes registrar el cierre del día actual";
+  } else if (esHoy) {
+    // OK
+  } else if (esAyer) {
+    if (hoyTieneMovimientos) {
+      motivoBloqueo = "No puedes cerrar ayer porque hoy ya tuvo movimientos";
+    } else {
+      avisoInfo = "Cerrando ayer — el saldo actual coincide porque hoy no ha tenido movimientos";
+    }
+  } else {
+    motivoBloqueo = "Solo puedes cerrar el día actual o el anterior";
   }
   const puedeRegistrar = !motivoBloqueo;
 
@@ -371,6 +404,11 @@ export default function CierreCajaPage() {
             {motivoBloqueo && (
               <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest text-center px-2">
                 {motivoBloqueo}
+              </p>
+            )}
+            {!motivoBloqueo && avisoInfo && (
+              <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 tracking-tight text-center px-2 leading-snug">
+                ℹ {avisoInfo}
               </p>
             )}
           </div>
