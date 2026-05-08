@@ -171,6 +171,12 @@ function NuevaVentaContent() {
     }
   };
 
+  const handleCancel = () => {
+    const isDirty = !!formData.valor_venta || !!formData.comentario || !!clienteSeleccionado;
+    if (isDirty && !window.confirm("¿Descartar los cambios?")) return;
+    router.back();
+  };
+
   const calcularTotalAPagar = () => {
     return calcularTotal(formData.valor_venta, formData.interes);
   };
@@ -261,7 +267,7 @@ function NuevaVentaContent() {
         {/* Compact Mobile Header */}
         <div className="flex items-center gap-4 mb-8">
           <button
-            onClick={() => router.back()}
+            onClick={handleCancel}
             className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm shrink-0"
           >
             <FiArrowLeft size={18} />
@@ -506,7 +512,7 @@ function NuevaVentaContent() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => router.back()}
+                    onClick={handleCancel}
                     className="w-full md:flex-1 py-4.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
                   >
                     Descartar

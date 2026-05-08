@@ -29,6 +29,7 @@ export default function NuevoAportePage() {
   const [loading, setLoading] = useState(false);
   const [loadingTrabajadores, setLoadingTrabajadores] = useState(true);
   const [error, setError] = useState(null);
+  const [hasChanges, setHasChanges] = useState(false);
   const [trabajadores, setTrabajadores] = useState([]);
   const [showNuevoModal, setShowNuevoModal] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState("");
@@ -86,7 +87,7 @@ export default function NuevoAportePage() {
           first_name: firstName,
           last_name: lastName,
           password,
-          identificacion: "0",
+          identificacion: String(Date.now()),
           telefono: "0",
           direccion: "-",
         }),
@@ -112,10 +113,13 @@ export default function NuevoAportePage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setHasChanges(true);
+  };
+
+  const handleCancel = () => {
+    if (hasChanges && !window.confirm("¿Descartar los cambios?")) return;
+    router.back();
   };
 
   const handleSubmit = async (e) => {
@@ -170,7 +174,7 @@ export default function NuevoAportePage() {
         {/* Compact Mobile Header */}
         <div className="flex items-center gap-4 mb-8">
           <button
-            onClick={() => router.back()}
+            onClick={handleCancel}
             className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm shrink-0"
           >
             <FiArrowLeft size={18} />
@@ -241,9 +245,11 @@ export default function NuevoAportePage() {
                           <input
                             id="valor"
                             type="number"
+                            inputMode="decimal"
                             name="valor"
                             value={formData.valor}
                             onChange={handleChange}
+                            onWheel={(e) => e.target.blur()}
                             placeholder="0.00"
                             className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-2xl font-black text-slate-900 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                             required
@@ -309,7 +315,7 @@ export default function NuevoAportePage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => router.back()}
+                      onClick={handleCancel}
                       className="w-full md:w-auto px-8 py-4.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
                     >
                       Cancelar

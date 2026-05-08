@@ -34,6 +34,7 @@ export default function CrearGastoPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState({});
+  const [hasChanges, setHasChanges] = useState(false);
 
   // Obtener tipos de gasto
   useEffect(() => {
@@ -62,7 +63,13 @@ export default function CrearGastoPage() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    setHasChanges(true);
     if (errors[name]) setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
+  };
+
+  const handleCancel = () => {
+    if (hasChanges && !window.confirm("¿Descartar los cambios?")) return;
+    router.push("/dashboard/gastos");
   };
 
   const validateForm = () => {
@@ -122,7 +129,7 @@ export default function CrearGastoPage() {
         {/* Compact Mobile Header */}
         <div className="flex items-center gap-4 mb-8">
           <button
-            onClick={() => router.push("/dashboard/gastos")}
+            onClick={handleCancel}
             className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-rose-600 transition-all shadow-sm shrink-0"
           >
             <FiArrowLeft size={18} />
@@ -199,9 +206,11 @@ export default function CrearGastoPage() {
                               <FiDollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500" size={24} />
                               <input
                                 type="number"
+                                inputMode="decimal"
                                 name="valor"
                                 value={formData.valor}
                                 onChange={handleChange}
+                                onWheel={(e) => e.target.blur()}
                                 required
                                 min="0.01"
                                 step="any"
@@ -248,7 +257,7 @@ export default function CrearGastoPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => router.push("/dashboard/gastos")}
+                            onClick={handleCancel}
                             className="w-full md:w-auto px-8 py-4.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
                           >
                             Cancelar

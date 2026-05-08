@@ -16,7 +16,10 @@ import {
   FiInfo,
   FiTrendingDown,
   FiTarget,
-  FiMapPin
+  FiMapPin,
+  FiMinus,
+  FiPlus,
+  FiAlertTriangle
 } from "react-icons/fi";
 import Link from "next/link";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -114,6 +117,34 @@ export default function PagarAbonoPage() {
 
   const nuevoSaldo = Math.max(0, roundMoney(maximoAbonable - (parseFloat(valorAbono) || 0)));
 
+  const valorCuota = parseFloat(abono?.valor_cuota) || 0;
+  const totalCuotas = parseInt(abono?.cuotas) || 0;
+  const pagosRealizados = parseInt(abono?.pagos_realizados) || 0;
+  const cuotaActual = Math.min(pagosRealizados + 1, totalCuotas || pagosRealizados + 1);
+  const diasAtrasados = parseInt(abono?.dias_atrasados) || 0;
+
+  // Cuántas cuotas cubre el valorAbono actual (mínimo 1, redondeo al entero más cercano)
+  const cuotasQueAbona = valorCuota > 0
+    ? Math.max(1, Math.round((parseFloat(valorAbono) || 0) / valorCuota))
+    : 1;
+  const cuotaFin = Math.min(cuotaActual + cuotasQueAbona - 1, totalCuotas || cuotaActual);
+
+  const ajustarPorCuota = (delta) => {
+    const actual = parseFloat(valorAbono) || 0;
+    const nuevo = actual + delta * valorCuota;
+    if (nuevo <= 0) {
+      setValorAbono(valorCuota || 0);
+      return;
+    }
+    if (nuevo > maximoAbonable) {
+      setValorAbono(maximoAbonable);
+      return;
+    }
+    setValorAbono(roundMoney(nuevo));
+  };
+
+  const setSaldoTotal = () => setValorAbono(maximoAbonable);
+
   return (
     <div className="min-h-screen bg-transparent pb-20 md:pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -145,27 +176,101 @@ export default function PagarAbonoPage() {
           <div className="xl:col-span-8">
             <div className="glass rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl relative">
               <div className="p-6 md:p-12 pb-32 md:pb-12"> {/* Extra padding bottom on mobile for sticky button */}
-                <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                  {/* Context strip */}
+                  {(totalCuotas > 0 || valorCuota > 0) && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+                      {totalCuotas > 0 && (
+                        <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{cuotasQueAbona > 1 ? "Cuotas" : "Cuota"}</p>
+                          <p className="text-sm font-black text-slate-800 dark:text-white tracking-tight">
+                            {cuotasQueAbona > 1 ? `${cuotaActual}-${cuotaFin}` : cuotaActual}
+                            <span className="text-slate-400 font-bold text-xs"> de {totalCuotas}</span>
+                          </p>
+                        </div>
+                      )}
+                      {valorCuota > 0 && (
+                        <div className="p-3 md:p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-900/20">
+                          <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Vlr. Cuota</p>
+                          <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 tracking-tight truncate">{formatMoney(valorCuota)}</p>
+                        </div>
+                      )}
+                      {diasAtrasados > 0 && (
+                        <div className="col-span-2 md:col-span-1 p-3 md:p-4 bg-rose-50 dark:bg-rose-900/10 rounded-2xl border border-rose-100 dark:border-rose-900/20 flex items-center gap-2">
+                          <FiAlertTriangle className="text-rose-500 shrink-0" size={14} />
+                          <div className="min-w-0">
+                            <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest leading-none">Mora</p>
+                            <p className="text-sm font-black text-rose-600 dark:text-rose-400 leading-tight">{diasAtrasados} día{diasAtrasados === 1 ? "" : "s"}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-4">
                     <div className="flex items-center justify-between px-1">
                       <label htmlFor="valor-abono" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Monto del Recaudo</label>
                       <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-md">Obligatorio</span>
                     </div>
-                    <div className="relative group">
-                      <FiDollarSign className="absolute left-6 md:left-8 top-1/2 -translate-y-1/2 text-emerald-500 group-focus-within:scale-110 transition-transform" size={28} />
-                      <input
-                        id="valor-abono"
-                        type="number"
-                        value={valorAbono}
-                        onChange={(e) => setValorAbono(e.target.value)}
-                        onWheel={(e) => e.target.blur()}
-                        max={maximoAbonable}
-                        className="w-full pl-16 md:pl-20 pr-6 py-6 md:py-8 bg-slate-50 dark:bg-slate-800/10 border border-slate-100 dark:border-slate-700 rounded-[2rem] text-3xl md:text-5xl font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all outline-none"
-                        placeholder="0"
-                      />
+
+                    {/* Stepper + input */}
+                    <div className="flex items-stretch gap-2">
+                      {valorCuota > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => ajustarPorCuota(-1)}
+                          disabled={!valorAbono || parseFloat(valorAbono) <= valorCuota}
+                          aria-label="Restar una cuota"
+                          className="shrink-0 w-12 md:w-14 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-500 hover:text-rose-500 hover:border-rose-200 dark:hover:border-rose-800 transition-all flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+                        >
+                          <FiMinus size={18} />
+                        </button>
+                      )}
+                      <div className="relative group flex-1">
+                        <FiDollarSign className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-emerald-500 group-focus-within:scale-110 transition-transform" size={24} />
+                        <input
+                          id="valor-abono"
+                          type="number"
+                          inputMode="decimal"
+                          value={valorAbono}
+                          onChange={(e) => setValorAbono(e.target.value)}
+                          onWheel={(e) => e.target.blur()}
+                          max={maximoAbonable}
+                          className="w-full pl-12 md:pl-16 pr-4 py-6 md:py-8 bg-slate-50 dark:bg-slate-800/10 border border-slate-100 dark:border-slate-700 rounded-2xl text-3xl md:text-5xl font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all outline-none text-center md:text-left"
+                          placeholder="0"
+                        />
+                      </div>
+                      {valorCuota > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => ajustarPorCuota(1)}
+                          disabled={parseFloat(valorAbono) >= maximoAbonable}
+                          aria-label="Sumar una cuota"
+                          className="shrink-0 w-12 md:w-14 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-500 hover:text-emerald-600 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+                        >
+                          <FiPlus size={18} />
+                        </button>
+                      )}
                     </div>
 
+                    {/* Helper line */}
+                    {valorCuota > 0 && (
+                      <p className="text-[10px] font-bold text-slate-400 text-center md:text-left px-1">
+                        Cada <span className="text-emerald-500 font-black">±</span> suma o resta una cuota de {formatMoney(valorCuota)}
+                      </p>
+                    )}
 
+                    {/* Saldo total button */}
+                    {maximoAbonable > 0 && parseFloat(valorAbono) !== maximoAbonable && (
+                      <button
+                        type="button"
+                        onClick={setSaldoTotal}
+                        className="w-full py-3 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-900/30 rounded-2xl text-[11px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                      >
+                        <FiTarget size={13} />
+                        Pagó saldo total · {formatMoney(maximoAbonable)}
+                      </button>
+                    )}
                   </div>
 
                   {/* Sticky Mobile Action Bar */}
@@ -213,7 +318,7 @@ export default function PagarAbonoPage() {
 
           {/* Secondary Stats Area - Moved after Main on Mobile */}
           <div className="xl:col-span-4 space-y-6">
-            <div className="glass p-8 rounded-[2rem] border-white/60 dark:border-slate-800 relative group shadow-xl">
+            <div className="glass p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border-white/60 dark:border-slate-800 relative group shadow-xl">
               <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-6 flex items-center gap-2">
                 <FiActivity className="text-indigo-500" />
                 Impacto Operativo

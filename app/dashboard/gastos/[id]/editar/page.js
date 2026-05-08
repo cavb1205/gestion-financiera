@@ -35,6 +35,7 @@ export default function EditarGastoPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [tipoGastoNombre, setTipoGastoNombre] = useState("");
+  const [hasChanges, setHasChanges] = useState(false);
 
   // Obtener tipos de gasto y gasto por ID
   useEffect(() => {
@@ -82,6 +83,12 @@ export default function EditarGastoPage() {
     if (name !== "tipo_gasto") {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
+    setHasChanges(true);
+  };
+
+  const handleCancel = () => {
+    if (hasChanges && !window.confirm("¿Descartar los cambios?")) return;
+    router.push("/dashboard/gastos");
   };
 
   const handleSubmit = async (e) => {
@@ -135,7 +142,7 @@ export default function EditarGastoPage() {
         {/* Compact Mobile Header */}
         <div className="flex items-center gap-4 mb-8">
           <button
-            onClick={() => router.push("/dashboard/gastos")}
+            onClick={handleCancel}
             className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-rose-600 transition-all shadow-sm shrink-0"
           >
             <FiArrowLeft size={18} />
@@ -194,6 +201,7 @@ export default function EditarGastoPage() {
                               <FiDollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-rose-500 pointer-events-none" size={24} />
                               <input
                                 type="number"
+                                inputMode="decimal"
                                 name="valor"
                                 value={formData.valor}
                                 onChange={handleChange}
@@ -241,7 +249,7 @@ export default function EditarGastoPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => router.push("/dashboard/gastos")}
+                            onClick={handleCancel}
                             className="w-full md:w-auto px-8 py-4 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
                           >
                             Descartar Cambios

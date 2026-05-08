@@ -34,6 +34,7 @@ export default function CrearCliente() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
     if (!loading && (!isAuthenticated || !selectedStore)) {
@@ -41,12 +42,18 @@ export default function CrearCliente() {
     }
   }, [loading, isAuthenticated, selectedStore, router]);
 
+  const handleCancel = () => {
+    if (hasChanges && !window.confirm("¿Descartar los cambios?")) return;
+    router.push("/dashboard/clientes");
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+    setHasChanges(true);
 
     if (errors[name]) {
       setErrors((prev) => {
@@ -153,7 +160,7 @@ export default function CrearCliente() {
         {/* Compact Mobile Header */}
         <div className="flex items-center gap-4 mb-8">
           <button
-            onClick={() => router.push("/dashboard/clientes")}
+            onClick={handleCancel}
             className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm shrink-0"
           >
             <FiArrowLeft size={18} />
@@ -305,7 +312,7 @@ export default function CrearCliente() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => router.push("/dashboard/clientes")}
+                    onClick={handleCancel}
                     className="w-full md:w-auto px-8 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
                   >
                     Cancelar

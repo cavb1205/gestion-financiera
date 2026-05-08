@@ -26,6 +26,7 @@ export default function EditarAportePage() {
   const [aporte, setAporte] = useState(null);
   const [formData, setFormData] = useState({ fecha: "", valor: "", comentario: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("aporteEditar");
@@ -51,6 +52,12 @@ export default function EditarAportePage() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setHasChanges(true);
+  };
+
+  const handleCancel = () => {
+    if (hasChanges && !window.confirm("¿Descartar los cambios?")) return;
+    router.push("/dashboard/aportes");
   };
 
   const handleSubmit = async (e) => {
@@ -96,7 +103,7 @@ export default function EditarAportePage() {
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button
-            onClick={() => router.push("/dashboard/aportes")}
+            onClick={handleCancel}
             className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm shrink-0"
           >
             <FiArrowLeft size={18} />
@@ -157,6 +164,7 @@ export default function EditarAportePage() {
                         <FiDollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-indigo-500 pointer-events-none" size={24} />
                         <input
                           type="number"
+                          inputMode="decimal"
                           name="valor"
                           value={formData.valor}
                           onChange={handleChange}
@@ -202,7 +210,7 @@ export default function EditarAportePage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => router.push("/dashboard/aportes")}
+                        onClick={handleCancel}
                         className="w-full md:w-auto px-8 py-4.5 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
                       >
                         Descartar

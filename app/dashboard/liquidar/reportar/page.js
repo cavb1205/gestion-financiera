@@ -146,20 +146,20 @@ export default function ReportarFallaPage() {
              <div className="glass rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl relative">
                 <div className="p-6 md:p-10 pb-32 md:pb-10"> {/* Extra padding bottom on mobile for sticky button */}
                    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                      
+
                       {/* Motivo de la Falla */}
-                      <div className="space-y-4 order-1">
+                      <div className="space-y-4">
                          <div className="flex items-center justify-between px-1">
                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Selección de Causa</span>
                            <span className="text-[9px] font-bold text-rose-500 uppercase tracking-widest bg-rose-50 dark:bg-rose-900/20 px-2 py-1 rounded-md">Obligatorio</span>
                          </div>
-                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                             {fallaOptions.map((option) => (
                                <button
                                  key={option}
                                  type="button"
                                  onClick={() => setTipoFalla(option)}
-                                 className={`p-4 md:p-4 rounded-2xl border transition-all text-left flex items-center justify-between group active:scale-[0.98] ${
+                                 className={`p-3 md:p-4 rounded-2xl border transition-all text-left flex items-center justify-between group active:scale-[0.98] ${
                                    tipoFalla === option 
                                      ? 'bg-rose-600 border-rose-500 text-white shadow-lg shadow-rose-200 dark:shadow-none ring-2 ring-rose-600/20 ring-offset-2 dark:ring-offset-slate-900' 
                                      : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-rose-300'
@@ -177,7 +177,7 @@ export default function ReportarFallaPage() {
                       </div>
 
                       {/* Sticky Mobile Action Bar */}
-                      <div className="fixed bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-50 md:relative md:bottom-auto md:bg-transparent md:border-t-0 md:p-0 md:backdrop-blur-none md:z-auto order-3 md:order-last">
+                      <div className="fixed bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-50 md:relative md:bottom-auto md:bg-transparent md:border-t-0 md:p-0 md:backdrop-blur-none md:z-auto">
                          <div className="flex flex-row items-center gap-3 max-w-7xl mx-auto px-0 lg:px-8">
                              <div className="flex flex-1 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 items-center gap-3">
                                 <FiCalendar className="text-indigo-500 shrink-0" size={16} />
@@ -214,8 +214,8 @@ export default function ReportarFallaPage() {
                          </div>
                       </div>
 
-                      {/* Observaciones extra - Moved below options, above buttons on desktop, above buttons logically on mobile */}
-                      <div className="space-y-4 order-2">
+                      {/* Observaciones */}
+                      <div className="space-y-4">
                          <label htmlFor="observaciones" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Observaciones</label>
                          <textarea
                             id="observaciones"
@@ -232,9 +232,9 @@ export default function ReportarFallaPage() {
              </div>
           </div>
 
-          {/* Secondary Info Area - Moved after Main on Mobile */}
-          <div className="xl:col-span-4 space-y-6">
-             <div className="glass p-8 rounded-[2rem] border-white/60 dark:border-slate-800 overflow-hidden relative group shadow-xl">
+          {/* Secondary Info Area - Solo visible en desktop */}
+          <div className="hidden xl:block xl:col-span-4 space-y-6">
+             <div className="glass p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border-white/60 dark:border-slate-800 overflow-hidden relative group shadow-xl">
                 <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-6 flex items-center gap-2">
                   <FiShield className="text-rose-500" />
                   Protocolo de Riesgo

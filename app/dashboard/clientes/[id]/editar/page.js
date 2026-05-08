@@ -42,6 +42,7 @@ export default function EditarCliente() {
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [clienteData, setClienteData] = useState(null);
+  const [hasChanges, setHasChanges] = useState(false);
 
   // Cargar datos del cliente al montar el componente
   useEffect(() => {
@@ -88,12 +89,18 @@ export default function EditarCliente() {
     }
   };
 
+  const handleCancel = (dest) => {
+    if (hasChanges && !window.confirm("¿Descartar los cambios?")) return;
+    router.push(dest);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+    setHasChanges(true);
 
     if (errors[name]) {
       setErrors((prev) => {
@@ -192,7 +199,7 @@ export default function EditarCliente() {
         {/* Compact Mobile Header */}
         <div className="flex items-center gap-4 mb-8">
           <button
-            onClick={() => router.push("/dashboard/clientes")}
+            onClick={() => handleCancel("/dashboard/clientes")}
             className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 transition-all shadow-sm shrink-0"
           >
             <FiArrowLeft size={18} />
@@ -290,7 +297,7 @@ export default function EditarCliente() {
                       </div>
 
                       <div className="space-y-2">
-                        <label htmlFor="estado_cliente" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 tracking-widest">Est. Operacional</label>
+                        <label htmlFor="estado_cliente" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Est. Operacional</label>
                         <select
                           id="estado_cliente"
                           name="estado_cliente"
@@ -371,7 +378,7 @@ export default function EditarCliente() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => router.push(`/dashboard/clientes/${clienteId}`)}
+                      onClick={() => handleCancel(`/dashboard/clientes/${clienteId}`)}
                       className="w-full md:w-auto px-8 py-4 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
                     >
                       Cancelar
