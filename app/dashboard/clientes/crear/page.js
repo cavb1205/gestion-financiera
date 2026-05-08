@@ -147,29 +147,24 @@ export default function CrearCliente() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent pb-6">
-      <div className="max-w-md mx-auto px-4">
+    <div className="min-h-screen bg-transparent pb-20 md:pb-12">
+      <div className="max-w-4xl mx-auto px-4 md:px-0">
 
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6 pt-2">
+        {/* Compact Mobile Header */}
+        <div className="flex items-center gap-4 mb-8">
           <button
             onClick={() => router.push("/dashboard/clientes")}
-            className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-indigo-600 transition-all shadow-sm shrink-0"
+            className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm shrink-0"
           >
             <FiArrowLeft size={18} />
           </button>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-indigo-500 rounded-xl flex items-center justify-center shrink-0">
-              <FiUser className="text-white" size={16} />
-            </div>
-            <div>
-              <h1 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Nuevo Cliente</h1>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registro rápido</p>
-            </div>
+          <div className="min-w-0">
+            <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase truncate">Nuevo Cliente</h1>
+            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none mt-1">Registro rápido</p>
           </div>
         </div>
 
-        <div className="glass rounded-[2rem] overflow-hidden border-white/60 dark:border-slate-800">
+        <div className="glass rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl">
 
           {success ? (
             <div className="py-20 text-center flex flex-col items-center px-6">
@@ -181,7 +176,7 @@ export default function CrearCliente() {
               <p className="text-slate-500 font-bold uppercase text-[9px] tracking-widest">Redirigiendo...</p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="px-6 py-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 md:p-10 pb-32 md:pb-10 space-y-6">
 
               {submitError && (
                 <div className="p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl flex items-start gap-3">
@@ -190,119 +185,132 @@ export default function CrearCliente() {
                 </div>
               )}
 
-              {/* Documento */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                  <FiShield size={11} className="text-indigo-500" /> Documento *
-                </label>
-                <input
-                  id="identificacion"
-                  type="text"
-                  name="identificacion"
-                  value={formData.identificacion}
-                  onChange={handleChange}
-                  placeholder="Número de identificación"
-                  className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${errors.identificacion ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
-                />
-                {errors.identificacion && <p className="text-[10px] text-rose-500 font-black">{errors.identificacion}</p>}
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+                {/* Identidad */}
+                <div className="space-y-5">
+                  <div className="flex items-center gap-2 px-1">
+                    <FiShield className="text-indigo-500" size={14} />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identidad</span>
+                  </div>
 
-              {/* Nombres y Apellidos */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nombres *</label>
-                  <input
-                    id="nombres"
-                    type="text"
-                    name="nombres"
-                    value={formData.nombres}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${errors.nombres ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
-                  />
-                  {errors.nombres && <p className="text-[10px] text-rose-500 font-black">{errors.nombres}</p>}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Documento *</label>
+                    <input
+                      id="identificacion"
+                      type="text"
+                      name="identificacion"
+                      value={formData.identificacion}
+                      onChange={handleChange}
+                      placeholder="Número de identificación"
+                      className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${errors.identificacion ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
+                    />
+                    {errors.identificacion && <p className="text-[10px] text-rose-500 font-black">{errors.identificacion}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nombres *</label>
+                      <input
+                        id="nombres"
+                        type="text"
+                        name="nombres"
+                        value={formData.nombres}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${errors.nombres ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
+                      />
+                      {errors.nombres && <p className="text-[10px] text-rose-500 font-black">{errors.nombres}</p>}
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Apellidos *</label>
+                      <input
+                        id="apellidos"
+                        type="text"
+                        name="apellidos"
+                        value={formData.apellidos}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${errors.apellidos ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
+                      />
+                      {errors.apellidos && <p className="text-[10px] text-rose-500 font-black">{errors.apellidos}</p>}
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Apellidos *</label>
-                  <input
-                    id="apellidos"
-                    type="text"
-                    name="apellidos"
-                    value={formData.apellidos}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${errors.apellidos ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
-                  />
-                  {errors.apellidos && <p className="text-[10px] text-rose-500 font-black">{errors.apellidos}</p>}
+
+                {/* Contacto */}
+                <div className="space-y-5">
+                  <div className="flex items-center gap-2 px-1">
+                    <FiHome className="text-indigo-500" size={14} />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contacto</span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5 ml-1">
+                      <FiMapPin size={11} className="text-indigo-500" /> Dirección *
+                    </label>
+                    <input
+                      id="direccion"
+                      type="text"
+                      name="direccion"
+                      value={formData.direccion}
+                      onChange={handleChange}
+                      placeholder="Barrio, calle, número de casa"
+                      className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${errors.direccion ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
+                    />
+                    {errors.direccion && <p className="text-[10px] text-rose-500 font-black">{errors.direccion}</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5 ml-1">
+                      <FiPhone size={11} className="text-indigo-500" /> Teléfono *
+                    </label>
+                    <input
+                      id="telefono_principal"
+                      type="tel"
+                      name="telefono_principal"
+                      value={formData.telefono_principal}
+                      onChange={handleChange}
+                      placeholder="Número de teléfono"
+                      className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${errors.telefono_principal ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
+                    />
+                    {errors.telefono_principal && <p className="text-[10px] text-rose-500 font-black">{errors.telefono_principal}</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Establecimiento</label>
+                    <input
+                      id="nombre_local"
+                      type="text"
+                      name="nombre_local"
+                      value={formData.nombre_local}
+                      onChange={handleChange}
+                      placeholder="Nombre del negocio (opcional)"
+                      className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Dirección */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                  <FiMapPin size={11} className="text-indigo-500" /> Dirección *
-                </label>
-                <input
-                  id="direccion"
-                  type="text"
-                  name="direccion"
-                  value={formData.direccion}
-                  onChange={handleChange}
-                  placeholder="Barrio, calle, número de casa"
-                  className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${errors.direccion ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
-                />
-                {errors.direccion && <p className="text-[10px] text-rose-500 font-black">{errors.direccion}</p>}
-              </div>
-
-              {/* Teléfono */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                  <FiPhone size={11} className="text-indigo-500" /> Teléfono *
-                </label>
-                <input
-                  id="telefono_principal"
-                  type="tel"
-                  name="telefono_principal"
-                  value={formData.telefono_principal}
-                  onChange={handleChange}
-                  placeholder="Número de teléfono"
-                  className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${errors.telefono_principal ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
-                />
-                {errors.telefono_principal && <p className="text-[10px] text-rose-500 font-black">{errors.telefono_principal}</p>}
-              </div>
-
-              {/* Establecimiento */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Establecimiento</label>
-                <input
-                  id="nombre_local"
-                  type="text"
-                  name="nombre_local"
-                  value={formData.nombre_local}
-                  onChange={handleChange}
-                  placeholder="Nombre del negocio (opcional)"
-                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
-                />
-              </div>
-
-              {/* Botones */}
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/clientes")}
-                  className="flex-1 py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-[2] py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <><FiSave size={14} /> Confirmar Registro</>
-                  )}
-                </button>
+              {/* Sticky Mobile Action Bar */}
+              <div className="fixed bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-[100] md:relative md:bottom-auto md:bg-transparent md:border-t-0 md:p-0 md:backdrop-blur-none md:z-auto md:pt-6">
+                <div className="flex flex-col md:flex-row items-center justify-end gap-3 max-w-4xl mx-auto">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full md:w-auto md:px-12 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-indigo-100 dark:shadow-none disabled:opacity-50 order-1 md:order-2"
+                  >
+                    {isSubmitting ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <><FiSave size={16} /> Confirmar Registro</>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/dashboard/clientes")}
+                    className="w-full md:w-auto px-8 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all order-2 md:order-1"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </div>
             </form>
           )}

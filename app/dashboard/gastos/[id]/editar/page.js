@@ -150,7 +150,7 @@ export default function EditarGastoPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8">
-            <div className="glass p-8 md:p-12 pb-32 md:pb-12 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl relative overflow-hidden">
+            <div className="glass p-6 md:p-12 pb-32 md:pb-12 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl relative overflow-hidden">
                <div className="relative z-10">
                   <form onSubmit={handleSubmit} className="space-y-8">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -256,7 +256,7 @@ export default function EditarGastoPage() {
           </div>
 
           <div className="lg:col-span-4 space-y-6">
-             <div className="glass p-8 rounded-[2rem] border-white/60 dark:border-slate-800 overflow-hidden relative group">
+             <div className="glass p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border-white/60 dark:border-slate-800 overflow-hidden relative group">
                 <div className="relative z-10 space-y-6">
                    <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-xl flex items-center justify-center shadow-sm shrink-0">

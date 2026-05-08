@@ -299,7 +299,7 @@ export default function EliminarCliente() {
         </div>
 
         {/* Global Footer Info */}
-        <div className="mt-12 glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800 flex items-center gap-8 relative overflow-hidden group">
+        <div className="mt-8 md:mt-12 glass p-5 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 flex flex-col md:flex-row items-center gap-6 md:gap-8 relative overflow-hidden group">
            <div className="p-4 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl relative z-10 shrink-0">
               <FiInfo size={28} />
            </div>

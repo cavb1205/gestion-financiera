@@ -281,250 +281,209 @@ function NuevaVentaContent() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-          <div className="xl:col-span-8 space-y-8">
-            <div className="glass p-8 md:p-12 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10 pb-28 md:pb-0">
-                {/* Left Column: Client & Core Terms */}
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-1">
-                       <FiUser className="text-indigo-500" size={14} />
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Titular</span>
-                    </div>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8">
+          <div className="xl:col-span-8 space-y-6 md:space-y-8">
+            <div className="glass p-5 md:p-12 pb-28 md:pb-12 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl">
+              <div className="space-y-6 md:space-y-8">
 
-                    <div className="space-y-4">
-                      {clienteSeleccionado ? (
-                        <div className="bg-slate-900 dark:bg-indigo-600 rounded-[1.5rem] p-6 text-white relative overflow-hidden group shadow-xl">
-                          <div className="relative z-10 flex justify-between items-center">
-                            <div className="min-w-0">
-                              <h3 className="text-lg font-black tracking-tight leading-tight truncate">{clienteSeleccionado.nombres} {clienteSeleccionado.apellidos}</h3>
-                              <p className="text-[10px] font-bold text-white/60 uppercase mt-1">{clienteSeleccionado.identificacion}</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => { setFormData({ ...formData, cliente: "" }); setClienteSeleccionado(null); setCreditosActivosCliente(0); }}
-                              className="p-3 bg-white/10 hover:bg-rose-500 rounded-xl transition-all shrink-0"
-                            >
-                              <FiXCircle size={18} />
-                            </button>
-                          </div>
-                        </div>
-                      ) : null}
-
-                      {clienteSeleccionado && creditosActivosCliente > 0 && (
-                        <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl">
-                          <FiAlertCircle className="text-amber-500 shrink-0 mt-0.5" size={16} />
-                          <div>
-                            <p className="text-xs font-black text-amber-700 dark:text-amber-400 leading-snug">
-                              Este cliente ya tiene {creditosActivosCliente} crédito{creditosActivosCliente > 1 ? "s" : ""} activo{creditosActivosCliente > 1 ? "s" : ""}
-                            </p>
-                            <p className="text-[10px] font-bold text-amber-600/70 dark:text-amber-500/70 mt-0.5 uppercase tracking-wider">
-                              Puedes continuar — el sistema permite múltiples créditos
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {!clienteSeleccionado && (
-                        <div className="relative group">
-                          <FiSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
-                          <input
-                            type="text"
-                            placeholder="Buscar cliente..."
-                            autoComplete="off"
-                            className="w-full pl-14 pr-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
-                            value={busquedaCliente}
-                            onChange={(e) => filtrarClientes(e.target.value)}
-                          />
-                          {busquedaCliente.trim().length > 0 && (
-                            <div className="absolute z-20 w-full mt-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden p-2">
-                              {clientesFiltrados.map((c) => (
-                                <button
-                                  key={c.id}
-                                  type="button"
-                                  className="w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all border-b border-slate-50 dark:border-slate-800 last:border-0 group flex items-center justify-between"
-                                  onClick={() => seleccionarCliente(c)}
-                                >
-                                  <div className="min-w-0">
-                                    <div className="font-black text-slate-800 dark:text-white text-[13px] truncate">{c.nombres} {c.apellidos}</div>
-                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{c.identificacion}</div>
-                                  </div>
-                                  <FiArrowRight size={14} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
-                                </button>
-                              ))}
-                              <button
-                                type="button"
-                                onClick={() => { setShowCrearCliente(true); setBusquedaCliente(""); setClientesFiltrados([]); }}
-                                className="w-full flex items-center gap-3 p-4 mt-1 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all group border-t border-slate-100 dark:border-slate-800"
-                              >
-                                <div className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center shrink-0">
-                                  <FiPlus size={14} className="text-white" />
-                                </div>
-                                <div className="text-left min-w-0">
-                                  <div className="text-[12px] font-black text-indigo-600 dark:text-indigo-400">Crear nuevo cliente</div>
-                                  {clientesFiltrados.length === 0 && (
-                                    <div className="text-[10px] font-bold text-slate-400">No se encontró &quot;{busquedaCliente}&quot;</div>
-                                  )}
-                                </div>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                {/* Titular */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 px-1">
+                     <FiUser className="text-indigo-500" size={14} />
+                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Titular</span>
                   </div>
 
-                  {/* Capital — visible en móvil en la columna izquierda (order-last en lg) */}
-                  <div className="space-y-4 lg:hidden">
-                    <div className="flex items-center gap-2 px-1">
-                       <FiDollarSign className="text-indigo-500" size={14} />
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Inversión (Capital)</span>
+                  {clienteSeleccionado ? (
+                    <div className="bg-slate-900 dark:bg-indigo-600 rounded-[1.5rem] p-5 md:p-6 text-white relative overflow-hidden group shadow-xl">
+                      <div className="relative z-10 flex justify-between items-center gap-3">
+                        <div className="min-w-0">
+                          <h3 className="text-base md:text-lg font-black tracking-tight leading-tight truncate">{clienteSeleccionado.nombres} {clienteSeleccionado.apellidos}</h3>
+                          <p className="text-[10px] font-bold text-white/60 uppercase mt-1">{clienteSeleccionado.identificacion}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { setFormData({ ...formData, cliente: "" }); setClienteSeleccionado(null); setCreditosActivosCliente(0); }}
+                          className="p-3 bg-white/10 hover:bg-rose-500 rounded-xl transition-all shrink-0"
+                        >
+                          <FiXCircle size={18} />
+                        </button>
+                      </div>
                     </div>
+                  ) : (
                     <div className="relative group">
-                      <FiDollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 transition-colors pointer-events-none" size={24} />
-                      <input
-                        type="number"
-                        value={formData.valor_venta}
-                        onChange={(e) => setFormData({ ...formData, valor_venta: e.target.value })}
-                        onWheel={(e) => e.target.blur()}
-                        placeholder="0"
-                        className="w-full pl-16 pr-6 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-2xl font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Fecha */}
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 px-1">
-                         <FiCalendar className="text-indigo-500" size={14} />
-                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</span>
-                      </div>
-                      {isWorker ? (
-                        <div className="w-full px-5 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
-                          <span className="text-[13px] font-black text-slate-800 dark:text-white">
-                            {formData.fecha_venta instanceof Date
-                              ? `${String(formData.fecha_venta.getDate()).padStart(2,'0')}/${String(formData.fecha_venta.getMonth()+1).padStart(2,'0')}/${formData.fecha_venta.getFullYear()}`
-                              : ""}
-                          </span>
-                          <FiCalendar className="text-slate-400" size={14} />
-                        </div>
-                      ) : (
-                        <div className="relative group custom-datepicker">
-                          <DatePicker
-                            selected={formData.fecha_venta}
-                            onChange={(date) => setFormData({ ...formData, fecha_venta: date })}
-                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white transition-all outline-none"
-                            dateFormat="dd/MM/yyyy"
-                          />
-                        </div>
-                      )}
-                    </div>
-                    {/* Cuotas */}
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 px-1">
-                         <FiActivity className="text-indigo-500" size={14} />
-                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cuotas</span>
-                      </div>
-                      <input
-                        type="number"
-                        value={formData.cuotas}
-                        onChange={(e) => setFormData({ ...formData, cuotas: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
-                      />
-                    </div>
-                    {/* Interés % — visible en móvil dentro de la columna izquierda */}
-                    <div className="space-y-4 lg:hidden">
-                      <div className="flex items-center gap-2 px-1">
-                         <FiPercent className="text-indigo-500" size={14} />
-                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Interés %</span>
-                      </div>
-                      {isWorker ? (
-                        <div className="w-full px-5 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
-                          <span className="text-[13px] font-black text-slate-800 dark:text-white">{formData.interes}%</span>
-                          <FiPercent className="text-slate-400" size={14} />
-                        </div>
-                      ) : (
-                        <input
-                          type="number"
-                          value={formData.interes}
-                          onChange={(e) => setFormData({ ...formData, interes: e.target.value })}
-                          className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
-                        />
-                      )}
-                    </div>
-                    {/* Nota — visible en móvil dentro de la columna izquierda */}
-                    <div className="space-y-4 lg:hidden">
-                      <div className="flex items-center gap-2 px-1">
-                         <FiInfo className="text-indigo-500" size={14} />
-                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nota</span>
-                      </div>
+                      <FiSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
                       <input
                         type="text"
-                        value={formData.comentario}
-                        onChange={(e) => setFormData({ ...formData, comentario: e.target.value })}
-                        placeholder="Ob..."
-                        className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                        placeholder="Buscar cliente..."
+                        autoComplete="off"
+                        className="w-full pl-14 pr-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                        value={busquedaCliente}
+                        onChange={(e) => filtrarClientes(e.target.value)}
                       />
+                      {busquedaCliente.trim().length > 0 && (
+                        <div className="absolute z-20 w-full mt-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden p-2">
+                          {clientesFiltrados.map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              className="w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all border-b border-slate-50 dark:border-slate-800 last:border-0 group flex items-center justify-between"
+                              onClick={() => seleccionarCliente(c)}
+                            >
+                              <div className="min-w-0">
+                                <div className="font-black text-slate-800 dark:text-white text-[13px] truncate">{c.nombres} {c.apellidos}</div>
+                                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{c.identificacion}</div>
+                              </div>
+                              <FiArrowRight size={14} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => { setShowCrearCliente(true); setBusquedaCliente(""); setClientesFiltrados([]); }}
+                            className="w-full flex items-center gap-3 p-4 mt-1 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all group border-t border-slate-100 dark:border-slate-800"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center shrink-0">
+                              <FiPlus size={14} className="text-white" />
+                            </div>
+                            <div className="text-left min-w-0">
+                              <div className="text-[12px] font-black text-indigo-600 dark:text-indigo-400">Crear nuevo cliente</div>
+                              {clientesFiltrados.length === 0 && (
+                                <div className="text-[10px] font-bold text-slate-400">No se encontró &quot;{busquedaCliente}&quot;</div>
+                              )}
+                            </div>
+                          </button>
+                        </div>
+                      )}
                     </div>
+                  )}
+
+                  {clienteSeleccionado && creditosActivosCliente > 0 && (
+                    <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl">
+                      <FiAlertCircle className="text-amber-500 shrink-0 mt-0.5" size={16} />
+                      <div>
+                        <p className="text-xs font-black text-amber-700 dark:text-amber-400 leading-snug">
+                          Este cliente ya tiene {creditosActivosCliente} crédito{creditosActivosCliente > 1 ? "s" : ""} activo{creditosActivosCliente > 1 ? "s" : ""}
+                        </p>
+                        <p className="text-[10px] font-bold text-amber-600/70 dark:text-amber-500/70 mt-0.5 uppercase tracking-wider">
+                          Puedes continuar — el sistema permite múltiples créditos
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Capital */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 px-1">
+                     <FiDollarSign className="text-indigo-500" size={14} />
+                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Inversión (Capital)</span>
+                  </div>
+                  <div className="relative group">
+                    <FiDollarSign className="absolute left-5 md:left-6 top-1/2 -translate-y-1/2 text-emerald-500 pointer-events-none" size={22} />
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={formData.valor_venta}
+                      onChange={(e) => setFormData({ ...formData, valor_venta: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
+                      placeholder="0"
+                      className="w-full pl-14 md:pl-16 pr-5 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-2xl md:text-3xl font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                    />
                   </div>
                 </div>
 
-                {/* Right Column: Financial Parameters — solo visible en desktop (lg+) */}
-                <div className="hidden lg:block space-y-8">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-1">
-                       <FiDollarSign className="text-indigo-500" size={14} />
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Inversión (Capital)</span>
+                {/* Live preview (mobile only) */}
+                {formData.valor_venta && parseFloat(formData.valor_venta) > 0 && (
+                  <div className="xl:hidden grid grid-cols-2 gap-3">
+                    <div className="p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-2xl border border-indigo-100 dark:border-indigo-900/20">
+                      <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Total</p>
+                      <p className="text-base font-black text-indigo-600 dark:text-indigo-400 tracking-tighter truncate">{formatMoney(calcularTotalAPagar())}</p>
                     </div>
-                    <div className="relative group">
-                      <FiDollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 transition-colors pointer-events-none" size={24} />
-                      <input
-                        type="number"
-                        value={formData.valor_venta}
-                        onChange={(e) => setFormData({ ...formData, valor_venta: e.target.value })}
-                        onWheel={(e) => e.target.blur()}
-                        placeholder="0"
-                        className="w-full pl-16 pr-6 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-2xl font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
-                      />
+                    <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-900/20">
+                      <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Cuota</p>
+                      <p className="text-base font-black text-emerald-600 dark:text-emerald-400 tracking-tighter truncate">{formatMoney(calcularValorCuota())}</p>
                     </div>
                   </div>
+                )}
 
-                  <div className="grid grid-cols-2 gap-4">
-                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 px-1">
-                           <FiPercent className="text-indigo-500" size={14} />
-                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Interés %</span>
-                        </div>
-                        {isWorker ? (
-                          <div className="w-full px-5 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
-                            <span className="text-[13px] font-black text-slate-800 dark:text-white">{formData.interes}%</span>
-                            <FiPercent className="text-slate-400" size={14} />
-                          </div>
-                        ) : (
-                          <input
-                            type="number"
-                            value={formData.interes}
-                            onChange={(e) => setFormData({ ...formData, interes: e.target.value })}
-                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
-                          />
-                        )}
-                     </div>
-                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 px-1">
-                           <FiInfo className="text-indigo-500" size={14} />
-                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nota</span>
-                        </div>
-                        <input
-                          type="text"
-                          value={formData.comentario}
-                          onChange={(e) => setFormData({ ...formData, comentario: e.target.value })}
-                          placeholder="Ob..."
-                          className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                {/* Fecha + Cuotas */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 px-1">
+                       <FiCalendar className="text-indigo-500" size={14} />
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</span>
+                    </div>
+                    {isWorker ? (
+                      <div className="w-full px-4 md:px-5 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
+                        <span className="text-[13px] font-black text-slate-800 dark:text-white truncate">
+                          {formData.fecha_venta instanceof Date
+                            ? `${String(formData.fecha_venta.getDate()).padStart(2,'0')}/${String(formData.fecha_venta.getMonth()+1).padStart(2,'0')}/${formData.fecha_venta.getFullYear()}`
+                            : ""}
+                        </span>
+                        <FiCalendar className="text-slate-400 shrink-0 ml-2" size={14} />
+                      </div>
+                    ) : (
+                      <div className="relative group custom-datepicker">
+                        <DatePicker
+                          selected={formData.fecha_venta}
+                          onChange={(date) => setFormData({ ...formData, fecha_venta: date })}
+                          className="w-full px-4 md:px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white transition-all outline-none"
+                          dateFormat="dd/MM/yyyy"
                         />
-                     </div>
+                      </div>
+                    )}
                   </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 px-1">
+                       <FiActivity className="text-indigo-500" size={14} />
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cuotas</span>
+                    </div>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={formData.cuotas}
+                      onChange={(e) => setFormData({ ...formData, cuotas: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
+                      className="w-full px-4 md:px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Interés */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 px-1">
+                     <FiPercent className="text-indigo-500" size={14} />
+                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Interés %</span>
+                  </div>
+                  {isWorker ? (
+                    <div className="w-full px-4 md:px-5 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
+                      <span className="text-[13px] font-black text-slate-800 dark:text-white">{formData.interes}%</span>
+                      <FiPercent className="text-slate-400" size={14} />
+                    </div>
+                  ) : (
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={formData.interes}
+                      onChange={(e) => setFormData({ ...formData, interes: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
+                      className="w-full px-4 md:px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                    />
+                  )}
+                </div>
+
+                {/* Nota */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 px-1">
+                     <FiInfo className="text-indigo-500" size={14} />
+                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nota</span>
+                  </div>
+                  <textarea
+                    value={formData.comentario}
+                    onChange={(e) => setFormData({ ...formData, comentario: e.target.value })}
+                    rows="2"
+                    placeholder="Observaciones (opcional)"
+                    className="w-full px-4 md:px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-700 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none resize-none"
+                  />
                 </div>
               </div>
 
@@ -559,7 +518,7 @@ function NuevaVentaContent() {
 
           {/* Sidebar Area - Moved after form on mobile */}
           <div className="xl:col-span-4 space-y-6">
-            <div className="glass p-8 rounded-[2rem] border-white/60 dark:border-slate-800 shadow-xl relative overflow-hidden group">
+            <div className="glass p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border-white/60 dark:border-slate-800 shadow-xl relative overflow-hidden group">
                <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-8">Proyección Financiera</h4>
                
                <div className="space-y-6 relative z-10">
