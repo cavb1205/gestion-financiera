@@ -90,7 +90,7 @@ export default function DashboardLayout({ children }) {
 
   // Filter menu items based on role
   const menuItems = allMenuItems.filter(item => {
-    if (item.rootOnly && !user?.is_superuser) return false;
+    if (item.rootOnly && user?.username !== 'root') return false;
     if (item.adminOnly && isWorker) return false;
     if (item.workerOnly && isAdmin) return false;
     return true;

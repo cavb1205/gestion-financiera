@@ -27,6 +27,7 @@ import {
   FiDollarSign,
   FiNavigation,
   FiZap,
+  FiLogIn,
 } from "react-icons/fi";
 
 const painPoints = [
@@ -180,15 +181,15 @@ function FAQItem({ q, a, open, onToggle }) {
     <div className="border border-white/8 rounded-2xl overflow-hidden bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between gap-4 p-6 text-left"
+        className="w-full flex items-center justify-between gap-4 p-5 md:p-6 text-left"
       >
-        <span className="text-sm md:text-base font-black text-white tracking-tight">{q}</span>
+        <span className="text-sm font-black text-white tracking-tight">{q}</span>
         <span className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-indigo-400">
           {open ? <FiMinus size={14} /> : <FiPlus size={14} />}
         </span>
       </button>
       {open && (
-        <div className="px-6 pb-6 -mt-2">
+        <div className="px-5 md:px-6 pb-5 md:pb-6 -mt-2">
           <p className="text-slate-400 text-sm leading-relaxed">{a}</p>
         </div>
       )}
@@ -210,16 +211,18 @@ export default function Home() {
 
       {/* ── Navbar ─────────────────────────────────────────────────── */}
       <header className="fixed top-0 w-full z-50 border-b border-white/5 backdrop-blur-xl bg-slate-950/70">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-900/40">
-              <FiBarChart2 className="text-white" size={18} />
+        <div className="max-w-6xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between gap-3">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="bg-indigo-600 p-1.5 md:p-2 rounded-xl shadow-lg shadow-indigo-900/40">
+              <FiBarChart2 className="text-white" size={16} />
             </div>
-            <span className="text-lg font-black tracking-tight">
+            <span className="text-base md:text-lg font-black tracking-tight">
               Cartera<span className="text-indigo-400">Financiera</span>
             </span>
           </div>
 
+          {/* Desktop nav links */}
           <nav className="hidden md:flex items-center gap-8 text-[11px] font-bold uppercase tracking-widest text-slate-500">
             <a href="#como-funciona" className="hover:text-white transition-colors">Cómo funciona</a>
             <a href="#funciones" className="hover:text-white transition-colors">Funciones</a>
@@ -230,85 +233,96 @@ export default function Home() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-3">
+          {/* CTA buttons — always visible */}
+          <div className="flex items-center gap-2">
             <Link
               href="/login"
-              className="hidden sm:flex items-center px-4 py-2.5 text-slate-300 hover:text-white text-[11px] font-black uppercase tracking-widest transition-all"
+              className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 text-slate-300 hover:text-white text-[11px] font-black uppercase tracking-widest transition-all rounded-xl hover:bg-white/5"
             >
-              Iniciar Sesión
+              <FiLogIn size={14} className="shrink-0" />
+              <span className="hidden xs:inline sm:inline">Entrar</span>
+              <span className="hidden md:inline"> Sesión</span>
             </Link>
             <Link
               href="/register"
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-indigo-900/30"
+              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-indigo-900/30 whitespace-nowrap"
             >
-              Comenzar Gratis
-              <FiArrowRight size={14} />
+              <span className="md:hidden">Registro</span>
+              <span className="hidden md:inline">Comenzar Gratis</span>
+              <FiArrowRight size={13} />
             </Link>
           </div>
         </div>
       </header>
 
       {/* ── Hero ───────────────────────────────────────────────────── */}
-      <main className="relative pt-32 pb-20 px-6">
+      <main className="relative pt-24 md:pt-32 pb-16 md:pb-20 px-5 md:px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
             {/* Left: Copy */}
             <div className="relative z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full mb-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full mb-6 md:mb-8">
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
                 <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Sistema profesional de cartera</span>
               </div>
 
-              <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[0.9] mb-6">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter leading-[0.9] mb-5 md:mb-6">
                 Deja el Excel.<br />
                 Administra tu<br />
                 <span className="text-indigo-400">cartera de verdad.</span>
               </h1>
 
-              <p className="text-slate-400 text-lg leading-relaxed mb-10 max-w-md">
+              <p className="text-slate-400 text-base md:text-lg leading-relaxed mb-8 md:mb-10 max-w-md">
                 La plataforma diseñada para tus necesidades profesionales. Controla créditos, cobradores y utilidades desde un solo lugar — con GPS, alertas y WhatsApp integrados.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
                 <Link
                   href="/register"
-                  className="flex items-center justify-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-indigo-900/30 group"
+                  className="flex items-center justify-center gap-3 px-7 md:px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-indigo-900/30 group"
                 >
                   Comenzar Gratis
                   <FiArrowRight className="group-hover:translate-x-1 transition-transform" size={16} />
                 </Link>
                 <Link
                   href="/guia-rapida"
-                  className="flex items-center justify-center gap-3 px-8 py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95"
+                  className="flex items-center justify-center gap-3 px-7 md:px-8 py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95"
                 >
                   <FiBookOpen size={16} />
                   Ver Demo
                 </Link>
               </div>
 
-              <div className="mt-12 flex flex-wrap items-center gap-6">
+              {/* Returning user login — prominente en móvil */}
+              <p className="mt-5 text-center sm:text-left text-[12px] text-slate-500 font-bold">
+                ¿Ya tienes cuenta?{" "}
+                <Link href="/login" className="text-indigo-400 hover:text-indigo-300 font-black transition-colors underline underline-offset-2">
+                  Iniciar sesión →
+                </Link>
+              </p>
+
+              <div className="mt-8 md:mt-12 flex flex-wrap items-center gap-4 md:gap-6">
                 <div className="flex items-center gap-2 text-slate-500">
-                  <FiCheckCircle className="text-emerald-500" size={15} />
+                  <FiCheckCircle className="text-emerald-500 shrink-0" size={15} />
                   <span className="text-[11px] font-bold uppercase tracking-widest">Prueba gratis</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-500">
-                  <FiCheckCircle className="text-emerald-500" size={15} />
+                  <FiCheckCircle className="text-emerald-500 shrink-0" size={15} />
                   <span className="text-[11px] font-bold uppercase tracking-widest">Sin instalación</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-500">
-                  <FiCheckCircle className="text-emerald-500" size={15} />
+                  <FiCheckCircle className="text-emerald-500 shrink-0" size={15} />
                   <span className="text-[11px] font-bold uppercase tracking-widest">Soporte en español</span>
                 </div>
               </div>
             </div>
 
-            {/* Right: Dashboard mockup */}
+            {/* Right: Dashboard mockup — solo desktop */}
             <div className="relative hidden lg:block">
               <div className="absolute inset-0 bg-indigo-600/5 blur-3xl rounded-full" />
               <div className="relative bg-slate-900 border border-white/10 rounded-[2.5rem] p-6 shadow-2xl">
 
-                {/* Mockup header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <div className="h-2 w-24 bg-white/20 rounded-full mb-1.5" />
@@ -320,7 +334,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* KPI cards */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="bg-indigo-600/90 rounded-2xl p-4">
                     <div className="h-1.5 w-10 bg-white/40 rounded-full mb-3" />
@@ -346,7 +359,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Chart mockup */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
                   <div className="h-1.5 w-20 bg-white/20 rounded-full mb-4" />
                   <div className="flex items-end gap-2 h-16">
@@ -360,7 +372,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Recent items */}
                 <div className="mt-4 space-y-2">
                   {[
                     { color: "bg-emerald-500", w: "w-32" },
@@ -384,23 +395,23 @@ export default function Home() {
       </main>
 
       {/* ── Pain Points ─────────────────────────────────────────────── */}
-      <section className="py-24 px-6 border-t border-white/5">
+      <section className="py-16 md:py-24 px-5 md:px-6 border-t border-white/5">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-14">
+          <div className="text-center mb-10 md:mb-14">
             <p className="text-[10px] font-black text-rose-400 uppercase tracking-[0.4em] mb-4">El problema</p>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter text-white">
               ¿Te suena familiar?
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
             {painPoints.map((p, i) => (
-              <div key={i} className="p-6 bg-rose-500/5 border border-rose-500/10 rounded-3xl">
-                <div className="w-11 h-11 bg-rose-500/10 text-rose-400 rounded-2xl flex items-center justify-center mb-4">
-                  <p.icon size={20} />
+              <div key={i} className="p-5 md:p-6 bg-rose-500/5 border border-rose-500/10 rounded-2xl md:rounded-3xl">
+                <div className="w-9 h-9 md:w-11 md:h-11 bg-rose-500/10 text-rose-400 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-4">
+                  <p.icon size={18} />
                 </div>
-                <h3 className="text-sm font-black text-white tracking-tight mb-2">{p.title}</h3>
-                <p className="text-slate-400 text-[13px] leading-relaxed">{p.desc}</p>
+                <h3 className="text-xs md:text-sm font-black text-white tracking-tight mb-1.5 md:mb-2">{p.title}</h3>
+                <p className="text-slate-400 text-[12px] md:text-[13px] leading-relaxed hidden sm:block">{p.desc}</p>
               </div>
             ))}
           </div>
@@ -408,27 +419,27 @@ export default function Home() {
       </section>
 
       {/* ── Cómo funciona ───────────────────────────────────────────── */}
-      <section id="como-funciona" className="py-24 px-6 border-t border-white/5">
+      <section id="como-funciona" className="py-16 md:py-24 px-5 md:px-6 border-t border-white/5">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12 md:mb-16">
             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-4">La solución</p>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter text-white">
               Tu cartera operando<br />
               <span className="text-slate-500">en 3 pasos.</span>
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 relative">
+          <div className="grid md:grid-cols-3 gap-4 md:gap-6 relative">
             {steps.map((s, i) => (
               <div key={i} className="relative">
-                <div className="p-8 bg-white/[0.03] border border-white/8 rounded-3xl h-full">
-                  <div className="flex items-center gap-4 mb-5">
-                    <span className="text-4xl font-black text-indigo-400/30 tracking-tighter">{s.num}</span>
-                    <div className="w-11 h-11 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center">
+                <div className="p-6 md:p-8 bg-white/[0.03] border border-white/8 rounded-2xl md:rounded-3xl h-full">
+                  <div className="flex items-center gap-4 mb-4 md:mb-5">
+                    <span className="text-3xl md:text-4xl font-black text-indigo-400/30 tracking-tighter">{s.num}</span>
+                    <div className="w-10 h-10 md:w-11 md:h-11 bg-indigo-600/20 text-indigo-400 rounded-xl md:rounded-2xl flex items-center justify-center">
                       <s.icon size={20} />
                     </div>
                   </div>
-                  <h3 className="text-lg font-black text-white tracking-tight mb-3">{s.title}</h3>
+                  <h3 className="text-base md:text-lg font-black text-white tracking-tight mb-2 md:mb-3">{s.title}</h3>
                   <p className="text-slate-400 text-sm leading-relaxed">{s.desc}</p>
                 </div>
                 {i < steps.length - 1 && (
@@ -443,16 +454,16 @@ export default function Home() {
       </section>
 
       {/* ── Diferenciadores ─────────────────────────────────────────── */}
-      <section className="py-20 px-6 border-t border-white/5 bg-gradient-to-b from-indigo-950/20 to-transparent">
+      <section className="py-14 md:py-20 px-5 md:px-6 border-t border-white/5 bg-gradient-to-b from-indigo-950/20 to-transparent">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8">
             {differentiators.map((d, i) => (
-              <div key={i} className="flex items-start gap-5">
-                <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-900/40">
-                  <d.icon className="text-white" size={22} />
+              <div key={i} className="flex items-start gap-4 md:gap-5">
+                <div className="w-11 h-11 md:w-12 md:h-12 bg-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-900/40">
+                  <d.icon className="text-white" size={20} />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-white tracking-tight mb-1.5">{d.title}</h3>
+                  <h3 className="text-base font-black text-white tracking-tight mb-1">{d.title}</h3>
                   <p className="text-slate-400 text-[13px] leading-relaxed">{d.desc}</p>
                 </div>
               </div>
@@ -462,27 +473,27 @@ export default function Home() {
       </section>
 
       {/* ── Features ────────────────────────────────────────────────── */}
-      <section id="funciones" className="py-24 px-6 border-t border-white/5">
+      <section id="funciones" className="py-16 md:py-24 px-5 md:px-6 border-t border-white/5">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12 md:mb-16">
             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-4">Funciones Principales</p>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter text-white">
               Todo lo que necesitas<br />
               <span className="text-slate-500">para operar tu negocio.</span>
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {features.map((feat, i) => (
               <div
                 key={i}
-                className="group p-7 bg-white/[0.03] border border-white/8 hover:border-indigo-500/30 hover:bg-white/[0.06] rounded-3xl transition-all duration-300"
+                className="group p-6 md:p-7 bg-white/[0.03] border border-white/8 hover:border-indigo-500/30 hover:bg-white/[0.06] rounded-2xl md:rounded-3xl transition-all duration-300"
               >
-                <div className="w-11 h-11 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center mb-5 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
-                  <feat.icon size={20} />
+                <div className="w-10 h-10 md:w-11 md:h-11 bg-indigo-600/20 text-indigo-400 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-5 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+                  <feat.icon size={18} />
                 </div>
-                <h3 className="text-base font-black text-white uppercase tracking-tight mb-2">{feat.title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{feat.desc}</p>
+                <h3 className="text-sm md:text-base font-black text-white uppercase tracking-tight mb-2">{feat.title}</h3>
+                <p className="text-slate-500 text-[13px] leading-relaxed">{feat.desc}</p>
               </div>
             ))}
           </div>
@@ -490,12 +501,12 @@ export default function Home() {
       </section>
 
       {/* ── Módulos ─────────────────────────────────────────────────── */}
-      <section id="modulos" className="py-20 px-6 border-t border-white/5">
+      <section id="modulos" className="py-14 md:py-20 px-5 md:px-6 border-t border-white/5">
         <div className="max-w-6xl mx-auto">
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] text-center mb-8">Todo en un solo lugar</p>
-          <div className="flex flex-wrap justify-center gap-3">
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] text-center mb-6 md:mb-8">Todo en un solo lugar</p>
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3">
             {modules.map((m, i) => (
-              <span key={i} className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-[11px] font-black uppercase tracking-widest text-slate-400">
+              <span key={i} className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white/5 border border-white/10 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-400">
                 <span className={`w-1.5 h-1.5 rounded-full ${m.color}`} />
                 {m.label}
               </span>
@@ -505,11 +516,11 @@ export default function Home() {
       </section>
 
       {/* ── FAQ ──────────────────────────────────────────────────────── */}
-      <section id="faq" className="py-24 px-6 border-t border-white/5">
+      <section id="faq" className="py-16 md:py-24 px-5 md:px-6 border-t border-white/5">
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-14">
+          <div className="text-center mb-10 md:mb-14">
             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-4">Preguntas Frecuentes</p>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter text-white">
               Todo lo que te<br />
               <span className="text-slate-500">preguntas antes de empezar.</span>
             </h2>
@@ -530,38 +541,47 @@ export default function Home() {
       </section>
 
       {/* ── CTA ─────────────────────────────────────────────────────── */}
-      <section className="py-24 px-6">
+      <section className="py-16 md:py-24 px-5 md:px-6">
         <div className="max-w-3xl mx-auto text-center">
-          <div className="bg-white/[0.03] border border-white/10 rounded-[3rem] p-12 md:p-16 relative overflow-hidden">
+          <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-[80px] rounded-full pointer-events-none" />
             <div className="relative z-10">
-              <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg shadow-indigo-900/40">
-                <FiBarChart2 className="text-white" size={26} />
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-lg shadow-indigo-900/40">
+                <FiBarChart2 className="text-white" size={24} />
               </div>
-              <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-4">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tighter mb-4">
                 Empieza hoy.<br />
                 <span className="text-indigo-400">Tu cartera te lo agradecerá.</span>
               </h2>
-              <p className="text-slate-500 text-base mb-10 leading-relaxed max-w-lg mx-auto">
+              <p className="text-slate-500 text-sm md:text-base mb-8 md:mb-10 leading-relaxed max-w-lg mx-auto">
                 Crea tu cuenta gratis y prueba la plataforma sin compromiso. Sin tarjeta de crédito, sin instalación.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
                 <Link
                   href="/register"
-                  className="inline-flex items-center justify-center gap-3 px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-indigo-900/30 group"
+                  className="inline-flex items-center justify-center gap-3 px-8 md:px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-indigo-900/30 group"
                 >
                   Comenzar Gratis
                   <FiArrowRight className="group-hover:translate-x-1 transition-transform" size={16} />
                 </Link>
                 <Link
                   href="/login"
-                  className="inline-flex items-center justify-center gap-3 px-10 py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95"
+                  className="inline-flex items-center justify-center gap-2.5 px-8 md:px-10 py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95"
                 >
+                  <FiLogIn size={15} />
                   Iniciar Sesión
                 </Link>
               </div>
-              <p className="text-[11px] font-bold text-slate-500 mt-8 uppercase tracking-widest">
-                ¿Dudas sobre planes? <a href={`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '56963511337'}?text=${encodeURIComponent('Hola, quisiera información sobre los planes de Cartera Financiera')}`} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 transition-colors">Escríbenos por WhatsApp</a>
+              <p className="text-[11px] font-bold text-slate-500 mt-6 md:mt-8 uppercase tracking-widest">
+                ¿Dudas sobre planes?{" "}
+                <a
+                  href={`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '56963511337'}?text=${encodeURIComponent('Hola, quisiera información sobre los planes de Cartera Financiera')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                >
+                  Escríbenos por WhatsApp
+                </a>
               </p>
             </div>
           </div>
@@ -569,8 +589,8 @@ export default function Home() {
       </section>
 
       {/* ── Footer ──────────────────────────────────────────────────── */}
-      <footer className="py-12 px-6 border-t border-white/5">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+      <footer className="py-10 md:py-12 px-5 md:px-6 border-t border-white/5">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5 md:gap-6">
           <div className="flex items-center gap-3">
             <div className="bg-indigo-600/20 p-2 rounded-xl">
               <FiBarChart2 className="text-indigo-400" size={16} />
@@ -579,10 +599,10 @@ export default function Home() {
               Cartera<span className="text-indigo-400">Financiera</span>
             </span>
           </div>
-          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.4em]">
+          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.4em] text-center">
             &copy; {new Date().getFullYear()} — Sistema de Gestión de Cartera
           </p>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5 md:gap-6">
             <Link
               href="/guia-rapida"
               className="text-[11px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-1.5"
@@ -593,7 +613,7 @@ export default function Home() {
               href="/login"
               className="text-[11px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-1.5"
             >
-              Iniciar Sesión <FiArrowRight size={12} />
+              <FiLogIn size={12} /> Iniciar Sesión
             </Link>
           </div>
         </div>
