@@ -128,7 +128,7 @@ export default function PerfilPage() {
         </div>
 
         {/* User info card */}
-        <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 mb-6">
+        <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 mb-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-indigo-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-200 dark:shadow-none">
               {profile?.trabajador?.charAt(0) || "U"}
@@ -144,7 +144,7 @@ export default function PerfilPage() {
         </div>
 
         {/* Password change form */}
-        <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+        <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800">
           <div className="flex items-center gap-3 mb-7">
             <div className="p-2.5 bg-amber-50 dark:bg-amber-900/20 text-amber-500 rounded-xl">
               <FiLock size={18} />
@@ -212,7 +212,7 @@ export default function PerfilPage() {
 
         {/* Store settings — admin only */}
         {isAdmin && (
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 mt-6">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 mt-6">
             <div className="flex items-center gap-3 mb-7">
               <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-xl">
                 <FiPhone size={18} />
@@ -262,7 +262,7 @@ export default function PerfilPage() {
 
         {/* Cupo mínimo para clientes nuevos — admin only */}
         {isAdmin && (
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 mt-6">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 mt-6">
             <div className="flex items-center gap-3 mb-7">
               <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-xl">
                 <FiDollarSign size={18} />

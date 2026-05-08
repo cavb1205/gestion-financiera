@@ -135,7 +135,7 @@ export default function VentasPerdidasPage() {
                <FiAlertTriangle className="text-white text-3xl" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Ventas en Pérdida</h1>
+              <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Ventas en Pérdida</h1>
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">
                 Registro de Pérdidas • <span className="text-rose-500">{selectedStore?.tienda?.nombre}</span>
               </p>
@@ -154,7 +154,7 @@ export default function VentasPerdidasPage() {
 
         {/* Metrics Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl">
@@ -171,7 +171,7 @@ export default function VentasPerdidasPage() {
             </div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 rounded-2xl">
@@ -195,7 +195,7 @@ export default function VentasPerdidasPage() {
             </div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl">
@@ -219,7 +219,7 @@ export default function VentasPerdidasPage() {
             </div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl">
@@ -245,7 +245,7 @@ export default function VentasPerdidasPage() {
         </div>
 
         {/* Search */}
-        <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 mb-8 p-8">
+        <div className="glass rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 mb-6 md:mb-8 p-5 md:p-8">
            <div className="flex flex-col lg:flex-row items-center gap-6">
               <div className="relative flex-1 w-full group">
                 <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-rose-500 transition-colors">
@@ -272,11 +272,12 @@ export default function VentasPerdidasPage() {
 
         {/* Table Section */}
         <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none">
-          <div className="overflow-x-auto">
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-800/20">
-                  <th className="hidden md:table-cell px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Referencia</th>
+                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Referencia</th>
                   <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cliente</th>
                   <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha Venta</th>
                   <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Valor Venta</th>
@@ -303,7 +304,7 @@ export default function VentasPerdidasPage() {
                       onClick={() => router.push(`/dashboard/ventas/${venta.id}`)}
                       className="group hover:bg-rose-50/30 dark:hover:bg-rose-500/5 transition-all cursor-pointer"
                     >
-                      <td className="hidden md:table-cell px-4 py-6 whitespace-nowrap">
+                      <td className="px-4 py-6 whitespace-nowrap">
                          <span className="text-xs font-black text-slate-400 group-hover:text-rose-600 transition-colors">#{venta.id}</span>
                       </td>
                       <td className="px-4 py-6 whitespace-nowrap">
@@ -354,6 +355,60 @@ export default function VentasPerdidasPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {filteredVentas.length === 0 ? (
+              <div className="px-6 py-16 text-center">
+                <div className="bg-slate-50 dark:bg-slate-800/50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <FiAlertTriangle className="text-3xl text-slate-300" />
+                </div>
+                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Sin ventas en pérdida</h3>
+              </div>
+            ) : (
+              currentVentas.map((venta) => (
+                <div
+                  key={venta.id}
+                  onClick={() => router.push(`/dashboard/ventas/${venta.id}`)}
+                  className="px-5 py-4 cursor-pointer active:bg-rose-50/50 dark:active:bg-rose-500/5 transition-colors"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-600 font-black text-sm shrink-0">
+                      {venta.cliente.nombres.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-black text-slate-800 dark:text-white leading-none truncate">
+                        {venta.cliente.nombres} {venta.cliente.apellidos}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] font-bold text-slate-400">{venta.cliente.identificacion}</span>
+                        <span className="text-[10px] font-black text-slate-300">· #{venta.id}</span>
+                        <FiCalendar size={9} className="text-slate-300 ml-1" />
+                        <span className="text-[10px] font-bold text-slate-400">{venta.fecha_venta}</span>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 bg-slate-800 dark:bg-slate-700 text-white text-[9px] font-black uppercase tracking-widest rounded-full shrink-0">
+                      Pérdida
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Venta</p>
+                      <p className="text-xs font-black text-slate-700 dark:text-slate-200">{formatMoney(venta.valor_venta)}</p>
+                    </div>
+                    <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-3 text-center">
+                      <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Abonado</p>
+                      <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">{formatMoney(venta.total_abonado)}</p>
+                    </div>
+                    <div className="bg-rose-50 dark:bg-rose-900/10 rounded-xl p-3 text-center">
+                      <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-1">Pérdida</p>
+                      <p className="text-xs font-black text-rose-600 dark:text-rose-400">{formatMoney(venta.saldo_actual)}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         <Pagination
@@ -368,7 +423,7 @@ export default function VentasPerdidasPage() {
         {filteredVentas.length > 0 && (
           <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Loss Analysis */}
-            <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+            <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800">
               <div className="flex items-center gap-4 mb-8">
                 <div className="p-3 bg-rose-500 dark:bg-rose-600 text-white rounded-2xl shadow-lg shadow-rose-200 dark:shadow-none">
                   <FiTrendingDown size={24} />
@@ -417,7 +472,7 @@ export default function VentasPerdidasPage() {
             </div>
 
             {/* Risk Protocol Info */}
-            <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden">
+            <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden">
               <div className="flex items-center gap-4 mb-8">
                 <div className="p-3 bg-slate-800 dark:bg-slate-700 text-white rounded-2xl shadow-lg shadow-slate-300 dark:shadow-none">
                   <FiShield size={24} />

@@ -413,7 +413,8 @@ export default function AdminRutasPage() {
           </div>
         ) : (
           <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl">
-            <div className="overflow-x-auto">
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-slate-50/50 dark:bg-slate-800/30">
@@ -426,10 +427,10 @@ export default function AdminRutasPage() {
                     <th className="px-4 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
                       Estado
                     </th>
-                    <th className="hidden md:table-cell px-4 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                    <th className="px-4 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
                       Vencimiento
                     </th>
-                    <th className="hidden md:table-cell px-4 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                    <th className="px-4 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
                       Días
                     </th>
                     <th className="px-4 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
@@ -506,14 +507,14 @@ export default function AdminRutasPage() {
                           </td>
 
                           {/* Vencimiento */}
-                          <td className="hidden md:table-cell px-4 py-5 text-center">
+                          <td className="px-4 py-5 text-center">
                             <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
                               {formatDate(tm.fecha_vencimiento)}
                             </p>
                           </td>
 
                           {/* Días */}
-                          <td className="hidden md:table-cell px-4 py-5 text-center">
+                          <td className="px-4 py-5 text-center">
                             <p
                               className={`text-sm font-black ${daysColor} tracking-tight`}
                             >
@@ -566,6 +567,85 @@ export default function AdminRutasPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+              {currentItems.length === 0 ? (
+                <div className="px-6 py-16 text-center">
+                  <FiShield className="text-slate-300 mx-auto mb-4" size={36} />
+                  <p className="text-sm font-black text-slate-800 dark:text-white uppercase">Sin resultados</p>
+                  <p className="text-xs text-slate-400 mt-1">No se encontraron rutas con los filtros aplicados.</p>
+                </div>
+              ) : (
+                currentItems.map((tm) => {
+                  const { status: memStatus, label: daysLabel } = getMembresiaInfo(tm.fecha_vencimiento);
+                  const cfg = STATUS_CONFIG[tm.estado] || STATUS_CONFIG.Activa;
+                  const daysColor =
+                    memStatus === "ok"
+                      ? "text-emerald-600"
+                      : memStatus === "warn" || memStatus === "today"
+                      ? "text-amber-600"
+                      : "text-rose-600";
+
+                  return (
+                    <div key={tm.id} className="px-5 py-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-600 font-black text-sm shrink-0">
+                          {tm.tienda?.nombre?.charAt(0) || "?"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">
+                            {tm.tienda?.nombre}
+                          </p>
+                          <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mt-0.5">
+                            <FiUser size={10} className="text-indigo-400" />
+                            {tm.tienda?.administrador || "Sin admin"}
+                          </p>
+                        </div>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${cfg.bg} ${cfg.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${tm.estado === "Activa" ? "animate-pulse" : ""}`} />
+                          {cfg.label}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-center">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Plan</p>
+                          <p className="text-[10px] font-black text-slate-700 dark:text-slate-200">{tm.membresia?.nombre || "—"}</p>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-center">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Vence</p>
+                          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{formatDate(tm.fecha_vencimiento)}</p>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-center">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Días</p>
+                          <p className={`text-[11px] font-black ${daysColor}`}>{daysLabel}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleActivar(tm.id, "mensual")}
+                          disabled={activating === `mensual-${tm.id}`}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-50"
+                        >
+                          {activating === `mensual-${tm.id}` ? (
+                            <div className="w-3 h-3 border-2 border-indigo-400/30 border-t-indigo-600 rounded-full animate-spin" />
+                          ) : <><FiZap size={11} /> Mensual</>}
+                        </button>
+                        <button
+                          onClick={() => handleActivar(tm.id, "anual")}
+                          disabled={activating === `anual-${tm.id}`}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50"
+                        >
+                          {activating === `anual-${tm.id}` ? (
+                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          ) : <><FiStar size={11} /> Anual</>}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
 
             <Pagination

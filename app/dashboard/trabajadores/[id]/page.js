@@ -176,7 +176,7 @@ export default function TrabajadorDetailPage() {
 
           {/* Profile Card */}
           <div className="lg:col-span-4">
-            <div className="glass p-8 rounded-[2rem] border-white/60 dark:border-slate-800 shadow-xl relative overflow-hidden">
+            <div className="glass p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border-white/60 dark:border-slate-800 shadow-xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
               <div className="relative z-10 flex flex-col items-center text-center">
                 <div className="w-20 h-20 bg-slate-900 dark:bg-indigo-600 rounded-[1.5rem] flex items-center justify-center text-white font-black text-3xl uppercase shadow-xl mb-5">

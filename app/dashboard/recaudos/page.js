@@ -193,7 +193,7 @@ export default function RecaudosPage() {
                <FiPieChart className="text-white text-3xl" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none uppercase">Auditoría de Recaudos</h1>
+              <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none uppercase">Auditoría de Recaudos</h1>
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
                 Registro de Gestión • <span className="text-indigo-500">{selectedStore.tienda.nombre}</span>
               </p>
@@ -218,7 +218,7 @@ export default function RecaudosPage() {
 
         {/* Premium Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-2xl">
+           <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-2xl">
               <div className="relative z-10">
                  <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl">
@@ -236,7 +236,7 @@ export default function RecaudosPage() {
               </div>
            </div>
 
-           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-2xl">
+           <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-2xl">
               <div className="relative z-10">
                  <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl">
@@ -259,7 +259,7 @@ export default function RecaudosPage() {
               </div>
            </div>
 
-           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-2xl text-rose-600">
+           <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-2xl text-rose-600">
               <div className="relative z-10">
                  <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl">
@@ -285,7 +285,7 @@ export default function RecaudosPage() {
 
         {/* Filters Area */}
         <div className="glass rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl mb-10">
-           <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 flex flex-col lg:flex-row items-center gap-8">
+           <div className="p-5 md:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 flex flex-col lg:flex-row items-center gap-8">
               <div className="w-full lg:w-1/3 space-y-2">
                  <label htmlFor="cierre-fecha" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Cierre de Fecha</label>
                  <div className="relative group">
@@ -514,7 +514,7 @@ export default function RecaudosPage() {
         </div>
 
         {/* Audit Info Footer */}
-        <div className="glass p-10 rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl relative overflow-hidden">
+        <div className="glass p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl relative overflow-hidden">
            <div className="flex flex-col md:flex-row items-center justify-between gap-10">
               <div className="flex items-start gap-6 max-w-2xl">
                  <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-2xl flex items-center justify-center shrink-0">

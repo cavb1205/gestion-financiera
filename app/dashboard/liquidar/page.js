@@ -224,6 +224,11 @@ export default function LiquidarCreditosPage() {
          fecha_recaudo: selectedDate,
          valor_recaudo: valorAbono,
          saldo_actual: credito.saldo_actual,
+         valor_cuota: credito.valor_cuota,
+         cuotas: credito.cuotas,
+         pagos_realizados: credito.pagos_realizados,
+         total_abonado: credito.total_abonado,
+         dias_atrasados: credito.dias_atrasados,
          venta: credito.id,
          tienda: selectedStore.tienda.id,
       };
@@ -264,7 +269,7 @@ export default function LiquidarCreditosPage() {
                      <FiActivity className="text-white text-xl md:text-3xl" />
                   </div>
                   <div className="min-w-0">
-                     <h1 className="text-xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none uppercase truncate">Liquidación Diaria</h1>
+                     <h1 className="text-xl md:text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none uppercase truncate">Liquidación Diaria</h1>
                      <p className="text-[10px] md:text-sm font-bold text-slate-400 uppercase tracking-widest mt-1 px-0.5 truncate">
                         <span className="text-emerald-500">{selectedStore.tienda.nombre}</span>
                      </p>
@@ -607,7 +612,7 @@ export default function LiquidarCreditosPage() {
                         <LoadingSpinner />
                      </div>
                   ) : filteredCreditos.length === 0 ? (
-                     <div className="glass p-10 text-center rounded-[2rem]">
+                     <div className="glass p-6 md:p-10 text-center rounded-[1.5rem] md:rounded-[2rem]">
                         <FiSearch size={30} className="mx-auto text-slate-300 mb-4" />
                         <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sin Pendientes</p>
                      </div>

@@ -401,7 +401,7 @@ export default function DetalleCliente({ params }) {
         {/* Malla de Indicadores Financieros */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
            {/* Card: Score Crediticio (backend) */}
-          <div className="lg:col-span-2 glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="lg:col-span-2 glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -564,7 +564,7 @@ export default function DetalleCliente({ params }) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Columna Izquierda: Información y Sugerencias */}
           <div className="lg:col-span-4 space-y-8">
-            <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+            <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800">
                <div className="flex items-center gap-3 mb-8">
                   <div className="w-1.5 h-6 bg-indigo-500 rounded-full"></div>
                   <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Datos Maestros</h3>

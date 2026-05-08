@@ -126,7 +126,7 @@ export default function AportesPage() {
                <FiPieChart className="text-white text-3xl" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Inyección de Capital</h1>
+              <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Inyección de Capital</h1>
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">
                 Fondos de Inversión • <span className="text-indigo-500">{selectedStore?.tienda?.nombre}</span>
               </p>
@@ -152,7 +152,7 @@ export default function AportesPage() {
 
         {/* Metrics Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl">
@@ -170,7 +170,7 @@ export default function AportesPage() {
             <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 rounded-2xl">
@@ -186,7 +186,7 @@ export default function AportesPage() {
             <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-slate-500/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-2xl">
@@ -207,7 +207,7 @@ export default function AportesPage() {
 
         {/* Search & Table Section */}
         <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none">
-          <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-transparent">
+          <div className="p-5 md:p-8 border-b border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-transparent">
             <div className="relative flex-1 group">
               <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
                 <FiSearch size={20} />
@@ -222,7 +222,8 @@ export default function AportesPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto overflow-y-hidden">
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto overflow-y-hidden">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-800/20 p-4">
@@ -305,6 +306,65 @@ export default function AportesPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {currentAportes.length === 0 ? (
+              <div className="px-6 py-16 text-center">
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <FiDollarSign className="text-3xl text-indigo-400" />
+                </div>
+                <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">Sin aportes registrados</h3>
+                <p className="text-xs font-bold text-slate-400 mb-5 max-w-xs mx-auto">Registra tu primer aporte de capital para comenzar.</p>
+                <button
+                  onClick={() => router.push("/dashboard/aportes/crear")}
+                  className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Registrar Primer Aporte
+                </button>
+              </div>
+            ) : (
+              currentAportes.map((aporte) => (
+                <div key={aporte.id} className="px-5 py-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 font-black text-xs uppercase shrink-0">
+                        {aporte.trabajador.trabajador.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">{aporte.trabajador.trabajador}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <FiCalendar size={10} className="text-slate-300" />
+                          <span className="text-[10px] font-bold text-slate-400">{new Date(aporte.fecha).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-lg font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">{formatMoney(parseFloat(aporte.valor))}</p>
+                  </div>
+                  {aporte.comentario && (
+                    <p className="text-xs font-bold text-slate-400 italic mb-3 line-clamp-2">&quot;{aporte.comentario}&quot;</p>
+                  )}
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        localStorage.setItem("aporteEditar", JSON.stringify(aporte));
+                        router.push(`/dashboard/aportes/${aporte.id}/editar`);
+                      }}
+                      className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl hover:text-indigo-600 active:scale-95 transition-all"
+                    >
+                      <FiEdit size={15} />
+                    </button>
+                    <button
+                      onClick={() => setAporteAEliminar(aporte)}
+                      className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl hover:text-rose-600 active:scale-95 transition-all"
+                    >
+                      <FiTrash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <Pagination

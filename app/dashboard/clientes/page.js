@@ -208,7 +208,7 @@ export default function ClientesPage() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10" aria-hidden={isLoading}>
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl"><FiUsers size={24} /></div>
@@ -220,7 +220,7 @@ export default function ClientesPage() {
             <div className="absolute -right-5 -bottom-5 text-indigo-500/5 group-hover:scale-110 transition-transform"><FiUsers size={100} /></div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl"><FiShield size={24} /></div>
@@ -233,7 +233,7 @@ export default function ClientesPage() {
             </div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-2xl"><FiAlertCircle size={24} /></div>
@@ -363,13 +363,14 @@ export default function ClientesPage() {
           <>
             {/* Tabla de clientes */}
             <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none">
-              <div className="overflow-x-auto">
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
                       <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Identidad Cliente</th>
-                      <th className="hidden md:table-cell px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Contacto Directo</th>
-                      <th className="hidden md:table-cell px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Establecimiento</th>
+                      <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Contacto Directo</th>
+                      <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Establecimiento</th>
                       <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado</th>
                       <th className="px-4 py-6 text-left cursor-pointer select-none" onClick={toggleScoreSort}>
                         <span className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-500 transition-colors">
@@ -405,7 +406,7 @@ export default function ClientesPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="hidden md:table-cell px-4 py-6 whitespace-nowrap">
+                          <td className="px-4 py-6 whitespace-nowrap">
                             <div className="flex flex-col gap-1">
                               <div className="text-[13px] font-black text-slate-700 dark:text-slate-300 flex items-center gap-2">
                                 <FiPhone className="text-slate-400" size={12} />
@@ -418,7 +419,7 @@ export default function ClientesPage() {
                               )}
                             </div>
                           </td>
-                          <td className="hidden md:table-cell px-4 py-6 whitespace-nowrap text-[13px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">
+                          <td className="px-4 py-6 whitespace-nowrap text-[13px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">
                             {cliente.nombre_local || "—"}
                           </td>
                           <td className="px-4 py-6 whitespace-nowrap">
@@ -488,6 +489,93 @@ export default function ClientesPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                {currentClientes.length > 0 ? (
+                  currentClientes.map((cliente) => (
+                    <div
+                      key={cliente.id}
+                      onClick={() => router.push(`/dashboard/clientes/${cliente.id}`)}
+                      className="px-5 py-4 cursor-pointer active:bg-indigo-50/50 dark:active:bg-indigo-500/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-11 h-11 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-600 font-black text-base shrink-0">
+                          {cliente.nombres?.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[14px] font-black text-slate-800 dark:text-white tracking-tight truncate">
+                            {cliente.nombres} {cliente.apellidos}
+                          </p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <FiMapPin className="text-indigo-400 shrink-0" size={10} />
+                            <span className="text-[11px] font-bold text-slate-400 truncate">{cliente.direccion}</span>
+                          </div>
+                        </div>
+                        {getStatusBadge(cliente.estado_cliente)}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-1">
+                          {cliente.telefono_principal && (
+                            <div className="flex items-center gap-2 text-[12px] font-bold text-slate-600 dark:text-slate-300">
+                              <FiPhone className="text-slate-400 shrink-0" size={11} />
+                              {formatPhone(cliente.telefono_principal)}
+                            </div>
+                          )}
+                          {cliente.nombre_local && (
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight pl-5">{cliente.nombre_local}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          {scores[cliente.id] ? (
+                            <span className={`px-2.5 py-1.5 rounded-xl text-[11px] font-black ${
+                              scores[cliente.id].sin_historial
+                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                                : scores[cliente.id].score >= 80
+                                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                : scores[cliente.id].score >= 60
+                                ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400'
+                                : scores[cliente.id].score >= 40
+                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                                : 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400'
+                            }`}>
+                              {scores[cliente.id].sin_historial ? '—' : scores[cliente.id].score}
+                            </span>
+                          ) : (
+                            <span className="w-8 h-6 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-lg inline-block" />
+                          )}
+                          <button
+                            onClick={() => router.push(`/dashboard/clientes/${cliente.id}/editar`)}
+                            className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl hover:bg-emerald-600 hover:text-white active:scale-95 transition-all"
+                          >
+                            <FiEdit size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-6 py-16 text-center">
+                    <div className="bg-indigo-50 dark:bg-indigo-900/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <FiUsers className="text-3xl text-indigo-400" />
+                    </div>
+                    <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">
+                      {searchTerm ? "Sin coincidencias" : "Sin clientes registrados"}
+                    </h3>
+                    <p className="text-xs font-bold text-slate-400 mb-5 max-w-xs mx-auto">
+                      {searchTerm ? "Ningún cliente coincide con tu búsqueda." : "Agrega tu primer cliente para comenzar."}
+                    </p>
+                    {!searchTerm && (
+                      <button
+                        onClick={() => router.push("/dashboard/clientes/crear")}
+                        className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                      >
+                        Crear Primer Cliente
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

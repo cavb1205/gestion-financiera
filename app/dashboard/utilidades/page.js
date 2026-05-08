@@ -153,7 +153,7 @@ export default function UtilidadesPage() {
                <FiTrendingUp className="text-white text-3xl" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Utilidades</h1>
+              <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Utilidades</h1>
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
                 Gestión de Reparto • <span className="text-emerald-500">{selectedStore?.tienda?.nombre}</span>
               </p>
@@ -179,7 +179,7 @@ export default function UtilidadesPage() {
 
         {/* Metrics Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl">
@@ -200,7 +200,7 @@ export default function UtilidadesPage() {
             </div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 rounded-2xl">
@@ -221,7 +221,7 @@ export default function UtilidadesPage() {
             </div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative col-span-1 md:col-span-2 overflow-hidden flex items-center justify-between group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative col-span-1 md:col-span-2 overflow-hidden flex items-center justify-between group">
              <div className="relative z-10">
                 <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-2 tracking-widest leading-none">Utilidad Promedio por Giro</p>
                 <h3 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">
@@ -235,7 +235,7 @@ export default function UtilidadesPage() {
         </div>
 
         {/* Search and Filters */}
-        <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 mb-8 p-8">
+        <div className="glass rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 mb-6 md:mb-8 p-5 md:p-8">
            <div className="flex flex-col lg:flex-row items-center gap-6">
               <div className="relative flex-1 w-full group">
                 <FiSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={20} />
@@ -276,7 +276,8 @@ export default function UtilidadesPage() {
 
         {/* Table Section */}
         <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl">
-          <div className="overflow-x-auto">
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-800/20">
@@ -356,6 +357,65 @@ export default function UtilidadesPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {currentUtilidades.length === 0 ? (
+              <div className="px-6 py-16 text-center">
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <FiTrendingUp className="text-3xl text-emerald-400" />
+                </div>
+                <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">Sin distribuciones registradas</h3>
+                <p className="text-xs font-bold text-slate-400 mb-5 max-w-xs mx-auto">Registra tu primera distribución de utilidades.</p>
+                <button
+                  onClick={() => router.push("/dashboard/utilidades/crear")}
+                  className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Registrar Primera Utilidad
+                </button>
+              </div>
+            ) : (
+              currentUtilidades.map((utilidad) => (
+                <div key={utilidad.id} className="px-5 py-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 font-black text-xs uppercase shrink-0">
+                        {utilidad.trabajador.trabajador.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">{utilidad.trabajador.trabajador}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <FiCalendar size={10} className="text-slate-300" />
+                          <span className="text-[10px] font-bold text-slate-400">{new Date(utilidad.fecha).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">{formatMoney(utilidad.valor)}</p>
+                  </div>
+                  {utilidad.comentario && (
+                    <p className="text-xs font-bold text-slate-400 mb-3 line-clamp-2">{utilidad.comentario}</p>
+                  )}
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        localStorage.setItem("utilidadEditar", JSON.stringify(utilidad));
+                        router.push(`/dashboard/utilidades/${utilidad.id}/editar`);
+                      }}
+                      className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl hover:text-indigo-600 active:scale-95 transition-all"
+                    >
+                      <FiEdit size={15} />
+                    </button>
+                    <button
+                      onClick={() => setUtilidadAEliminar(utilidad)}
+                      className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl hover:text-rose-600 active:scale-95 transition-all"
+                    >
+                      <FiTrash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Pagination */}

@@ -164,7 +164,7 @@ export default function VentasPage() {
                <FiShoppingBag className="text-white text-3xl" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Cartera de Créditos</h1>
+              <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Cartera de Créditos</h1>
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">
                 Gestión Comercial • <span className="text-indigo-500">{selectedStore?.tienda?.nombre}</span>
               </p>
@@ -195,7 +195,7 @@ export default function VentasPage() {
           </div>
         ) : null}
         <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 ${isLoading ? "hidden" : ""}`}>
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl">
@@ -221,7 +221,7 @@ export default function VentasPage() {
             </div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 rounded-2xl">
@@ -245,7 +245,7 @@ export default function VentasPage() {
             </div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl">
@@ -269,7 +269,7 @@ export default function VentasPage() {
             </div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-2xl">
@@ -295,7 +295,7 @@ export default function VentasPage() {
         </div>
 
         {/* Filters and Search */}
-        <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 mb-8 p-8">
+        <div className="glass rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 mb-6 md:mb-8 p-5 md:p-8">
            <div className="flex flex-col lg:flex-row items-center gap-6">
               <div className="relative flex-1 w-full group">
                 <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
@@ -553,7 +553,7 @@ export default function VentasPage() {
 
         {/* Financial Context Sidebar/Extra (Optional stats) */}
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
-           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+           <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800">
               <div className="flex items-center gap-4 mb-8">
                  <div className="p-3 bg-indigo-500 dark:bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-none">
                     <FiPieChart size={24} />
@@ -592,7 +592,7 @@ export default function VentasPage() {
               </div>
            </div>
 
-           <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800">
+           <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800">
               <div className="flex items-center gap-4 mb-8">
                  <div className="p-3 bg-emerald-500 dark:bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-200 dark:shadow-none">
                     <FiArrowUpRight size={24} />

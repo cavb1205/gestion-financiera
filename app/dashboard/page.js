@@ -177,7 +177,7 @@ export default function DashboardPage() {
             </h1>
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Membresía Caducada</p>
           </div>
-          <div className="glass p-10 rounded-[3rem] border-rose-500/10 shadow-2xl text-center">
+          <div className="glass p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border-rose-500/10 shadow-2xl text-center">
             <p className="text-sm font-bold text-slate-300 mb-8 leading-relaxed">
               La cuenta de <span className="text-rose-400">&quot;{t.nombre}&quot;</span> está en suspensión.
             </p>

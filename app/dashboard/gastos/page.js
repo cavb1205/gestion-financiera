@@ -163,7 +163,7 @@ export default function GastosPage() {
                <FiArrowDownRight className="text-white text-3xl" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Control de Gastos</h1>
+              <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Control de Gastos</h1>
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">
                 Flujo de Egreso • <span className="text-rose-500">{selectedStore?.tienda?.nombre}</span>
               </p>
@@ -189,7 +189,7 @@ export default function GastosPage() {
 
         {/* Metrics Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl">
@@ -210,7 +210,7 @@ export default function GastosPage() {
             </div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 rounded-2xl">
@@ -231,7 +231,7 @@ export default function GastosPage() {
             </div>
           </div>
 
-          <div className="glass p-8 rounded-[2.5rem] border-white/60 dark:border-slate-800 relative col-span-1 md:col-span-2 overflow-hidden flex items-center justify-between group">
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative col-span-1 md:col-span-2 overflow-hidden flex items-center justify-between group">
              <div className="relative z-10">
                 <p className="text-[10px] font-black text-rose-400 uppercase tracking-[0.2em] mb-2 tracking-widest">Gasto Promedio por Operación</p>
                 <h3 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">
@@ -245,7 +245,7 @@ export default function GastosPage() {
         </div>
 
         {/* Filters and Search */}
-        <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 mb-8 p-8">
+        <div className="glass rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 mb-6 md:mb-8 p-5 md:p-8">
            <div className="flex flex-col lg:flex-row items-center gap-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 w-full">
                 <div className="space-y-2">
