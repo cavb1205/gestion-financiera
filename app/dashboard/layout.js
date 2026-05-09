@@ -222,6 +222,7 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     setIsMobileMenuOpen(false);
     if (isAuthenticated) refreshSelectedStore?.();
+    sessionStorage.setItem('cartera_last_path', pathname);
   }, [pathname, isAuthenticated, refreshSelectedStore]);
 
   useEffect(() => {
