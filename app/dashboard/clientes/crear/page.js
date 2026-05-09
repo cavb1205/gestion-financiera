@@ -35,12 +35,40 @@ export default function CrearCliente() {
   const [submitError, setSubmitError] = useState("");
   const [success, setSuccess] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [clienteEncontrado, setClienteEncontrado] = useState(null);
 
   useEffect(() => {
     if (!loading && (!isAuthenticated || !selectedStore)) {
       router.push("/select-store");
     }
   }, [loading, isAuthenticated, selectedStore, router]);
+
+  const handleDocBlur = async () => {
+    const doc = formData.identificacion.trim();
+    if (doc.length < 4) return;
+    try {
+      const res = await apiFetch(
+        `/clientes/buscar-doc/${doc}/t/${selectedStore.tienda.id}/`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.found) setClienteEncontrado(data);
+      }
+    } catch (_) {}
+  };
+
+  const aplicarPreRelleno = () => {
+    setFormData((prev) => ({
+      ...prev,
+      nombres: clienteEncontrado.nombres,
+      apellidos: clienteEncontrado.apellidos,
+      telefono_principal: clienteEncontrado.telefono_principal,
+      direccion: clienteEncontrado.direccion,
+      nombre_local: clienteEncontrado.nombre_local || "",
+    }));
+    setClienteEncontrado(null);
+    setHasChanges(true);
+  };
 
   const handleCancel = () => {
     if (hasChanges && !window.confirm("¿Descartar los cambios?")) return;
@@ -54,6 +82,8 @@ export default function CrearCliente() {
       [name]: value,
     }));
     setHasChanges(true);
+
+    if (name === "identificacion") setClienteEncontrado(null);
 
     if (errors[name]) {
       setErrors((prev) => {
@@ -127,8 +157,8 @@ export default function CrearCliente() {
 
           if (field === 'identificacion' &&
             (errorMessage.includes('unique') || errorMessage.includes('exists') || errorMessage.includes('ya existe'))) {
-            errorMessage = "Ya existe un cliente con esta identificación.";
-            globalError = "No se pudo crear el cliente: La identificación ya está registrada.";
+            errorMessage = "Este cliente ya está registrado en esta ruta.";
+            globalError = "No se pudo crear el cliente: la identificación ya existe en esta ruta.";
           }
 
           backendErrors[field] = errorMessage;
@@ -192,6 +222,38 @@ export default function CrearCliente() {
                 </div>
               )}
 
+              {clienteEncontrado && (
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <FiUser className="text-amber-500 shrink-0 mt-0.5" size={16} />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+                        Encontrado en tu ruta "{clienteEncontrado.ruta_origen}"
+                      </p>
+                      <p className="text-[10px] text-amber-600 dark:text-amber-500 font-bold mt-0.5">
+                        {clienteEncontrado.nombres} {clienteEncontrado.apellidos}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={aplicarPreRelleno}
+                      className="px-3 py-1.5 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wide hover:bg-amber-600 transition-colors"
+                    >
+                      Pre-rellenar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setClienteEncontrado(null)}
+                      className="p-1.5 text-amber-400 hover:text-amber-600 transition-colors"
+                    >
+                      <FiX size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                 {/* Identidad */}
                 <div className="space-y-5">
@@ -208,6 +270,7 @@ export default function CrearCliente() {
                       name="identificacion"
                       value={formData.identificacion}
                       onChange={handleChange}
+                      onBlur={handleDocBlur}
                       placeholder="Número de identificación"
                       className={`w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border ${errors.identificacion ? 'border-rose-400' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none`}
                     />
