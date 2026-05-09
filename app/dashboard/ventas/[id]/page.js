@@ -101,6 +101,11 @@ export default function VentaDetailPage() {
       fecha_recaudo: selectedDate,
       valor_recaudo: valorAbono,
       saldo_actual: venta.saldo_actual,
+      valor_cuota: venta.valor_cuota,
+      cuotas: venta.cuotas,
+      pagos_realizados: venta.pagos_realizados,
+      total_abonado: venta.total_abonado,
+      dias_atrasados: venta.dias_atrasados,
       venta: venta.id,
       tienda: selectedStore.tienda.id,
     };
