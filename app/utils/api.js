@@ -105,6 +105,9 @@ export async function apiFetch(path, options = {}) {
     if (err.name === 'AbortError') {
       throw new Error('El servidor no respondió. Verifica tu conexión e intenta de nuevo.');
     }
+    if (!navigator.onLine || err instanceof TypeError) {
+      throw new Error('Sin conexión a internet. Verifica tu red e intenta de nuevo.');
+    }
     throw err;
   } finally {
     clearTimeout(timeoutId);

@@ -34,6 +34,8 @@ import {
   FiSettings,
   FiMapPin,
   FiSearch,
+  FiWifiOff,
+  FiWifi,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../utils/api";
@@ -96,6 +98,8 @@ export default function DashboardLayout({ children }) {
     return true;
   });
 
+  const [isOnline, setIsOnline] = useState(true);
+  const [justReconnected, setJustReconnected] = useState(false);
   const [storeInfo, setStoreInfo] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -104,6 +108,31 @@ export default function DashboardLayout({ children }) {
   const [showWizard, setShowWizard] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [badgeVencer, setBadgeVencer] = useState(0);
+
+  // Offline detection
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    const handleOnline = () => {
+      setIsOnline(true);
+      setJustReconnected(true);
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setJustReconnected(false);
+    };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!justReconnected) return;
+    const t = setTimeout(() => setJustReconnected(false), 5000);
+    return () => clearTimeout(t);
+  }, [justReconnected]);
 
   // Badge: créditos a ≤3 cuotas de vencer (por visitas, no por fecha)
   useEffect(() => {
@@ -717,6 +746,39 @@ export default function DashboardLayout({ children }) {
         </main>
 
       </div>
+
+      {/* Offline / Reconectado banner */}
+      {(!isOnline || justReconnected) && (
+        <div
+          className={`fixed bottom-0 left-0 right-0 z-[500] flex items-center justify-between gap-3 px-5 py-3.5 transition-all ${
+            !isOnline
+              ? 'bg-rose-600'
+              : 'bg-emerald-600'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            {!isOnline
+              ? <FiWifiOff size={15} className="text-white shrink-0" />
+              : <FiWifi size={15} className="text-white shrink-0" />
+            }
+            <span className="text-white text-[11px] font-black uppercase tracking-widest">
+              {!isOnline
+                ? 'Sin conexión — los datos no se actualizarán'
+                : 'Conexión restaurada'
+              }
+            </span>
+          </div>
+          {justReconnected && (
+            <button
+              onClick={() => window.location.reload()}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-xl text-white text-[10px] font-black uppercase tracking-widest transition-colors shrink-0"
+            >
+              <FiRefreshCw size={11} />
+              Actualizar
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Búsqueda global */}
       <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
