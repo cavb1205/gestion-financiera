@@ -14,6 +14,7 @@ import {
   FiActivity,
   FiPlus,
   FiX,
+  FiChevronRight,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -60,7 +61,6 @@ export default function SelectStorePage() {
   };
 
   useEffect(() => {
-    // Leer localStorage directamente — evita race conditions con el estado de React
     const storedToken = localStorage.getItem('authToken');
     const tokenTimestamp = localStorage.getItem('tokenTimestamp');
 
@@ -169,118 +169,146 @@ export default function SelectStorePage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-start p-6 relative overflow-hidden font-sans">
-      {/* Dynamic Background Elements */}
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-start px-4 py-6 md:p-6 relative overflow-hidden font-sans">
+      {/* Background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-15%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/20 blur-[130px] rounded-full animate-pulse opacity-60"></div>
-        <div className="absolute bottom-[-15%] right-[-10%] w-[50%] h-[50%] bg-emerald-600/15 blur-[130px] rounded-full animate-pulse opacity-60" style={{ animationDelay: '3s' }}></div>
+        <div className="absolute top-[-15%] left-[-10%] w-[60%] h-[60%] bg-indigo-600/20 blur-[130px] rounded-full animate-pulse opacity-60" />
+        <div className="absolute bottom-[-15%] right-[-10%] w-[60%] h-[60%] bg-emerald-600/15 blur-[130px] rounded-full animate-pulse opacity-60" style={{ animationDelay: '3s' }} />
       </div>
 
-      <div className="max-w-6xl w-full relative z-10 pt-6 md:pt-12 pb-16 md:pb-24">
-        {/* Header Section */}
-        <div className="flex items-center justify-between mb-8 md:mb-16 gap-4">
-          <div>
-             <div className="flex items-center gap-3 md:gap-4 mb-2">
-                <div className="p-2.5 md:p-3 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-xl md:rounded-2xl shrink-0">
-                   <FiShoppingBag className="text-emerald-500 text-lg md:text-2xl" />
-                </div>
-                <h1 className="text-2xl md:text-4xl font-black text-white tracking-tighter uppercase">
-                  Seleccionar<span className="text-emerald-500 ml-2">Sucursal</span>
-                </h1>
-             </div>
-             {user && (
-               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] pl-1">
-                 {user.username || user.email || "Administrador"}
-               </p>
-             )}
+      <div className="max-w-6xl w-full relative z-10 pt-2 md:pt-12 pb-16 md:pb-24">
+
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between mb-6 md:mb-16 gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5 md:gap-4 mb-1.5">
+              <div className="p-2 md:p-3 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-xl md:rounded-2xl shrink-0">
+                <FiShoppingBag className="text-emerald-500 text-base md:text-2xl" />
+              </div>
+              <h1 className="text-xl md:text-4xl font-black text-white tracking-tighter uppercase leading-none">
+                Mis <span className="text-emerald-500">Rutas</span>
+              </h1>
+            </div>
+            {user && (
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] pl-1 truncate">
+                {user.username || user.email || "Administrador"}
+              </p>
+            )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 md:px-6 py-3 md:py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl md:rounded-2xl border border-indigo-500 transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-900/30 active:scale-95"
+              className="flex items-center gap-2 px-3 md:px-6 py-2.5 md:py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl md:rounded-2xl border border-indigo-500 transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-900/30 active:scale-95"
             >
               <FiPlus size={14} />
-              <span className="hidden md:inline">Nueva Ruta</span>
+              <span>Nueva Ruta</span>
             </button>
             <button
               onClick={logout}
-              className="flex items-center gap-2 md:gap-3 px-4 md:px-6 py-3 md:py-4 bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 rounded-xl md:rounded-2xl border border-white/5 hover:border-rose-500/30 transition-all font-black text-[10px] uppercase tracking-widest shadow-xl group shrink-0"
+              className="flex items-center gap-2 px-3 md:px-6 py-2.5 md:py-4 bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 rounded-xl md:rounded-2xl border border-white/5 hover:border-rose-500/30 transition-all font-black text-[10px] uppercase tracking-widest shadow-xl group shrink-0"
             >
               <FiLogOut size={14} className="group-hover:-translate-x-1 transition-transform" />
-              <span className="hidden md:inline">Cerrar Sesión</span>
+              <span className="hidden sm:inline">Salir</span>
             </button>
           </div>
         </div>
 
+        {/* ── Error State ── */}
         {error ? (
-          <div className="glass p-12 rounded-[3rem] border-rose-500/20 text-center max-w-lg mx-auto backdrop-blur-2xl">
-            <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-               <FiActivity className="text-rose-500 text-3xl" />
+          <div className="glass p-8 md:p-12 rounded-[2rem] md:rounded-[3rem] border-rose-500/20 text-center max-w-lg mx-auto backdrop-blur-2xl">
+            <div className="w-16 h-16 md:w-20 md:h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-5">
+              <FiActivity className="text-rose-500 text-2xl md:text-3xl" />
             </div>
-            <h2 className="text-xl font-black text-white uppercase tracking-tight mb-4">Error de Sincronización</h2>
-            <p className="text-slate-400 text-sm font-medium mb-8 uppercase tracking-tighter">{error}</p>
+            <h2 className="text-lg md:text-xl font-black text-white uppercase tracking-tight mb-3">Error de Sincronización</h2>
+            <p className="text-slate-400 text-xs font-medium mb-6 uppercase tracking-tighter">{error}</p>
             <button
               onClick={() => window.location.reload()}
               className="px-8 py-4 bg-white/5 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest border border-white/10 hover:bg-emerald-600 transition-all"
             >
-              Reintentar Conexión
+              Reintentar
             </button>
           </div>
+
+        ) : stores.length === 0 ? (
+          /* ── Empty State ── */
+          <div className="glass p-8 md:p-20 rounded-[2rem] md:rounded-[3rem] border-white/10 text-center max-w-2xl mx-auto backdrop-blur-2xl">
+            <div className="w-16 h-16 md:w-24 md:h-24 bg-white/5 rounded-[1.5rem] md:rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 text-slate-300">
+              <FiShoppingCart size={28} className="md:hidden" />
+              <FiShoppingCart size={40} className="hidden md:block" />
+            </div>
+            <h2 className="text-xl md:text-3xl font-black text-white tracking-tight uppercase mb-3 italic leading-none">Sin Rutas Asignadas</h2>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest leading-loose mb-8">
+              Crea tu primera ruta para comenzar.
+            </p>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-8 py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all flex items-center gap-3 mx-auto active:scale-95"
+            >
+              <FiPlus size={16} />
+              Crear Primera Ruta
+            </button>
+          </div>
+
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          /* ── Stores Grid ── */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
             {stores.map((store) => (
               <div
                 key={store.id}
                 onClick={() => handleSelectStore(store)}
-                className="glass group cursor-pointer border-white/5 hover:border-emerald-500/50 transition-all duration-300 rounded-[2.5rem] overflow-hidden hover:scale-[1.02] active:scale-[0.98] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative"
+                className="glass group cursor-pointer border-white/5 hover:border-emerald-500/50 active:border-emerald-500/50 transition-all duration-300 rounded-[1.75rem] md:rounded-[2.5rem] overflow-hidden hover:scale-[1.02] active:scale-[0.98] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative"
               >
-                {/* Botón quitar (siempre visible en móvil, hover en desktop) */}
+                {/* Quitar button */}
                 <button
                   onClick={(e) => { e.stopPropagation(); setRemoveTarget(store); }}
-                  className="absolute top-4 left-4 z-10 p-2 rounded-xl bg-white/5 text-slate-500 md:opacity-0 md:group-hover:opacity-100 hover:bg-rose-500/20 hover:text-rose-400 active:bg-rose-500/20 active:text-rose-400 transition-all"
+                  className="absolute top-3 left-3 md:top-4 md:left-4 z-10 p-2 rounded-xl bg-white/5 text-slate-500 md:opacity-0 md:group-hover:opacity-100 hover:bg-rose-500/20 hover:text-rose-400 active:bg-rose-500/20 active:text-rose-400 transition-all"
                   title="Quitar de mi lista"
                 >
-                  <FiX size={14} />
+                  <FiX size={13} />
                 </button>
-                {/* Visual indicator of selection on hover */}
-                <div className="absolute top-0 right-0 p-8 transform translate-x-10 -translate-y-10 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-500 opacity-0 group-hover:opacity-100">
-                   <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-2xl">
-                      <FiCheck size={24} />
-                   </div>
+
+                {/* Check indicator on hover */}
+                <div className="absolute top-0 right-0 p-6 transform translate-x-10 -translate-y-10 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-500 opacity-0 group-hover:opacity-100">
+                  <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-2xl">
+                    <FiCheck size={20} />
+                  </div>
                 </div>
 
-                <div className="p-10">
-                  <div className="mb-8">
-                    <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-2 px-1">Sucursal Activa</p>
-                    <h3 className="text-3xl font-black text-white tracking-tighter uppercase truncate group-hover:text-emerald-400 transition-colors">
+                {/* Card body */}
+                <div className="p-5 md:p-10">
+                  {/* Store name */}
+                  <div className="mb-4 md:mb-8 pl-7 md:pl-0">
+                    <p className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-1">Sucursal Activa</p>
+                    <h3 className="text-xl md:text-3xl font-black text-white tracking-tighter uppercase truncate group-hover:text-emerald-400 transition-colors">
                       {store.tienda.nombre}
                     </h3>
                   </div>
 
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5">
+                  {/* Stats */}
+                  <div className="space-y-2 md:space-y-6">
+                    <div className="flex items-center justify-between p-3 md:p-5 bg-white/5 rounded-2xl md:rounded-3xl border border-white/5">
                       <div>
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Caja Actual</p>
-                        <p className={`text-lg font-black tracking-tight ${store.tienda.caja >= 0 ? 'text-white' : 'text-rose-500'}`}>
+                        <p className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5 md:mb-1">Caja Actual</p>
+                        <p className={`text-base md:text-lg font-black tracking-tight ${store.tienda.caja >= 0 ? 'text-white' : 'text-rose-500'}`}>
                           {formatMoney(store.tienda.caja)}
                         </p>
                       </div>
-                      <div className="p-3 bg-white/5 rounded-xl text-slate-400 group-hover:text-emerald-500 transition-colors">
-                         <FiDollarSign size={18} />
+                      <div className="p-2 md:p-3 bg-white/5 rounded-xl text-slate-400 group-hover:text-emerald-500 transition-colors">
+                        <FiDollarSign size={16} />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-5 bg-white/5 rounded-3xl border border-white/5">
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Cuentas x Cobrar</p>
-                        <p className="text-sm font-black text-slate-300">
+                    <div className="grid grid-cols-2 gap-2 md:gap-4">
+                      <div className="p-3 md:p-5 bg-white/5 rounded-2xl md:rounded-3xl border border-white/5">
+                        <p className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5 md:mb-1">x Cobrar</p>
+                        <p className="text-sm font-black text-slate-300 truncate">
                           {formatMoney(store.tienda.dinero_x_cobrar)}
                         </p>
                       </div>
-                      <div className="p-5 bg-emerald-500/10 rounded-3xl border border-emerald-500/10 flex flex-col justify-center">
-                        <p className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest mb-1">Total Valor</p>
-                        <p className="text-sm font-black text-emerald-500 tracking-tighter">
+                      <div className="p-3 md:p-5 bg-emerald-500/10 rounded-2xl md:rounded-3xl border border-emerald-500/10">
+                        <p className="text-[8px] md:text-[9px] font-black text-emerald-500/80 uppercase tracking-widest mb-0.5 md:mb-1">Total</p>
+                        <p className="text-sm font-black text-emerald-500 truncate">
                           {formatMoney(store.tienda.caja + store.tienda.dinero_x_cobrar)}
                         </p>
                       </div>
@@ -288,53 +316,36 @@ export default function SelectStorePage() {
                   </div>
                 </div>
 
-                <div className="px-10 py-6 bg-white/5 border-t border-white/5 flex items-center justify-center gap-3 group-hover:bg-emerald-600 transition-all duration-500">
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">Ingresar a Gestión</span>
-                   <FiActivity className="text-slate-500 group-hover:text-white animate-pulse" />
+                {/* CTA footer */}
+                <div className="px-5 md:px-10 py-4 md:py-6 bg-white/5 border-t border-white/5 flex items-center justify-between gap-3 group-hover:bg-emerald-600 active:bg-emerald-600 transition-all duration-300">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">
+                    Ingresar a Gestión
+                  </span>
+                  <FiChevronRight className="text-slate-500 group-hover:text-white transition-colors" size={16} />
                 </div>
               </div>
             ))}
           </div>
         )}
-
-        {/* Empty State */}
-        {stores.length === 0 && !loading && !error && (
-          <div className="glass p-20 rounded-[3rem] border-white/10 text-center max-w-2xl mx-auto backdrop-blur-2xl">
-            <div className="w-24 h-24 bg-white/5 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 text-slate-300">
-               <FiShoppingCart size={40} />
-            </div>
-            <h2 className="text-3xl font-black text-white tracking-tight uppercase mb-6 italic leading-none">Sin Sucursales Asignadas</h2>
-            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest leading-loose mb-12">
-              Aún no tienes rutas creadas. Crea tu primera ruta para comenzar.
-            </p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-12 py-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all flex items-center gap-3 mx-auto active:scale-95"
-            >
-              <FiPlus size={16} />
-              Crear Primera Ruta
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Subtle Bottom Decoration */}
-      <div className="absolute bottom-10 left-10 opacity-5 pointer-events-none rotate-12">
+      {/* Bottom decoration */}
+      <div className="absolute bottom-10 left-10 opacity-5 pointer-events-none rotate-12 hidden md:block">
         <FiTrendingUp size={300} className="text-white" />
       </div>
 
-      {/* ── Modal Quitar tienda ──────────────────────────────────── */}
+      {/* ── Modal Quitar tienda ── */}
       {removeTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setRemoveTarget(null)} />
-          <div className="relative bg-slate-900 border border-white/10 rounded-[2rem] p-8 w-full max-w-sm shadow-2xl">
-            <h2 className="text-base font-black text-white uppercase tracking-tight mb-2">
+          <div className="relative bg-slate-900 border border-white/10 rounded-[2rem] p-6 md:p-8 w-full max-w-sm shadow-2xl">
+            <h2 className="text-base font-black text-white uppercase tracking-tight mb-1.5">
               Quitar de tu lista
             </h2>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">
               {removeTarget.tienda.nombre}
             </p>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-7">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6 leading-relaxed">
               La tienda y sus datos no se eliminan — solo deja de aparecer en tu panel.
             </p>
             <div className="flex gap-3">
@@ -358,39 +369,39 @@ export default function SelectStorePage() {
         </div>
       )}
 
-      {/* ── Modal Nueva Ruta ──────────────────────────────────────── */}
+      {/* ── Modal Nueva Ruta ── */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
             onClick={() => setShowCreateModal(false)}
           />
-          <div className="relative bg-slate-900 border border-white/10 rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
+          <div className="relative bg-slate-900 border border-white/10 rounded-[2rem] p-6 md:p-8 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
             {/* Header */}
-            <div className="flex items-center justify-between mb-7">
+            <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="bg-indigo-600 p-2.5 rounded-xl">
-                  <FiPlus className="text-white" size={18} />
+                <div className="bg-indigo-600 p-2.5 rounded-xl shrink-0">
+                  <FiPlus className="text-white" size={16} />
                 </div>
                 <div>
-                  <h2 className="text-base font-black text-white uppercase tracking-tight">
+                  <h2 className="text-sm font-black text-white uppercase tracking-tight">
                     Nueva Ruta
                   </h2>
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Membresía de prueba · 7 días
+                    Prueba · 7 días gratis
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="p-2 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all"
+                className="p-2 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all shrink-0"
               >
                 <FiX size={18} />
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleCrear} className="space-y-5">
+            <form onSubmit={handleCrear} className="space-y-4">
               <div>
                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
                   Nombre de la ruta
@@ -402,7 +413,7 @@ export default function SelectStorePage() {
                   placeholder="Ej: Ruta Norte, Tienda Centro..."
                   autoFocus
                   required
-                  className="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-[13px] font-medium text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+                  className="w-full px-4 py-3.5 bg-slate-800/50 border border-slate-700 rounded-2xl text-[13px] font-medium text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
                 />
               </div>
 
@@ -419,14 +430,14 @@ export default function SelectStorePage() {
                         setNewPrefijo(p.prefijo);
                         if (p.cupo) setNewCupo(String(p.cupo));
                       }}
-                      className={`py-2.5 px-3 rounded-xl border text-[11px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5 ${
+                      className={`py-2.5 px-2 rounded-xl border text-[10px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5 ${
                         newPrefijo === p.prefijo
                           ? "bg-indigo-600 border-indigo-500 text-white"
                           : "bg-slate-800/50 border-slate-700 text-slate-400 hover:border-indigo-500/50"
                       }`}
                     >
                       <span>{p.emoji}</span>
-                      <span>{p.name}</span>
+                      <span className="truncate">{p.name}</span>
                     </button>
                   ))}
                 </div>
@@ -442,14 +453,16 @@ export default function SelectStorePage() {
                   onChange={(e) => setNewCupo(e.target.value)}
                   placeholder="Ej: 100000"
                   min="0"
-                  className="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-[13px] font-medium text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+                  inputMode="numeric"
+                  onWheel={(e) => e.target.blur()}
+                  className="w-full px-4 py-3.5 bg-slate-800/50 border border-slate-700 rounded-2xl text-[13px] font-medium text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
                 />
                 <p className="text-[10px] text-slate-500 mt-1.5 pl-1">
-                  Valor de crédito sugerido al registrar un cliente nuevo.
+                  Crédito sugerido al registrar un cliente nuevo.
                 </p>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
