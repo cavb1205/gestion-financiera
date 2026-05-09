@@ -228,7 +228,7 @@ export default function CrearCliente() {
                     <FiUser className="text-amber-500 shrink-0 mt-0.5" size={16} />
                     <div className="min-w-0">
                       <p className="text-[11px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wide">
-                        Encontrado en tu ruta "{clienteEncontrado.ruta_origen}"
+                        Encontrado en tu ruta &ldquo;{clienteEncontrado.ruta_origen}&rdquo;
                       </p>
                       <p className="text-[10px] text-amber-600 dark:text-amber-500 font-bold mt-0.5">
                         {clienteEncontrado.nombres} {clienteEncontrado.apellidos}
