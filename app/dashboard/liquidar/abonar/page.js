@@ -213,45 +213,47 @@ export default function PagarAbonoPage() {
                       <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-md">Obligatorio</span>
                     </div>
 
-                    {/* Stepper + input */}
-                    <div className="flex items-stretch gap-2">
-                      {valorCuota > 0 && (
+                    {/* Input full-width */}
+                    <div className="relative group">
+                      <FiDollarSign className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-500 group-focus-within:scale-110 transition-transform pointer-events-none" size={22} />
+                      <input
+                        id="valor-abono"
+                        type="number"
+                        inputMode="decimal"
+                        value={valorAbono}
+                        onChange={(e) => setValorAbono(e.target.value)}
+                        onWheel={(e) => e.target.blur()}
+                        max={maximoAbonable}
+                        className="w-full pl-14 pr-4 py-6 md:py-8 bg-slate-50 dark:bg-slate-800/10 border border-slate-100 dark:border-slate-700 rounded-2xl text-3xl sm:text-4xl md:text-5xl font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all outline-none text-center"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    {/* Stepper row */}
+                    {valorCuota > 0 && (
+                      <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => ajustarPorCuota(-1)}
                           disabled={!valorAbono || parseFloat(valorAbono) <= valorCuota}
                           aria-label="Restar una cuota"
-                          className="shrink-0 w-12 md:w-14 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-500 hover:text-rose-500 hover:border-rose-200 dark:hover:border-rose-800 transition-all flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+                          className="flex-1 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-500 hover:text-rose-500 hover:border-rose-200 dark:hover:border-rose-800 transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
                         >
-                          <FiMinus size={18} />
+                          <FiMinus size={16} />
+                          <span className="text-[10px] font-black uppercase tracking-widest">− Cuota</span>
                         </button>
-                      )}
-                      <div className="relative group flex-1">
-                        <FiDollarSign className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-emerald-500 group-focus-within:scale-110 transition-transform" size={24} />
-                        <input
-                          id="valor-abono"
-                          type="number"
-                          inputMode="decimal"
-                          value={valorAbono}
-                          onChange={(e) => setValorAbono(e.target.value)}
-                          onWheel={(e) => e.target.blur()}
-                          max={maximoAbonable}
-                          className="w-full pl-12 md:pl-16 pr-4 py-6 md:py-8 bg-slate-50 dark:bg-slate-800/10 border border-slate-100 dark:border-slate-700 rounded-2xl text-3xl md:text-5xl font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all outline-none text-center md:text-left"
-                          placeholder="0"
-                        />
-                      </div>
-                      {valorCuota > 0 && (
                         <button
                           type="button"
                           onClick={() => ajustarPorCuota(1)}
                           disabled={parseFloat(valorAbono) >= maximoAbonable}
                           aria-label="Sumar una cuota"
-                          className="shrink-0 w-12 md:w-14 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-500 hover:text-emerald-600 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+                          className="flex-1 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-500 hover:text-emerald-600 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
                         >
-                          <FiPlus size={18} />
+                          <FiPlus size={16} />
+                          <span className="text-[10px] font-black uppercase tracking-widest">+ Cuota</span>
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     {/* Helper line */}
                     {valorCuota > 0 && (
