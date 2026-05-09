@@ -20,6 +20,11 @@ import {
   FiClock,
   FiCheck,
   FiX,
+  FiCopy,
+  FiCalendar,
+  FiTrash2,
+  FiUsers,
+  FiShoppingCart,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -61,6 +66,8 @@ export default function AdminRutasPage() {
   const [solicitudesRevision, setSolicitudesRevision] = useState([]);
   const [revisionOpen, setRevisionOpen] = useState(true);
   const [reviewing, setReviewing] = useState(null); // "aprobar-<codigo>" | "rechazar-<codigo>"
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchTiendas = async () => {
     setLoading(true);
@@ -115,6 +122,16 @@ export default function AdminRutasPage() {
     }
   };
 
+  // Nombres que aparecen en ≥2 rutas distintas (distintos admins o mismos)
+  const nombresDuplicados = useMemo(() => {
+    const counts = {};
+    tiendas.forEach((t) => {
+      const key = t.tienda?.nombre?.toLowerCase().trim();
+      if (key) counts[key] = (counts[key] || 0) + 1;
+    });
+    return new Set(Object.entries(counts).filter(([, c]) => c > 1).map(([k]) => k));
+  }, [tiendas]);
+
   const filteredTiendas = useMemo(() => {
     let result = [...tiendas];
     if (searchTerm) {
@@ -125,11 +142,15 @@ export default function AdminRutasPage() {
           t.tienda?.administrador?.toLowerCase().includes(term)
       );
     }
-    if (filterEstado !== "Todos") {
+    if (filterEstado === "Duplicadas") {
+      result = result.filter((t) =>
+        nombresDuplicados.has(t.tienda?.nombre?.toLowerCase().trim())
+      );
+    } else if (filterEstado !== "Todos") {
       result = result.filter((t) => t.estado === filterEstado);
     }
     return result;
-  }, [tiendas, searchTerm, filterEstado]);
+  }, [tiendas, searchTerm, filterEstado, nombresDuplicados]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -145,8 +166,11 @@ export default function AdminRutasPage() {
     const activas = tiendas.filter((t) => t.estado === "Activa").length;
     const pendientes = tiendas.filter((t) => t.estado === "Pendiente Pago").length;
     const vencidas = tiendas.filter((t) => t.estado === "Vencida").length;
-    return { total: tiendas.length, activas, pendientes, vencidas };
-  }, [tiendas]);
+    const duplicadas = tiendas.filter((t) =>
+      nombresDuplicados.has(t.tienda?.nombre?.toLowerCase().trim())
+    ).length;
+    return { total: tiendas.length, activas, pendientes, vencidas, duplicadas };
+  }, [tiendas, nombresDuplicados]);
 
   const getMembresiaInfo = (fechaVencimiento) => {
     if (!fechaVencimiento) return { days: 0, graceDays: 0, status: "expired", label: "—" };
@@ -175,6 +199,23 @@ export default function AdminRutasPage() {
       month: "short",
       year: "numeric",
     });
+  };
+
+  const handleEliminar = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await apiFetch(`/tiendas/${deleteTarget.tienda.id}/admin/delete/`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo eliminar la ruta");
+      toast.success(data.message || "Ruta eliminada");
+      setDeleteTarget(null);
+      fetchTiendas();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleActivar = async (tiendaMembresiaId, tipo) => {
@@ -335,39 +376,38 @@ export default function AdminRutasPage() {
         )}
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-10">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6 mb-10">
           <div className="glass p-6 md:p-8 rounded-[2rem] border-white/60 dark:border-slate-800 relative overflow-hidden">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
-              Total Rutas
-            </p>
-            <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter">
-              {metrics.total}
-            </p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Rutas</p>
+            <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter">{metrics.total}</p>
           </div>
           <div className="glass p-6 md:p-8 rounded-[2rem] border-white/60 dark:border-slate-800 relative overflow-hidden">
-            <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-2">
-              Activas
-            </p>
-            <p className="text-2xl md:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">
-              {metrics.activas}
-            </p>
+            <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-2">Activas</p>
+            <p className="text-2xl md:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">{metrics.activas}</p>
           </div>
           <div className="glass p-6 md:p-8 rounded-[2rem] border-white/60 dark:border-slate-800 relative overflow-hidden">
-            <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest mb-2">
-              Pendientes
-            </p>
-            <p className="text-2xl md:text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tighter">
-              {metrics.pendientes}
-            </p>
+            <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest mb-2">Pendientes</p>
+            <p className="text-2xl md:text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tighter">{metrics.pendientes}</p>
           </div>
           <div className="glass p-6 md:p-8 rounded-[2rem] border-white/60 dark:border-slate-800 relative overflow-hidden">
-            <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-2">
-              Vencidas
-            </p>
-            <p className="text-2xl md:text-3xl font-black text-rose-600 dark:text-rose-400 tracking-tighter">
-              {metrics.vencidas}
-            </p>
+            <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-2">Vencidas</p>
+            <p className="text-2xl md:text-3xl font-black text-rose-600 dark:text-rose-400 tracking-tighter">{metrics.vencidas}</p>
           </div>
+          <button
+            onClick={() => setFilterEstado(filterEstado === "Duplicadas" ? "Todos" : "Duplicadas")}
+            className={`glass p-6 md:p-8 rounded-[2rem] border-white/60 dark:border-slate-800 relative overflow-hidden text-left transition-all ${
+              filterEstado === "Duplicadas"
+                ? "ring-2 ring-violet-500 border-violet-400/60"
+                : metrics.duplicadas > 0 ? "hover:ring-2 hover:ring-violet-400/50" : "opacity-60 cursor-default"
+            }`}
+            disabled={metrics.duplicadas === 0}
+            title="Ver solo rutas con nombre compartido entre distintos admins"
+          >
+            <p className="text-[9px] font-black text-violet-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+              <FiCopy size={10} /> Homónimas
+            </p>
+            <p className="text-2xl md:text-3xl font-black text-violet-600 dark:text-violet-400 tracking-tighter">{metrics.duplicadas}</p>
+          </button>
         </div>
 
         {/* Search & Filters */}
@@ -383,22 +423,29 @@ export default function AdminRutasPage() {
                 className="block w-full pl-14 pr-6 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-medium text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
               />
             </div>
-            <div className="flex items-center gap-2">
-              {["Todos", "Activa", "Pendiente Pago", "Vencida"].map(
-                (estado) => (
-                  <button
-                    key={estado}
-                    onClick={() => setFilterEstado(estado)}
-                    className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap ${
-                      filterEstado === estado
-                        ? "bg-indigo-600 border-indigo-600 text-white shadow-lg"
+            <div className="flex items-center gap-2 flex-wrap">
+              {["Todos", "Activa", "Pendiente Pago", "Vencida", "Duplicadas"].map((estado) => (
+                <button
+                  key={estado}
+                  onClick={() => setFilterEstado(estado)}
+                  className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap ${
+                    filterEstado === estado
+                      ? estado === "Duplicadas"
+                        ? "bg-violet-600 border-violet-600 text-white shadow-lg"
+                        : "bg-indigo-600 border-indigo-600 text-white shadow-lg"
+                      : estado === "Duplicadas" && metrics.duplicadas > 0
+                        ? "bg-white dark:bg-slate-800 border-violet-300 dark:border-violet-700 text-violet-600 hover:bg-violet-50"
                         : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-indigo-300"
-                    }`}
-                  >
-                    {estado === "Pendiente Pago" ? "Pendiente" : estado}
-                  </button>
-                )
-              )}
+                  }`}
+                >
+                  {estado === "Pendiente Pago" ? "Pendiente" : estado}
+                  {estado === "Duplicadas" && metrics.duplicadas > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.5 bg-violet-500 text-white rounded-md text-[8px]">
+                      {metrics.duplicadas}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -461,26 +508,69 @@ export default function AdminRutasPage() {
                           : memStatus === "warn" || memStatus === "today"
                           ? "text-amber-600"
                           : "text-rose-600";
+                      const esHomonima = nombresDuplicados.has(
+                        tm.tienda?.nombre?.toLowerCase().trim()
+                      );
+                      const clientes = tm.tienda?.cantidad_clientes ?? 0;
+                      const ventas = tm.tienda?.cantidad_ventas ?? 0;
+                      const esVacia = clientes === 0 && ventas === 0;
 
                       return (
                         <tr
                           key={tm.id}
-                          className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all"
+                          className={`group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all ${
+                            esVacia
+                              ? "bg-rose-50/30 dark:bg-rose-900/5"
+                              : esHomonima
+                                ? "bg-violet-50/30 dark:bg-violet-900/5"
+                                : ""
+                          }`}
                         >
                           {/* Ruta / Admin */}
                           <td className="px-4 py-5">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-600 font-black text-sm shrink-0">
-                                {tm.tienda?.nombre?.charAt(0) || "?"}
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
+                                esHomonima
+                                  ? "bg-violet-500/15 text-violet-600"
+                                  : "bg-indigo-500/10 text-indigo-600"
+                              }`}>
+                                {esHomonima ? <FiCopy size={16} /> : (tm.tienda?.nombre?.charAt(0) || "?")}
                               </div>
                               <div className="min-w-0">
-                                <p className="text-[13px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">
-                                  {tm.tienda?.nombre}
-                                </p>
-                                <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mt-0.5">
-                                  <FiUser size={10} className="text-indigo-400" />
-                                  {tm.tienda?.administrador || "Sin admin"}
-                                </p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="text-[13px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">
+                                    {tm.tienda?.nombre}
+                                  </p>
+                                  <span className="inline-flex items-center px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-md text-[9px] font-black tracking-widest shrink-0">
+                                    #{tm.tienda?.id}
+                                  </span>
+                                  {esVacia && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg text-[8px] font-black uppercase tracking-widest shrink-0">
+                                      <FiTrash2 size={8} /> Vacía
+                                    </span>
+                                  )}
+                                  {esHomonima && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-lg text-[8px] font-black uppercase tracking-widest shrink-0">
+                                      <FiCopy size={8} /> Homónima
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                                  <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                                    <FiUser size={10} className="text-indigo-400" />
+                                    {tm.tienda?.administrador || "Sin admin"}
+                                  </p>
+                                  <p className="text-[9px] font-bold text-slate-400 flex items-center gap-2">
+                                    <span className="flex items-center gap-1"><FiUsers size={9} />{clientes}</span>
+                                    <span className="flex items-center gap-1"><FiShoppingCart size={9} />{ventas}</span>
+                                  </p>
+                                  {esHomonima && tm.tienda?.fecha_registro && (
+                                    <p className="text-[9px] font-bold text-violet-400 flex items-center gap-1">
+                                      <FiCalendar size={9} />
+                                      {formatDate(tm.tienda.fecha_registro)}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -526,9 +616,7 @@ export default function AdminRutasPage() {
                           <td className="px-4 py-5">
                             <div className="flex items-center justify-center gap-2">
                               <button
-                                onClick={() =>
-                                  handleActivar(tm.id, "mensual")
-                                }
+                                onClick={() => handleActivar(tm.id, "mensual")}
                                 disabled={activating === `mensual-${tm.id}`}
                                 className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-50 flex items-center gap-1.5"
                                 title="Activar plan mensual (30 días)"
@@ -536,16 +624,11 @@ export default function AdminRutasPage() {
                                 {activating === `mensual-${tm.id}` ? (
                                   <div className="w-3 h-3 border-2 border-indigo-400/30 border-t-indigo-600 rounded-full animate-spin" />
                                 ) : (
-                                  <>
-                                    <FiZap size={12} />
-                                    Mensual
-                                  </>
+                                  <><FiZap size={12} /> Mensual</>
                                 )}
                               </button>
                               <button
-                                onClick={() =>
-                                  handleActivar(tm.id, "anual")
-                                }
+                                onClick={() => handleActivar(tm.id, "anual")}
                                 disabled={activating === `anual-${tm.id}`}
                                 className="px-3 py-2 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-1.5"
                                 title="Activar plan anual (365 días)"
@@ -553,12 +636,18 @@ export default function AdminRutasPage() {
                                 {activating === `anual-${tm.id}` ? (
                                   <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
-                                  <>
-                                    <FiStar size={12} />
-                                    Anual
-                                  </>
+                                  <><FiStar size={12} /> Anual</>
                                 )}
                               </button>
+                              {esVacia && (
+                                <button
+                                  onClick={() => setDeleteTarget(tm)}
+                                  className="p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl hover:bg-rose-500 hover:text-white transition-all"
+                                  title="Eliminar ruta vacía"
+                                >
+                                  <FiTrash2 size={12} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -587,21 +676,54 @@ export default function AdminRutasPage() {
                       : memStatus === "warn" || memStatus === "today"
                       ? "text-amber-600"
                       : "text-rose-600";
+                  const esHomonima = nombresDuplicados.has(
+                    tm.tienda?.nombre?.toLowerCase().trim()
+                  );
+                  const clientes = tm.tienda?.cantidad_clientes ?? 0;
+                  const ventas = tm.tienda?.cantidad_ventas ?? 0;
+                  const esVacia = clientes === 0 && ventas === 0;
 
                   return (
-                    <div key={tm.id} className="px-5 py-4">
+                    <div key={tm.id} className={`px-5 py-4 ${
+                      esVacia ? "bg-rose-50/40 dark:bg-rose-900/5" : esHomonima ? "bg-violet-50/40 dark:bg-violet-900/5" : ""
+                    }`}>
+                      <div className="flex items-center gap-2 mb-2 px-1 flex-wrap">
+                        {esVacia && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-md text-[9px] font-black uppercase tracking-widest">
+                            <FiTrash2 size={9} /> Vacía · Sin actividad
+                          </span>
+                        )}
+                        {esHomonima && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-md text-[9px] font-black uppercase tracking-widest">
+                            <FiCopy size={9} /> Homónima · {formatDate(tm.tienda?.fecha_registro)}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-600 font-black text-sm shrink-0">
-                          {tm.tienda?.nombre?.charAt(0) || "?"}
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
+                          esVacia ? "bg-rose-500/15 text-rose-600" : esHomonima ? "bg-violet-500/15 text-violet-600" : "bg-indigo-500/10 text-indigo-600"
+                        }`}>
+                          {esVacia ? <FiTrash2 size={14} /> : esHomonima ? <FiCopy size={14} /> : (tm.tienda?.nombre?.charAt(0) || "?")}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">
-                            {tm.tienda?.nombre}
-                          </p>
-                          <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mt-0.5">
-                            <FiUser size={10} className="text-indigo-400" />
-                            {tm.tienda?.administrador || "Sin admin"}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-[13px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">
+                              {tm.tienda?.nombre}
+                            </p>
+                            <span className="text-[9px] font-black text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md shrink-0">
+                              #{tm.tienda?.id}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
+                            <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                              <FiUser size={10} className="text-indigo-400" />
+                              {tm.tienda?.administrador || "Sin admin"}
+                            </p>
+                            <p className="text-[9px] font-bold text-slate-400 flex items-center gap-1.5">
+                              <span className="flex items-center gap-0.5"><FiUsers size={9} />{clientes}</span>
+                              <span className="flex items-center gap-0.5"><FiShoppingCart size={9} />{ventas}</span>
+                            </p>
+                          </div>
                         </div>
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${cfg.bg} ${cfg.text}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${tm.estado === "Activa" ? "animate-pulse" : ""}`} />
@@ -641,6 +763,15 @@ export default function AdminRutasPage() {
                             <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           ) : <><FiStar size={11} /> Anual</>}
                         </button>
+                        {esVacia && (
+                          <button
+                            onClick={() => setDeleteTarget(tm)}
+                            className="px-3 py-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl hover:bg-rose-500 hover:text-white transition-all"
+                            title="Eliminar ruta vacía"
+                          >
+                            <FiTrash2 size={12} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -663,10 +794,56 @@ export default function AdminRutasPage() {
           <FiActivity className="text-slate-300 dark:text-slate-600 shrink-0 mt-0.5" size={16} />
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
             Al activar un plan, la fecha de vencimiento se recalcula desde hoy.
-            Las rutas nuevas se crean desde la pantalla de selección de sucursal.
+            Solo se pueden eliminar rutas con 0 clientes y 0 ventas.
           </p>
         </div>
       </div>
+
+      {/* Modal eliminar ruta vacía */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => !deleting && setDeleteTarget(null)} />
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 md:p-8 w-full max-w-sm shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-rose-100 dark:bg-rose-900/30 rounded-xl flex items-center justify-center">
+                <FiTrash2 className="text-rose-600" size={18} />
+              </div>
+              <h2 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-tight">
+                Eliminar ruta
+              </h2>
+            </div>
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 mb-5">
+              <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase mb-1">
+                {deleteTarget.tienda?.nombre} <span className="text-slate-400">#{deleteTarget.tienda?.id}</span>
+              </p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                Admin: {deleteTarget.tienda?.administrador || "—"}
+              </p>
+            </div>
+            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+              Esta ruta no tiene clientes ni ventas. Se eliminará permanentemente junto con su membresía. Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="flex-1 py-3.5 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-white/10 transition-all disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEliminar}
+                disabled={deleting}
+                className="flex-1 py-3.5 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+              >
+                {deleting ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : <><FiTrash2 size={12} /> Eliminar</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

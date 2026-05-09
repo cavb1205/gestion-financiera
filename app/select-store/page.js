@@ -15,6 +15,7 @@ import {
   FiPlus,
   FiX,
   FiChevronRight,
+  FiAlertTriangle,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -126,6 +127,7 @@ export default function SelectStorePage() {
   const handleCrear = async (e) => {
     e.preventDefault();
     if (!newNombre.trim()) return;
+    const esPrimera = stores.length === 0;
     setCreating(true);
     try {
       const response = await apiFetch("/tiendas/create/", {
@@ -133,7 +135,10 @@ export default function SelectStorePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nombre: newNombre.trim(), administrador: user.id }),
       });
-      if (!response.ok) throw new Error("Error al crear la ruta");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.nombre?.[0] || err.detail || "Error al crear la ruta");
+      }
       const created = await response.json();
       const tiendaId = created.id;
 
@@ -148,7 +153,11 @@ export default function SelectStorePage() {
         });
       }
 
-      toast.success(`Ruta "${newNombre.trim()}" creada — membresía de prueba 7 días activa`);
+      toast.success(
+        esPrimera
+          ? `Ruta "${newNombre.trim()}" creada — prueba de 7 días activa`
+          : `Ruta "${newNombre.trim()}" creada — activa tu membresía para comenzar`
+      );
       setNewNombre("");
       setNewPrefijo("57");
       setNewCupo("");
@@ -283,6 +292,9 @@ export default function SelectStorePage() {
                     <h3 className="text-xl md:text-3xl font-black text-white tracking-tighter uppercase truncate group-hover:text-emerald-400 transition-colors">
                       {store.tienda.nombre}
                     </h3>
+                    <p className="text-[9px] font-black text-slate-600 mt-0.5">
+                      ID #{store.tienda.id}
+                    </p>
                   </div>
 
                   {/* Stats */}
@@ -380,15 +392,15 @@ export default function SelectStorePage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="bg-indigo-600 p-2.5 rounded-xl shrink-0">
+                <div className={`p-2.5 rounded-xl shrink-0 ${stores.length === 0 ? 'bg-indigo-600' : 'bg-amber-500'}`}>
                   <FiPlus className="text-white" size={16} />
                 </div>
                 <div>
                   <h2 className="text-sm font-black text-white uppercase tracking-tight">
                     Nueva Ruta
                   </h2>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Prueba · 7 días gratis
+                  <p className={`text-[10px] font-bold uppercase tracking-widest ${stores.length === 0 ? 'text-slate-500' : 'text-amber-500'}`}>
+                    {stores.length === 0 ? 'Prueba · 7 días gratis' : 'Requiere membresía activa'}
                   </p>
                 </div>
               </div>
@@ -400,22 +412,51 @@ export default function SelectStorePage() {
               </button>
             </div>
 
+            {/* Aviso membresía para rutas adicionales */}
+            {stores.length > 0 && (
+              <div className="flex items-start gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl mb-4">
+                <FiAlertTriangle className="text-amber-400 shrink-0 mt-0.5" size={14} />
+                <p className="text-[10px] font-bold text-amber-300 uppercase tracking-widest leading-relaxed">
+                  Esta ruta no incluye periodo de prueba. Deberás activar una membresía para acceder a ella.
+                </p>
+              </div>
+            )}
+
             {/* Form */}
             <form onSubmit={handleCrear} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
-                  Nombre de la ruta
-                </label>
-                <input
-                  type="text"
-                  value={newNombre}
-                  onChange={(e) => setNewNombre(e.target.value)}
-                  placeholder="Ej: Ruta Norte, Tienda Centro..."
-                  autoFocus
-                  required
-                  className="w-full px-4 py-3.5 bg-slate-800/50 border border-slate-700 rounded-2xl text-[13px] font-medium text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
-                />
-              </div>
+              {(() => {
+                const esDuplicado = newNombre.trim() !== "" &&
+                  stores.some(s => s.tienda.nombre.toLowerCase() === newNombre.trim().toLowerCase());
+                return (
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                      Nombre de la ruta
+                    </label>
+                    <input
+                      type="text"
+                      value={newNombre}
+                      onChange={(e) => setNewNombre(e.target.value)}
+                      placeholder="Ej: Ruta Norte, Tienda Centro..."
+                      autoFocus
+                      required
+                      className={`w-full px-4 py-3.5 bg-slate-800/50 border rounded-2xl text-[13px] font-medium text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 transition-all ${
+                        esDuplicado
+                          ? 'border-rose-500 focus:ring-rose-500/30 focus:border-rose-500'
+                          : 'border-slate-700 focus:ring-indigo-500/30 focus:border-indigo-500'
+                      }`}
+                    />
+                    {esDuplicado && (
+                      <div className="flex items-center gap-1.5 mt-2 px-1">
+                        <FiAlertTriangle className="text-rose-400 shrink-0" size={12} />
+                        <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">
+                          Ya tienes una ruta con ese nombre
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
 
               <div>
                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
@@ -472,7 +513,7 @@ export default function SelectStorePage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={creating || !newNombre.trim()}
+                  disabled={creating || !newNombre.trim() || stores.some(s => s.tienda.nombre.toLowerCase() === newNombre.trim().toLowerCase())}
                   className="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg active:scale-95"
                 >
                   {creating ? (

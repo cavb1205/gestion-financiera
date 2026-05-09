@@ -22,6 +22,7 @@ import {
   FiMoon,
   FiCheckCircle,
   FiGift,
+  FiAlertTriangle,
 } from "react-icons/fi";
 
 const features = [
@@ -29,6 +30,16 @@ const features = [
   { icon: FiDollarSign, label: "Control de gastos y aportes" },
   { icon: FiPieChart, label: "Reportes e inteligencia de negocio" },
 ];
+
+const NOMBRE_RUTA_RE = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s\-_'.]{3,}$/;
+
+function validateNombreRuta(valor) {
+  const v = valor.trim();
+  if (v.length === 0) return "";
+  if (v.length < 3) return "Mínimo 3 caracteres";
+  if (!NOMBRE_RUTA_RE.test(v)) return "Solo letras, números, espacios y guiones";
+  return "";
+}
 
 function getPasswordStrength(pwd) {
   if (!pwd) return null;
@@ -105,6 +116,12 @@ export default function RegisterPage() {
     setIsLoading(true);
     setError("");
 
+    const rutaErr = validateNombreRuta(form.nombre_ruta);
+    if (rutaErr) {
+      setError(`Nombre del negocio: ${rutaErr.toLowerCase()}`);
+      setIsLoading(false);
+      return;
+    }
     if (form.password !== form.confirmPassword) {
       setError("Las contraseñas no coinciden");
       setIsLoading(false);
@@ -271,26 +288,46 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
 
             {/* Nombre del negocio */}
-            <div className="space-y-2">
-              <label htmlFor="nombre_ruta" className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
-                Nombre del Negocio *
-              </label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 group-focus-within:text-indigo-500 transition-colors">
-                  <FiMapPin size={18} />
+            {(() => {
+              const rutaErr = validateNombreRuta(form.nombre_ruta);
+              const showErr = rutaErr && form.nombre_ruta.length > 0;
+              return (
+                <div className="space-y-2">
+                  <label htmlFor="nombre_ruta" className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                    Nombre del Negocio *
+                  </label>
+                  <div className="relative group">
+                    <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${showErr ? 'text-rose-400' : 'text-slate-400 dark:text-slate-600 group-focus-within:text-indigo-500'}`}>
+                      <FiMapPin size={18} />
+                    </div>
+                    <input
+                      id="nombre_ruta"
+                      name="nombre_ruta"
+                      type="text"
+                      required
+                      placeholder="Ej: Ruta Norte, Tienda Centro..."
+                      value={form.nombre_ruta}
+                      onChange={handleChange}
+                      className={`w-full pl-12 pr-4 py-4 bg-white dark:bg-white/5 border rounded-2xl text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-700 focus:outline-none focus:ring-4 transition-all shadow-sm dark:shadow-none ${
+                        showErr
+                          ? 'border-rose-300 dark:border-rose-500/50 focus:border-rose-500/60 focus:ring-rose-500/10'
+                          : 'border-slate-200 dark:border-white/8 focus:border-indigo-500/60 focus:bg-indigo-50/50 dark:focus:bg-indigo-500/5 focus:ring-indigo-500/10'
+                      }`}
+                    />
+                  </div>
+                  {showErr ? (
+                    <div className="flex items-center gap-1.5 px-1">
+                      <FiAlertTriangle className="text-rose-400 shrink-0" size={11} />
+                      <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">{rutaErr}</p>
+                    </div>
+                  ) : (
+                    <p className="text-[9px] font-bold text-slate-400 ml-1">
+                      Mínimo 3 caracteres · Solo letras, números y guiones
+                    </p>
+                  )}
                 </div>
-                <input
-                  id="nombre_ruta"
-                  name="nombre_ruta"
-                  type="text"
-                  required
-                  placeholder="Ej: Ruta Norte, Tienda Centro..."
-                  value={form.nombre_ruta}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Nombre y Apellido */}
             <div className="grid grid-cols-2 gap-3">
