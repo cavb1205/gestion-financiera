@@ -98,7 +98,6 @@ export default function DashboardLayout({ children }) {
   const isRootImpersonating = isRoot && !!selectedStore;
 
   const salirDeRuta = () => {
-    clearStore();
     router.push('/dashboard/admin/rutas');
   };
 
@@ -145,6 +144,15 @@ export default function DashboardLayout({ children }) {
     const t = setTimeout(() => setJustReconnected(false), 5000);
     return () => clearTimeout(t);
   }, [justReconnected]);
+
+  // Root deja de impersonar al volver al panel de administración.
+  // Se limpia aquí (no en el click) para que la página anterior se
+  // desmonte antes — así no crashea leyendo selectedStore en null.
+  useEffect(() => {
+    if (isRoot && selectedStore && pathname === '/dashboard/admin/rutas') {
+      clearStore();
+    }
+  }, [isRoot, selectedStore, pathname, clearStore]);
 
   // Badge: créditos a ≤3 cuotas de vencer (por visitas, no por fecha)
   useEffect(() => {

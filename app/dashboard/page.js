@@ -58,7 +58,7 @@ const calcEstadoMembresia = (s) => {
 };
 
 export default function DashboardPage() {
-  const { selectedStore, token, updateStoreData, loading: authLoading } = useAuth();
+  const { selectedStore, token, updateStoreData, loading: authLoading, user } = useAuth();
   const router = useRouter();
   const [tienda, setTienda] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -160,7 +160,8 @@ export default function DashboardPage() {
   const cajaPositiva = (t.caja ?? 0) >= 0;
 
   // ── Membresía vencida ───────────────────────────────────────────
-  if (memStatus === "expired") {
+  // Root está exento — puede entrar a revisar rutas vencidas.
+  if (memStatus === "expired" && user?.username !== "root") {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
