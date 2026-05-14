@@ -82,6 +82,7 @@ const allMenuItems = [
   },
   { path: '/dashboard/membresias', label: 'Membresía', icon: FiShield },
   { path: '/dashboard/admin/rutas', label: 'Administrar Rutas', icon: FiShield, rootOnly: true },
+  { path: '/dashboard/admin/conciliacion', label: 'Conciliación Pagos', icon: FiCreditCard, rootOnly: true },
 ];
 
 export default function DashboardLayout({ children }) {
