@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/app/utils/api";
 import {
@@ -25,6 +26,7 @@ import {
   FiTrash2,
   FiUsers,
   FiShoppingCart,
+  FiLogIn,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -55,7 +57,8 @@ const STATUS_CONFIG = {
 };
 
 export default function AdminRutasPage() {
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const { user, isAuthenticated, loading: authLoading, selectStore } = useAuth();
   const [tiendas, setTiendas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -68,6 +71,21 @@ export default function AdminRutasPage() {
   const [reviewing, setReviewing] = useState(null); // "aprobar-<codigo>" | "rechazar-<codigo>"
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [entering, setEntering] = useState(null); // tm.id en proceso de "entrar"
+
+  const entrarRuta = async (tm) => {
+    setEntering(tm.id);
+    try {
+      const res = await apiFetch(`/tiendas/detail/admin/${tm.tienda.id}/`);
+      if (!res.ok) throw new Error("No se pudo cargar la ruta.");
+      const data = await res.json();
+      selectStore(data);
+      router.push("/dashboard");
+    } catch (error) {
+      toast.error(error.message);
+      setEntering(null);
+    }
+  };
 
   const fetchTiendas = async () => {
     setLoading(true);
@@ -616,6 +634,18 @@ export default function AdminRutasPage() {
                           <td className="px-4 py-5">
                             <div className="flex items-center justify-center gap-2">
                               <button
+                                onClick={() => entrarRuta(tm)}
+                                disabled={entering === tm.id}
+                                className="px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-50 flex items-center gap-1.5"
+                                title="Entrar a la ruta y ver todo como su administrador"
+                              >
+                                {entering === tm.id ? (
+                                  <div className="w-3 h-3 border-2 border-emerald-400/30 border-t-emerald-600 rounded-full animate-spin" />
+                                ) : (
+                                  <><FiLogIn size={12} /> Entrar</>
+                                )}
+                              </button>
+                              <button
                                 onClick={() => handleActivar(tm.id, "mensual")}
                                 disabled={activating === `mensual-${tm.id}`}
                                 className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-50 flex items-center gap-1.5"
@@ -744,6 +774,15 @@ export default function AdminRutasPage() {
                           <p className={`text-[11px] font-black ${daysColor}`}>{daysLabel}</p>
                         </div>
                       </div>
+                      <button
+                        onClick={() => entrarRuta(tm)}
+                        disabled={entering === tm.id}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-50"
+                      >
+                        {entering === tm.id ? (
+                          <div className="w-3 h-3 border-2 border-emerald-400/30 border-t-emerald-600 rounded-full animate-spin" />
+                        ) : <><FiLogIn size={12} /> Entrar a la ruta</>}
+                      </button>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleActivar(tm.id, "mensual")}

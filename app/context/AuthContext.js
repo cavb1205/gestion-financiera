@@ -14,6 +14,7 @@ const AuthContext = createContext({
   logout: () => {},
   refreshAuthToken: () => {},
   selectStore: () => {},
+  clearStore: () => {},
   updateStoreData: () => {},
   refreshSelectedStore: async () => {},
   isAuthenticated: false,
@@ -160,6 +161,11 @@ export const AuthProvider = ({ children }) => {
     setSelectedStore(store);
   }, []);
 
+  const clearStore = useCallback(() => {
+    localStorage.removeItem('selectedStore');
+    setSelectedStore(null);
+  }, []);
+
   // Renovar token usando refresh token
   const refreshAuthToken = useCallback(async () => {
     const newToken = await tryRefreshToken();
@@ -216,6 +222,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         refreshAuthToken,
         selectStore,
+        clearStore,
         updateStoreData,
         refreshSelectedStore,
         isAuthenticated: !!token,

@@ -89,11 +89,18 @@ const allMenuItems = [
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, profile, logout, selectedStore, isAuthenticated, loading, refreshSelectedStore } =
+  const { user, profile, logout, selectedStore, isAuthenticated, loading, refreshSelectedStore, clearStore } =
     useAuth();
   const { theme, toggleTheme } = useTheme();
   const isAdmin = user?.is_staff || user?.is_superuser;
   const isWorker = !isAdmin;
+  const isRoot = user?.username === 'root';
+  const isRootImpersonating = isRoot && !!selectedStore;
+
+  const salirDeRuta = () => {
+    clearStore();
+    router.push('/dashboard/admin/rutas');
+  };
 
   // Filter menu items based on role
   const menuItems = allMenuItems.filter(item => {
@@ -259,13 +266,14 @@ export default function DashboardLayout({ children }) {
       setDaysRemaining(diffDays);
       setGraceDaysRemaining(graceDays);
 
-      if (expired && !isWorker) {
-        // Admins: solo dashboard y membresías para poder renovar
+      if (expired && !isWorker && !isRoot) {
+        // Admins: solo dashboard y membresías para poder renovar.
+        // Root está exento — puede entrar a cualquier ruta aunque esté vencida.
         const adminOk = pathname === '/dashboard' || pathname.includes('/select-store') || pathname.includes('/membresias') || pathname.includes('/admin/rutas');
         if (!adminOk) router.push('/dashboard');
       }
     }
-  }, [selectedStore, pathname, router, isWorker]);
+  }, [selectedStore, pathname, router, isWorker, isRoot]);
 
   if (loading) {
     return (
@@ -770,6 +778,22 @@ export default function DashboardLayout({ children }) {
 
         {/* Scrollable Viewport */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {isRootImpersonating && (
+            <div className="sticky top-0 z-30 bg-violet-600 text-white px-4 md:px-8 py-2.5 flex items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center gap-2 min-w-0">
+                <FiEye size={14} className="shrink-0" />
+                <span className="text-[11px] font-black uppercase tracking-widest truncate">
+                  Viendo la ruta {selectedStore?.tienda?.nombre} como root
+                </span>
+              </div>
+              <button
+                onClick={salirDeRuta}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors"
+              >
+                <FiX size={12} /> Salir de la ruta
+              </button>
+            </div>
+          )}
           <div className="max-w-full mx-auto px-4 md:px-8 pb-10 pt-0">
             {children}
           </div>
