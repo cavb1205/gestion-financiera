@@ -71,8 +71,9 @@ export async function apiFetch(path, options = {}) {
 
   const headers = { ...options.headers };
 
-  // Solo agregar Content-Type en requests con body (POST, PUT, PATCH)
-  if (options.body) {
+  // Solo agregar Content-Type JSON en requests con body — nunca en FormData
+  // (el navegador debe poner el boundary multipart por su cuenta).
+  if (options.body && !(options.body instanceof FormData)) {
     headers['Content-Type'] = headers['Content-Type'] || 'application/json';
   }
 

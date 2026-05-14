@@ -36,6 +36,7 @@ import {
   FiSearch,
   FiWifiOff,
   FiWifi,
+  FiMessageCircle,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../utils/api";
@@ -49,7 +50,9 @@ import OnboardingTour from "../components/OnboardingTour";
 import OnboardingWizard from "../components/OnboardingWizard";
 import GlobalSearch from "../components/GlobalSearch";
 
-const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja', '/dashboard/ventas', '/dashboard/clientes', '/dashboard/gastos', '/dashboard/perfil', '/dashboard/publicidad'];
+const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja', '/dashboard/ventas', '/dashboard/clientes', '/dashboard/gastos', '/dashboard/perfil', '/dashboard/publicidad', '/dashboard/membresias'];
+
+const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "";
 
 // Menu items with role restrictions: adminOnly = true means only visible to admins (is_staff)
 const allMenuItems = [
@@ -77,7 +80,7 @@ const allMenuItems = [
       { path: '/dashboard/reportes/publicidad', label: 'Mapa de Publicidad', icon: FiMapPin },
     ]
   },
-  { path: '/dashboard/membresias', label: 'Membresía', icon: FiShield, adminOnly: true },
+  { path: '/dashboard/membresias', label: 'Membresía', icon: FiShield },
   { path: '/dashboard/admin/rutas', label: 'Administrar Rutas', icon: FiShield, rootOnly: true },
 ];
 
@@ -278,7 +281,10 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  if (isExpired && isWorker) {
+  if (isExpired && isWorker && pathname !== '/dashboard/membresias') {
+    const waSoporte = SUPPORT_WHATSAPP
+      ? `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('Hola, necesito ayuda con el pago del plan de mi ruta.')}`
+      : '';
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-6">
         <div className="max-w-sm w-full text-center">
@@ -289,11 +295,27 @@ export default function DashboardLayout({ children }) {
             Acceso Suspendido
           </h1>
           <p className="text-sm font-bold text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
-            La suscripción de <span className="text-slate-700 dark:text-slate-200">{selectedStore?.tienda?.nombre}</span> ha vencido. Contacta al administrador para reactivar el acceso.
+            La suscripción de <span className="text-slate-700 dark:text-slate-200">{selectedStore?.tienda?.nombre}</span> ha vencido. Activa un plan para reactivar el acceso.
           </p>
           <button
+            onClick={() => router.push('/dashboard/membresias')}
+            className="w-full px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 mb-3"
+          >
+            Activar / Renovar Plan
+          </button>
+          {waSoporte && (
+            <a
+              href={waSoporte}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 px-8 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 mb-3"
+            >
+              <FiMessageCircle size={14} /> ¿Necesitas ayuda? Escríbenos
+            </a>
+          )}
+          <button
             onClick={() => { logout(); router.push('/login'); }}
-            className="px-8 py-3 bg-rose-500 hover:bg-rose-400 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95"
+            className="w-full px-8 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
           >
             Cerrar Sesión
           </button>
