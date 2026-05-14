@@ -81,9 +81,12 @@ function Countdown({ expira, onExpired }) {
   return <span className="font-mono">{remaining}</span>;
 }
 
-function SupportButton() {
+function SupportButton({ tienda, quien }) {
   if (!SUPPORT_WHATSAPP) return null;
-  const texto = encodeURIComponent("Hola, necesito ayuda con el pago de mi plan.");
+  const partes = ["Hola, necesito ayuda con el pago de mi plan."];
+  if (tienda) partes.push(`Ruta: ${tienda.nombre} (ID ${tienda.id}).`);
+  if (quien) partes.push(`Solicita: ${quien}.`);
+  const texto = encodeURIComponent(partes.join(" "));
   return (
     <a
       href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${texto}`}
@@ -98,7 +101,7 @@ function SupportButton() {
 
 export default function MembresiasPage() {
   const router = useRouter();
-  const { selectedStore, isAuthenticated, loading: authLoading, refreshSelectedStore } = useAuth();
+  const { selectedStore, profile, isAuthenticated, loading: authLoading, refreshSelectedStore } = useAuth();
   const [membresia, setMembresia] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [requesting, setRequesting] = useState(null); // 'Mensual' | 'Anual'
@@ -505,7 +508,7 @@ export default function MembresiasPage() {
                 {uploading ? "Enviando..." : "Ya pagué — enviar comprobante"}
               </button>
 
-              <SupportButton />
+              <SupportButton tienda={selectedStore.tienda} quien={profile?.trabajador} />
 
               {/* Pasos */}
               <div className="mt-6 space-y-2.5">
@@ -551,7 +554,7 @@ export default function MembresiasPage() {
               >
                 Ir al inicio
               </button>
-              <SupportButton />
+              <SupportButton tienda={selectedStore.tienda} quien={profile?.trabajador} />
             </div>
           </div>
         )}
@@ -679,7 +682,7 @@ export default function MembresiasPage() {
                 ))}
               </div>
               <div className="mt-5">
-                <SupportButton />
+                <SupportButton tienda={selectedStore.tienda} quien={profile?.trabajador} />
               </div>
             </div>
           </>

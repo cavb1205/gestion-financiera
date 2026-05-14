@@ -282,8 +282,13 @@ export default function DashboardLayout({ children }) {
   }
 
   if (isExpired && isWorker && pathname !== '/dashboard/membresias') {
+    const waMensaje = [
+      'Hola, necesito ayuda con el pago del plan.',
+      selectedStore?.tienda ? `Ruta: ${selectedStore.tienda.nombre} (ID ${selectedStore.tienda.id}).` : '',
+      profile?.trabajador ? `Solicita: ${profile.trabajador}.` : '',
+    ].filter(Boolean).join(' ');
     const waSoporte = SUPPORT_WHATSAPP
-      ? `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('Hola, necesito ayuda con el pago del plan de mi ruta.')}`
+      ? `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(waMensaje)}`
       : '';
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-6">
