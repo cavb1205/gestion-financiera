@@ -318,75 +318,20 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right: Dashboard mockup — solo desktop */}
+            {/* Right: Dashboard promo video — solo desktop */}
             <div className="relative hidden lg:block">
-              <div className="absolute inset-0 bg-indigo-600/5 blur-3xl rounded-full" />
-              <div className="relative bg-slate-900 border border-white/10 rounded-[2.5rem] p-6 shadow-2xl">
-
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <div className="h-2 w-24 bg-white/20 rounded-full mb-1.5" />
-                    <div className="h-1.5 w-16 bg-white/10 rounded-full" />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <div className="h-1.5 w-12 bg-emerald-500/30 rounded-full" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-indigo-600/90 rounded-2xl p-4">
-                    <div className="h-1.5 w-10 bg-white/40 rounded-full mb-3" />
-                    <div className="h-5 w-20 bg-white/90 rounded-lg mb-1" />
-                    <div className="h-1.5 w-14 bg-white/30 rounded-full" />
-                  </div>
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                    <div className="h-1.5 w-10 bg-white/20 rounded-full mb-3" />
-                    <div className="h-5 w-16 bg-white/50 rounded-lg mb-1" />
-                    <div className="h-1.5 w-12 bg-white/15 rounded-full" />
-                  </div>
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                    <div className="h-1.5 w-10 bg-white/20 rounded-full mb-3" />
-                    <div className="h-5 w-14 bg-white/50 rounded-lg mb-1" />
-                    <div className="h-1 w-full bg-white/10 rounded-full mt-2">
-                      <div className="h-full w-3/5 bg-blue-400 rounded-full" />
-                    </div>
-                  </div>
-                  <div className="bg-emerald-600/20 border border-emerald-500/20 rounded-2xl p-4">
-                    <div className="h-1.5 w-10 bg-emerald-400/30 rounded-full mb-3" />
-                    <div className="h-5 w-18 bg-emerald-400/50 rounded-lg mb-1" />
-                    <div className="h-1.5 w-10 bg-emerald-500/40 rounded-full" />
-                  </div>
-                </div>
-
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                  <div className="h-1.5 w-20 bg-white/20 rounded-full mb-4" />
-                  <div className="flex items-end gap-2 h-16">
-                    {[40, 65, 45, 80, 55, 90, 70, 85, 60, 75].map((h, i) => (
-                      <div
-                        key={i}
-                        className={`flex-1 rounded-t-lg ${i === 7 ? "bg-indigo-500" : "bg-white/15"}`}
-                        style={{ height: `${h}%` }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  {[
-                    { color: "bg-emerald-500", w: "w-32" },
-                    { color: "bg-blue-500", w: "w-24" },
-                    { color: "bg-indigo-500", w: "w-28" },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <div className={`w-6 h-6 rounded-lg ${item.color} opacity-70`} />
-                      <div className="flex-1">
-                        <div className={`h-1.5 ${item.w} bg-white/20 rounded-full`} />
-                      </div>
-                      <div className="h-1.5 w-10 bg-white/15 rounded-full" />
-                    </div>
-                  ))}
-                </div>
+              <div className="absolute inset-0 bg-indigo-600/10 blur-3xl rounded-full" />
+              <div className="relative bg-slate-900 border border-white/10 rounded-[2.5rem] p-3 shadow-2xl overflow-hidden">
+                <video
+                  src="/dashboard-promo.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  aria-label="Demostración del dashboard de Cartera"
+                  className="w-full h-auto rounded-[2rem] block"
+                />
               </div>
             </div>
 

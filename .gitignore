@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local agent tooling (skills cache de hyperframes/heygen)
+.agents/
+
+# Hyperframes renders (la versión final está en public/dashboard-promo.mp4)
+/hyperframes/*/renders/
+/hyperframes/*/.hyperframes/

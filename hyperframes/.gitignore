@@ -1,0 +1,5 @@
+# Render outputs — la versión final live en public/dashboard-promo.mp4
+*/renders/
+# Caché de hyperframes
+*/.hyperframes/
+node_modules/
