@@ -171,40 +171,23 @@ export default function VentaDetailPage() {
     setIsRenovando(true);
     setRenovarError(null);
     try {
-      const saldoActual = parseMoney(venta.saldo_actual);
-
-      // 1. Abonar el saldo completo → el backend marca el crédito como Pagado automáticamente
-      const recaudoRes = await apiFetch(`/recaudos/create/t/${selectedStore.tienda.id}/`, {
-        method: "POST",
-        body: JSON.stringify({
-          fecha_recaudo: renovarForm.fecha_venta,
-          valor_recaudo: saldoActual,
-          venta: venta.id,
-        }),
-      });
-      if (!recaudoRes.ok) {
-        const err = await recaudoRes.json();
-        throw new Error(err.detail || "Error al liquidar el crédito anterior");
-      }
-
-      // 2. Crear nuevo crédito con el saldo anterior como capital
-      const nuevaRes = await apiFetch(`/ventas/create/t/${selectedStore.tienda.id}/`, {
+      // Endpoint atómico: cierra el viejo con un recaudo es_renovacion=true,
+      // crea el nuevo con origen_renovacion vinculando ambos. La renovación
+      // no infla el score (el recaudo no cuenta como pago real).
+      const res = await apiFetch(`/ventas/${ventaId}/renovar/t/${selectedStore.tienda.id}/`, {
         method: "POST",
         body: JSON.stringify({
           fecha_venta: renovarForm.fecha_venta,
-          valor_venta: saldoActual,
           interes: parseFloat(renovarForm.interes),
           cuotas: parseInt(renovarForm.cuotas),
-          comentario: `Renovación de crédito #${ventaId}`,
-          cliente: venta.cliente.id,
-          id_tienda: selectedStore.tienda.id,
         }),
       });
-      if (!nuevaRes.ok) {
-        const err = await nuevaRes.json();
-        throw new Error(err.detail || "Error al crear el nuevo crédito");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Error al renovar el crédito");
       }
-      const nuevaVenta = await nuevaRes.json();
+      const nuevaVenta = await res.json();
+      nuevaVenta.id = nuevaVenta.nueva_venta_id; // compat con el código siguiente
       toast.success("Crédito renovado exitosamente");
       setShowRenovarModal(false);
       router.push(`/dashboard/ventas/${nuevaVenta.id}`);
