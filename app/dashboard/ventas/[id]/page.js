@@ -222,7 +222,12 @@ export default function VentaDetailPage() {
     }
   };
 
-  const getStatusBadge = (estado) => {
+  const getStatusBadge = (estado, ventaObj) => {
+    // Pagado pero por renovación → badge distinto (violet) para no confundirlo
+    // con una liquidación real. El score lo trata como vencido.
+    if (estado === "Pagado" && ventaObj?.fue_renovada) {
+      return <span className="px-3 py-1 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-violet-200 dark:border-violet-800">Renovado</span>;
+    }
     switch (estado) {
       case "Vigente":
         return <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-emerald-200 dark:border-emerald-800">Vigente</span>;
@@ -495,7 +500,7 @@ export default function VentaDetailPage() {
               {venta.cliente?.nombres} {venta.cliente?.apellidos}
             </button>
             <div className="flex items-center gap-2 flex-wrap mt-2">
-              {getStatusBadge(venta.estado_venta)}
+              {getStatusBadge(venta.estado_venta, venta)}
               {venta.estado_venta === "Vencido" && venta.dias_atrasados > 0 && (
                 <span className="px-2.5 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-rose-200 dark:border-rose-800">
                   {Math.round(venta.dias_atrasados)}d mora

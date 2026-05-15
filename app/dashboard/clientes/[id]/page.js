@@ -104,8 +104,10 @@ export default function DetalleCliente({ params }) {
           creditosPerdidos += 1;
         }
 
-        // Calcular ingresos (solo créditos pagados)
-        if (credito.estado_venta === "Pagado") {
+        // Calcular ingresos (solo créditos liquidados de verdad).
+        // Las renovaciones (Pagado + fue_renovada) no son liquidaciones reales:
+        // se cerraron rolando la deuda a un crédito nuevo, no porque el cliente pagó.
+        if (credito.estado_venta === "Pagado" && !credito.fue_renovada) {
           // Ingresos = Monto inicial + Intereses - Saldo actual (debería ser 0)
 
           totalIngresos += intereses - monto;
@@ -293,7 +295,12 @@ export default function DetalleCliente({ params }) {
     }
   };
 
-  const getCreditStatus = (status) => {
+  const getCreditStatus = (status, credito) => {
+    // Pagado por renovación se muestra como "Renovado" (violet) para
+    // distinguirlo de una liquidación real.
+    if (status === "Pagado" && credito?.fue_renovada) {
+      return <span className="text-[10px] font-black uppercase tracking-[0.15em] text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 px-2.5 py-1 rounded-lg border border-violet-100 dark:border-violet-800/30">Renovado</span>;
+    }
     switch (status) {
       case "Vigente":
         return <span className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-800/30">Vigente</span>;
@@ -725,7 +732,7 @@ export default function DetalleCliente({ params }) {
                                 {formatMoney(credito.saldo_actual)}
                               </td>
                               <td className="px-8 py-6">
-                                {getCreditStatus(credito.estado_venta)}
+                                {getCreditStatus(credito.estado_venta, credito)}
                               </td>
                             </tr>
                           ))}
