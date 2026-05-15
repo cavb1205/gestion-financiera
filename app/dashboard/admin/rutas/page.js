@@ -58,7 +58,7 @@ const STATUS_CONFIG = {
 
 export default function AdminRutasPage() {
   const router = useRouter();
-  const { user, isAuthenticated, loading: authLoading, selectStore } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, selectStore, clearStore } = useAuth();
   const [tiendas, setTiendas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -116,6 +116,13 @@ export default function AdminRutasPage() {
       fetchSolicitudesRevision();
     }
   }, [user]);
+
+  // Si root llega aquí impersonando una ruta, sale de ella.
+  // Solo al montar — así no interfiere cuando se selecciona "Entrar".
+  useEffect(() => {
+    if (user?.username === 'root') clearStore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRevisar = async (codigo, resultado) => {
     const key = `${resultado}-${codigo}`;

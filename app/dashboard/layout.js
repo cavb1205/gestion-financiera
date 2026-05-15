@@ -89,7 +89,7 @@ const allMenuItems = [
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, profile, logout, selectedStore, isAuthenticated, loading, refreshSelectedStore, clearStore } =
+  const { user, profile, logout, selectedStore, isAuthenticated, loading, refreshSelectedStore } =
     useAuth();
   const { theme, toggleTheme } = useTheme();
   const isAdmin = user?.is_staff || user?.is_superuser;
@@ -144,15 +144,6 @@ export default function DashboardLayout({ children }) {
     const t = setTimeout(() => setJustReconnected(false), 5000);
     return () => clearTimeout(t);
   }, [justReconnected]);
-
-  // Root deja de impersonar al volver al panel de administración.
-  // Se limpia aquí (no en el click) para que la página anterior se
-  // desmonte antes — así no crashea leyendo selectedStore en null.
-  useEffect(() => {
-    if (isRoot && selectedStore && pathname === '/dashboard/admin/rutas') {
-      clearStore();
-    }
-  }, [isRoot, selectedStore, pathname, clearStore]);
 
   // Badge: créditos a ≤3 cuotas de vencer (por visitas, no por fecha)
   useEffect(() => {
