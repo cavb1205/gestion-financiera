@@ -318,10 +318,10 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right: Dashboard promo video — solo desktop */}
-            <div className="relative hidden lg:block">
+            {/* Right: Dashboard promo video — mobile más compacto, desktop completo */}
+            <div className="relative w-full max-w-md mx-auto lg:max-w-none lg:mx-0">
               <div className="absolute inset-0 bg-indigo-600/10 blur-3xl rounded-full" />
-              <div className="relative bg-slate-900 border border-white/10 rounded-[2.5rem] p-3 shadow-2xl overflow-hidden">
+              <div className="relative bg-slate-900 border border-white/10 rounded-[2rem] lg:rounded-[2.5rem] p-2 lg:p-3 shadow-2xl overflow-hidden">
                 <video
                   src="/dashboard-promo.mp4"
                   autoPlay
@@ -330,7 +330,7 @@ export default function Home() {
                   playsInline
                   preload="metadata"
                   aria-label="Demostración del dashboard de Cartera"
-                  className="w-full h-auto rounded-[2rem] block"
+                  className="w-full h-auto rounded-[1.5rem] lg:rounded-[2rem] block"
                 />
               </div>
             </div>
