@@ -203,15 +203,15 @@ export default function AdminRutasPage() {
     const vence = new Date(y, m - 1, d);
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const pendientePago = new Date(vence); pendientePago.setDate(pendientePago.getDate() + 1);
-    const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 3);
+    const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 2);
     const days = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24));
     const graceDays = Math.ceil((vencida - hoy) / (1000 * 60 * 60 * 24));
 
     let status, label;
     if (hoy >= vencida) { status = "expired"; label = "Bloqueada"; }
     else if (hoy >= pendientePago) { status = "grace"; label = `Gracia · ${graceDays}d`; }
-    else if (days === 0) { status = "today"; label = `Vence hoy · ${graceDays}d gracia`; }
-    else { status = days <= 7 ? "warn" : "ok"; label = `${days}d`; }
+    else if (days === 0) { status = "today"; label = `Vence hoy · ${graceDays}d p/bloqueo`; }
+    else { status = days <= 3 ? "warn" : "ok"; label = `${days}d`; }
 
     return { days, graceDays, status, label };
   };

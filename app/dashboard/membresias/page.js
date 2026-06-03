@@ -245,14 +245,14 @@ export default function MembresiasPage() {
     const vence = new Date(y, m - 1, d);
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const pendientePago = new Date(vence); pendientePago.setDate(pendientePago.getDate() + 1);
-    const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 3);
+    const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 2);
     const days = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24));
     const graceDays = Math.ceil((vencida - hoy) / (1000 * 60 * 60 * 24));
     let memStatus;
     if (hoy >= vencida) memStatus = "expired";
     else if (hoy >= pendientePago) memStatus = "grace";
     else if (days === 0) memStatus = "today";
-    else memStatus = days <= 7 ? "warn" : "ok";
+    else memStatus = days <= 3 ? "warn" : "ok";
     return { days, graceDays, memStatus };
   };
 
@@ -301,7 +301,7 @@ export default function MembresiasPage() {
     : memStatus === "grace"
       ? `Gracia · ${graceDays} día${graceDays !== 1 ? "s" : ""} para bloqueo`
       : memStatus === "today"
-        ? `Vence hoy · ${graceDays} día${graceDays !== 1 ? "s" : ""} de gracia`
+        ? `Vence hoy · ${graceDays} día${graceDays !== 1 ? "s" : ""} para el bloqueo`
         : `${daysRemaining} día${daysRemaining !== 1 ? "s" : ""} restantes`;
 
   // Paso del flujo de pago

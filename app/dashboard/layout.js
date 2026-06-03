@@ -249,11 +249,11 @@ export default function DashboardLayout({ children }) {
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
 
-      // Espejo exacto del backend: pendiente_pago = vencimiento+1d, vencida = vencimiento+3d
+      // Espejo exacto del backend: pendiente_pago = vencimiento+1d, vencida = vencimiento+2d
       const pendientePagoDate = new Date(vencimiento);
       pendientePagoDate.setDate(pendientePagoDate.getDate() + 1);
       const vencidaDate = new Date(vencimiento);
-      vencidaDate.setDate(vencidaDate.getDate() + 3);
+      vencidaDate.setDate(vencidaDate.getDate() + 2);
 
       const diffDays = Math.ceil((vencimiento - hoy) / (1000 * 60 * 60 * 24));
       const grace = hoy >= pendientePagoDate && hoy < vencidaDate;
@@ -339,14 +339,14 @@ export default function DashboardLayout({ children }) {
   }
 
   const isTrial = selectedStore?.membresia?.nombre === 'Prueba';
-  const showMembershipBadge = isAdmin && !isExpired && daysRemaining !== null && (isTrial || isGrace || daysRemaining <= 7);
+  const showMembershipBadge = isAdmin && !isExpired && daysRemaining !== null && (isTrial || isGrace || daysRemaining <= 3);
   const badgeColor = isGrace || (daysRemaining !== null && daysRemaining <= 3)
     ? { pill: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-500/10', border: 'border-rose-200 dark:border-rose-500/20' }
     : { pill: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-200 dark:border-amber-500/20' };
   const badgeLabel = isGrace
     ? `Gracia · ${graceDaysRemaining} día${graceDaysRemaining !== 1 ? 's' : ''} para bloqueo`
     : daysRemaining <= 0
-      ? `Vence hoy · ${graceDaysRemaining} día${graceDaysRemaining !== 1 ? 's' : ''} de gracia`
+      ? `Vence hoy · ${graceDaysRemaining} día${graceDaysRemaining !== 1 ? 's' : ''} para el bloqueo`
       : isTrial
         ? `Prueba · ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''} restante${daysRemaining !== 1 ? 's' : ''}`
         : `Plan vence en ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''}`;

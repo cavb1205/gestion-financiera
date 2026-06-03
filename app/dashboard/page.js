@@ -43,17 +43,17 @@ const calcDiasRestantes = (s) => {
   return Math.ceil((vence - hoy) / 86400000);
 };
 
-// Espejo del backend: Activa → Pendiente Pago (gracia 2d) → Vencida
+// Espejo del backend: Activa → Pendiente Pago (gracia 1d) → Vencida (bloqueo V+2)
 const calcEstadoMembresia = (s) => {
   if (!s) return "ok";
   const [y, m, d] = s.split("-").map(Number);
   const vence = new Date(y, m - 1, d);
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
   const pendientePago = new Date(vence); pendientePago.setDate(pendientePago.getDate() + 1);
-  const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 3);
+  const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 2);
   if (hoy >= vencida) return "expired";
   if (hoy >= pendientePago) return "grace";
-  if (Math.ceil((vence - hoy) / 86400000) <= 7) return "warn";
+  if (Math.ceil((vence - hoy) / 86400000) <= 3) return "warn";
   return "ok";
 };
 
@@ -258,7 +258,7 @@ export default function DashboardPage() {
 
       {/* ── Alerta de membresía próxima a vencer ─────────────────── */}
       {memStatus === "warn" && (
-        <div className="hidden md:flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl">
+        <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl">
           <FiAlertCircle className="text-amber-500 shrink-0" size={18} />
           <p className="text-[11px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wide flex-1">
             {dias <= 0 ? 'Tu membresía vence hoy' : <>Tu membresía vence en <span className="text-amber-900 dark:text-amber-300">{dias} día{dias !== 1 ? 's' : ''}</span></>} — {formatDate(tienda.fecha_vencimiento)}
