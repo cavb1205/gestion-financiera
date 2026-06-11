@@ -83,6 +83,7 @@ const allMenuItems = [
   { path: '/dashboard/membresias', label: 'Membresía', icon: FiShield },
   { path: '/dashboard/admin/rutas', label: 'Administrar Rutas', icon: FiShield, rootOnly: true },
   { path: '/dashboard/admin/conciliacion', label: 'Conciliación Pagos', icon: FiCreditCard, rootOnly: true },
+  { path: '/dashboard/admin/ingresos', label: 'Ingresos Membresías', icon: FiBarChart2, rootOnly: true },
   { path: '/dashboard/admin/cuenta-bancaria', label: 'Cuenta Bancaria', icon: FiDollar, rootOnly: true },
 ];
 
