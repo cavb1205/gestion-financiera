@@ -75,7 +75,6 @@ export default function AdminRutasPage() {
   const [reviewing, setReviewing] = useState(null); // "aprobar-<codigo>" | "rechazar-<codigo>"
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [confirmNombre, setConfirmNombre] = useState("");
   const [entering, setEntering] = useState(null); // tm.id en proceso de "entrar"
 
   const entrarRuta = async (tm) => {
@@ -256,20 +255,13 @@ export default function AdminRutasPage() {
 
   const handleEliminar = async () => {
     if (!deleteTarget) return;
-    const tieneDatos =
-      (deleteTarget.tienda?.cantidad_clientes ?? 0) > 0 ||
-      (deleteTarget.tienda?.cantidad_ventas ?? 0) > 0;
     setDeleting(true);
     try {
-      const res = await apiFetch(`/tiendas/${deleteTarget.tienda.id}/admin/delete/`, {
-        method: "DELETE",
-        ...(tieneDatos ? { body: JSON.stringify({ confirmar_nombre: confirmNombre }) } : {}),
-      });
+      const res = await apiFetch(`/tiendas/${deleteTarget.tienda.id}/admin/delete/`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo eliminar la ruta");
       toast.success(data.message || "Ruta eliminada");
       setDeleteTarget(null);
-      setConfirmNombre("");
       fetchTiendas();
     } catch (error) {
       toast.error(error.message);
@@ -725,11 +717,11 @@ export default function AdminRutasPage() {
                                   <><FiStar size={12} /> Anual</>
                                 )}
                               </button>
-                              {(esVacia || tm.archivada) && (
+                              {esVacia && (
                                 <button
                                   onClick={() => setDeleteTarget(tm)}
                                   className="p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl hover:bg-rose-500 hover:text-white transition-all"
-                                  title={esVacia ? "Eliminar ruta vacía" : "Eliminar ruta definitivamente"}
+                                  title="Eliminar ruta vacía"
                                 >
                                   <FiTrash2 size={12} />
                                 </button>
@@ -872,11 +864,11 @@ export default function AdminRutasPage() {
                             <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           ) : <><FiStar size={11} /> Anual</>}
                         </button>
-                        {(esVacia || tm.archivada) && (
+                        {esVacia && (
                           <button
                             onClick={() => setDeleteTarget(tm)}
                             className="px-3 py-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl hover:bg-rose-500 hover:text-white transition-all"
-                            title={esVacia ? "Eliminar ruta vacía" : "Eliminar ruta definitivamente"}
+                            title="Eliminar ruta vacía"
                           >
                             <FiTrash2 size={12} />
                           </button>
@@ -922,23 +914,17 @@ export default function AdminRutasPage() {
         </div>
       </div>
 
-      {/* Modal eliminar ruta */}
-      {deleteTarget && (() => {
-        const clientes = deleteTarget.tienda?.cantidad_clientes ?? 0;
-        const ventas = deleteTarget.tienda?.cantidad_ventas ?? 0;
-        const tieneDatos = clientes > 0 || ventas > 0;
-        const nombreOk = confirmNombre.trim() === (deleteTarget.tienda?.nombre || "");
-        const cerrar = () => { if (!deleting) { setDeleteTarget(null); setConfirmNombre(""); } };
-        return (
+      {/* Modal eliminar ruta vacía */}
+      {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={cerrar} />
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => !deleting && setDeleteTarget(null)} />
           <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 md:p-8 w-full max-w-sm shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-rose-100 dark:bg-rose-900/30 rounded-xl flex items-center justify-center">
                 <FiTrash2 className="text-rose-600" size={18} />
               </div>
               <h2 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-tight">
-                {tieneDatos ? "Eliminar definitivamente" : "Eliminar ruta"}
+                Eliminar ruta
               </h2>
             </div>
             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 mb-5">
@@ -949,34 +935,12 @@ export default function AdminRutasPage() {
                 Admin: {deleteTarget.tienda?.administrador || "—"}
               </p>
             </div>
-
-            {tieneDatos ? (
-              <>
-                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
-                  Se borrarán <b className="text-rose-500">{clientes} cliente(s) y {ventas} venta(s)</b> con todos sus
-                  recaudos, gastos y aportes. Los ingresos por membresía de esta ruta se conservan en el informe.
-                  Esta acción es <b>irreversible</b>.
-                </p>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                  Escribe <span className="text-rose-500">{deleteTarget.tienda?.nombre}</span> para confirmar
-                </label>
-                <input
-                  type="text"
-                  value={confirmNombre}
-                  onChange={(e) => setConfirmNombre(e.target.value)}
-                  placeholder="Nombre exacto de la ruta"
-                  className="w-full px-4 py-3 mb-6 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none focus:border-rose-400 transition-all"
-                />
-              </>
-            ) : (
-              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-                Esta ruta no tiene clientes ni ventas. Se eliminará permanentemente junto con su membresía. Esta acción no se puede deshacer.
-              </p>
-            )}
-
+            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+              Esta ruta no tiene clientes ni ventas. Se eliminará permanentemente junto con su membresía. Esta acción no se puede deshacer.
+            </p>
             <div className="flex gap-3">
               <button
-                onClick={cerrar}
+                onClick={() => setDeleteTarget(null)}
                 disabled={deleting}
                 className="flex-1 py-3.5 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-white/10 transition-all disabled:opacity-50"
               >
@@ -984,8 +948,8 @@ export default function AdminRutasPage() {
               </button>
               <button
                 onClick={handleEliminar}
-                disabled={deleting || (tieneDatos && !nombreOk)}
-                className="flex-1 py-3.5 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                disabled={deleting}
+                className="flex-1 py-3.5 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
               >
                 {deleting ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -994,8 +958,7 @@ export default function AdminRutasPage() {
             </div>
           </div>
         </div>
-        );
-      })()}
+      )}
     </div>
   );
 }
