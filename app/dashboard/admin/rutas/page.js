@@ -24,6 +24,8 @@ import {
   FiCopy,
   FiCalendar,
   FiTrash2,
+  FiArchive,
+  FiRotateCcw,
   FiUsers,
   FiShoppingCart,
   FiLogIn,
@@ -64,6 +66,8 @@ export default function AdminRutasPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEstado, setFilterEstado] = useState("Todos");
   const [activating, setActivating] = useState(null); // "mensual-<id>" | "anual-<id>"
+  const [verArchivadas, setVerArchivadas] = useState(false);
+  const [archiving, setArchiving] = useState(null); // id en proceso
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [solicitudesRevision, setSolicitudesRevision] = useState([]);
@@ -87,10 +91,10 @@ export default function AdminRutasPage() {
     }
   };
 
-  const fetchTiendas = async () => {
+  const fetchTiendas = async (incluirArchivadas = verArchivadas) => {
     setLoading(true);
     try {
-      const response = await apiFetch(`/tiendas/list/`);
+      const response = await apiFetch(`/tiendas/list/${incluirArchivadas ? "?archivadas=1" : ""}`);
       if (!response.ok) throw new Error("Error al obtener las rutas");
       const data = await response.json();
       setTiendas(Array.isArray(data) ? data : []);
@@ -98,6 +102,23 @@ export default function AdminRutasPage() {
       toast.error(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleArchivar = async (tm, archivar) => {
+    setArchiving(tm.id);
+    try {
+      const res = await apiFetch(`/tiendas/${tm.id}/archivar/`, {
+        method: "POST",
+        body: JSON.stringify({ archivar }),
+      });
+      if (!res.ok) throw new Error("No se pudo actualizar el archivado.");
+      toast.success(archivar ? "Ruta archivada." : "Ruta restaurada.");
+      fetchTiendas();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setArchiving(null);
     }
   };
 
@@ -308,15 +329,29 @@ export default function AdminRutasPage() {
               </p>
             </div>
           </div>
-          <button
-            onClick={fetchTiendas}
-            className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
-          >
-            <FiRefreshCw
-              size={20}
-              className="group-hover:rotate-180 transition-transform duration-500"
-            />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { const v = !verArchivadas; setVerArchivadas(v); fetchTiendas(v); }}
+              className={`px-4 py-4 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-2 ${
+                verArchivadas
+                  ? "bg-violet-600 text-white border-violet-600"
+                  : "bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800 hover:text-violet-600"
+              }`}
+              title="Mostrar también las rutas archivadas"
+            >
+              <FiArchive size={16} />
+              <span className="hidden sm:inline">{verArchivadas ? "Viendo archivadas" : "Archivadas"}</span>
+            </button>
+            <button
+              onClick={() => fetchTiendas()}
+              className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
+            >
+              <FiRefreshCw
+                size={20}
+                className="group-hover:rotate-180 transition-transform duration-500"
+              />
+            </button>
+          </div>
         </div>
 
         {/* Solicitudes en revisión */}
@@ -691,6 +726,20 @@ export default function AdminRutasPage() {
                                   <FiTrash2 size={12} />
                                 </button>
                               )}
+                              <button
+                                onClick={() => handleArchivar(tm, !tm.archivada)}
+                                disabled={archiving === tm.id}
+                                className={`p-2 rounded-xl transition-all disabled:opacity-50 ${
+                                  tm.archivada
+                                    ? "bg-violet-100 dark:bg-violet-900/30 text-violet-600 hover:bg-violet-600 hover:text-white"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-violet-600 hover:text-white"
+                                }`}
+                                title={tm.archivada ? "Restaurar ruta archivada" : "Archivar ruta"}
+                              >
+                                {archiving === tm.id
+                                  ? <div className="w-3 h-3 border-2 border-violet-400/30 border-t-violet-600 rounded-full animate-spin" />
+                                  : tm.archivada ? <FiRotateCcw size={12} /> : <FiArchive size={12} />}
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -824,6 +873,20 @@ export default function AdminRutasPage() {
                             <FiTrash2 size={12} />
                           </button>
                         )}
+                        <button
+                          onClick={() => handleArchivar(tm, !tm.archivada)}
+                          disabled={archiving === tm.id}
+                          className={`px-3 py-2.5 rounded-xl transition-all disabled:opacity-50 ${
+                            tm.archivada
+                              ? "bg-violet-100 dark:bg-violet-900/30 text-violet-600 hover:bg-violet-600 hover:text-white"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-violet-600 hover:text-white"
+                          }`}
+                          title={tm.archivada ? "Restaurar ruta archivada" : "Archivar ruta"}
+                        >
+                          {archiving === tm.id
+                            ? <div className="w-3 h-3 border-2 border-violet-400/30 border-t-violet-600 rounded-full animate-spin" />
+                            : tm.archivada ? <FiRotateCcw size={12} /> : <FiArchive size={12} />}
+                        </button>
                       </div>
                     </div>
                   );
