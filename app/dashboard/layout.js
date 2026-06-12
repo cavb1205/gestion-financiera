@@ -99,14 +99,19 @@ export default function DashboardLayout({ children }) {
   const isWorker = !isAdmin;
   const isRoot = user?.username === 'root';
   const isRootImpersonating = isRoot && !!selectedStore;
+  // Modo administración: el root sin entrar a una ruta gestiona el negocio (no opera una sucursal)
+  const rootAdminMode = isRoot && !selectedStore;
 
   const salirDeRuta = () => {
     router.push('/dashboard/admin/rutas');
   };
 
-  // Filter menu items based on role
+  // Filter menu items based on role and mode
   const menuItems = allMenuItems.filter(item => {
-    if (item.rootOnly && user?.username !== 'root') return false;
+    // Herramientas de administración: solo en el modo admin del root
+    if (item.rootOnly) return rootAdminMode;
+    // Ítems operativos de una ruta: ocultos para el root mientras administra (sin ruta seleccionada)
+    if (rootAdminMode) return false;
     if (item.adminOnly && isWorker) return false;
     if (item.workerOnly && isAdmin) return false;
     return true;
@@ -447,6 +452,12 @@ export default function DashboardLayout({ children }) {
             </div>
 
             <nav className="flex-1 space-y-1.5 overflow-y-auto pr-2 custom-scrollbar">
+              {rootAdminMode && (
+                <div className="px-4 pt-1 pb-2">
+                  <p className="text-[10px] font-black text-violet-500 uppercase tracking-[0.2em]">Administración</p>
+                  <p className="text-[10px] font-bold text-slate-400 mt-0.5">Gestión global del negocio</p>
+                </div>
+              )}
               {menuItems.map((item) => item.submenu ? (
                 <div key={item.label}>
                   <button
@@ -579,6 +590,12 @@ export default function DashboardLayout({ children }) {
         </div>
 
         <nav className="flex-1 px-5 overflow-y-auto custom-scrollbar space-y-1">
+          {rootAdminMode && (
+            <div className="px-4 pt-1 pb-3">
+              <p className="text-[10px] font-black text-violet-500 uppercase tracking-[0.2em]">Administración</p>
+              <p className="text-[10px] font-bold text-slate-400 mt-0.5">Gestión global del negocio</p>
+            </div>
+          )}
           {menuItems.map((item) => item.submenu ? (
             <div key={item.label}>
               <button
