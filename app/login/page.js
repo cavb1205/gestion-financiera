@@ -64,9 +64,9 @@ export default function LoginPage() {
         theme: "dark",
       });
 
-      // Root user: go directly to admin routes dashboard
+      // Root user: go directly to the admin panel (business overview)
       if (data.user.username === 'root') {
-        router.push("/dashboard/admin/rutas");
+        router.push("/dashboard/admin");
         return;
       }
 

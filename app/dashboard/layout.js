@@ -82,6 +82,7 @@ const allMenuItems = [
     ]
   },
   { path: '/dashboard/membresias', label: 'Membresía', icon: FiShield },
+  { path: '/dashboard/admin', label: 'Panel', icon: FiHome, rootOnly: true },
   { path: '/dashboard/admin/rutas', label: 'Administrar Rutas', icon: FiShield, rootOnly: true },
   { path: '/dashboard/admin/conciliacion', label: 'Conciliación Pagos', icon: FiCreditCard, rootOnly: true },
   { path: '/dashboard/admin/ingresos', label: 'Ingresos Membresías', icon: FiBarChart2, rootOnly: true },
@@ -103,7 +104,7 @@ export default function DashboardLayout({ children }) {
   const rootAdminMode = isRoot && !selectedStore;
 
   const salirDeRuta = () => {
-    router.push('/dashboard/admin/rutas');
+    router.push('/dashboard/admin');
   };
 
   // Filter menu items based on role and mode
