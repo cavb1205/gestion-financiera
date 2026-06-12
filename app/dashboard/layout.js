@@ -37,6 +37,7 @@ import {
   FiWifiOff,
   FiWifi,
   FiMessageCircle,
+  FiTag,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../utils/api";
@@ -84,6 +85,7 @@ const allMenuItems = [
   { path: '/dashboard/admin/rutas', label: 'Administrar Rutas', icon: FiShield, rootOnly: true },
   { path: '/dashboard/admin/conciliacion', label: 'Conciliación Pagos', icon: FiCreditCard, rootOnly: true },
   { path: '/dashboard/admin/ingresos', label: 'Ingresos Membresías', icon: FiBarChart2, rootOnly: true },
+  { path: '/dashboard/admin/planes', label: 'Planes y Precios', icon: FiTag, rootOnly: true },
   { path: '/dashboard/admin/cuenta-bancaria', label: 'Cuenta Bancaria', icon: FiDollar, rootOnly: true },
 ];
 
