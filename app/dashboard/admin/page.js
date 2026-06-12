@@ -1,7 +1,7 @@
 // app/dashboard/admin/page.js
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/app/utils/api";
@@ -10,6 +10,7 @@ import {
   FiRefreshCw,
   FiDollarSign,
   FiTrendingUp,
+  FiTrendingDown,
   FiMapPin,
   FiCheckCircle,
   FiClock,
@@ -19,10 +20,21 @@ import {
   FiBarChart2,
   FiTag,
   FiChevronRight,
+  FiUserPlus,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "@/app/utils/format";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+} from "chart.js";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
 const ACCESOS = [
   { path: "/dashboard/admin/rutas", label: "Administrar Rutas", desc: "Sucursales y suscripciones", icon: FiShield },
@@ -32,9 +44,15 @@ const ACCESOS = [
   { path: "/dashboard/admin/cuenta-bancaria", label: "Cuenta Bancaria", desc: "Datos para pagos", icon: FiDollarSign },
 ];
 
-function KpiCard({ icon: Icon, label, value, sub, box, color }) {
+function KpiCard({ icon: Icon, label, value, sub, box, color, onClick }) {
+  const Comp = onClick ? "button" : "div";
   return (
-    <div className="glass rounded-[1.5rem] border-white/60 dark:border-slate-800 shadow-lg p-5">
+    <Comp
+      onClick={onClick}
+      className={`glass rounded-[1.5rem] border-white/60 dark:border-slate-800 shadow-lg p-5 text-left ${
+        onClick ? "hover:ring-2 hover:ring-indigo-400/40 transition-all active:scale-[0.99] cursor-pointer" : ""
+      }`}
+    >
       <div className="flex items-center gap-2 mb-2">
         <div className={`p-2 rounded-xl ${box}`}>
           <Icon className={color} size={15} />
@@ -43,19 +61,25 @@ function KpiCard({ icon: Icon, label, value, sub, box, color }) {
       </div>
       <p className="text-2xl font-black text-slate-800 dark:text-white">{value}</p>
       {sub && <p className="text-[10px] font-bold text-slate-400 mt-1">{sub}</p>}
-    </div>
+    </Comp>
   );
 }
 
-function EstadoChip({ icon: Icon, label, value, color }) {
+function EstadoChip({ icon: Icon, label, value, color, onClick }) {
+  const Comp = onClick ? "button" : "div";
   return (
-    <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-slate-50/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/60">
+    <Comp
+      onClick={onClick}
+      className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-slate-50/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/60 text-left w-full ${
+        onClick ? "hover:border-indigo-400/50 transition-all active:scale-[0.99] cursor-pointer" : ""
+      }`}
+    >
       <Icon className={color} size={16} />
       <div className="min-w-0">
         <p className="text-[15px] font-black text-slate-800 dark:text-white leading-none">{value}</p>
         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{label}</p>
       </div>
-    </div>
+    </Comp>
   );
 }
 
@@ -88,6 +112,51 @@ export default function AdminPanelPage() {
     if (isAuthenticated && user?.is_superuser) fetchResumen();
   }, [isAuthenticated, user, fetchResumen]);
 
+  const crecimiento = useMemo(() => {
+    if (!data || !data.ingresos_mes_anterior) return null;
+    return ((data.ingresos_mes - data.ingresos_mes_anterior) / data.ingresos_mes_anterior) * 100;
+  }, [data]);
+
+  const chart = useMemo(() => {
+    if (!data?.ingresos_6m) return null;
+    return {
+      data: {
+        labels: data.ingresos_6m.map((m) => m.label),
+        datasets: [
+          {
+            data: data.ingresos_6m.map((m) => m.total),
+            backgroundColor: data.ingresos_6m.map((_, i) =>
+              i === data.ingresos_6m.length - 1 ? "rgba(79, 70, 229, 0.9)" : "rgba(99, 102, 241, 0.35)"
+            ),
+            borderRadius: 8,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10, weight: "bold" } } },
+          y: {
+            grid: { color: "rgba(148, 163, 184, 0.1)" },
+            ticks: {
+              font: { size: 9 },
+              callback: (v) => (v >= 1000000 ? `$${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `$${(v / 1000).toFixed(0)}K` : `$${v}`),
+            },
+          },
+        },
+        plugins: {
+          tooltip: { callbacks: { label: (ctx) => formatMoney(ctx.raw) } },
+        },
+      },
+    };
+  }, [data]);
+
+  const planTotal = useMemo(() => {
+    if (!data?.distribucion_plan) return 0;
+    return Object.values(data.distribucion_plan).reduce((a, b) => a + b, 0);
+  }, [data]);
+
   if (authLoading || !isAuthenticated) return <LoadingSpinner />;
 
   if (!user?.is_superuser) {
@@ -99,6 +168,12 @@ export default function AdminPanelPage() {
       </div>
     );
   }
+
+  const PLAN_COLORS = {
+    Mensual: "bg-indigo-500",
+    Anual: "bg-emerald-500",
+    Prueba: "bg-amber-500",
+  };
 
   return (
     <div className="min-h-screen bg-transparent pb-12">
@@ -126,15 +201,20 @@ export default function AdminPanelPage() {
           <div className="min-h-[300px] flex items-center justify-center"><LoadingSpinner /></div>
         ) : (
           <>
-            {/* KPIs principales */}
+            {/* KPIs principales (clicables) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <KpiCard
                 icon={FiDollarSign}
                 label="Ingresos del mes"
                 value={formatMoney(data.ingresos_mes)}
-                sub={`${data.renovaciones_mes} renovaciones`}
+                sub={
+                  crecimiento === null
+                    ? `${data.renovaciones_mes} renovaciones`
+                    : `${crecimiento >= 0 ? "▲" : "▼"} ${Math.abs(crecimiento).toFixed(0)}% vs mes anterior`
+                }
                 box="bg-emerald-500/10"
                 color="text-emerald-500"
+                onClick={() => router.push("/dashboard/admin/ingresos")}
               />
               <KpiCard
                 icon={FiTrendingUp}
@@ -143,6 +223,7 @@ export default function AdminPanelPage() {
                 sub="Recurrente mensual"
                 box="bg-indigo-500/10"
                 color="text-indigo-500"
+                onClick={() => router.push("/dashboard/admin/planes")}
               />
               <KpiCard
                 icon={FiMapPin}
@@ -151,6 +232,7 @@ export default function AdminPanelPage() {
                 sub={`de ${data.rutas.total} en total`}
                 box="bg-violet-500/10"
                 color="text-violet-500"
+                onClick={() => router.push("/dashboard/admin/rutas?estado=Activa")}
               />
               <KpiCard
                 icon={FiClock}
@@ -159,10 +241,82 @@ export default function AdminPanelPage() {
                 sub={data.conciliacion_pendiente > 0 ? "Requieren revisión" : "Todo al día"}
                 box={data.conciliacion_pendiente > 0 ? "bg-amber-500/10" : "bg-slate-500/10"}
                 color={data.conciliacion_pendiente > 0 ? "text-amber-500" : "text-slate-400"}
+                onClick={() => router.push("/dashboard/admin/conciliacion")}
               />
             </div>
 
-            {/* Estado de rutas */}
+            {/* Tendencia de ingresos + composición */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
+              {/* Tendencia 6m */}
+              <div className="lg:col-span-3 glass rounded-[1.5rem] border-white/60 dark:border-slate-800 shadow-lg p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <FiBarChart2 className="text-indigo-500" size={15} />
+                  <p className="text-[11px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest">
+                    Ingresos · últimos 6 meses
+                  </p>
+                  {crecimiento !== null && (
+                    <span
+                      className={`ml-auto flex items-center gap-1 text-[11px] font-black ${
+                        crecimiento >= 0 ? "text-emerald-500" : "text-rose-500"
+                      }`}
+                    >
+                      {crecimiento >= 0 ? <FiTrendingUp size={13} /> : <FiTrendingDown size={13} />}
+                      {crecimiento >= 0 ? "+" : ""}{crecimiento.toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+                <div className="h-[180px]">
+                  {chart && <Bar data={chart.data} options={chart.options} />}
+                </div>
+              </div>
+
+              {/* Composición por plan */}
+              <div className="lg:col-span-2 glass rounded-[1.5rem] border-white/60 dark:border-slate-800 shadow-lg p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <FiActivity className="text-emerald-500" size={15} />
+                  <p className="text-[11px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest">
+                    Base activa por plan
+                  </p>
+                </div>
+                {planTotal === 0 ? (
+                  <p className="text-[11px] font-bold text-slate-400 py-6 text-center">Sin rutas activas.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Barra apilada */}
+                    <div className="flex h-3 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+                      {Object.entries(data.distribucion_plan).map(([plan, n]) => (
+                        <div
+                          key={plan}
+                          className={PLAN_COLORS[plan] || "bg-slate-400"}
+                          style={{ width: `${(n / planTotal) * 100}%` }}
+                          title={`${plan}: ${n}`}
+                        />
+                      ))}
+                    </div>
+                    {Object.entries(data.distribucion_plan).map(([plan, n]) => (
+                      <div key={plan} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2.5 h-2.5 rounded-full ${PLAN_COLORS[plan] || "bg-slate-400"}`} />
+                          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{plan}</span>
+                        </div>
+                        <span className="text-[12px] font-black text-slate-800 dark:text-white">
+                          {n} <span className="text-slate-400 font-bold">· {Math.round((n / planTotal) * 100)}%</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
+                  <FiUserPlus className="text-violet-500" size={14} />
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Nuevas este mes</span>
+                  <span className="ml-auto text-[14px] font-black text-violet-600 dark:text-violet-400">
+                    {data.nuevas_rutas_mes}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Estado de rutas (chips clicables) */}
             <div className="glass rounded-[1.5rem] border-white/60 dark:border-slate-800 shadow-lg p-5 mb-6">
               <div className="flex items-center gap-2 mb-4">
                 <FiActivity className="text-indigo-500" size={15} />
@@ -171,10 +325,10 @@ export default function AdminPanelPage() {
                 </p>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <EstadoChip icon={FiCheckCircle} label="Activas" value={data.rutas.activas} color="text-emerald-500" />
-                <EstadoChip icon={FiClock} label="Pendiente pago" value={data.rutas.pendientes} color="text-amber-500" />
-                <EstadoChip icon={FiAlertTriangle} label="Vencidas" value={data.rutas.vencidas} color="text-rose-500" />
-                <EstadoChip icon={FiClock} label="Vencen en 3 días" value={data.por_vencer} color="text-orange-500" />
+                <EstadoChip icon={FiCheckCircle} label="Activas" value={data.rutas.activas} color="text-emerald-500" onClick={() => router.push("/dashboard/admin/rutas?estado=Activa")} />
+                <EstadoChip icon={FiClock} label="Pendiente pago" value={data.rutas.pendientes} color="text-amber-500" onClick={() => router.push("/dashboard/admin/rutas?estado=Pendiente Pago")} />
+                <EstadoChip icon={FiAlertTriangle} label="Vencidas" value={data.rutas.vencidas} color="text-rose-500" onClick={() => router.push("/dashboard/admin/rutas?estado=Vencida")} />
+                <EstadoChip icon={FiClock} label="Vencen en 3 días" value={data.por_vencer} color="text-orange-500" onClick={() => router.push("/dashboard/admin/rutas?estado=Activa")} />
               </div>
               {data.rutas.preactivadas > 0 && (
                 <p className="text-[10px] font-bold text-slate-400 mt-3 pl-1">

@@ -124,6 +124,12 @@ export default function AdminRutasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Filtro pre-aplicado vía query (?estado=Vencida) — p.ej. desde el panel admin.
+  useEffect(() => {
+    const e = new URLSearchParams(window.location.search).get('estado');
+    if (["Activa", "Pendiente Pago", "Vencida"].includes(e)) setFilterEstado(e);
+  }, []);
+
   const handleRevisar = async (codigo, resultado) => {
     const key = `${resultado}-${codigo}`;
     setReviewing(key);
