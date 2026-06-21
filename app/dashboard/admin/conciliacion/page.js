@@ -20,6 +20,7 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import ConfirmModal from "@/app/components/ConfirmModal";
 import { formatMoney } from "@/app/utils/format";
 
 function formatFecha(iso) {
@@ -125,6 +126,7 @@ export default function ConciliacionPage() {
   const [actioning, setActioning] = useState(null);
   const [comprobanteModal, setComprobanteModal] = useState(null);
   const [loadingComprobante, setLoadingComprobante] = useState(false);
+  const [confirmReject, setConfirmReject] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -165,14 +167,17 @@ export default function ConciliacionPage() {
     setComprobanteModal(null);
   };
 
-  const accion = async (codigo, resultado) => {
-    const esRechazo = resultado === "rechazar";
-    if (esRechazo) {
-      const ok = window.confirm(
-        "¿Rechazar/revertir este pago? La membresía volverá a estado Pendiente Pago."
-      );
-      if (!ok) return;
+  // El rechazo/reversión es destructivo: pide confirmación con ConfirmModal.
+  // La confirmación de un pago es directa.
+  const solicitarAccion = (codigo, resultado) => {
+    if (resultado === "rechazar") {
+      setConfirmReject(codigo);
+    } else {
+      ejecutarAccion(codigo, resultado);
     }
+  };
+
+  const ejecutarAccion = async (codigo, resultado) => {
     setActioning(codigo);
     try {
       const res = await apiFetch(`/tiendas/solicitud/${codigo}/revisar/`, {
@@ -184,6 +189,7 @@ export default function ConciliacionPage() {
         throw new Error(err.error || "No se pudo procesar la solicitud.");
       }
       toast.success(resultado === "confirmar" ? "Pago confirmado." : "Pago rechazado.");
+      setConfirmReject(null);
       fetchData();
     } catch (error) {
       toast.error(error.message);
@@ -254,7 +260,7 @@ export default function ConciliacionPage() {
                       solicitud={s}
                       modo="pendiente"
                       onVerComprobante={verComprobante}
-                      onAccion={accion}
+                      onAccion={solicitarAccion}
                       actioning={actioning}
                     />
                   ))}
@@ -288,7 +294,7 @@ export default function ConciliacionPage() {
                       solicitud={s}
                       modo="confirmada"
                       onVerComprobante={verComprobante}
-                      onAccion={accion}
+                      onAccion={solicitarAccion}
                       actioning={actioning}
                     />
                   ))}
@@ -332,6 +338,18 @@ export default function ConciliacionPage() {
           </div>
         </div>
       )}
+
+      {/* Confirmación de rechazo / reversión */}
+      <ConfirmModal
+        isOpen={!!confirmReject}
+        onClose={() => setConfirmReject(null)}
+        onConfirm={() => ejecutarAccion(confirmReject, "rechazar")}
+        isLoading={actioning === confirmReject}
+        title="¿Rechazar/revertir este pago?"
+        message="La membresía volverá a estado Pendiente Pago."
+        confirmText="Sí, rechazar"
+        cancelText="Cancelar"
+      />
     </div>
   );
 }

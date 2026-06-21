@@ -41,7 +41,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('cliente');
     localStorage.removeItem('liquidarFecha');
     localStorage.removeItem('abono');
-    
+    localStorage.removeItem('aporteEditar');
+    localStorage.removeItem('utilidadEditar');
+
     setToken(null);
     setUser(null);
     setProfile(null);
