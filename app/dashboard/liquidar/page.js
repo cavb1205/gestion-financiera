@@ -24,6 +24,7 @@ import {
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useRef } from "react";
 import { formatMoney, parseMoney } from "../../utils/format";
 import Pagination from "../../components/Pagination";
@@ -485,9 +486,9 @@ export default function LiquidarCreditosPage() {
                                           <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl flex items-center justify-center font-black text-sm uppercase shrink-0">
                                              {credito.cliente.nombres.charAt(0)}
                                           </div>
-                                          <div
-                                             className="cursor-pointer group/name"
-                                             onClick={() => router.push(`/dashboard/ventas/${credito.id}`)}
+                                          <Link
+                                             href={`/dashboard/ventas/${credito.id}`}
+                                             className="group/name"
                                           >
                                              <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none group-hover/name:text-indigo-600 transition-colors">
                                                 {credito.cliente.nombres} {credito.cliente.apellidos}
@@ -497,7 +498,7 @@ export default function LiquidarCreditosPage() {
                                                 <span className="mx-1.5 text-slate-300">·</span>
                                                 Abonado: <span className="text-emerald-600 dark:text-emerald-400">{formatMoney(credito.total_abonado)}</span>
                                              </p>
-                                          </div>
+                                          </Link>
                                        </div>
                                     </td>
                                     <td className="px-4 py-5 whitespace-nowrap">
@@ -626,9 +627,9 @@ export default function LiquidarCreditosPage() {
                            <div key={credito.id} className={`glass p-5 rounded-[2rem] border-l-4 ${getMoraBorderColor(mora)} border-white/60 dark:border-slate-800 shadow-lg space-y-4 ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/30" : ""}`}>
                               {/* Client name → clickable to detail */}
                               <div className="flex items-start justify-between gap-3">
-                                 <div
-                                    className="flex-1 cursor-pointer min-w-0"
-                                    onClick={() => router.push(`/dashboard/ventas/${credito.id}`)}
+                                 <Link
+                                    href={`/dashboard/ventas/${credito.id}`}
+                                    className="flex-1 min-w-0"
                                  >
                                     <p className="text-[15px] font-black text-slate-800 dark:text-white uppercase leading-tight mb-1.5 active:text-indigo-600 transition-colors">
                                        {credito.cliente.nombres} {credito.cliente.apellidos}
@@ -647,7 +648,7 @@ export default function LiquidarCreditosPage() {
                                           <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-emerald-100 dark:border-emerald-800">{Math.abs(mora)}d Adelantado</span>
                                        )}
                                     </div>
-                                 </div>
+                                 </Link>
                                  <div className="text-right shrink-0">
                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Cuota</p>
                                     <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 tracking-tighter leading-none">

@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 import {
   FiUser,
   FiHome,
@@ -713,13 +714,13 @@ export default function DetalleCliente({ params }) {
                           {creditos.slice((creditosPage - 1) * CREDITOS_PER_PAGE, creditosPage * CREDITOS_PER_PAGE).map((credito) => (
                             <tr
                               key={credito.id}
-                              onClick={() => router.push(`/dashboard/ventas/${credito.id}`)}
+                              onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.target.closest("a")) return; router.push(`/dashboard/ventas/${credito.id}`); }}
                               className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all cursor-pointer active:bg-indigo-50/50 dark:active:bg-indigo-900/10"
                             >
                               <td className="px-8 py-6">
                                 <div className="flex items-center gap-3">
                                    <div className="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></div>
-                                   <span className="text-sm font-black text-slate-700 dark:text-slate-300 tracking-tight">Operación #{credito.id.toString().padStart(4, "0")}</span>
+                                   <Link href={`/dashboard/ventas/${credito.id}`} className="text-sm font-black text-slate-700 dark:text-slate-300 tracking-tight hover:text-indigo-600 transition-colors">Operación #{credito.id.toString().padStart(4, "0")}</Link>
                                 </div>
                               </td>
                               <td className="px-8 py-6">

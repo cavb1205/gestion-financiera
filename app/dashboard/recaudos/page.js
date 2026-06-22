@@ -355,23 +355,26 @@ export default function RecaudosPage() {
                       {currentItems.map((recaudo) => {
                         const cliente = recaudo.venta?.cliente || {};
                         const esFalla = parseFloat(recaudo.valor_recaudo) === 0;
+                        const ventaId = recaudo.venta?.id;
+                        const VentaTag = ventaId ? Link : "div";
+                        const ventaLinkProps = ventaId ? { href: `/dashboard/ventas/${ventaId}` } : {};
                         return (
                           <tr key={recaudo.id} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
                              <td className="px-4 py-6 whitespace-nowrap">
                                 <div className="flex items-center gap-4">
-                                   <button
-                                     onClick={() => recaudo.venta?.id && router.push(`/dashboard/ventas/${recaudo.venta.id}`)}
+                                   <VentaTag
+                                     {...ventaLinkProps}
                                      className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm font-black text-sm uppercase transition-all hover:scale-110 ${
                                       esFalla ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-600' : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600'
                                    }`}>
                                       {cliente.nombres?.charAt(0) || <FiUser />}
-                                   </button>
-                                   <div className="group/name cursor-pointer" onClick={() => recaudo.venta?.id && router.push(`/dashboard/ventas/${recaudo.venta.id}`)}>
+                                   </VentaTag>
+                                   <VentaTag {...ventaLinkProps} className="group/name cursor-pointer block">
                                       <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none group-hover/name:text-indigo-600 transition-colors">
                                          {cliente.nombres} {cliente.apellidos}
                                       </p>
                                       <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">REC: #{recaudo.id} • VTA: #{recaudo.venta?.id}</p>
-                                   </div>
+                                   </VentaTag>
                                 </div>
                              </td>
                              <td className="px-4 py-6 text-center whitespace-nowrap">
@@ -450,11 +453,14 @@ export default function RecaudosPage() {
                    {currentItems.map((recaudo) => {
                      const cliente = recaudo.venta?.cliente || {};
                      const esFalla = parseFloat(recaudo.valor_recaudo) === 0;
+                     const ventaId = recaudo.venta?.id;
+                     const VentaTag = ventaId ? Link : "div";
+                     const ventaLinkProps = ventaId ? { href: `/dashboard/ventas/${ventaId}` } : {};
                      return (
                        <div key={recaudo.id} className="p-5 space-y-3">
                          <div className="flex items-start justify-between gap-3">
-                           <button
-                             onClick={() => recaudo.venta?.id && router.push(`/dashboard/ventas/${recaudo.venta.id}`)}
+                           <VentaTag
+                             {...ventaLinkProps}
                              className="flex items-center gap-3 flex-1 min-w-0 text-left"
                            >
                              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm uppercase shrink-0 ${
@@ -466,7 +472,7 @@ export default function RecaudosPage() {
                                <p className="text-[14px] font-black text-slate-800 dark:text-white uppercase truncate leading-tight">{cliente.nombres} {cliente.apellidos}</p>
                                <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">REC #{recaudo.id} • VTA #{recaudo.venta?.id}</p>
                              </div>
-                           </button>
+                           </VentaTag>
                            <span className={`inline-flex px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest shrink-0 ${
                              esFalla ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600'
                            }`}>

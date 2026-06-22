@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { FiUser, FiUsers, FiSearch, FiPlus, FiEdit, FiEye, FiFilter, FiX, FiPhone, FiMapPin, FiActivity, FiShield, FiAlertCircle, FiBarChart2, FiChevronUp, FiChevronDown } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../utils/api';
@@ -387,7 +388,7 @@ export default function ClientesPage() {
                       currentClientes.map((cliente) => (
                         <tr
                           key={cliente.id}
-                          onClick={() => router.push(`/dashboard/clientes/${cliente.id}`)}
+                          onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.target.closest("a")) return; router.push(`/dashboard/clientes/${cliente.id}`); }}
                           className="hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-colors group cursor-pointer"
                         >
                           <td className="px-4 py-6 whitespace-nowrap">
@@ -396,9 +397,9 @@ export default function ClientesPage() {
                                 {cliente.nombres?.charAt(0)}
                               </div>
                               <div className="ml-4 min-w-0">
-                                <div className="text-[14px] font-black text-slate-800 dark:text-white tracking-tight truncate">
+                                <Link href={`/dashboard/clientes/${cliente.id}`} className="block text-[14px] font-black text-slate-800 dark:text-white tracking-tight truncate hover:text-indigo-600 transition-colors">
                                   {cliente.nombres} {cliente.apellidos}
-                                </div>
+                                </Link>
                                 <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1 mt-0.5 truncate">
                                   <FiMapPin className="text-indigo-400 shrink-0" size={10} />
                                   {cliente.direccion}
@@ -446,13 +447,13 @@ export default function ClientesPage() {
                           </td>
                           <td className="px-4 py-6 whitespace-nowrap text-right">
                             <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={() => router.push(`/dashboard/clientes/${cliente.id}`)}
-                                className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-indigo-600 hover:text-white active:scale-95 transition-all shadow-sm"
+                              <Link
+                                href={`/dashboard/clientes/${cliente.id}`}
+                                className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-indigo-600 hover:text-white active:scale-95 transition-all shadow-sm inline-flex items-center justify-center"
                                 title="Ficha Técnica"
                               >
                                 <FiEye size={16} />
-                              </button>
+                              </Link>
                               <button
                                 onClick={() => router.push(`/dashboard/clientes/${cliente.id}/editar`)}
                                 className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-emerald-600 hover:text-white active:scale-95 transition-all shadow-sm"
@@ -497,7 +498,7 @@ export default function ClientesPage() {
                   currentClientes.map((cliente) => (
                     <div
                       key={cliente.id}
-                      onClick={() => router.push(`/dashboard/clientes/${cliente.id}`)}
+                      onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.target.closest("a")) return; router.push(`/dashboard/clientes/${cliente.id}`); }}
                       className="px-5 py-4 cursor-pointer active:bg-indigo-50/50 dark:active:bg-indigo-500/5 transition-colors"
                     >
                       <div className="flex items-center gap-3 mb-3">
@@ -505,9 +506,9 @@ export default function ClientesPage() {
                           {cliente.nombres?.charAt(0)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[14px] font-black text-slate-800 dark:text-white tracking-tight truncate">
+                          <Link href={`/dashboard/clientes/${cliente.id}`} className="block text-[14px] font-black text-slate-800 dark:text-white tracking-tight truncate hover:text-indigo-600 transition-colors">
                             {cliente.nombres} {cliente.apellidos}
-                          </p>
+                          </Link>
                           <div className="flex items-center gap-1 mt-0.5">
                             <FiMapPin className="text-indigo-400 shrink-0" size={10} />
                             <span className="text-[11px] font-bold text-slate-400 truncate">{cliente.direccion}</span>

@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   FiCalendar,
   FiAlertCircle,
@@ -439,9 +440,9 @@ export default function VisitasReportePage() {
                             : `Venta #${ventaId}`;
 
                           return (
-                            <tr key={recaudo.id} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all cursor-pointer" onClick={() => router.push(`/dashboard/ventas/${ventaId}`)}>
+                            <tr key={recaudo.id} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all cursor-pointer" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.target.closest("a")) return; router.push(`/dashboard/ventas/${ventaId}`); }}>
                               <td className="px-8 py-5 whitespace-nowrap">
-                                <p className="text-xs font-black text-slate-800 dark:text-white tracking-tight capitalize">{clienteNombre}</p>
+                                <Link href={`/dashboard/ventas/${ventaId}`} className="block text-xs font-black text-slate-800 dark:text-white tracking-tight capitalize hover:text-indigo-600 transition-colors">{clienteNombre}</Link>
                                 <p className="text-[9px] font-bold text-slate-400 mt-0.5">Ref. #{ventaId}</p>
                               </td>
                               <td className="px-8 py-5">
@@ -483,7 +484,7 @@ export default function VisitasReportePage() {
                         : `Venta #${ventaId}`;
 
                       return (
-                        <div key={recaudo.id} className="px-5 py-4 space-y-3 active:bg-slate-50 dark:active:bg-slate-800/50 transition-colors" onClick={() => router.push(`/dashboard/ventas/${ventaId}`)}>
+                        <Link key={recaudo.id} href={`/dashboard/ventas/${ventaId}`} className="block px-5 py-4 space-y-3 active:bg-slate-50 dark:active:bg-slate-800/50 transition-colors">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2.5 min-w-0">
                               <div className={`p-1.5 ${config.bg} ${config.text} rounded-lg shrink-0`}>
@@ -506,7 +507,7 @@ export default function VisitasReportePage() {
                               </p>
                             </div>
                           )}
-                        </div>
+                        </Link>
                       );
                     })}
                   </div>

@@ -379,7 +379,7 @@ export default function VentasPage() {
                       return (
                       <tr
                         key={venta.id}
-                        onClick={() => router.push(`/dashboard/ventas/${venta.id}`)}
+                        onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.target.closest("a")) return; router.push(`/dashboard/ventas/${venta.id}`); }}
                         className={`group transition-all cursor-pointer ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/40 hover:bg-amber-100/60 dark:hover:bg-amber-950/60 border-l-4 border-amber-400" : "hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 border-l-4 border-transparent"}`}
                       >
                         <td className="px-6 py-6 whitespace-nowrap">
@@ -391,9 +391,9 @@ export default function VentasPage() {
                               {venta.cliente.nombres.charAt(0)}
                             </div>
                             <div>
-                              <p className="text-sm font-black text-slate-800 dark:text-white leading-none mb-1">
+                              <Link href={`/dashboard/ventas/${venta.id}`} className="block text-sm font-black text-slate-800 dark:text-white leading-none mb-1 hover:text-indigo-600 transition-colors">
                                 {venta.cliente.nombres} {venta.cliente.apellidos}
-                              </p>
+                              </Link>
                               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">
                                 {venta.cliente.identificacion}
                               </p>
@@ -473,10 +473,10 @@ export default function VentasPage() {
                   const visitasRestantes = calcVisitasRestantes(venta);
                   const proxVencer = (venta.estado_venta === "Vigente" || venta.estado_venta === "Atrasado") && visitasRestantes !== null && visitasRestantes >= 0 && visitasRestantes <= 3;
                   return (
-                    <div
+                    <Link
                       key={venta.id}
-                      onClick={() => router.push(`/dashboard/ventas/${venta.id}`)}
-                      className={`p-5 active:bg-slate-50 dark:active:bg-slate-800/30 transition-colors cursor-pointer ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/30 border-l-4 border-amber-400" : "border-l-4 border-transparent"}`}
+                      href={`/dashboard/ventas/${venta.id}`}
+                      className={`block p-5 active:bg-slate-50 dark:active:bg-slate-800/30 transition-colors cursor-pointer ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/30 border-l-4 border-amber-400" : "border-l-4 border-transparent"}`}
                     >
                       {/* Header: avatar + nombre + estado */}
                       <div className="flex items-start justify-between gap-3 mb-4">
@@ -536,7 +536,7 @@ export default function VentasPage() {
                           )}
                         </div>
                       )}
-                    </div>
+                    </Link>
                   );
                 })
               )}

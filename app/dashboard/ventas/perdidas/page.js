@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   FiAlertTriangle,
   FiSearch,
@@ -301,7 +302,7 @@ export default function VentasPerdidasPage() {
                   currentVentas.map((venta) => (
                     <tr
                       key={venta.id}
-                      onClick={() => router.push(`/dashboard/ventas/${venta.id}`)}
+                      onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.target.closest("a")) return; router.push(`/dashboard/ventas/${venta.id}`); }}
                       className="group hover:bg-rose-50/30 dark:hover:bg-rose-500/5 transition-all cursor-pointer"
                     >
                       <td className="px-4 py-6 whitespace-nowrap">
@@ -313,9 +314,9 @@ export default function VentasPerdidasPage() {
                             {venta.cliente.nombres.charAt(0)}
                           </div>
                           <div>
-                            <p className="text-sm font-black text-slate-800 dark:text-white leading-none mb-1">
+                            <Link href={`/dashboard/ventas/${venta.id}`} className="block text-sm font-black text-slate-800 dark:text-white leading-none mb-1 hover:text-rose-600 transition-colors">
                               {venta.cliente.nombres} {venta.cliente.apellidos}
-                            </p>
+                            </Link>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">
                               {venta.cliente.identificacion}
                             </p>
@@ -367,10 +368,10 @@ export default function VentasPerdidasPage() {
               </div>
             ) : (
               currentVentas.map((venta) => (
-                <div
+                <Link
                   key={venta.id}
-                  onClick={() => router.push(`/dashboard/ventas/${venta.id}`)}
-                  className="px-5 py-4 cursor-pointer active:bg-rose-50/50 dark:active:bg-rose-500/5 transition-colors"
+                  href={`/dashboard/ventas/${venta.id}`}
+                  className="block px-5 py-4 cursor-pointer active:bg-rose-50/50 dark:active:bg-rose-500/5 transition-colors"
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-600 font-black text-sm shrink-0">
@@ -405,7 +406,7 @@ export default function VentasPerdidasPage() {
                       <p className="text-xs font-black text-rose-600 dark:text-rose-400">{formatMoney(venta.saldo_actual)}</p>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))
             )}
           </div>

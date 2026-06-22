@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 import {
   FiArrowLeft,
   FiDollarSign,
@@ -493,12 +494,12 @@ export default function VentaDetailPage() {
             <FiArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
           </button>
           <div className="min-w-0 flex-1 pt-1">
-            <button
-              onClick={() => router.push(`/dashboard/clientes/${venta.cliente.id}`)}
+            <Link
+              href={`/dashboard/clientes/${venta.cliente.id}`}
               className="block text-lg md:text-xl font-black text-slate-800 dark:text-white tracking-tight leading-tight capitalize hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left w-full"
             >
               {venta.cliente?.nombres} {venta.cliente?.apellidos}
-            </button>
+            </Link>
             <div className="flex items-center gap-2 flex-wrap mt-2">
               {getStatusBadge(venta.estado_venta, venta)}
               {venta.estado_venta === "Vencido" && venta.dias_atrasados > 0 && (
@@ -899,12 +900,12 @@ export default function VentaDetailPage() {
                 )}
               </div>
 
-              <button
-                onClick={() => router.push(`/dashboard/clientes/${venta.cliente.id}`)}
+              <Link
+                href={`/dashboard/clientes/${venta.cliente.id}`}
                 className="w-full py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 Ver Expediente Completo <FiArrowUpRight size={13} />
-              </button>
+              </Link>
             </div>
 
             {!isWorker && (

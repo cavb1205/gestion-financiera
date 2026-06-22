@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
 import {
@@ -425,10 +426,10 @@ export default function CarteraReportPage() {
                     {/* Mobile card view */}
                     <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
                       {topRiesgo.map((venta, idx) => (
-                        <div
+                        <Link
                           key={venta.id}
-                          onClick={() => router.push(`/dashboard/ventas/${venta.id}`)}
-                          className="px-5 py-4 active:bg-slate-50 dark:active:bg-slate-800/50 cursor-pointer transition-all"
+                          href={`/dashboard/ventas/${venta.id}`}
+                          className="block px-5 py-4 active:bg-slate-50 dark:active:bg-slate-800/50 cursor-pointer transition-all"
                         >
                           <div className="flex items-center justify-between mb-1.5">
                             <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight truncate pr-2">
@@ -446,7 +447,7 @@ export default function CarteraReportPage() {
                               {venta.estado_venta}
                             </span>
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
 
@@ -466,13 +467,13 @@ export default function CarteraReportPage() {
                           {topRiesgo.map((venta, idx) => (
                             <tr
                               key={venta.id}
-                              onClick={() => router.push(`/dashboard/ventas/${venta.id}`)}
+                              onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.target.closest("a")) return; router.push(`/dashboard/ventas/${venta.id}`); }}
                               className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all cursor-pointer"
                             >
                               <td className="px-8 py-5 whitespace-nowrap">
-                                <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter group-hover:text-indigo-600 transition-colors">
+                                <Link href={`/dashboard/ventas/${venta.id}`} className="block text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter group-hover:text-indigo-600 transition-colors">
                                   {venta.cliente.nombres} {venta.cliente.apellidos}
-                                </p>
+                                </Link>
                                 <p className="text-[10px] font-bold text-slate-400 mt-0.5">{venta.cliente.identificacion}</p>
                               </td>
                               <td className="px-8 py-5 text-right">
