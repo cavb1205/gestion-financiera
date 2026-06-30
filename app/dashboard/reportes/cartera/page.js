@@ -128,10 +128,14 @@ export default function CarteraReportPage() {
   const saldoIrrecuperable = deterioroTiers.find((t) => t.nivel === 3)?.saldo || 0;
 
   // --- Top 10 Risky Clients ---
-  // Priority: Vencido first, then Atrasado. Within each group, sort by saldo desc.
+  // Prioridad: nivel de deterioro desc (Irrecuperable→Crítico→Dudoso), luego
+  // estado (Vencido antes que Atrasado) y por último saldo desc.
   const estadoPriority = { Vencido: 0, Atrasado: 1 };
   const topRiesgo = [...ventasMorosas]
     .sort((a, b) => {
+      const na = clasificarDeterioro(a).nivel;
+      const nb = clasificarDeterioro(b).nivel;
+      if (na !== nb) return nb - na;
       const pa = estadoPriority[a.estado_venta] ?? 99;
       const pb = estadoPriority[b.estado_venta] ?? 99;
       if (pa !== pb) return pa - pb;
@@ -476,7 +480,7 @@ export default function CarteraReportPage() {
                   </div>
                   <div>
                     <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Top 10 Clientes en Riesgo</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Vencidos primero · luego atrasados por saldo</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Mayor deterioro primero · luego vencidos y saldo</p>
                   </div>
                 </div>
 
