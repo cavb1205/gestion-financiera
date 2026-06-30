@@ -30,6 +30,7 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
 import { formatMoney, parseMoney, calcularTotal, calcularCuota } from "../../../utils/format";
+import { clasificarDeterioro } from "../../../utils/cartera";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
@@ -507,6 +508,14 @@ export default function VentaDetailPage() {
                   {Math.round(venta.dias_atrasados)}d mora
                 </span>
               )}
+              {(() => {
+                const det = clasificarDeterioro(venta);
+                return det.nivel > 0 ? (
+                  <span className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-widest rounded-full border ${det.badge}`}>
+                    {det.label} · {det.diasSinAbono}d sin abono
+                  </span>
+                ) : null;
+              })()}
               <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">
                 Crédito #{ventaId}
               </span>
@@ -625,6 +634,17 @@ export default function VentaDetailPage() {
                     {venta.dias_atrasados > 0 ? `${Math.round(venta.dias_atrasados)}d Atraso` : `${Math.round(venta.dias_atrasados) * -1}d Adelantado`}
                   </p>
                 </div>
+                {Number.isFinite(Number(venta.dias_sin_abono)) && (() => {
+                  const det = clasificarDeterioro(venta);
+                  return (
+                    <div className="space-y-1">
+                      <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Días sin Abono</p>
+                      <p className={`text-xs md:text-sm font-black ${det.nivel > 0 ? det.text : 'text-slate-700 dark:text-slate-200'}`}>
+                        {venta.dias_sin_abono}d{det.nivel > 0 ? ` · ${det.short}` : ''}
+                      </p>
+                    </div>
+                  );
+                })()}
                 <div className="space-y-1">
                   <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Cuotas Pagadas</p>
                   <p className="text-xs md:text-sm font-black text-indigo-600">{Math.round(venta.pagos_realizados)} de {venta.cuotas}</p>
