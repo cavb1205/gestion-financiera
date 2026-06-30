@@ -488,7 +488,9 @@ export default function CarteraReportPage() {
                   <>
                     {/* Mobile card view */}
                     <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                      {topRiesgo.map((venta, idx) => (
+                      {topRiesgo.map((venta, idx) => {
+                        const det = clasificarDeterioro(venta);
+                        return (
                         <Link
                           key={venta.id}
                           href={`/dashboard/ventas/${venta.id}`}
@@ -510,8 +512,16 @@ export default function CarteraReportPage() {
                               {venta.estado_venta}
                             </span>
                           </div>
+                          {det.nivel > 0 && (
+                            <div className="mt-2">
+                              <span className={`px-2 py-0.5 rounded-lg border text-[9px] font-black uppercase tracking-widest ${det.badge}`}>
+                                {det.label} · {det.diasSinAbono}d sin abono
+                              </span>
+                            </div>
+                          )}
                         </Link>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {/* Desktop table */}
@@ -527,7 +537,9 @@ export default function CarteraReportPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                          {topRiesgo.map((venta, idx) => (
+                          {topRiesgo.map((venta, idx) => {
+                            const det = clasificarDeterioro(venta);
+                            return (
                             <tr
                               key={venta.id}
                               onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.target.closest("a")) return; router.push(`/dashboard/ventas/${venta.id}`); }}
@@ -553,12 +565,20 @@ export default function CarteraReportPage() {
                                 </span>
                               </td>
                               <td className="px-8 py-5 text-center">
-                                <span className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest ${estadoBadge(venta.estado_venta)}`}>
-                                  {venta.estado_venta}
-                                </span>
+                                <div className="flex flex-col items-center gap-1.5">
+                                  <span className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest ${estadoBadge(venta.estado_venta)}`}>
+                                    {venta.estado_venta}
+                                  </span>
+                                  {det.nivel > 0 && (
+                                    <span className={`px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest ${det.badge}`}>
+                                      {det.label} · {det.diasSinAbono}d s/abono
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
