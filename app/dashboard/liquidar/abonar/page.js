@@ -119,7 +119,9 @@ export default function PagarAbonoPage() {
 
   const valorCuota = parseFloat(abono?.valor_cuota) || 0;
   const totalCuotas = parseInt(abono?.cuotas) || 0;
-  const pagosRealizados = parseInt(abono?.pagos_realizados) || 0;
+  // Usar el mismo redondeo que la lista de liquidar (Math.round, no parseInt/truncado)
+  // para que "pagos realizados" sea consistente entre pantallas y la cuota a abonar arranque correcta.
+  const pagosRealizados = Math.round(parseFloat(abono?.pagos_realizados)) || 0;
   const cuotaActual = Math.min(pagosRealizados + 1, totalCuotas || pagosRealizados + 1);
   const diasAtrasados = parseInt(abono?.dias_atrasados) || 0;
 

@@ -442,7 +442,7 @@ export default function CarteraReportPage() {
                             <span className="text-slate-300 dark:text-slate-700">•</span>
                             <span className="text-rose-500">{venta.dias_atrasados}d mora</span>
                             <span className="text-slate-300 dark:text-slate-700">•</span>
-                            <span className="text-slate-400">{venta.pagos_realizados}/{venta.cuotas}</span>
+                            <span className="text-slate-400">{Math.round(venta.pagos_realizados || 0)}/{venta.cuotas}</span>
                             <span className={`ml-auto px-2 py-0.5 rounded-lg border text-[9px] ${estadoBadge(venta.estado_venta)}`}>
                               {venta.estado_venta}
                             </span>
@@ -486,7 +486,7 @@ export default function CarteraReportPage() {
                               </td>
                               <td className="px-8 py-5 text-center">
                                 <span className="text-xs font-black text-slate-600 dark:text-slate-400">
-                                  {venta.pagos_realizados} / {venta.cuotas}
+                                  {Math.round(venta.pagos_realizados || 0)} / {venta.cuotas}
                                 </span>
                               </td>
                               <td className="px-8 py-5 text-center">
