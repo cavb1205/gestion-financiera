@@ -23,6 +23,7 @@ import {
 } from "react-icons/fi";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../../utils/format";
+import { clasificarDeterioro, NIVEL_DETERIORO } from "../../../utils/cartera";
 import { toast } from "react-toastify";
 
 export default function CarteraReportPage() {
@@ -107,6 +108,24 @@ export default function CarteraReportPage() {
       }
     }
   });
+
+  // --- Riesgo de castigo (deterioro por días sin abono) ---
+  const deterioroTiers = [
+    { ...NIVEL_DETERIORO[3], nivel: 3, count: 0, saldo: 0 },
+    { ...NIVEL_DETERIORO[2], nivel: 2, count: 0, saldo: 0 },
+    { ...NIVEL_DETERIORO[1], nivel: 1, count: 0, saldo: 0 },
+  ];
+  ventas.forEach((v) => {
+    const { nivel } = clasificarDeterioro(v);
+    const tier = deterioroTiers.find((t) => t.nivel === nivel);
+    if (tier) {
+      tier.count += 1;
+      tier.saldo += parseMoney(v.saldo_actual);
+    }
+  });
+  const totalDeterioroCount = deterioroTiers.reduce((a, t) => a + t.count, 0);
+  const totalDeterioroSaldo = deterioroTiers.reduce((a, t) => a + t.saldo, 0);
+  const saldoIrrecuperable = deterioroTiers.find((t) => t.nivel === 3)?.saldo || 0;
 
   // --- Top 10 Risky Clients ---
   // Priority: Vencido first, then Atrasado. Within each group, sort by saldo desc.
@@ -403,6 +422,50 @@ export default function CarteraReportPage() {
                     </tfoot>
                   </table>
                 </div>
+              </div>
+
+              {/* Riesgo de Castigo (deterioro por días sin abono) */}
+              <div className="glass rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl lg:col-span-2">
+                <div className="px-6 md:px-10 py-6 md:py-8 border-b border-slate-100 dark:border-slate-800 flex items-center gap-4">
+                  <div className="w-10 h-10 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl flex items-center justify-center shrink-0">
+                    <FiAlertTriangle size={20} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Riesgo de Castigo</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Créditos en mora clasificados por días sin abono</p>
+                  </div>
+                  {totalDeterioroCount > 0 && (
+                    <div className="text-right shrink-0">
+                      <p className="text-lg md:text-xl font-black text-rose-600 dark:text-rose-400 tracking-tight leading-none">{formatMoney(totalDeterioroSaldo)}</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{totalDeterioroCount} en riesgo</p>
+                    </div>
+                  )}
+                </div>
+
+                {totalDeterioroCount === 0 ? (
+                  <div className="p-10 text-center">
+                    <p className="text-sm font-bold text-slate-400">Sin créditos en riesgo de castigo.</p>
+                    <p className="text-[10px] font-bold text-slate-400/70 uppercase tracking-widest mt-1">Ningún crédito en mora supera 15 días sin abono.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800">
+                    {deterioroTiers.map((tier) => (
+                      <div key={tier.nivel} className="p-6 md:p-8">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-full border ${tier.badge}`}>
+                            {tier.label}
+                          </span>
+                        </div>
+                        <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">{tier.count}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
+                          crédito{tier.count !== 1 ? "s" : ""} · {tier.min}d+ sin abono
+                        </p>
+                        <p className={`text-sm font-black mt-3 tracking-tight ${tier.text}`}>{formatMoney(tier.saldo)}</p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">saldo expuesto</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Top 10 Clientes en Riesgo */}

@@ -24,6 +24,7 @@ import { useAuth } from "../../context/AuthContext";
 import { apiFetch } from "../../utils/api";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../utils/format";
+import { clasificarDeterioro } from "../../utils/cartera";
 import Link from "next/link";
 import Pagination from "../../components/Pagination";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
@@ -95,6 +96,10 @@ export default function VentasPage() {
       if (venta.estado_venta !== "Vigente" && venta.estado_venta !== "Atrasado") return false;
       const vr = calcVisitasRestantes(venta);
       if (vr === null || vr < 0 || vr > 3) return false;
+    } else if (filters.estado.startsWith("det_")) {
+      // Tramos de deterioro: muestra el nivel elegido y peores (15d+ / 45d+ / 90d+).
+      const nivelMin = { det_dudoso: 1, det_critico: 2, det_irrecuperable: 3 }[filters.estado];
+      if (clasificarDeterioro(venta).nivel < nivelMin) return false;
     } else if (filters.estado !== "Todos" && venta.estado_venta !== filters.estado) return false;
     if (filters.montoMin && parseFloat(venta.saldo_actual) < parseFloat(filters.montoMin)) return false;
     if (filters.montoMax && parseFloat(venta.saldo_actual) > parseFloat(filters.montoMax)) return false;
@@ -323,6 +328,11 @@ export default function VentasPage() {
                       <option value="Vigente">🟢 Vigente</option>
                       <option value="Atrasado">🟡 Atrasado</option>
                       <option value="Vencido">🔴 Vencido</option>
+                      <optgroup label="Riesgo de castigo (sin abono)">
+                        <option value="det_dudoso">🟠 Dudoso recaudo (15d+)</option>
+                        <option value="det_critico">🔶 Crítico (45d+)</option>
+                        <option value="det_irrecuperable">💀 Irrecuperable (90d+)</option>
+                      </optgroup>
                     </select>
                  </div>
               </div>
@@ -376,6 +386,7 @@ export default function VentasPage() {
                     currentVentas.map((venta) => {
                       const visitasRestantes = calcVisitasRestantes(venta);
                       const proxVencer = (venta.estado_venta === "Vigente" || venta.estado_venta === "Atrasado") && visitasRestantes !== null && visitasRestantes >= 0 && visitasRestantes <= 3;
+                      const det = clasificarDeterioro(venta);
                       return (
                       <tr
                         key={venta.id}
@@ -439,6 +450,11 @@ export default function VentasPage() {
                                  {Math.round(Math.abs(venta.dias_atrasados))} Días Adelantado
                                </span>
                              )}
+                             {det.nivel > 0 && (
+                               <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-full border ${det.badge}`}>
+                                 {det.short} · {det.diasSinAbono}d s/abono
+                               </span>
+                             )}
                           </div>
                         </td>
                       </tr>
@@ -472,6 +488,7 @@ export default function VentasPage() {
                 currentVentas.map((venta) => {
                   const visitasRestantes = calcVisitasRestantes(venta);
                   const proxVencer = (venta.estado_venta === "Vigente" || venta.estado_venta === "Atrasado") && visitasRestantes !== null && visitasRestantes >= 0 && visitasRestantes <= 3;
+                  const det = clasificarDeterioro(venta);
                   return (
                     <Link
                       key={venta.id}
@@ -534,6 +551,13 @@ export default function VentasPage() {
                               {Math.round(Math.abs(venta.dias_atrasados))} Días Adelantado
                             </span>
                           )}
+                        </div>
+                      )}
+                      {det.nivel > 0 && (
+                        <div className="mt-2 text-center">
+                          <span className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full border ${det.badge}`}>
+                            {det.label} · {det.diasSinAbono}d sin abono
+                          </span>
                         </div>
                       )}
                     </Link>

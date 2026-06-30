@@ -27,6 +27,7 @@ import UltimosMovimientos from "../components/dashboard/UltimosMovimientos";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { SkeletonCard } from "../components/Skeleton";
 import { formatMoney } from "../utils/format";
+import { clasificarDeterioro } from "../utils/cartera";
 
 const formatDate = (s) => {
   if (!s) return "";
@@ -62,7 +63,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [tienda, setTienda] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [alertas, setAlertas] = useState({ vencidos: 0, moraGrave: 0, montoMora: 0, fallasHoy: 0, cajaNegativa: false, proximosVencer: 0, montoProximosVencer: 0 });
+  const [alertas, setAlertas] = useState({ vencidos: 0, moraGrave: 0, montoMora: 0, fallasHoy: 0, cajaNegativa: false, proximosVencer: 0, montoProximosVencer: 0, irrecuperables: 0, montoIrrecuperable: 0 });
 
   const fetchTienda = async () => {
     if (!selectedStore) return null;
@@ -105,6 +106,8 @@ export default function DashboardPage() {
       const vencidos = activos.filter(c => c.estado_venta === "Vencido");
       const moraGrave = vencidos.filter(c => (c.dias_atrasados || 0) >= 15);
       const montoMora = vencidos.reduce((acc, c) => acc + Math.round(parseFloat(c.saldo_actual) || 0), 0);
+      const irrecuperables = activos.filter(c => clasificarDeterioro(c).nivel === 3);
+      const montoIrrecuperable = irrecuperables.reduce((acc, c) => acc + Math.round(parseFloat(c.saldo_actual) || 0), 0);
       const fallasHoy = recaudosHoy.filter(r => r.visita_blanco).length;
       const proximosVencer = activos.filter(c => {
         if (c.estado_venta !== "Vigente" && c.estado_venta !== "Atrasado") return false;
@@ -124,6 +127,8 @@ export default function DashboardPage() {
         cajaNegativa: (selectedStore.tienda.caja ?? 0) < 0,
         proximosVencer: proximosVencer.length,
         montoProximosVencer,
+        irrecuperables: irrecuperables.length,
+        montoIrrecuperable,
       });
     } catch (err) {
       console.error("Error al cargar alertas:", err);
@@ -289,7 +294,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── Alertas operativas ──────────────────────────────────── */}
-      {(alertas.vencidos > 0 || alertas.fallasHoy > 0 || alertas.cajaNegativa || alertas.proximosVencer > 0) && (
+      {(alertas.vencidos > 0 || alertas.fallasHoy > 0 || alertas.cajaNegativa || alertas.proximosVencer > 0 || alertas.irrecuperables > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {alertas.proximosVencer > 0 && (
             <button
@@ -328,6 +333,26 @@ export default function DashboardPage() {
                 </p>
               </div>
               <FiChevronRight className="text-rose-300 group-hover:translate-x-1 transition-transform shrink-0" size={16} />
+            </button>
+          )}
+
+          {alertas.irrecuperables > 0 && (
+            <button
+              onClick={() => router.push("/dashboard/reportes/cartera")}
+              className="flex items-center gap-4 p-4 bg-rose-100/60 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-800/50 rounded-2xl hover:border-rose-500 transition-all group text-left"
+            >
+              <div className="p-2.5 bg-rose-200/70 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
+                <FiAlertTriangle size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black text-rose-800 dark:text-rose-300 tracking-tight">
+                  {alertas.irrecuperables} crédito{alertas.irrecuperables !== 1 ? "s" : ""} irrecuperable{alertas.irrecuperables !== 1 ? "s" : ""}
+                </p>
+                <p className="text-[10px] font-bold text-rose-600/70 dark:text-rose-400/70 uppercase tracking-widest">
+                  +90d sin abono · {formatMoney(alertas.montoIrrecuperable)} candidato a castigo
+                </p>
+              </div>
+              <FiChevronRight className="text-rose-400 group-hover:translate-x-1 transition-transform shrink-0" size={16} />
             </button>
           )}
 
