@@ -23,6 +23,7 @@ import {
   FiArrowRight,
   FiShield,
   FiPackage,
+  FiDownload,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -114,6 +115,38 @@ export default function RecaudosPage() {
     const fallas = filteredRecaudos.filter(r => parseFloat(r.valor_recaudo) === 0).length;
     return { total, abonos, fallas, count: filteredRecaudos.length };
   }, [filteredRecaudos]);
+
+  // Exportar CSV de lo que se ve en pantalla (respeta el filtro de búsqueda)
+  const exportarCSV = () => {
+    if (!filteredRecaudos.length) return;
+    // Envuelve un campo de texto en comillas y escapa las comillas internas (CSV estándar)
+    const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [
+      "Fecha,Recaudo,Venta,Cliente,Identificacion,Tipo,Detalle,Valor,Saldo Venta",
+      ...filteredRecaudos.map((r) => {
+        const cli = r.venta?.cliente || {};
+        const esFalla = parseFloat(r.valor_recaudo) === 0;
+        return [
+          r.fecha_recaudo || selectedDate,
+          r.id,
+          r.venta?.id ?? "",
+          q(`${cli.nombres || ""} ${cli.apellidos || ""}`.trim()),
+          q(cli.identificacion || ""),
+          esFalla ? "Falla" : "Abono",
+          q(esFalla ? (r.visita_blanco?.tipo_falla || "") : ""),
+          parseMoney(r.valor_recaudo),
+          parseMoney(r.venta?.saldo_actual || 0),
+        ].join(",");
+      }),
+    ].join("\n");
+    const blob = new Blob([rows], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `recaudos_${selectedDate || "fecha"}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   // Paginación
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -314,6 +347,16 @@ export default function RecaudosPage() {
                     />
                  </div>
               </div>
+              {filteredRecaudos.length > 0 && (
+                <button
+                  onClick={exportarCSV}
+                  aria-label="Exportar recaudos a CSV"
+                  className="w-full lg:w-auto shrink-0 flex items-center justify-center gap-2 px-5 py-4.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-200 dark:shadow-none active:scale-95 transition-all"
+                >
+                  <FiDownload size={16} />
+                  <span>Exportar</span>
+                </button>
+              )}
            </div>
 
            {/* Desktop Table */}

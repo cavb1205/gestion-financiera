@@ -393,7 +393,9 @@ export default function DashboardLayout({ children }) {
                               isActive("/dashboard/publicidad") ? "Publicidad" :
                               isActive("/dashboard/cierre-caja") ? "Cierre de Caja" :
                                 isActive("/dashboard/reportes") ? "Reportes" :
-                                  isActive("/dashboard/membresias") ? "Membresía" : "Dashboard"}
+                                  isActive("/dashboard/membresias") ? "Membresía" :
+                                    isActive("/dashboard/perfil") ? "Mi Perfil" :
+                                      isActive("/dashboard/admin") ? "Administración" : "Dashboard"}
           </h1>
         </div>
         <div className="flex items-center gap-2">
