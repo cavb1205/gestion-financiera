@@ -26,7 +26,7 @@ import {
   FiMapPin,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
-import { apiFetch } from "../../../utils/api";
+import { apiFetch, getApiError } from "../../../utils/api";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import { formatMoney, calcularTotal, calcularCuota } from "../../../utils/format";
 import DatePicker from "react-datepicker";
@@ -151,7 +151,8 @@ function NuevaVentaContent() {
         body: JSON.stringify({ ...nuevoCliente, tienda: selectedStore.tienda.id }),
       });
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => null);
+        if (!data) throw new Error();
         const errsBack = {};
         Object.keys(data).forEach((k) => { errsBack[k] = Array.isArray(data[k]) ? data[k].join(" ") : data[k]; });
         setErroresCliente(errsBack);
@@ -243,8 +244,7 @@ function NuevaVentaContent() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Error al crear la venta");
+        throw new Error(await getApiError(response, "Error al crear la venta"));
       }
 
       const result = await response.json();

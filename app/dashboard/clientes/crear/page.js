@@ -146,7 +146,9 @@ export default function CrearCliente() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
+        // Si el cuerpo no es JSON (500, proxy caído), no fingir errores de campos
+        const errorData = await response.json().catch(() => null);
+        if (!errorData) throw new Error("Error de conexión con el servidor. Intenta de nuevo.");
         const backendErrors = {};
         let globalError = "Por favor revise los errores en el formulario";
 

@@ -16,7 +16,7 @@ import {
   FiArrowDownRight,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
-import { apiFetch } from "../../../../utils/api";
+import { apiFetch, getApiError } from "../../../../utils/api";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../../../../utils/format";
@@ -110,8 +110,7 @@ export default function EditarGastoPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || errorData.message || "Error al actualizar el gasto.");
+        throw new Error(await getApiError(response, "Error al actualizar el gasto."));
       }
 
       toast.success("Egreso rectificado en caja.");

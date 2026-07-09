@@ -14,7 +14,7 @@ import {
   FiArrowDownRight,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
-import { apiFetch } from "../../../utils/api";
+import { apiFetch, getApiError } from "../../../utils/api";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -97,8 +97,7 @@ export default function CrearGastoPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || errorData.message || "Error al crear el egreso.");
+        throw new Error(await getApiError(response, "Error al crear el egreso."));
       }
 
       toast.success("Egreso sincronizado en caja.");

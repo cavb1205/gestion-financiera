@@ -115,4 +115,29 @@ export async function apiFetch(path, options = {}) {
   }
 }
 
+/**
+ * Extrae un mensaje de error legible de una respuesta no-ok.
+ * Nunca lanza: si el cuerpo no es JSON (HTML de un 500, proxy caído),
+ * devuelve el mensaje de respaldo.
+ * @param {Response} response
+ * @param {string} fallback - Mensaje si no se puede extraer uno del cuerpo
+ * @returns {Promise<string>}
+ */
+export async function getApiError(response, fallback = 'Ocurrió un error inesperado') {
+  try {
+    const data = await response.json();
+    if (typeof data === 'string' && data) return data;
+    if (data?.detail) return data.detail;
+    if (data?.error) return data.error;
+    if (data?.message) return data.message;
+    // Errores de validación de DRF: { campo: ["mensaje"] } — tomar el primero
+    const first = Object.values(data || {})[0];
+    if (Array.isArray(first) && typeof first[0] === 'string') return first[0];
+    if (typeof first === 'string') return first;
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export { tryRefreshToken };

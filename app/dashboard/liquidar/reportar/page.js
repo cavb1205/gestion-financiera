@@ -19,7 +19,7 @@ import {
   FiMapPin
 } from "react-icons/fi";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
-import { apiFetch } from "@/app/utils/api";
+import { apiFetch, getApiError } from "@/app/utils/api";
 import { captureLocation } from "@/app/utils/geolocation";
 
 export default function ReportarFallaPage() {
@@ -86,8 +86,7 @@ export default function ReportarFallaPage() {
       );
 
       if (!response.ok) {
-        const responseData = await response.json();
-        throw new Error(responseData.detail || "Error al reportar el no pago");
+        throw new Error(await getApiError(response, "Error al reportar el no pago"));
       }
 
       localStorage.removeItem("noPago");

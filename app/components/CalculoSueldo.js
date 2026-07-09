@@ -20,7 +20,7 @@ import {
   FiArrowDownRight,
 } from "react-icons/fi";
 import { formatMoney } from "../utils/format";
-import { apiFetch } from "../utils/api";
+import { apiFetch, getApiError } from "../utils/api";
 import { toast } from "react-toastify";
 
 const CalculoSueldo = ({ tienda }) => {
@@ -106,8 +106,7 @@ const CalculoSueldo = ({ tienda }) => {
         body: JSON.stringify(gastoForm),
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || err.message || "Error al registrar el gasto.");
+        throw new Error(await getApiError(res, "Error al registrar el gasto."));
       }
       toast.success("Gasto de sueldo registrado correctamente.");
       setShowGastoModal(false);
@@ -396,6 +395,7 @@ const CalculoSueldo = ({ tienda }) => {
                     type="number"
                     value={gastoForm.valor}
                     onChange={(e) => setGastoForm((p) => ({ ...p, valor: e.target.value }))}
+                    onWheel={(e) => e.target.blur()}
                     required
                     min="0"
                     step="any"

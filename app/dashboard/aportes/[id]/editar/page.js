@@ -17,7 +17,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../../../../utils/format";
-import { apiFetch } from "../../../../utils/api";
+import { apiFetch, getApiError } from "../../../../utils/api";
 
 export default function EditarAportePage() {
   const { id } = useParams();
@@ -79,8 +79,7 @@ export default function EditarAportePage() {
         }
       );
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || err.message || "Error al actualizar el aporte.");
+        throw new Error(await getApiError(response, "Error al actualizar el aporte."));
       }
       localStorage.removeItem("aporteEditar");
       toast.success("Aporte actualizado correctamente.");

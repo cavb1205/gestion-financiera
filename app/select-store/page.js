@@ -20,7 +20,7 @@ import {
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../utils/format";
-import { apiFetch } from "../utils/api";
+import { apiFetch, getApiError } from "../utils/api";
 
 export default function SelectStorePage() {
   const { logout, selectStore, user } = useAuth();
@@ -136,8 +136,7 @@ export default function SelectStorePage() {
         body: JSON.stringify({ nombre: newNombre.trim(), administrador: user.id }),
       });
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.nombre?.[0] || err.detail || "Error al crear la ruta");
+        throw new Error(await getApiError(response, "Error al crear la ruta"));
       }
       const created = await response.json();
       const tiendaId = created.id;

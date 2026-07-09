@@ -21,7 +21,7 @@ import {
   FiTrendingDown,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
-import { apiFetch } from "@/app/utils/api";
+import { apiFetch, getApiError } from "@/app/utils/api";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { toast } from "react-toastify";
 import Link from "next/link";
@@ -90,8 +90,7 @@ export default function GastosPage() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || errorData.message || "Error al eliminar el gasto.");
+        throw new Error(await getApiError(response, "Error al eliminar el gasto."));
       }
 
       toast.success("Gasto eliminado exitosamente");

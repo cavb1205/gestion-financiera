@@ -28,7 +28,7 @@ import {
   FiFilter,
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
-import { apiFetch } from "../../../utils/api";
+import { apiFetch, getApiError } from "../../../utils/api";
 import { formatMoney, parseMoney, calcularTotal, calcularCuota } from "../../../utils/format";
 import { clasificarDeterioro } from "../../../utils/cartera";
 import LoadingSpinner from "../../../components/LoadingSpinner";
@@ -209,8 +209,7 @@ export default function VentaDetailPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Error al marcar como pérdida");
+        throw new Error(await getApiError(response, "Error al marcar como pérdida"));
       }
 
       toast.success("Venta marcada como pérdida");
@@ -391,6 +390,7 @@ export default function VentaDetailPage() {
                   step="0.1"
                   value={renovarForm.interes}
                   onChange={e => setRenovarForm(f => ({ ...f, interes: e.target.value }))}
+                  onWheel={(e) => e.target.blur()}
                   className="w-full px-4 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500/60 focus:ring-4 focus:ring-indigo-500/10 transition-all"
                 />
               </div>
@@ -410,6 +410,7 @@ export default function VentaDetailPage() {
                   min="1"
                   value={renovarForm.cuotas}
                   onChange={e => setRenovarForm(f => ({ ...f, cuotas: e.target.value }))}
+                  onWheel={(e) => e.target.blur()}
                   className="w-full px-4 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500/60 focus:ring-4 focus:ring-indigo-500/10 transition-all"
                 />
                 {renovarForm.cuotas > 0 && (

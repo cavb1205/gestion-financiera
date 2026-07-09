@@ -206,6 +206,11 @@ export const AuthProvider = ({ children }) => {
       );
       if (res.ok) {
         const fresh = await res.json();
+        // Si la selección cambió mientras respondía (p. ej. root cambiando
+        // de ruta), descartar la respuesta para no pisar la tienda nueva.
+        const nowStored = localStorage.getItem('selectedStore');
+        const nowId = nowStored ? JSON.parse(nowStored)?.tienda?.id : null;
+        if (nowId !== tiendaId) return;
         setSelectedStore(fresh);
         localStorage.setItem('selectedStore', JSON.stringify(fresh));
       }

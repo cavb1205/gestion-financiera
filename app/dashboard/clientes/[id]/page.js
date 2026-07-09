@@ -35,7 +35,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import ErrorMessage from "../../../components/ErrorMessage";
-import { formatMoney } from "../../../utils/format";
+import { formatMoney, formatDate } from "../../../utils/format";
 
 export default function DetalleCliente({ params }) {
   const router = useRouter();
@@ -260,11 +260,6 @@ export default function DetalleCliente({ params }) {
 
     // Si no coincide con los formatos esperados, devolver el original
     return phone;
-  };
-
-  const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "numeric", day: "numeric" };
-    return new Date(dateString).toLocaleDateString("es-ES", options);
   };
 
   const getStatusBadge = (status) => {

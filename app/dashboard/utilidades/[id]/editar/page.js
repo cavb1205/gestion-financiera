@@ -17,7 +17,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../../../../utils/format";
-import { apiFetch } from "../../../../utils/api";
+import { apiFetch, getApiError } from "../../../../utils/api";
 
 export default function EditarUtilidadPage() {
   const { id } = useParams();
@@ -79,8 +79,7 @@ export default function EditarUtilidadPage() {
         }
       );
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || err.message || "Error al actualizar la utilidad.");
+        throw new Error(await getApiError(response, "Error al actualizar la utilidad."));
       }
       localStorage.removeItem("utilidadEditar");
       toast.success("Utilidad actualizada correctamente.");

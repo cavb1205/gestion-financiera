@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "react-toastify";
 import { FiEdit, FiDollarSign, FiCalendar, FiX, FiCheck } from "react-icons/fi";
-import { apiFetch } from "../../utils/api";
+import { apiFetch, getApiError } from "../../utils/api";
 
 export default function EditarRecaudo({ editingRecaudo, onEditar, onClose }) {
   const [isSaving, setIsSaving] = useState(false);
@@ -41,8 +41,7 @@ export default function EditarRecaudo({ editingRecaudo, onEditar, onClose }) {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || errorData.message || "Error al actualizar el recaudo");
+        throw new Error(await getApiError(response, "Error al actualizar el recaudo"));
       }
 
       const updatedRecaudo = await response.json();
@@ -104,6 +103,7 @@ export default function EditarRecaudo({ editingRecaudo, onEditar, onClose }) {
                       type="number"
                       value={formData.valor_recaudo}
                       onChange={(e) => setFormData({ ...formData, valor_recaudo: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
                       className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-2xl font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none"
                       placeholder="0"
                       min="0"

@@ -21,7 +21,7 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import { formatMoney } from "../../../utils/format";
-import { apiFetch } from "../../../utils/api";
+import { apiFetch, getApiError } from "../../../utils/api";
 
 export default function NuevoAportePage() {
   const { selectedStore, loading: authLoading } = useAuth();
@@ -151,8 +151,7 @@ export default function NuevoAportePage() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || errorData.message || "Error al crear el aporte");
+        throw new Error(await getApiError(response, "Error al crear el aporte"));
       }
 
       toast.success("Inyección de capital registrada correctamente");

@@ -23,7 +23,7 @@ import { useRouter } from "next/navigation";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import { toast } from "react-toastify";
 import LoadingSpinner from "../../components/LoadingSpinner";
-import { formatMoney, parseMoney } from "../../utils/format";
+import { formatMoney, parseMoney, formatDate } from "../../utils/format";
 import Pagination from "../../components/Pagination";
 
 export default function AportesPage() {
@@ -196,7 +196,7 @@ export default function AportesPage() {
               </div>
               <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
                 {filteredAportes.length > 0
-                  ? new Date(filteredAportes[0].fecha).toLocaleDateString()
+                  ? formatDate(filteredAportes[0].fecha)
                   : "N/A"}
               </p>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Último Movimiento</p>
@@ -257,7 +257,7 @@ export default function AportesPage() {
                       <td className="px-4 py-6 whitespace-nowrap">
                         <div className="flex items-center gap-2 text-slate-500">
                           <FiCalendar className="text-slate-300" />
-                          <span className="text-xs font-bold">{new Date(aporte.fecha).toLocaleDateString()}</span>
+                          <span className="text-xs font-bold">{formatDate(aporte.fecha)}</span>
                         </div>
                       </td>
                       <td className="px-4 py-6 whitespace-nowrap">
@@ -336,7 +336,7 @@ export default function AportesPage() {
                         <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">{aporte.trabajador.trabajador}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <FiCalendar size={10} className="text-slate-300" />
-                          <span className="text-[10px] font-bold text-slate-400">{new Date(aporte.fecha).toLocaleDateString()}</span>
+                          <span className="text-[10px] font-bold text-slate-400">{formatDate(aporte.fecha)}</span>
                         </div>
                       </div>
                     </div>

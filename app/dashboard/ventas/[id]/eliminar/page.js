@@ -16,7 +16,7 @@ import {
   FiInfo,
 } from "react-icons/fi";
 import { useAuth } from "../../../../context/AuthContext";
-import { apiFetch } from "../../../../utils/api";
+import { apiFetch, getApiError } from "../../../../utils/api";
 import LoadingSpinner from "../../../../components/LoadingSpinner";
 import { toast } from "react-toastify";
 import { formatMoney } from "../../../../utils/format";
@@ -87,8 +87,7 @@ export default function EliminarVentaPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || errorData.message || "Error al eliminar la venta");
+        throw new Error(await getApiError(response, "Error al eliminar la venta"));
       }
 
       toast.success("¡Contrato removido del sistema!");

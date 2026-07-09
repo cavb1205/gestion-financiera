@@ -24,7 +24,7 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../../../utils/format";
-import { apiFetch } from "../../../utils/api";
+import { apiFetch, getApiError } from "../../../utils/api";
 
 export default function NuevaUtilidadPage() {
   const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
@@ -140,8 +140,7 @@ export default function NuevaUtilidadPage() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || errorData.message || "Error al registrar distribución.");
+        throw new Error(await getApiError(response, "Error al registrar distribución."));
       }
 
       toast.success("Reparto de utilidad sincronizado.");

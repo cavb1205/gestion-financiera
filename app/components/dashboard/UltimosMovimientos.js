@@ -1,4 +1,5 @@
 // app/components/dashboard/UltimosMovimientos.js
+"use client";
 import { useState, useEffect } from "react";
 import {
   FiShoppingCart,
@@ -14,7 +15,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { apiFetch } from "../../utils/api";
 import { useRouter } from "next/navigation";
-import { formatMoney, parseMoney } from "../../utils/format";
+import { formatMoney, parseMoney, parseLocalDate, formatDate as formatFechaDisplay } from "../../utils/format";
 
 const UltimosMovimientos = ({ tienda }) => {
   const router = useRouter();
@@ -23,9 +24,13 @@ const UltimosMovimientos = ({ tienda }) => {
   const [error, setError] = useState(null);
   const [periodo, setPeriodo] = useState("semana"); // semana, mes, custom
 
-  // Función para formatear fechas en YYYY-MM-DD
+  // Función para formatear fechas en YYYY-MM-DD (partes locales, no UTC:
+  // toISOString() después de las 7 PM en UTC-5 devolvería el día siguiente)
   const formatDate = (date) => {
-    return date.toISOString().split("T")[0];
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
   };
 
   // Obtener fechas según el período seleccionado
@@ -201,7 +206,7 @@ const UltimosMovimientos = ({ tienda }) => {
       ];
 
       // Ordenar por fecha (más recientes primero)
-      todosMovimientos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      todosMovimientos.sort((a, b) => parseLocalDate(b.fecha) - parseLocalDate(a.fecha));
 
       // Limitar a los últimos 10 movimientos
       setMovimientos(todosMovimientos.slice(0, 10));
@@ -243,23 +248,18 @@ const UltimosMovimientos = ({ tienda }) => {
     }
   };
 
+  // Las fechas son DateField (sin hora), así que la granularidad mínima es el día
   const obtenerTextoAmigable = (fecha) => {
-    const ahora = new Date();
-    const fechaMovimiento = new Date(fecha);
-    const diffMs = ahora - fechaMovimiento;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHoras = Math.floor(diffMs / 3600000);
-    const diffDias = Math.floor(diffMs / 86400000);
+    const fechaMovimiento = parseLocalDate(fecha);
+    if (!fechaMovimiento) return "—";
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const diffDias = Math.round((hoy - fechaMovimiento) / 86400000);
 
-    if (diffMins < 60) {
-      return `Hace ${diffMins} min`;
-    } else if (diffHoras < 24) {
-      return `Hace ${diffHoras} h`;
-    } else if (diffDias < 7) {
-      return `Hace ${diffDias} d`;
-    } else {
-      return new Date(fecha).toLocaleDateString();
-    }
+    if (diffDias <= 0) return "Hoy";
+    if (diffDias === 1) return "Ayer";
+    if (diffDias < 7) return `Hace ${diffDias} d`;
+    return formatFechaDisplay(fecha);
   };
 
   useEffect(() => {

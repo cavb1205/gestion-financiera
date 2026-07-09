@@ -162,9 +162,10 @@ export default function EditarCliente() {
       );
 
       if (!response.ok) {
-        // Manejo mejorado de errores del backend
-        const errorData = await response.json();
-        
+        // Si el cuerpo no es JSON (500, proxy caído), no fingir errores de campos
+        const errorData = await response.json().catch(() => null);
+        if (!errorData) throw new Error("Error de conexión con el servidor. Intenta de nuevo.");
+
         // Mapear errores del backend a campos específicos
         const backendErrors = {};
         Object.keys(errorData).forEach((field) => {

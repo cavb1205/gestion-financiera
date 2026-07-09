@@ -34,7 +34,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, selectStore } = useAuth();
+  const { login, logout, selectStore } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
 
@@ -73,18 +73,19 @@ export default function LoginPage() {
       // Workers: auto-select their store and go to liquidar
       const isWorker = !(data.user.is_staff || data.user.is_superuser);
       if (isWorker) {
+        let storeData = null;
         try {
           const storeRes = await apiFetch("/tiendas/detail/");
-          if (storeRes.ok) {
-            const storeData = await storeRes.json();
-            selectStore(storeData);
-            router.push("/dashboard/liquidar");
-          } else {
-            router.push("/dashboard");
-          }
-        } catch {
-          router.push("/dashboard");
+          if (storeRes.ok) storeData = await storeRes.json();
+        } catch {}
+        // Sin tienda válida el guard del dashboard rebotaría a /login sin
+        // explicación; mejor cortar aquí con mensaje y dejar reintentar.
+        if (!storeData?.tienda?.id) {
+          logout();
+          throw new Error("No se pudo cargar la información de tu ruta. Verifica tu conexión e intenta de nuevo.");
         }
+        selectStore(storeData);
+        router.push("/dashboard/liquidar");
         return;
       }
 
@@ -238,6 +239,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1"
                 >
                   {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}

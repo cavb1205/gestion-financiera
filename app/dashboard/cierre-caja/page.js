@@ -606,7 +606,7 @@ export default function CierreCajaPage() {
         ) : (
           <>
             {/* Desktop Table */}
-            <div className="hidden md:block">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-100 dark:border-slate-800">

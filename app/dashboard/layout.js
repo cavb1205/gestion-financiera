@@ -156,10 +156,14 @@ export default function DashboardLayout({ children }) {
 
   // Badge: créditos a ≤3 cuotas de vencer (por visitas, no por fecha)
   useEffect(() => {
+    // Resetear al cambiar de tienda para no mostrar el conteo de la anterior
+    setBadgeVencer(0);
     if (!selectedStore?.tienda?.id) return;
+    let ignore = false;
     apiFetch(`/ventas/activas/t/${selectedStore.tienda.id}/`)
       .then(r => r.ok ? r.json() : [])
       .then(data => {
+        if (ignore) return; // respuesta tardía de una tienda ya deseleccionada
         const activos = Array.isArray(data) ? data : [];
         const count = activos.filter(c => {
           if (c.estado_venta !== "Vigente" && c.estado_venta !== "Atrasado") return false;
@@ -173,6 +177,7 @@ export default function DashboardLayout({ children }) {
         setBadgeVencer(count);
       })
       .catch(() => {});
+    return () => { ignore = true; };
   }, [selectedStore?.tienda?.id]);
 
   // Auto-open reportes submenu when on a report page
@@ -395,6 +400,7 @@ export default function DashboardLayout({ children }) {
           <button
             onClick={() => setSearchOpen(true)}
             title="Buscar (Ctrl+K)"
+            aria-label="Buscar"
             className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400"
           >
             <FiSearch size={18} />
@@ -402,6 +408,7 @@ export default function DashboardLayout({ children }) {
           <button
             onClick={() => setShowTour(true)}
             title="Tour de ayuda"
+            aria-label="Tour de ayuda"
             className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-indigo-500 dark:text-indigo-400"
           >
             <FiHelpCircle size={18} />
@@ -409,12 +416,15 @@ export default function DashboardLayout({ children }) {
           <button
             onClick={toggleTheme}
             title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
             className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400"
           >
             {theme === "dark" ? <FiSun size={18} /> : <FiMoon size={18} />}
           </button>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label={isMobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={isMobileMenuOpen}
             className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400"
           >
             {isMobileMenuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
@@ -714,6 +724,7 @@ export default function DashboardLayout({ children }) {
               <button
                 onClick={() => router.push("/select-store")}
                 title="Cambiar Ruta"
+                aria-label="Cambiar ruta"
                 className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/40 hover:text-indigo-600 transition-all flex justify-center"
               >
                 <FiRefreshCw size={16} />
@@ -721,6 +732,7 @@ export default function DashboardLayout({ children }) {
               <button
                 onClick={toggleTheme}
                 title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+                aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
                 className="p-3 bg-slate-50 dark:bg-slate-800 text-amber-500 dark:text-indigo-400 rounded-xl hover:bg-amber-50 dark:hover:bg-indigo-900/40 transition-all flex justify-center"
               >
                 {theme === "dark" ? <FiSun size={16} /> : <FiMoon size={16} />}
@@ -728,6 +740,7 @@ export default function DashboardLayout({ children }) {
               <button
                 onClick={() => setShowTour(true)}
                 title="Tour de ayuda"
+                aria-label="Tour de ayuda"
                 className="p-3 bg-slate-50 dark:bg-slate-800 text-indigo-500 dark:text-indigo-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition-all flex justify-center"
               >
                 <FiHelpCircle size={16} />
@@ -735,6 +748,7 @@ export default function DashboardLayout({ children }) {
               <button
                 onClick={logout}
                 title="Cerrar Sesión"
+                aria-label="Cerrar sesión"
                 className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-all flex justify-center"
               >
                 <FiLogOut size={16} />

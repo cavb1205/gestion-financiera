@@ -25,7 +25,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
-import { formatMoney, parseMoney } from "../../utils/format";
+import { formatMoney, parseMoney, formatDate } from "../../utils/format";
 import Pagination from "../../components/Pagination";
 
 export default function UtilidadesPage() {
@@ -311,7 +311,7 @@ export default function UtilidadesPage() {
                       <td className="px-4 py-6 whitespace-nowrap">
                          <div className="flex items-center gap-2 text-slate-500">
                             <FiCalendar className="text-slate-300" />
-                            <span className="text-xs font-bold">{new Date(utilidad.fecha).toLocaleDateString()}</span>
+                            <span className="text-xs font-bold">{formatDate(utilidad.fecha)}</span>
                          </div>
                       </td>
                       <td className="px-4 py-6 whitespace-nowrap">
@@ -387,7 +387,7 @@ export default function UtilidadesPage() {
                         <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">{utilidad.trabajador.trabajador}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <FiCalendar size={10} className="text-slate-300" />
-                          <span className="text-[10px] font-bold text-slate-400">{new Date(utilidad.fecha).toLocaleDateString()}</span>
+                          <span className="text-[10px] font-bold text-slate-400">{formatDate(utilidad.fecha)}</span>
                         </div>
                       </div>
                     </div>

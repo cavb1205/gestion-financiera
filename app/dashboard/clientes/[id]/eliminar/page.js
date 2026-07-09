@@ -89,8 +89,8 @@ export default function EliminarCliente() {
         return;
       }
 
-      // Manejar respuesta con error
-      const responseData = await response.json();
+      // Manejar respuesta con error (cuerpo no-JSON → objeto vacío)
+      const responseData = await response.json().catch(() => ({}));
       
       // Caso específico: cliente con ventas activas
       if (responseData.message === "No se puede eliminar el cliente ya que tiene ventas activas") {

@@ -44,8 +44,8 @@ function validateNombreRuta(valor) {
 function getPasswordStrength(pwd) {
   if (!pwd) return null;
   let score = 0;
-  if (pwd.length >= 6) score++;
-  if (pwd.length >= 10) score++;
+  if (pwd.length >= 8) score++;
+  if (pwd.length >= 12) score++;
   if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
   if (/[0-9]/.test(pwd)) score++;
   if (/[^A-Za-z0-9]/.test(pwd)) score++;
@@ -127,8 +127,8 @@ export default function RegisterPage() {
       setIsLoading(false);
       return;
     }
-    if (form.password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres");
+    if (form.password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres");
       setIsLoading(false);
       return;
     }
@@ -439,7 +439,7 @@ export default function RegisterPage() {
                   type={showPassword ? "text" : "password"}
                   required
                   autoComplete="new-password"
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres"
                   value={form.password}
                   onChange={handleChange}
                   className="w-full pl-12 pr-12 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/8 rounded-2xl text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-700 focus:outline-none focus:border-indigo-500/60 focus:bg-indigo-50/50 dark:focus:bg-indigo-500/5 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm dark:shadow-none"
@@ -447,6 +447,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1"
                 >
                   {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}

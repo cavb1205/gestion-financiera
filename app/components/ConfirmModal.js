@@ -1,4 +1,6 @@
 // app/components/ConfirmModal.js
+"use client";
+import { useEffect } from "react";
 import { FiAlertCircle, FiX } from "react-icons/fi";
 
 export default function ConfirmModal({
@@ -12,10 +14,25 @@ export default function ConfirmModal({
   isLoading = false,
   children,
 }) {
+  // Cerrar con Escape (no mientras procesa, para no interrumpir la operación)
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape" && !isLoading) onClose?.();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen, isLoading, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-6">
+    <div
+      className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-modal-title"
+    >
       <div className="glass max-w-md w-full rounded-[2.5rem] border-white/20 p-10 shadow-2xl relative overflow-hidden">
         {/* Decorative bg */}
         <div className="absolute -right-10 -top-10 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl"></div>
@@ -26,6 +43,7 @@ export default function ConfirmModal({
           <button
             onClick={onClose}
             disabled={isLoading}
+            aria-label="Cerrar"
             className="absolute -top-4 -right-4 p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
           >
             <FiX size={20} />
@@ -36,7 +54,7 @@ export default function ConfirmModal({
             <div className="w-20 h-20 bg-rose-500 text-white rounded-[1.75rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-rose-200/50 dark:shadow-none">
               <FiAlertCircle size={40} />
             </div>
-            <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight mb-3">
+            <h2 id="confirm-modal-title" className="text-xl font-black text-slate-800 dark:text-white tracking-tight mb-3">
               {title}
             </h2>
             {message && (

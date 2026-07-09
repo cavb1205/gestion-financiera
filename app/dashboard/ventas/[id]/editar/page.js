@@ -18,7 +18,7 @@ import {
   FiInfo,
 } from "react-icons/fi";
 import { useAuth } from "../../../../context/AuthContext";
-import { apiFetch } from "../../../../utils/api";
+import { apiFetch, getApiError } from "../../../../utils/api";
 import LoadingSpinner from "../../../../components/LoadingSpinner";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -138,8 +138,7 @@ export default function EditarVentaPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || errorData.message || "Error al actualizar la venta");
+        throw new Error(await getApiError(response, "Error al actualizar la venta"));
       }
 
       toast.success("¡Contrato actualizado correctamente!");
@@ -282,6 +281,7 @@ export default function EditarVentaPage() {
                                 value={formData.valor_venta}
                                 disabled={hasPagos}
                                 onChange={(e) => setFormData({ ...formData, valor_venta: e.target.value })}
+                                onWheel={(e) => e.target.blur()}
                                 className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[18px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                               />
                             </div>
@@ -299,6 +299,7 @@ export default function EditarVentaPage() {
                                 value={formData.interes}
                                 disabled={hasPagos}
                                 onChange={(e) => setFormData({ ...formData, interes: e.target.value })}
+                                onWheel={(e) => e.target.blur()}
                                 className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                               />
                             </div>
@@ -313,6 +314,7 @@ export default function EditarVentaPage() {
                                 value={formData.cuotas}
                                 disabled={hasPagos}
                                 onChange={(e) => setFormData({ ...formData, cuotas: e.target.value })}
+                                onWheel={(e) => e.target.blur()}
                                 className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                               />
                             </div>

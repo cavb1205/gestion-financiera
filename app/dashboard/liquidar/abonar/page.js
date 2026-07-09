@@ -24,7 +24,7 @@ import {
 import Link from "next/link";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, roundMoney } from "../../../utils/format";
-import { apiFetch } from "../../../utils/api";
+import { apiFetch, getApiError } from "../../../utils/api";
 import { captureLocation } from "../../../utils/geolocation";
 
 export default function PagarAbonoPage() {
@@ -96,8 +96,7 @@ export default function PagarAbonoPage() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Error al registrar el abono");
+        throw new Error(await getApiError(response, "Error al registrar el abono"));
       }
 
       localStorage.removeItem("abono");

@@ -63,12 +63,17 @@ export default function SessionTimeout() {
   if (!timeoutModal) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="session-timeout-title"
+    >
       <div className="glass rounded-2xl p-8 w-96 max-w-[90vw] text-center">
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500/20 flex items-center justify-center">
           <FiClock className="w-8 h-8 text-amber-400" />
         </div>
-        <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+        <h2 id="session-timeout-title" className="text-xl font-bold text-slate-800 dark:text-white mb-2">
           Sesión a punto de expirar
         </h2>
         <p className="text-slate-600 dark:text-slate-300 mb-2">
