@@ -287,8 +287,8 @@ export default function VentaDetailPage() {
         `✅ Total abonado: *${abonado}*\n` +
         `📅 Progreso: *${pagosRealizados}/${totalCuotas} días*\n` +
         `📋 Valor cuota: *${cuota}*\n\n`;
-      return `https://wa.me/${raw}?text=${encodeURIComponent(msg)}`;
-    } catch { return "https://wa.me/"; }
+      return `https://api.whatsapp.com/send?phone=${raw}&text=${encodeURIComponent(msg)}`;
+    } catch { return "https://api.whatsapp.com/send"; }
   })();
 
   const totalAbonado = parseMoney(venta?.total_abonado);
