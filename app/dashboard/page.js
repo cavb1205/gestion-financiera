@@ -14,11 +14,14 @@ import {
   FiAlertCircle,
   FiPackage,
   FiChevronRight,
+  FiBarChart2,
+  FiShoppingCart,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../utils/api";
 import ResumenDia from "../components/dashboard/ResumenDia";
+import PrimerosPasos from "../components/dashboard/PrimerosPasos";
 import ResumenMes from "../components/dashboard/ResumenMes";
 import ResumenAnual from "../components/dashboard/ResumenAnual";
 import ResumenGeneral from "../components/dashboard/ResumenGeneral";
@@ -64,6 +67,7 @@ export default function DashboardPage() {
   const [tienda, setTienda] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [alertas, setAlertas] = useState({ vencidos: 0, moraGrave: 0, montoMora: 0, fallasHoy: 0, cajaNegativa: false, proximosVencer: 0, montoProximosVencer: 0, irrecuperables: 0, montoIrrecuperable: 0 });
+  const [ventasActivas, setVentasActivas] = useState([]);
 
   const fetchTienda = async () => {
     if (!selectedStore) return null;
@@ -102,6 +106,7 @@ export default function DashboardPage() {
         fetchJson(`/recaudos/list/${fechaHoy}/t/${selectedStore.tienda.id}/`),
       ]);
       const activos = Array.isArray(activosData) ? activosData : [];
+      setVentasActivas(activos);
       const recaudosHoy = Array.isArray(recaudosData) ? recaudosData : [];
       const vencidos = activos.filter(c => c.estado_venta === "Vencido");
       const moraGrave = vencidos.filter(c => (c.dias_atrasados || 0) >= 15);
@@ -163,6 +168,14 @@ export default function DashboardPage() {
   const dias = calcDiasRestantes(tienda.fecha_vencimiento);
   const memStatus = calcEstadoMembresia(tienda.fecha_vencimiento);
   const cajaPositiva = (t.caja ?? 0) >= 0;
+
+  // Ruta nueva: aún sin ventas (históricas ni activas) — se atenúa la "pared de ceros".
+  // t.ventas_netas === undefined significa que el detalle completo aún no cargó.
+  const esRutaNueva =
+    t.ventas_netas !== undefined &&
+    (parseFloat(t.ventas_netas) || 0) === 0 &&
+    (parseFloat(t.dinero_x_cobrar) || 0) === 0 &&
+    ventasActivas.length === 0;
 
   // ── Membresía vencida ───────────────────────────────────────────
   // Root está exento — puede entrar a revisar rutas vencidas.
@@ -260,6 +273,9 @@ export default function DashboardPage() {
           <FiRefreshCw size={18} className={refreshing ? "animate-spin text-indigo-500" : ""} />
         </button>
       </div>
+
+      {/* ── Primeros pasos (rutas nuevas) ────────────────────────── */}
+      <PrimerosPasos detail={tienda} activos={ventasActivas} />
 
       {/* ── Alerta de membresía próxima a vencer ─────────────────── */}
       {memStatus === "warn" && (
@@ -398,6 +414,32 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ── Ruta nueva: estadísticas en segundo plano ────────────── */}
+      {esRutaNueva ? (
+        <div className="glass rounded-[1.75rem] p-10 md:p-14 text-center border-white/60 dark:border-slate-800 relative overflow-hidden">
+          <FiBarChart2 className="mx-auto text-slate-200 dark:text-slate-700 mb-5" size={56} />
+          <h3 className="text-lg font-black text-slate-700 dark:text-white tracking-tight mb-2">
+            Tus estadísticas aparecerán aquí
+          </h3>
+          <p className="text-sm text-slate-400 max-w-sm mx-auto mb-3">
+            Cuando registres tu primera venta a crédito verás el movimiento de caja,
+            el gráfico del negocio y los resúmenes del mes y del año.
+          </p>
+          {(t.caja ?? 0) > 0 && (
+            <p className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3">
+              Caja disponible: {formatMoney(t.caja)}
+            </p>
+          )}
+          <button
+            onClick={() => router.push("/dashboard/ventas/nueva")}
+            className="inline-flex items-center gap-2 px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95 transition-all mt-1"
+          >
+            <FiShoppingCart size={14} />
+            Registrar primera venta
+          </button>
+        </div>
+      ) : (
+      <>
       {/* ── KPI Cards ───────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
@@ -492,6 +534,8 @@ export default function DashboardPage() {
 
       {/* ── Balance consolidado ──────────────────────────────────── */}
       <ResumenGeneral tienda={tienda} />
+      </>
+      )}
 
     </div>
   );

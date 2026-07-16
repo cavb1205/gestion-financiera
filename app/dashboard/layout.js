@@ -28,7 +28,6 @@ import {
   FiEye,
   FiSun,
   FiMoon,
-  FiHelpCircle,
   FiBookOpen,
   FiKey,
   FiSettings,
@@ -50,6 +49,7 @@ import SessionTimeout from "../components/SessionTimeout";
 import OnboardingTour from "../components/OnboardingTour";
 import OnboardingWizard from "../components/OnboardingWizard";
 import GlobalSearch from "../components/GlobalSearch";
+import HelpMenu from "../components/HelpMenu";
 
 const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja', '/dashboard/ventas', '/dashboard/clientes', '/dashboard/gastos', '/dashboard/perfil', '/dashboard/publicidad', '/dashboard/membresias'];
 
@@ -407,14 +407,11 @@ export default function DashboardLayout({ children }) {
           >
             <FiSearch size={18} />
           </button>
-          <button
-            onClick={() => setShowTour(true)}
-            title="Tour de ayuda"
-            aria-label="Tour de ayuda"
-            className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-indigo-500 dark:text-indigo-400"
-          >
-            <FiHelpCircle size={18} />
-          </button>
+          <HelpMenu
+            direction="down"
+            onStartTour={() => setShowTour(true)}
+            buttonClassName="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-indigo-500 dark:text-indigo-400"
+          />
           <button
             onClick={toggleTheme}
             title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
@@ -739,14 +736,11 @@ export default function DashboardLayout({ children }) {
               >
                 {theme === "dark" ? <FiSun size={16} /> : <FiMoon size={16} />}
               </button>
-              <button
-                onClick={() => setShowTour(true)}
-                title="Tour de ayuda"
-                aria-label="Tour de ayuda"
-                className="p-3 bg-slate-50 dark:bg-slate-800 text-indigo-500 dark:text-indigo-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition-all flex justify-center"
-              >
-                <FiHelpCircle size={16} />
-              </button>
+              <HelpMenu
+                direction="up"
+                onStartTour={() => setShowTour(true)}
+                buttonClassName="w-full p-3 bg-slate-50 dark:bg-slate-800 text-indigo-500 dark:text-indigo-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition-all flex justify-center"
+              />
               <button
                 onClick={logout}
                 title="Cerrar Sesión"
@@ -756,14 +750,7 @@ export default function DashboardLayout({ children }) {
                 <FiLogOut size={16} />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-1 mt-2">
-              <Link
-                href="/guia-rapida"
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
-              >
-                <FiBookOpen size={13} />
-                Guía
-              </Link>
+            <div className="mt-2">
               <Link
                 href="/dashboard/perfil"
                 className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
