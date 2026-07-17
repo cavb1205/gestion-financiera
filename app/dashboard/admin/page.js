@@ -21,6 +21,7 @@ import {
   FiTag,
   FiChevronRight,
   FiUserPlus,
+  FiXCircle,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -334,6 +335,45 @@ export default function AdminPanelPage() {
                 <p className="text-[10px] font-bold text-slate-400 mt-3 pl-1">
                   + {data.rutas.preactivadas} pre-activada(s) esperando confirmación
                 </p>
+              )}
+
+              {/* Retención y conversión */}
+              {data.retencion && (
+                <>
+                  <div className="flex items-center gap-2 mt-5 mb-3">
+                    <FiTrendingUp className="text-violet-500" size={14} />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Retención y conversión
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <EstadoChip
+                      icon={FiTrendingDown}
+                      label="Bloqueadas este mes"
+                      value={data.retencion.bloqueadas_mes}
+                      color={data.retencion.bloqueadas_mes > 0 ? "text-rose-500" : "text-slate-400"}
+                      onClick={() => router.push("/dashboard/admin/rutas?estado=Vencida")}
+                    />
+                    <EstadoChip
+                      icon={FiTrendingUp}
+                      label="Conversión trial"
+                      value={data.retencion.conversion_trial != null ? `${data.retencion.conversion_trial}%` : "—"}
+                      color="text-emerald-500"
+                    />
+                    <EstadoChip
+                      icon={FiClock}
+                      label="Trials en curso"
+                      value={data.retencion.trials_en_curso}
+                      color="text-amber-500"
+                    />
+                    <EstadoChip
+                      icon={FiXCircle}
+                      label="Trials perdidos"
+                      value={data.retencion.trials_perdidos}
+                      color="text-slate-400"
+                    />
+                  </div>
+                </>
               )}
             </div>
 

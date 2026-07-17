@@ -241,6 +241,21 @@ export default function AdminRutasPage() {
     });
   };
 
+  // D\u00edas desde la \u00faltima se\u00f1al de uso real (recaudo o cierre de caja).
+  // Detecta rutas "pagando pero muertas" antes de que cancelen.
+  const actividadInfo = (fecha) => {
+    if (!fecha) return { label: "Sin uso", color: "text-slate-400" };
+    const [y, m, d] = fecha.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const days = Math.round((hoy - dt) / 86400000);
+    if (days <= 0) return { label: "Hoy", color: "text-emerald-600" };
+    if (days === 1) return { label: "Ayer", color: "text-emerald-600" };
+    if (days <= 3) return { label: `Hace ${days}d`, color: "text-emerald-600" };
+    if (days <= 14) return { label: `Hace ${days}d`, color: "text-amber-600" };
+    return { label: `Hace ${days}d`, color: "text-rose-600" };
+  };
+
   // Para timestamps ISO (p.ej. \u00faltimo acceso del admin)
   const formatDateTime = (iso) => {
     if (!iso) return "\u2014";
@@ -483,6 +498,9 @@ export default function AdminRutasPage() {
                       Días
                     </th>
                     <th className="px-4 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                      Actividad
+                    </th>
+                    <th className="px-4 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
                       Acciones
                     </th>
                   </tr>
@@ -490,7 +508,7 @@ export default function AdminRutasPage() {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {currentItems.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="px-8 py-20 text-center">
+                      <td colSpan="7" className="px-8 py-20 text-center">
                         <FiShield className="text-slate-300 mx-auto mb-4" size={40} />
                         <p className="text-sm font-black text-slate-800 dark:text-white uppercase">
                           Sin resultados
@@ -616,6 +634,18 @@ export default function AdminRutasPage() {
                             >
                               {daysLabel}
                             </p>
+                          </td>
+
+                          {/* Última actividad (recaudo o cierre) */}
+                          <td className="px-4 py-5 text-center">
+                            {(() => {
+                              const act = actividadInfo(tm.ultima_actividad);
+                              return (
+                                <p className={`text-[11px] font-black ${act.color} tracking-tight`} title={tm.ultima_actividad ? `Último uso: ${formatDate(tm.ultima_actividad)}` : "Nunca ha registrado recaudos ni cierres"}>
+                                  {act.label}
+                                </p>
+                              );
+                            })()}
                           </td>
 
                           {/* Acciones */}
@@ -766,7 +796,7 @@ export default function AdminRutasPage() {
                           {cfg.label}
                         </span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 mb-3">
+                      <div className="grid grid-cols-4 gap-2 mb-3">
                         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-center">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Plan</p>
                           <p className="text-[10px] font-black text-slate-700 dark:text-slate-200">{tm.membresia?.nombre || "—"}</p>
@@ -779,6 +809,15 @@ export default function AdminRutasPage() {
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Días</p>
                           <p className={`text-[11px] font-black ${daysColor}`}>{daysLabel}</p>
                         </div>
+                        {(() => {
+                          const act = actividadInfo(tm.ultima_actividad);
+                          return (
+                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-center">
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Uso</p>
+                              <p className={`text-[10px] font-black ${act.color}`}>{act.label}</p>
+                            </div>
+                          );
+                        })()}
                       </div>
                       <button
                         onClick={() => entrarRuta(tm)}
