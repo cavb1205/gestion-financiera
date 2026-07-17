@@ -1,7 +1,7 @@
 // app/dashboard/liquidar/page.js
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/app/utils/api";
 import {
@@ -20,6 +20,7 @@ import {
    FiMapPin,
    FiMessageCircle,
    FiDollarSign,
+   FiWifiOff,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -40,6 +41,8 @@ export default function LiquidarCreditosPage() {
    const [filteredCreditos, setFilteredCreditos] = useState([]);
    const [caja, setCaja] = useState(null);
    const [loading, setLoading] = useState(true);
+   const [fetchError, setFetchError] = useState(false);
+   const loadedOnce = useRef(false);
    const [selectedDate, setSelectedDate] = useState("");
    const [currentPage, setCurrentPage] = useState(1);
    const [itemsPerPage] = useState(10);
@@ -106,41 +109,49 @@ export default function LiquidarCreditosPage() {
       return () => document.removeEventListener("visibilitychange", handleVisibility);
    }, [isWorker]);
 
-   // Obtener datos
-   useEffect(() => {
-      const fetchData = async () => {
-         if (!selectedStore || !selectedDate) return;
+   // Obtener datos. Un fallo de red/servidor NUNCA se muestra como lista vacía:
+   // el cobrador creería que terminó la ruta. Sin datos previos → panel de error
+   // con Reintentar; con datos previos → se conservan y se avisa con un toast.
+   const fetchData = useCallback(async () => {
+      if (!selectedStore || !selectedDate) return;
 
-         setLoading(true);
-         try {
-            const fetchJson = async (path) => {
-               const res = await apiFetch(path);
-               if (!res.ok) return null;
-               return res.json();
-            };
+      setLoading(true);
+      try {
+         const fetchJson = async (path) => {
+            const res = await apiFetch(path);
+            if (!res.ok) throw new Error("Respuesta inválida del servidor");
+            return res.json();
+         };
 
-            const [creditosData, activosData, recaudosData, tiendaData] = await Promise.all([
-               fetchJson(`/ventas/activas/liquidar/${selectedDate}/t/${selectedStore.tienda.id}/`),
-               fetchJson(`/ventas/activas/t/${selectedStore.tienda.id}/`),
-               fetchJson(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`),
-               fetchJson(`/tiendas/detail/`),
-            ]);
+         const [creditosData, activosData, recaudosData, tiendaData] = await Promise.all([
+            fetchJson(`/ventas/activas/liquidar/${selectedDate}/t/${selectedStore.tienda.id}/`),
+            fetchJson(`/ventas/activas/t/${selectedStore.tienda.id}/`),
+            fetchJson(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`),
+            fetchJson(`/tiendas/detail/`),
+         ]);
 
-            setCreditos(Array.isArray(creditosData) ? creditosData : []);
-            setCreditosActivos(Array.isArray(activosData) ? activosData : []);
-            setRecaudos(Array.isArray(recaudosData) ? recaudosData : []);
-            if (tiendaData?.tienda?.caja !== undefined) setCaja(tiendaData.tienda.caja);
-            setFilteredCreditos(Array.isArray(creditosData) ? creditosData : []);
-         } catch (error) {
-            console.error("Error:", error);
-            toast.error(error.message);
-         } finally {
-            setLoading(false);
+         setCreditos(Array.isArray(creditosData) ? creditosData : []);
+         setCreditosActivos(Array.isArray(activosData) ? activosData : []);
+         setRecaudos(Array.isArray(recaudosData) ? recaudosData : []);
+         if (tiendaData?.tienda?.caja !== undefined) setCaja(tiendaData.tienda.caja);
+         setFilteredCreditos(Array.isArray(creditosData) ? creditosData : []);
+         setFetchError(false);
+         loadedOnce.current = true;
+      } catch (error) {
+         console.error("Error:", error);
+         if (loadedOnce.current) {
+            toast.error("Sin conexión — mostrando los últimos datos cargados.");
+         } else {
+            setFetchError(true);
          }
-      };
-
-      fetchData();
+      } finally {
+         setLoading(false);
+      }
    }, [selectedStore, selectedDate]);
+
+   useEffect(() => {
+      fetchData();
+   }, [fetchData]);
 
    useEffect(() => {
       if (selectedDate) {
@@ -291,10 +302,12 @@ export default function LiquidarCreditosPage() {
                      </button>
                   )}
                   <button
-                     onClick={() => router.refresh()}
-                     className="p-3 md:p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
+                     onClick={fetchData}
+                     disabled={loading}
+                     aria-label="Actualizar datos"
+                     className="p-3 md:p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group disabled:opacity-50"
                   >
-                     <FiRefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
+                     <FiRefreshCw size={18} className={`transition-transform duration-500 ${loading ? "animate-spin" : "group-hover:rotate-180"}`} />
                   </button>
                </div>
             </div>
@@ -333,6 +346,29 @@ export default function LiquidarCreditosPage() {
                </div>
             )}
 
+            {/* Error de conexión sin datos previos: panel claro con Reintentar.
+                Nunca mostrar "Sin Registros" por un fallo de red. */}
+            {fetchError && !loading ? (
+               <div className="glass rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl p-10 md:p-16 text-center">
+                  <div className="w-20 h-20 bg-rose-50 dark:bg-rose-900/20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                     <FiWifiOff size={36} className="text-rose-500" />
+                  </div>
+                  <h3 className="text-lg md:text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">
+                     Sin conexión con el servidor
+                  </h3>
+                  <p className="text-xs font-bold text-slate-400 max-w-sm mx-auto mb-6 leading-relaxed">
+                     No se pudieron cargar los créditos del día. Tus cobros registrados no se pierden —
+                     revisa tu señal e intenta de nuevo.
+                  </p>
+                  <button
+                     onClick={fetchData}
+                     className="inline-flex items-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-emerald-200 dark:shadow-none active:scale-95 transition-all"
+                  >
+                     <FiRefreshCw size={14} /> Reintentar
+                  </button>
+               </div>
+            ) : (
+            <>
             {/* Global Metrics Area */}
             <div className="grid grid-cols-3 gap-3 md:gap-6 mb-8">
                <div className="glass p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-xl">
@@ -738,6 +774,8 @@ export default function LiquidarCreditosPage() {
                   itemsPerPage={itemsPerPage}
                />
             </div>
+            </>
+            )}
 
             {/* Informative Footer */}
             <div className="flex items-center gap-4 px-5 py-4 bg-white/40 dark:bg-slate-900/40 rounded-[1.5rem] border border-white/60 dark:border-slate-800/50 opacity-60">
