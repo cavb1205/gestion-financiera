@@ -50,6 +50,7 @@ import OnboardingTour from "../components/OnboardingTour";
 import OnboardingWizard from "../components/OnboardingWizard";
 import GlobalSearch from "../components/GlobalSearch";
 import HelpMenu from "../components/HelpMenu";
+import OfflineBanner from "../components/OfflineBanner";
 
 const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja', '/dashboard/ventas', '/dashboard/clientes', '/dashboard/gastos', '/dashboard/perfil', '/dashboard/publicidad', '/dashboard/membresias'];
 
@@ -862,6 +863,9 @@ export default function DashboardLayout({ children }) {
 
       {/* Modal de inactividad con renovación de sesión */}
       <SessionTimeout />
+
+      {/* Aviso global de conectividad (cobradores en calle con señal intermitente) */}
+      <OfflineBanner />
 
       {/* Wizard de configuración inicial (solo nuevos registros) */}
       <OnboardingWizard

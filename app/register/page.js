@@ -70,11 +70,14 @@ function translateBackendError(data) {
     "may not be blank": "es obligatorio.",
     "This field is required": "es obligatorio.",
     "Enter a valid": "tiene un valor no válido.",
-    "too short": "es muy corta (mínimo 6 caracteres).",
+    "too short": "es muy corta (mínimo 8 caracteres).",
     "too similar": "es muy similar a tus datos personales.",
     "too common": "es demasiado común.",
     "entirely numeric": "no puede ser solo números.",
   };
+
+  // Mensajes ya legibles del backend ({'error': ...}) — se muestran tal cual
+  if (typeof data.error === "string") return data.error;
 
   for (const [field, msgs] of Object.entries(data)) {
     const raw = Array.isArray(msgs) ? msgs[0] : String(msgs);
