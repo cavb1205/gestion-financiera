@@ -619,10 +619,22 @@ export default function DetalleCliente({ params }) {
                     <div className="flex items-end gap-2 mb-4">
                        <span className="text-4xl font-black tracking-tighter">{formatMoney(score.cupo_recomendado)}</span>
                     </div>
+                    {score.saldo_vigente > 0 && (
+                      <p className="text-[11px] text-emerald-300 font-bold mb-2">
+                        Disponible ahora: {formatMoney(score.cupo_disponible ?? score.cupo_recomendado)}
+                        <span className="text-indigo-200"> · debe {formatMoney(score.saldo_vigente)} en créditos en curso</span>
+                      </p>
+                    )}
                     {score.justificacion?.razon && (
                       <p className="text-[11px] text-indigo-200 font-bold mb-6 leading-relaxed">{score.justificacion.razon}</p>
                     )}
                     <div className="space-y-3">
+                       {Array.isArray(score.senales) && score.senales.map((s, i) => (
+                          <div key={i} className="flex items-center gap-3 p-3 bg-white/10 rounded-xl border border-white/5">
+                             <FiAlertCircle className="text-rose-400 shrink-0" />
+                             <span className="text-[11px] font-bold">{s}</span>
+                          </div>
+                       ))}
                        {score.justificacion?.factor_vigente < 1 && (
                           <div className="flex items-center gap-3 p-3 bg-white/10 rounded-xl border border-white/5">
                              <FiAlertCircle className="text-amber-400 shrink-0" />

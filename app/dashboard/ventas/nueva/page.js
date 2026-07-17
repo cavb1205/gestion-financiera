@@ -28,6 +28,7 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch, getApiError } from "../../../utils/api";
 import LoadingSpinner from "../../../components/LoadingSpinner";
+import ConfirmModal from "../../../components/ConfirmModal";
 import { formatMoney, calcularTotal, calcularCuota } from "../../../utils/format";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -58,6 +59,8 @@ function NuevaVentaContent() {
   const [clientesFiltrados, setClientesFiltrados] = useState([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [creditosActivosCliente, setCreditosActivosCliente] = useState(0);
+  const [scoreCliente, setScoreCliente] = useState(null);
+  const [confirmExceso, setConfirmExceso] = useState(false);
 
   // Create client inline
   const [showCrearCliente, setShowCrearCliente] = useState(false);
@@ -97,6 +100,7 @@ function NuevaVentaContent() {
         if (found) {
           setFormData(prev => ({ ...prev, cliente: found.id }));
           setClienteSeleccionado(found);
+          fetchScoreCliente(found.id);
         }
       }
       
@@ -122,12 +126,23 @@ function NuevaVentaContent() {
     setClientesFiltrados(filtrados);
   };
 
+  // Score + cupo recomendado en el punto de decisión: la señal de riesgo
+  // debe estar frente a los ojos al aprobar, no a dos clics en la ficha.
+  const fetchScoreCliente = async (clienteId) => {
+    setScoreCliente(null);
+    try {
+      const res = await apiFetch(`/clientes/${clienteId}/score/t/${selectedStore.tienda.id}/`);
+      if (res.ok) setScoreCliente(await res.json());
+    } catch { /* silencioso — sin score se puede continuar */ }
+  };
+
   const seleccionarCliente = async (cliente) => {
     setFormData({ ...formData, cliente: cliente.id });
     setClienteSeleccionado(cliente);
     setBusquedaCliente("");
     setClientesFiltrados([]);
     setCreditosActivosCliente(0);
+    fetchScoreCliente(cliente.id);
     try {
       const res = await apiFetch(`/ventas/activas/${cliente.id}/t/${selectedStore.tienda.id}/`);
       if (res.ok) {
@@ -193,14 +208,20 @@ function NuevaVentaContent() {
     return `${year}-${month}-${day}`;
   };
 
+  // Monto por encima del cupo disponible → pedir confirmación explícita.
+  // No bloquea (el admin decide), pero la decisión queda advertida.
+  const cupoDisponible = scoreCliente && !scoreCliente.sin_historial
+    ? scoreCliente.cupo_disponible ?? scoreCliente.cupo_recomendado
+    : null;
+  const capitalActual = parseFloat(formData.valor_venta) || 0;
+  const excedeCupo = cupoDisponible !== null && capitalActual > 0 && capitalActual > cupoDisponible;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setError("");
 
     if (!formData.cliente) {
       toast.error("Debe seleccionar un cliente");
-      setIsSubmitting(false);
       return;
     }
 
@@ -210,20 +231,28 @@ function NuevaVentaContent() {
 
     if (isNaN(capital) || capital <= 0) {
       toast.error("El capital debe ser mayor a cero");
-      setIsSubmitting(false);
       return;
     }
     if (isNaN(cuotas) || cuotas < 1 || cuotas > 120) {
       toast.error("Las cuotas deben estar entre 1 y 120");
-      setIsSubmitting(false);
       return;
     }
     if (isNaN(interes) || interes < 0 || interes > 100) {
       toast.error("El interés debe estar entre 0% y 100%");
-      setIsSubmitting(false);
       return;
     }
 
+    if (excedeCupo) {
+      setConfirmExceso(true);
+      return;
+    }
+
+    await enviarVenta();
+  };
+
+  const enviarVenta = async () => {
+    setIsSubmitting(true);
+    setError("");
     try {
       const ventaData = {
         fecha_venta: formatDateToLocalISO(formData.fecha_venta),
@@ -308,7 +337,7 @@ function NuevaVentaContent() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => { setFormData({ ...formData, cliente: "" }); setClienteSeleccionado(null); setCreditosActivosCliente(0); }}
+                          onClick={() => { setFormData({ ...formData, cliente: "" }); setClienteSeleccionado(null); setCreditosActivosCliente(0); setScoreCliente(null); }}
                           className="p-3 bg-white/10 hover:bg-rose-500 rounded-xl transition-all shrink-0"
                         >
                           <FiXCircle size={18} />
@@ -375,6 +404,54 @@ function NuevaVentaContent() {
                       </div>
                     </div>
                   )}
+
+                  {/* Evaluación de riesgo en el punto de decisión */}
+                  {clienteSeleccionado && scoreCliente && !scoreCliente.sin_historial && (
+                    <div className={`p-4 rounded-2xl border ${
+                      scoreCliente.justificacion?.bloqueado
+                        ? "bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800/40"
+                        : scoreCliente.score >= 60
+                          ? "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700"
+                          : "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/40"
+                    }`}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
+                          scoreCliente.score >= 80 ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600"
+                          : scoreCliente.score >= 60 ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600"
+                          : scoreCliente.score >= 40 ? "bg-amber-100 dark:bg-amber-900/40 text-amber-600"
+                          : "bg-rose-100 dark:bg-rose-900/40 text-rose-600"
+                        }`}>
+                          {scoreCliente.score}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                            Score · {scoreCliente.nivel}
+                          </p>
+                          {scoreCliente.justificacion?.bloqueado ? (
+                            <p className="text-xs font-black text-rose-600 dark:text-rose-400 leading-snug">
+                              Cupo bloqueado — {scoreCliente.justificacion.razon}
+                            </p>
+                          ) : (
+                            <p className="text-xs font-black text-slate-800 dark:text-white leading-snug">
+                              Cupo disponible: <span className="text-emerald-600 dark:text-emerald-400">{formatMoney(scoreCliente.cupo_disponible ?? scoreCliente.cupo_recomendado)}</span>
+                              {scoreCliente.saldo_vigente > 0 && (
+                                <span className="text-[10px] font-bold text-slate-400"> · debe {formatMoney(scoreCliente.saldo_vigente)} en curso</span>
+                              )}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {Array.isArray(scoreCliente.senales) && scoreCliente.senales.length > 0 && (
+                        <div className="space-y-1 mt-2">
+                          {scoreCliente.senales.map((s, i) => (
+                            <p key={i} className="flex items-center gap-1.5 text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wide">
+                              <FiAlertCircle size={11} className="shrink-0" /> {s}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Capital */}
@@ -395,6 +472,19 @@ function NuevaVentaContent() {
                       className="w-full pl-14 md:pl-16 pr-5 py-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-2xl md:text-3xl font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                     />
                   </div>
+                  {excedeCupo && (
+                    <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700/50 rounded-2xl">
+                      <FiAlertCircle className="text-amber-500 shrink-0 mt-0.5" size={16} />
+                      <div>
+                        <p className="text-xs font-black text-amber-700 dark:text-amber-400 leading-snug">
+                          Excede el cupo recomendado en {formatMoney(capitalActual - cupoDisponible)}
+                        </p>
+                        <p className="text-[10px] font-bold text-amber-600/70 dark:text-amber-500/70 mt-0.5 uppercase tracking-wider">
+                          Cupo disponible: {formatMoney(cupoDisponible)} — se pedirá confirmación al guardar
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Live preview (mobile only) */}
@@ -570,7 +660,20 @@ function NuevaVentaContent() {
           </div>
         </form>
       </div>
-      
+
+      {/* Confirmación al exceder el cupo recomendado: no bloquea, pero la
+          decisión queda advertida con las señales de riesgo a la vista. */}
+      <ConfirmModal
+        isOpen={confirmExceso}
+        onClose={() => !isSubmitting && setConfirmExceso(false)}
+        onConfirm={async () => { await enviarVenta(); setConfirmExceso(false); }}
+        isLoading={isSubmitting}
+        title="Monto por encima del cupo"
+        message={`El capital (${formatMoney(capitalActual)}) excede el cupo recomendado para este cliente (${formatMoney(cupoDisponible ?? 0)}) en ${formatMoney(Math.max(0, capitalActual - (cupoDisponible ?? 0)))}. ${scoreCliente?.senales?.length ? "Señales activas: " + scoreCliente.senales.join(" · ") + ". " : ""}¿Deseas continuar bajo tu criterio?`}
+        confirmText="Sí, otorgar crédito"
+        cancelText="Revisar monto"
+      />
+
       {/* ── Modal Crear Cliente ── */}
       {showCrearCliente && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
