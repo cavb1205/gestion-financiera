@@ -68,6 +68,33 @@ const STATUS_CONFIG = {
   },
 };
 
+// Semántica de vencimiento/gracia/bloqueo (misma que el backend: gracia 1d, bloqueo V+2)
+const getMembresiaInfo = (fechaVencimiento) => {
+  if (!fechaVencimiento) return { days: 0, graceDays: 0, status: "expired", label: "—" };
+  const [y, m, d] = fechaVencimiento.split("-").map(Number);
+  const vence = new Date(y, m - 1, d);
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const pendientePago = new Date(vence); pendientePago.setDate(pendientePago.getDate() + 1);
+  const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 2);
+  const days = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24));
+  const graceDays = Math.ceil((vencida - hoy) / (1000 * 60 * 60 * 24));
+
+  let status, label;
+  if (hoy >= vencida) { status = "expired"; label = "Bloqueada"; }
+  else if (hoy >= pendientePago) { status = "grace"; label = `Gracia · ${graceDays}d`; }
+  else if (days === 0) { status = "today"; label = `Vence hoy · ${graceDays}d p/bloqueo`; }
+  else { status = days <= 3 ? "warn" : "ok"; label = `${days}d`; }
+
+  return { days, graceDays, status, label };
+};
+
+// Activa y venciendo dentro de los próximos 3 días (incluido hoy)
+const esPorVencer = (tm) => {
+  if (tm.estado !== "Activa") return false;
+  const s = getMembresiaInfo(tm.fecha_vencimiento).status;
+  return s === "warn" || s === "today";
+};
+
 export default function AdminRutasPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading: authLoading, selectStore, clearStore } = useAuth();
@@ -159,7 +186,7 @@ export default function AdminRutasPage() {
   // Filtro pre-aplicado vía query (?estado=Vencida) — p.ej. desde el panel admin.
   useEffect(() => {
     const e = new URLSearchParams(window.location.search).get('estado');
-    if (["Activa", "Pendiente Pago", "Vencida"].includes(e)) setFilterEstado(e);
+    if (["Activa", "Por vencer", "Pendiente Pago", "Vencida"].includes(e)) setFilterEstado(e);
   }, []);
 
   // Nombres que aparecen en ≥2 rutas distintas (distintos admins o mismos)
@@ -186,6 +213,8 @@ export default function AdminRutasPage() {
       result = result.filter((t) =>
         nombresDuplicados.has(t.tienda?.nombre?.toLowerCase().trim())
       );
+    } else if (filterEstado === "Por vencer") {
+      result = result.filter(esPorVencer);
     } else if (filterEstado !== "Todos") {
       result = result.filter((t) => t.estado === filterEstado);
     }
@@ -209,27 +238,9 @@ export default function AdminRutasPage() {
     const duplicadas = tiendas.filter((t) =>
       nombresDuplicados.has(t.tienda?.nombre?.toLowerCase().trim())
     ).length;
-    return { total: tiendas.length, activas, pendientes, vencidas, duplicadas };
+    const porVencer = tiendas.filter(esPorVencer).length;
+    return { total: tiendas.length, activas, pendientes, vencidas, duplicadas, porVencer };
   }, [tiendas, nombresDuplicados]);
-
-  const getMembresiaInfo = (fechaVencimiento) => {
-    if (!fechaVencimiento) return { days: 0, graceDays: 0, status: "expired", label: "—" };
-    const [y, m, d] = fechaVencimiento.split("-").map(Number);
-    const vence = new Date(y, m - 1, d);
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    const pendientePago = new Date(vence); pendientePago.setDate(pendientePago.getDate() + 1);
-    const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 2);
-    const days = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24));
-    const graceDays = Math.ceil((vencida - hoy) / (1000 * 60 * 60 * 24));
-
-    let status, label;
-    if (hoy >= vencida) { status = "expired"; label = "Bloqueada"; }
-    else if (hoy >= pendientePago) { status = "grace"; label = `Gracia · ${graceDays}d`; }
-    else if (days === 0) { status = "today"; label = `Vence hoy · ${graceDays}d p/bloqueo`; }
-    else { status = days <= 3 ? "warn" : "ok"; label = `${days}d`; }
-
-    return { days, graceDays, status, label };
-  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "\u2014";
@@ -441,7 +452,7 @@ export default function AdminRutasPage() {
               />
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {["Todos", "Activa", "Pendiente Pago", "Vencida", "Duplicadas"].map((estado) => (
+              {["Todos", "Activa", "Por vencer", "Pendiente Pago", "Vencida", "Duplicadas"].map((estado) => (
                 <button
                   key={estado}
                   onClick={() => setFilterEstado(estado)}
@@ -449,16 +460,25 @@ export default function AdminRutasPage() {
                     filterEstado === estado
                       ? estado === "Duplicadas"
                         ? "bg-violet-600 border-violet-600 text-white shadow-lg"
-                        : "bg-indigo-600 border-indigo-600 text-white shadow-lg"
+                        : estado === "Por vencer"
+                          ? "bg-amber-500 border-amber-500 text-white shadow-lg"
+                          : "bg-indigo-600 border-indigo-600 text-white shadow-lg"
                       : estado === "Duplicadas" && metrics.duplicadas > 0
                         ? "bg-white dark:bg-slate-800 border-violet-300 dark:border-violet-700 text-violet-600 hover:bg-violet-50"
-                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-indigo-300"
+                        : estado === "Por vencer" && metrics.porVencer > 0
+                          ? "bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-amber-600 hover:bg-amber-50"
+                          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-indigo-300"
                   }`}
                 >
                   {estado === "Pendiente Pago" ? "Pendiente" : estado}
                   {estado === "Duplicadas" && metrics.duplicadas > 0 && (
                     <span className="ml-1.5 px-1.5 py-0.5 bg-violet-500 text-white rounded-md text-[8px]">
                       {metrics.duplicadas}
+                    </span>
+                  )}
+                  {estado === "Por vencer" && metrics.porVencer > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.5 bg-amber-500 text-white rounded-md text-[8px]">
+                      {metrics.porVencer}
                     </span>
                   )}
                 </button>

@@ -329,7 +329,7 @@ export default function AdminPanelPage() {
                 <EstadoChip icon={FiCheckCircle} label="Activas" value={data.rutas.activas} color="text-emerald-500" onClick={() => router.push("/dashboard/admin/rutas?estado=Activa")} />
                 <EstadoChip icon={FiClock} label="Pendiente pago" value={data.rutas.pendientes} color="text-amber-500" onClick={() => router.push("/dashboard/admin/rutas?estado=Pendiente Pago")} />
                 <EstadoChip icon={FiAlertTriangle} label="Vencidas" value={data.rutas.vencidas} color="text-rose-500" onClick={() => router.push("/dashboard/admin/rutas?estado=Vencida")} />
-                <EstadoChip icon={FiClock} label="Vencen en 3 días" value={data.por_vencer} color="text-orange-500" onClick={() => router.push("/dashboard/admin/rutas?estado=Activa")} />
+                <EstadoChip icon={FiClock} label="Vencen en 3 días" value={data.por_vencer} color="text-orange-500" onClick={() => router.push("/dashboard/admin/rutas?estado=Por vencer")} />
               </div>
               {data.rutas.preactivadas > 0 && (
                 <p className="text-[10px] font-bold text-slate-400 mt-3 pl-1">

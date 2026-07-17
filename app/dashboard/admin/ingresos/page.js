@@ -14,6 +14,7 @@ import {
   FiBarChart2,
   FiCreditCard,
   FiX,
+  FiDownload,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -109,6 +110,33 @@ export default function IngresosMembresiasPage() {
     if (!mesFiltro) return data.pagos;
     return data.pagos.filter((p) => new Date(p.fecha + "T12:00:00").getMonth() + 1 === mesFiltro);
   }, [data, mesFiltro]);
+
+  // Exportar CSV de lo visible (respeta el filtro de mes) — mismo patrón que recaudos
+  const exportarCSV = () => {
+    if (!pagosVisibles.length) return;
+    const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [
+      "Fecha,Ruta,ID Ruta,Plan,Origen,Codigo,Monto",
+      ...pagosVisibles.map((p) =>
+        [
+          p.fecha,
+          q(p.tienda),
+          p.tienda_id ?? "",
+          q(p.plan),
+          ORIGEN_BADGE[p.origen]?.label || p.origen,
+          p.codigo || "",
+          Math.round(p.monto),
+        ].join(",")
+      ),
+    ].join("\n");
+    const blob = new Blob([rows], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ingresos_membresias_${data.year}${mesFiltro ? `_${String(mesFiltro).padStart(2, "0")}` : ""}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   const chartData = useMemo(() => {
     if (!data) return null;
@@ -287,6 +315,15 @@ export default function IngresosMembresiasPage() {
                   className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all"
                 >
                   {MESES_LARGO[mesFiltro - 1]} <FiX size={11} />
+                </button>
+              )}
+              {pagosVisibles.length > 0 && (
+                <button
+                  onClick={exportarCSV}
+                  aria-label="Exportar ingresos a CSV"
+                  className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all"
+                >
+                  <FiDownload size={12} /> CSV
                 </button>
               )}
             </div>
