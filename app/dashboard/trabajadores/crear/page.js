@@ -50,8 +50,8 @@ export default function CrearTrabajadorPage() {
     ["first_name", "last_name", "username", "password", "identificacion"].forEach((field) => {
       if (!values[field].trim()) newErrors[field] = "Campo obligatorio";
     });
-    if (values.password && values.password.length < 6) {
-      newErrors.password = "Mínimo 6 caracteres";
+    if (values.password && values.password.length < 8) {
+      newErrors.password = "Mínimo 8 caracteres";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -196,7 +196,7 @@ export default function CrearTrabajadorPage() {
                     </FormField>
 
                     <FormField label="Contraseña *" error={errors.password}>
-                      <input id="password" type="password" name="password" value={values.password} onChange={handleChange} placeholder="Mínimo 6 caracteres" autoComplete="new-password" className={inputClass(!!errors.password)} />
+                      <input id="password" type="password" name="password" value={values.password} onChange={handleChange} placeholder="Mínimo 8 caracteres" autoComplete="new-password" className={inputClass(!!errors.password)} />
                     </FormField>
 
                     <div className="mt-4 p-5 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/20 rounded-2xl">

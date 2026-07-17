@@ -39,8 +39,8 @@ export default function PerfilPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (newPassword.length < 6) {
-      toast.error("La contraseña debe tener al menos 6 caracteres");
+    if (newPassword.length < 8) {
+      toast.error("La contraseña debe tener al menos 8 caracteres");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -151,7 +151,7 @@ export default function PerfilPage() {
             </div>
             <div>
               <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Cambiar Contraseña</h2>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mínimo 6 caracteres</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mínimo 8 caracteres</p>
             </div>
           </div>
 

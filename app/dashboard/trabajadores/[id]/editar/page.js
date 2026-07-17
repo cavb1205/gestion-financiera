@@ -135,8 +135,8 @@ export default function EditarTrabajadorPage() {
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     setPassError("");
-    if (!passData.nueva || passData.nueva.length < 6) {
-      setPassError("La contraseña debe tener al menos 6 caracteres.");
+    if (!passData.nueva || passData.nueva.length < 8) {
+      setPassError("La contraseña debe tener al menos 8 caracteres.");
       return;
     }
     if (passData.nueva !== passData.confirmar) {
@@ -387,7 +387,7 @@ export default function EditarTrabajadorPage() {
                   type="password"
                   value={passData.nueva}
                   onChange={(e) => { setPassData(p => ({ ...p, nueva: e.target.value })); setPassError(""); }}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres"
                   autoComplete="new-password"
                   className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                 />

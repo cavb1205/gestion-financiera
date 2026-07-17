@@ -24,7 +24,7 @@ import {
 import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
-import { apiFetch } from "@/app/utils/api";
+import { apiFetch, getApiError } from "@/app/utils/api";
 
 export default function TrabajadorDetailPage() {
   const { id } = useParams();
@@ -67,7 +67,7 @@ export default function TrabajadorDetailPage() {
         `/trabajadores/${id}/delete/`,
         { method: "DELETE" }
       );
-      if (!response.ok) throw new Error("Error al eliminar el colaborador.");
+      if (!response.ok) throw new Error(await getApiError(response, "Error al eliminar el colaborador."));
       toast.success("Colaborador eliminado correctamente.");
       router.push("/dashboard/trabajadores");
     } catch (error) {
@@ -79,8 +79,8 @@ export default function TrabajadorDetailPage() {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (!newPassword || newPassword.length < 6) {
-      toast.error("La contraseña debe tener al menos 6 caracteres");
+    if (!newPassword || newPassword.length < 8) {
+      toast.error("La contraseña debe tener al menos 8 caracteres");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -163,13 +163,17 @@ export default function TrabajadorDetailPage() {
             <FiEdit2 size={15} />
             Editar
           </button>
-          <button
-            onClick={() => setShowDeleteModal(true)}
-            className="flex items-center gap-2 px-6 py-3.5 bg-white dark:bg-slate-900 text-rose-500 border border-rose-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-rose-50 dark:hover:bg-rose-900/10"
-          >
-            <FiTrash2 size={15} />
-            Eliminar
-          </button>
+          {/* Los admins no se pueden eliminar: borrar su usuario arrasaría la
+              ruta completa en cascada. El backend también lo bloquea. */}
+          {!trabajador.is_staff && (
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="flex items-center gap-2 px-6 py-3.5 bg-white dark:bg-slate-900 text-rose-500 border border-rose-100 dark:border-slate-800 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-rose-50 dark:hover:bg-rose-900/10"
+            >
+              <FiTrash2 size={15} />
+              Eliminar
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -247,7 +251,7 @@ export default function TrabajadorDetailPage() {
                         type={showPassword ? "text" : "password"}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Mínimo 6 caracteres"
+                        placeholder="Mínimo 8 caracteres"
                         className="block w-full px-5 py-3.5 pr-12 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white focus:ring-4 focus:ring-amber-500/10 transition-all"
                       />
                       <button
