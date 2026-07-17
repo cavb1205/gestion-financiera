@@ -16,11 +16,6 @@ import {
   FiStar,
   FiUser,
   FiActivity,
-  FiChevronDown,
-  FiChevronUp,
-  FiClock,
-  FiCheck,
-  FiX,
   FiCopy,
   FiCalendar,
   FiTrash2,
@@ -33,6 +28,7 @@ import {
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import Pagination from "@/app/components/Pagination";
+import ConfirmModal from "@/app/components/ConfirmModal";
 
 const STATUS_CONFIG = {
   Activa: {
@@ -70,9 +66,7 @@ export default function AdminRutasPage() {
   const [archiving, setArchiving] = useState(null); // id en proceso
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [solicitudesRevision, setSolicitudesRevision] = useState([]);
-  const [revisionOpen, setRevisionOpen] = useState(true);
-  const [reviewing, setReviewing] = useState(null); // "aprobar-<codigo>" | "rechazar-<codigo>"
+  const [confirmActivar, setConfirmActivar] = useState(null); // { tm, tipo: "mensual" | "anual" }
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [entering, setEntering] = useState(null); // tm.id en proceso de "entrar"
@@ -122,20 +116,8 @@ export default function AdminRutasPage() {
     }
   };
 
-  const fetchSolicitudesRevision = async () => {
-    try {
-      const res = await apiFetch("/tiendas/solicitudes/revision/");
-      if (!res.ok) return;
-      const data = await res.json();
-      setSolicitudesRevision(Array.isArray(data) ? data : []);
-    } catch { /* silent */ }
-  };
-
   useEffect(() => {
-    if (user?.is_superuser) {
-      fetchTiendas();
-      fetchSolicitudesRevision();
-    }
+    if (user?.is_superuser) fetchTiendas();
   }, [user]);
 
   // Si root llega aquí impersonando una ruta, sale de ella.
@@ -150,29 +132,6 @@ export default function AdminRutasPage() {
     const e = new URLSearchParams(window.location.search).get('estado');
     if (["Activa", "Pendiente Pago", "Vencida"].includes(e)) setFilterEstado(e);
   }, []);
-
-  const handleRevisar = async (codigo, resultado) => {
-    const key = `${resultado}-${codigo}`;
-    setReviewing(key);
-    try {
-      const res = await apiFetch(`/tiendas/solicitud/${codigo}/revisar/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resultado,
-          motivo: resultado === "aprobada" ? "Aprobado manualmente" : "Rechazado manualmente",
-        }),
-      });
-      if (!res.ok) throw new Error("Error al procesar la solicitud.");
-      toast.success(resultado === "aprobada" ? "✅ Solicitud aprobada." : "❌ Solicitud rechazada.");
-      fetchSolicitudesRevision();
-      fetchTiendas();
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setReviewing(null);
-    }
-  };
 
   // Nombres que aparecen en ≥2 rutas distintas (distintos admins o mismos)
   const nombresDuplicados = useMemo(() => {
@@ -270,20 +229,25 @@ export default function AdminRutasPage() {
     }
   };
 
-  const handleActivar = async (tiendaMembresiaId, tipo) => {
-    const key = `${tipo}-${tiendaMembresiaId}`;
+  // La activación recalcula el vencimiento desde hoy y registra un pago manual
+  // en el ledger de ingresos — por eso siempre pasa por el modal de confirmación.
+  const handleActivar = async () => {
+    if (!confirmActivar) return;
+    const { tm, tipo } = confirmActivar;
+    const key = `${tipo}-${tm.id}`;
     setActivating(key);
     try {
       const endpoint =
         tipo === "mensual"
-          ? `/tiendas/activate/mounth/${tiendaMembresiaId}/`
-          : `/tiendas/activate/year/${tiendaMembresiaId}/`;
+          ? `/tiendas/activate/mounth/${tm.id}/`
+          : `/tiendas/activate/year/${tm.id}/`;
 
-      const response = await apiFetch(endpoint);
+      const response = await apiFetch(endpoint, { method: "POST" });
       if (!response.ok) throw new Error("Error al activar el plan.");
       toast.success(
         `Plan ${tipo === "mensual" ? "mensual (30d)" : "anual (365d)"} activado`
       );
+      setConfirmActivar(null);
       fetchTiendas();
     } catch (error) {
       toast.error(error.message);
@@ -353,93 +317,6 @@ export default function AdminRutasPage() {
             </button>
           </div>
         </div>
-
-        {/* Solicitudes en revisión */}
-        {solicitudesRevision.length > 0 && (
-          <div className="mb-8">
-            <button
-              onClick={() => setRevisionOpen((o) => !o)}
-              className="w-full flex items-center justify-between px-6 py-4 glass rounded-[1.5rem] border-amber-200 dark:border-amber-800/40 shadow-lg mb-3 hover:border-amber-400 transition-all"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/40 text-amber-600 rounded-xl flex items-center justify-center">
-                  <FiClock size={15} />
-                </div>
-                <span className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-widest">
-                  Solicitudes Pendientes de Revisión
-                </span>
-                <span className="px-2.5 py-1 bg-amber-500 text-white rounded-lg text-[10px] font-black">
-                  {solicitudesRevision.length}
-                </span>
-              </div>
-              {revisionOpen ? <FiChevronUp size={16} className="text-slate-400" /> : <FiChevronDown size={16} className="text-slate-400" />}
-            </button>
-
-            {revisionOpen && (
-              <div className="space-y-3">
-                {solicitudesRevision.map((sol) => (
-                  <div key={sol.codigo} className="glass rounded-[1.5rem] border-amber-100 dark:border-amber-800/30 p-5 shadow-md">
-                    <div className="flex flex-col md:flex-row md:items-center gap-4">
-                      {/* Info */}
-                      <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tienda</p>
-                          <p className="text-[12px] font-black text-slate-800 dark:text-white truncate">{sol.tienda_nombre}</p>
-                        </div>
-                        <div>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Plan · Monto</p>
-                          <p className="text-[12px] font-black text-indigo-600">{sol.plan} · ${Number(sol.monto_plan).toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Monto detectado</p>
-                          <p className="text-[12px] font-black text-slate-700 dark:text-slate-200">
-                            {sol.monto_detectado ? `$${Number(sol.monto_detectado).toLocaleString()}` : "—"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Confianza IA</p>
-                          <p className={`text-[12px] font-black ${sol.confianza_ia >= 0.8 ? "text-emerald-600" : "text-amber-600"}`}>
-                            {sol.confianza_ia != null ? `${Math.round(sol.confianza_ia * 100)}%` : "—"}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => handleRevisar(sol.codigo, "aprobada")}
-                          disabled={!!reviewing}
-                          className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-60"
-                        >
-                          {reviewing === `aprobada-${sol.codigo}` ? (
-                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          ) : <FiCheck size={12} />}
-                          Aprobar
-                        </button>
-                        <button
-                          onClick={() => handleRevisar(sol.codigo, "rechazada")}
-                          disabled={!!reviewing}
-                          className="flex items-center gap-1.5 px-4 py-2.5 bg-rose-100 dark:bg-rose-900/30 hover:bg-rose-500 text-rose-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-60"
-                        >
-                          {reviewing === `rechazada-${sol.codigo}` ? (
-                            <div className="w-3 h-3 border-2 border-rose-400/30 border-t-rose-500 rounded-full animate-spin" />
-                          ) : <FiX size={12} />}
-                          Rechazar
-                        </button>
-                      </div>
-                    </div>
-
-                    {sol.motivo_rechazo && (
-                      <p className="mt-2 text-[10px] text-amber-600 font-semibold">
-                        Motivo IA: {sol.motivo_rechazo}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6 mb-10">
@@ -694,7 +571,7 @@ export default function AdminRutasPage() {
                                 )}
                               </button>
                               <button
-                                onClick={() => handleActivar(tm.id, "mensual")}
+                                onClick={() => setConfirmActivar({ tm, tipo: "mensual" })}
                                 disabled={activating === `mensual-${tm.id}`}
                                 className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-50 flex items-center gap-1.5"
                                 title="Activar plan mensual (30 días)"
@@ -706,7 +583,7 @@ export default function AdminRutasPage() {
                                 )}
                               </button>
                               <button
-                                onClick={() => handleActivar(tm.id, "anual")}
+                                onClick={() => setConfirmActivar({ tm, tipo: "anual" })}
                                 disabled={activating === `anual-${tm.id}`}
                                 className="px-3 py-2 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-1.5"
                                 title="Activar plan anual (365 días)"
@@ -847,7 +724,7 @@ export default function AdminRutasPage() {
                       </button>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => handleActivar(tm.id, "mensual")}
+                          onClick={() => setConfirmActivar({ tm, tipo: "mensual" })}
                           disabled={activating === `mensual-${tm.id}`}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-50"
                         >
@@ -856,7 +733,7 @@ export default function AdminRutasPage() {
                           ) : <><FiZap size={11} /> Mensual</>}
                         </button>
                         <button
-                          onClick={() => handleActivar(tm.id, "anual")}
+                          onClick={() => setConfirmActivar({ tm, tipo: "anual" })}
                           disabled={activating === `anual-${tm.id}`}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50"
                         >
@@ -913,6 +790,18 @@ export default function AdminRutasPage() {
           </p>
         </div>
       </div>
+
+      {/* Confirmación de activación de plan — recalcula vencimiento y registra pago */}
+      <ConfirmModal
+        isOpen={!!confirmActivar}
+        onClose={() => !activating && setConfirmActivar(null)}
+        onConfirm={handleActivar}
+        isLoading={!!activating}
+        title={`¿Activar plan ${confirmActivar?.tipo === "anual" ? "anual (365 días)" : "mensual (30 días)"}?`}
+        message={`Ruta: ${confirmActivar?.tm?.tienda?.nombre || ""} #${confirmActivar?.tm?.tienda?.id || ""}. El vencimiento se recalculará desde hoy y se registrará un pago manual en el informe de ingresos.`}
+        confirmText="Sí, activar"
+        cancelText="Cancelar"
+      />
 
       {/* Modal eliminar ruta vacía */}
       {deleteTarget && (
