@@ -51,7 +51,8 @@ export default function LoginPage() {
 
       if (!response.ok) {
         let msg = "Credenciales inválidas";
-        try { const e = await response.json(); msg = e.detail || msg; } catch {}
+        // El backend responde {'error': ...}; 'detail' es el formato de DRF/throttling
+        try { const e = await response.json(); msg = e.error || e.detail || msg; } catch {}
         throw new Error(msg);
       }
 
