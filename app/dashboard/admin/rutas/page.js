@@ -16,6 +16,12 @@ import {
   FiStar,
   FiUser,
   FiActivity,
+  FiX,
+  FiPhone,
+  FiMail,
+  FiClock,
+  FiCreditCard,
+  FiMessageCircle,
   FiCopy,
   FiCalendar,
   FiTrash2,
@@ -29,6 +35,14 @@ import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import Pagination from "@/app/components/Pagination";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import { formatMoney } from "@/app/utils/format";
+
+// Badge por origen del pago (mismo criterio que /dashboard/admin/ingresos)
+const ORIGEN_BADGE = {
+  telegram: { label: "Telegram", cls: "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" },
+  panel: { label: "Panel", cls: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400" },
+  manual: { label: "Manual", cls: "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" },
+};
 
 const STATUS_CONFIG = {
   Activa: {
@@ -67,6 +81,7 @@ export default function AdminRutasPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [confirmActivar, setConfirmActivar] = useState(null); // { tm, tipo: "mensual" | "anual" }
+  const [detalle, setDetalle] = useState(null); // { tm, loading, data }
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [entering, setEntering] = useState(null); // tm.id en proceso de "entrar"
@@ -96,6 +111,20 @@ export default function AdminRutasPage() {
       toast.error(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Drill-down: contacto del admin, actividad e historial de pagos de la ruta
+  const abrirDetalle = async (tm) => {
+    setDetalle({ tm, loading: true, data: null });
+    try {
+      const res = await apiFetch(`/tiendas/${tm.tienda.id}/admin/detalle/`);
+      if (!res.ok) throw new Error("No se pudo cargar el detalle de la ruta.");
+      const data = await res.json();
+      setDetalle({ tm, loading: false, data });
+    } catch (error) {
+      toast.error(error.message);
+      setDetalle(null);
     }
   };
 
@@ -212,6 +241,35 @@ export default function AdminRutasPage() {
     });
   };
 
+  // Para timestamps ISO (p.ej. \u00faltimo acceso del admin)
+  const formatDateTime = (iso) => {
+    if (!iso) return "\u2014";
+    return new Date(iso).toLocaleDateString(undefined, {
+      day: "numeric", month: "short", year: "numeric",
+    });
+  };
+
+  // Mensaje de cobro por WhatsApp seg\u00fan el estado de la membres\u00eda.
+  // api.whatsapp.com/send preserva los emojis (wa.me los corrompe).
+  const waCobroUrl = (data) => {
+    const digits = (data.admin.telefono || "").replace(/[^0-9]/g, "");
+    if (!digits) return null;
+    const prefijo = data.tienda.prefijo_telefono || "56";
+    const raw = digits.startsWith(prefijo) ? digits : prefijo + digits;
+    const { status: st } = getMembresiaInfo(data.membresia.fecha_vencimiento);
+    const nombre = data.admin.nombre;
+    const venc = formatDate(data.membresia.fecha_vencimiento);
+    let msg;
+    if (st === "expired" || st === "grace") {
+      msg = `Hola ${nombre} \ud83d\udc4b Tu membres\u00eda de la ruta *${data.tienda.nombre}* venci\u00f3 el ${venc}. Renu\u00e9vala desde la app (Membres\u00edas \u2192 Pagar) para no perder el acceso. Si ya pagaste o necesitas ayuda, resp\u00f3ndenos por aqu\u00ed.`;
+    } else if (st === "warn" || st === "today") {
+      msg = `Hola ${nombre} \ud83d\udc4b Te recordamos que la membres\u00eda de tu ruta *${data.tienda.nombre}* vence el ${venc}. Puedes renovarla desde la app en Membres\u00edas \u2192 Pagar. \u00a1Gracias por seguir con nosotros!`;
+    } else {
+      msg = `Hola ${nombre} \ud83d\udc4b Te escribimos del equipo de Cartera Financiera sobre tu ruta *${data.tienda.nombre}*.`;
+    }
+    return `https://api.whatsapp.com/send?phone=${raw}&text=${encodeURIComponent(msg)}`;
+  };
+
   const handleEliminar = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -249,6 +307,7 @@ export default function AdminRutasPage() {
       );
       setConfirmActivar(null);
       fetchTiendas();
+      if (detalle) abrirDetalle(detalle.tm); // refrescar el drill-down abierto
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -469,9 +528,13 @@ export default function AdminRutasPage() {
                                 : ""
                           }`}
                         >
-                          {/* Ruta / Admin */}
+                          {/* Ruta / Admin — clic abre el drill-down */}
                           <td className="px-4 py-5">
-                            <div className="flex items-center gap-3">
+                            <div
+                              className="flex items-center gap-3 cursor-pointer"
+                              onClick={() => abrirDetalle(tm)}
+                              title="Ver detalle de la ruta"
+                            >
                               <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
                                 esHomonima
                                   ? "bg-violet-500/15 text-violet-600"
@@ -668,7 +731,11 @@ export default function AdminRutasPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className="flex items-center gap-3 mb-3 cursor-pointer"
+                        onClick={() => abrirDetalle(tm)}
+                        title="Ver detalle de la ruta"
+                      >
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
                           esVacia ? "bg-rose-500/15 text-rose-600" : esHomonima ? "bg-violet-500/15 text-violet-600" : "bg-indigo-500/10 text-indigo-600"
                         }`}>
@@ -790,6 +857,212 @@ export default function AdminRutasPage() {
           </p>
         </div>
       </div>
+
+      {/* Drill-down de ruta: contacto, actividad e historial de pagos */}
+      {detalle && (
+        <div className="fixed inset-0 z-40">
+          <div
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+            onClick={() => setDetalle(null)}
+          />
+          <div className="absolute right-0 top-0 h-full w-full sm:max-w-md bg-white dark:bg-slate-900 shadow-2xl overflow-y-auto">
+            {detalle.loading || !detalle.data ? (
+              <div className="h-full flex items-center justify-center"><LoadingSpinner /></div>
+            ) : (() => {
+              const d = detalle.data;
+              const cfg = STATUS_CONFIG[d.membresia.estado] || STATUS_CONFIG.Activa;
+              const { status: memStatus, label: daysLabel } = getMembresiaInfo(d.membresia.fecha_vencimiento);
+              const daysColor =
+                memStatus === "ok" ? "text-emerald-600"
+                : memStatus === "warn" || memStatus === "today" ? "text-amber-600"
+                : "text-rose-600";
+              const wa = waCobroUrl(d);
+              const cobrar = ["expired", "grace", "warn", "today"].includes(memStatus);
+              return (
+                <div className="p-6 space-y-5">
+                  {/* Header */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-black text-lg shrink-0">
+                      {d.tienda.nombre?.charAt(0) || "?"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[15px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">
+                        {d.tienda.nombre} <span className="text-[10px] text-slate-400">#{d.tienda.id}</span>
+                      </p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${cfg.bg} ${cfg.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                          {cfg.label}
+                        </span>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                          {d.membresia.plan || "—"}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setDetalle(null)}
+                      className="p-2 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
+                      aria-label="Cerrar detalle"
+                    >
+                      <FiX size={20} />
+                    </button>
+                  </div>
+
+                  {/* Membresía */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Activación</p>
+                      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{formatDate(d.membresia.fecha_activacion)}</p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Vence</p>
+                      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{formatDate(d.membresia.fecha_vencimiento)}</p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Días</p>
+                      <p className={`text-[11px] font-black ${daysColor}`}>{daysLabel}</p>
+                    </div>
+                  </div>
+
+                  {/* Contacto del administrador */}
+                  <div className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-4">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Administrador</p>
+                    <div className="space-y-2">
+                      <p className="text-[12px] font-black text-slate-800 dark:text-white flex items-center gap-2">
+                        <FiUser size={12} className="text-indigo-400 shrink-0" />
+                        {d.admin.nombre}
+                        <span className="text-[10px] font-bold text-slate-400">@{d.admin.username}</span>
+                      </p>
+                      {d.admin.telefono && (
+                        <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                          <FiPhone size={12} className="text-slate-400 shrink-0" />
+                          +{d.tienda.prefijo_telefono} {d.admin.telefono}
+                        </p>
+                      )}
+                      {d.admin.email && (
+                        <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2 truncate">
+                          <FiMail size={12} className="text-slate-400 shrink-0" />
+                          {d.admin.email}
+                        </p>
+                      )}
+                      <p className="text-[10px] font-bold text-slate-400 flex items-center gap-2">
+                        <FiClock size={12} className="shrink-0" />
+                        Último acceso: {formatDateTime(d.admin.ultimo_login)}
+                      </p>
+                    </div>
+                    {wa && (
+                      <a
+                        href={wa}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                          cobrar
+                            ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-200 dark:shadow-none"
+                            : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 hover:bg-emerald-600 hover:text-white"
+                        }`}
+                      >
+                        <FiMessageCircle size={13} />
+                        {cobrar ? "Cobrar por WhatsApp" : "Contactar por WhatsApp"}
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Actividad */}
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Actividad</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Último recaudo</p>
+                        <p className="text-[11px] font-black text-slate-700 dark:text-slate-200">{formatDate(d.actividad.ultimo_recaudo)}</p>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Último cierre</p>
+                        <p className="text-[11px] font-black text-slate-700 dark:text-slate-200">{formatDate(d.actividad.ultimo_cierre)}</p>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Créditos activos</p>
+                        <p className="text-[11px] font-black text-slate-700 dark:text-slate-200">{d.actividad.ventas_activas} <span className="font-bold text-slate-400">de {d.tienda.cantidad_ventas}</span></p>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Registrada</p>
+                        <p className="text-[11px] font-black text-slate-700 dark:text-slate-200">{formatDate(d.tienda.fecha_registro)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Historial de pagos */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                      <FiCreditCard size={12} className="text-indigo-500" />
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                        Pagos ({d.pagos.length})
+                      </p>
+                      <span className="ml-auto text-[11px] font-black text-emerald-600">
+                        {formatMoney(d.total_pagado)}
+                      </span>
+                    </div>
+                    {d.pagos.length === 0 ? (
+                      <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-4 text-center">
+                        <p className="text-[10px] font-bold text-slate-400">
+                          Sin pagos registrados — nunca ha pagado una membresía.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                        {d.pagos.map((p, i) => {
+                          const ob = ORIGEN_BADGE[p.origen] || ORIGEN_BADGE.manual;
+                          return (
+                            <div key={i} className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl px-3 py-2.5">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-black text-slate-700 dark:text-slate-200">
+                                  {formatDate(p.fecha)}
+                                  <span className="ml-1.5 text-[9px] font-bold text-slate-400 uppercase">{p.plan}</span>
+                                </p>
+                                {p.codigo && (
+                                  <p className="text-[9px] font-bold text-slate-400 font-mono">{p.codigo}</p>
+                                )}
+                              </div>
+                              <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest shrink-0 ${ob.cls}`}>
+                                {ob.label}
+                              </span>
+                              <span className="text-[11px] font-black text-slate-800 dark:text-white shrink-0">
+                                {formatMoney(p.monto)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Acciones */}
+                  <div className="flex items-center gap-2 pt-1 pb-4">
+                    <button
+                      onClick={() => entrarRuta(detalle.tm)}
+                      disabled={entering === detalle.tm.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-50"
+                    >
+                      <FiLogIn size={12} /> Entrar
+                    </button>
+                    <button
+                      onClick={() => setConfirmActivar({ tm: detalle.tm, tipo: "mensual" })}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all"
+                    >
+                      <FiZap size={12} /> Mensual
+                    </button>
+                    <button
+                      onClick={() => setConfirmActivar({ tm: detalle.tm, tipo: "anual" })}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all"
+                    >
+                      <FiStar size={12} /> Anual
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Confirmación de activación de plan — recalcula vencimiento y registra pago */}
       <ConfirmModal
