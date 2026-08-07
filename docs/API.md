@@ -265,7 +265,7 @@ KPIs calculados:
 | `Pendiente Pago` | `Vencida` | Vencimiento + 2 días → **bloqueo de acceso** |
 | `Pre-activada` | `Pendiente Pago` | `pre_activada_hasta` ya pasó |
 
-El recálculo se dispara al hacer login, al listar recaudos por fecha, al listar rutas como root y en el cron diario `mantenimiento_membresias` (3 AM en el VPS).
+El recálculo se dispara al hacer login, al listar recaudos por fecha, al listar rutas como root y en el cron diario `mantenimiento_membresias` (08:00 de `America/Santiago` en el VPS).
 
 **Planes**: `Prueba` (7 días), `Mensual` (+30 días), `Anual` (+365 días). La extensión se calcula desde `max(fecha_vencimiento, hoy)`, así que renovar antes de vencer no pierde días. Al pagar, una ruta archivada se desarchiva automáticamente.
 

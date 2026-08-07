@@ -9,6 +9,8 @@
 // Los umbrales de deterioro respetan la frecuencia del crédito. Así no se
 // juzga igual un crédito diario que uno semanal o mensual.
 
+import { parseLocalDate } from "./format";
+
 export const INTERVALOS_COBRO = {
   Diario: 1,
   Semanal: 7,
@@ -100,12 +102,44 @@ export function clasificarDeterioro(venta) {
 }
 
 /**
- * Días calendario desde el último abono real. El backend cuenta desde la
- * fecha de venta cuando el crédito todavía no tiene un abono.
+ * Jornadas completas cerradas desde el último abono real. El backend cuenta
+ * desde la fecha de venta cuando el crédito todavía no tiene un abono y no
+ * suma el día actual mientras siga abierto.
  */
 export function getDiasSinAbono(venta) {
   const dias = Number(venta?.dias_sin_abono);
   return Number.isFinite(dias) ? Math.max(0, Math.round(dias)) : null;
+}
+
+function diferenciaCalendario(value) {
+  const fecha = parseLocalDate(value);
+  if (!fecha) return null;
+  const hoy = new Date();
+  const fechaUtc = Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+  const hoyUtc = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  return Math.max(0, Math.round((hoyUtc - fechaUtc) / 86400000));
+}
+
+/**
+ * Texto de seguimiento que distingue la fecha del último abono del número
+ * de jornadas completas sin pago. Así "Ayer" no se presenta como atraso.
+ */
+export function formatDiasSinAbono(venta) {
+  const dias = getDiasSinAbono(venta);
+  if (dias === null) return "Sin dato";
+
+  const abonado = Number(venta?.total_abonado);
+  if (!Number.isFinite(abonado) || abonado <= 0) {
+    return dias === 0
+      ? "Sin primer abono"
+      : `Sin primer abono · ${dias} ${dias === 1 ? "día" : "días"}`;
+  }
+
+  const diferencia = diferenciaCalendario(venta?.fecha_ultimo_abono);
+  if (diferencia === 0) return "Hoy";
+  if (diferencia === 1) return "Ayer";
+  if (dias === 0) return "Abono reciente";
+  return `Hace ${dias} ${dias === 1 ? "día" : "días"} sin abono`;
 }
 
 /**

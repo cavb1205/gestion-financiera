@@ -28,6 +28,7 @@ import {
   getDiasSinAbono,
   getMontoParaPonerseAlDia,
   getPrioridadCobranza,
+  formatDiasSinAbono as formatDiasSinAbonoBase,
 } from "../../utils/cartera";
 import Link from "next/link";
 import Pagination from "../../components/Pagination";
@@ -43,14 +44,7 @@ function calcVisitasRestantes(venta) {
 }
 
 function formatDiasSinAbono(venta) {
-  const dias = getDiasSinAbono(venta);
-  if (dias === null) return "Sin dato";
-  if (parseMoney(venta.total_abonado) <= 0) {
-    return dias === 0 ? "Sin primer abono" : `Sin primer abono · ${dias}d`;
-  }
-  if (dias === 0) return "Hoy";
-  if (dias === 1) return "Ayer";
-  return `Hace ${dias} días`;
+  return formatDiasSinAbonoBase(venta);
 }
 
 function formatCuotasAtrasadas(value) {
@@ -81,7 +75,9 @@ function buildWhatsAppUrl(venta) {
   const cuotas = getCuotasAtrasadas(venta);
   const monto = getMontoParaPonerseAlDia(venta);
   const atraso = cuotas > 0 ? `\n⚠️ Para ponerse al día: *${formatMoney(monto)}*` : "";
-  const seguimiento = dias === null ? "" : `\n📆 Último abono: hace *${dias} días*`;
+  const seguimiento = dias === null || dias <= 0
+    ? ""
+    : `\n📆 ${formatDiasSinAbonoBase(venta)}`;
   const message = `Hola ${nombre}, le recordamos su crédito.${seguimiento}${atraso}\n💰 Saldo pendiente: *${formatMoney(venta.saldo_actual)}*`;
   return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
 }

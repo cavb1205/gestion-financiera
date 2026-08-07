@@ -23,7 +23,7 @@ El monto para ponerse al día nunca puede superar el saldo actual. Los pagos suf
 
 La lista conserva el orden original por antigüedad del crédito. Los clientes que ya abonaron durante el día desaparecen de la lista, para que el trabajador vea únicamente lo pendiente.
 
-Se agregaron días sin abono, cuotas atrasadas y monto para ponerse al día. En escritorio se redujo el ancho de la tabla: el contacto muestra solo los iconos de teléfono y WhatsApp, se quitó el icono junto al nombre y el seguimiento queda debajo de cada línea.
+Se agregaron días completos sin abono, cuotas atrasadas y monto para ponerse al día. El día actual no se suma mientras la jornada siga abierta; si el último abono fue ayer, se muestra “Ayer” sin etiquetarlo como atraso. En escritorio se redujo el ancho de la tabla: el contacto muestra solo los iconos de teléfono y WhatsApp, se quitó el icono junto al nombre y el seguimiento queda debajo de cada línea.
 
 ## 2. Frecuencias y reglas de riesgo
 

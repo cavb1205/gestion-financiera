@@ -21,7 +21,7 @@ Esto evita usar un único umbral de 15 días para todos los créditos. Un crédi
 | Semanal | 7 días | 9 días | 16 días | 30 días |
 | Mensual | 30 días | 35 días | 45 días | 75 días |
 
-Los umbrales de deterioro se calculan según los **días desde el último abono real**, excluyendo registros técnicos de renovación. Los créditos sin primer abono también son detectables: no esperan a acumular 15 días para aparecer como una gestión pendiente.
+Los umbrales de deterioro se calculan según las **jornadas completas desde el último abono real**, excluyendo registros técnicos de renovación. El día actual no se suma mientras siga abierto. Los créditos sin primer abono también son detectables: no esperan a acumular 15 días para aparecer como una gestión pendiente.
 
 Existe además un candidato a castigo cuando alcanza 90 días sin abono, sin reemplazar todavía el proceso contable o administrativo de castigo.
 
@@ -74,7 +74,7 @@ El seguimiento permanece debajo de cada línea para evitar que la tabla se vuelv
 
 ## Cálculos importantes
 
-- **Días sin abono:** se calculan contra el último abono real; si nunca ha abonado, se cuentan desde la fecha de venta.
+- **Días sin abono:** se calculan contra el último abono real contando solo jornadas completas cerradas; si nunca ha abonado, se cuentan desde la fecha de venta con la misma regla. Si el último abono fue ayer, la interfaz muestra “Ayer” y no lo presenta como atraso.
 - **Cuotas atrasadas:** se calculan con el intervalo de la frecuencia. Si aún no existe un primer abono real, se estima el número de ciclos vencidos con los días transcurridos.
 - **Monto para ponerse al día:** cuotas atrasadas multiplicadas por el valor de la cuota, limitado al saldo actual. Por eso nunca debe mostrar un valor superior al saldo; por ejemplo, con saldo de `$80`, el atraso máximo visible será `$80`.
 - **Créditos adelantados:** no se marcan como atrasados solo porque hayan pasado días si el cliente tiene pagos suficientes registrados.

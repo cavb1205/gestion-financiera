@@ -33,30 +33,16 @@ import {
    getDiasSinAbono,
    getMontoParaPonerseAlDia,
    getRiesgoCartera,
+   formatDiasSinAbono as formatDiasSinAbonoBase,
 } from "../../utils/cartera";
 import Pagination from "../../components/Pagination";
 
 function formatDiasSinAbono(credito) {
-   const dias = getDiasSinAbono(credito);
-   if (dias === null) return "Sin dato";
-   if (parseMoney(credito.total_abonado) <= 0) {
-      return dias === 0 ? "Sin primer abono" : `Sin primer abono · ${dias}d`;
-   }
-   if (dias === 0) return "Hoy";
-   if (dias === 1) return "Ayer";
-   return `Hace ${dias} días`;
+   return formatDiasSinAbonoBase(credito);
 }
 
 function formatSeguimientoAbono(credito) {
-   const dias = getDiasSinAbono(credito);
-   const texto = formatDiasSinAbono(credito);
-
-   // "Hoy" y "Ayer" ya expresan claramente el seguimiento.
-   // Solo aclaramos "sin abono" cuando la ausencia empieza a ser relevante.
-   if (dias > 1 && parseMoney(credito.total_abonado) > 0) {
-      return `${texto} sin abono`;
-   }
-   return texto;
+   return formatDiasSinAbono(credito);
 }
 
 function formatCuotasAtrasadas(value) {
