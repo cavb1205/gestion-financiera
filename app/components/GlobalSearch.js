@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   FiSearch, FiUser, FiArrowRight, FiX,
@@ -8,7 +8,7 @@ import {
   FiPackage, FiTrendingDown, FiCreditCard, FiBarChart2,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
-import { apiFetch } from "@/app/utils/api";
+import { getClientesTienda } from "@/app/utils/clientesCache";
 
 const PAGES = [
   { label: "Dashboard", path: "/dashboard", icon: FiHome, adminOnly: true },
@@ -26,6 +26,7 @@ export default function GlobalSearch({ isOpen, onClose }) {
   const router = useRouter();
   const { selectedStore, user } = useAuth();
   const isAdmin = user?.is_staff || user?.is_superuser;
+  const tiendaId = selectedStore?.tienda?.id;
 
   const [query, setQuery] = useState("");
   const [clientes, setClientes] = useState([]);
@@ -35,14 +36,33 @@ export default function GlobalSearch({ isOpen, onClose }) {
   const inputRef = useRef(null);
 
   useEffect(() => {
-    if (!isOpen || loaded || !selectedStore?.tienda?.id) return;
+    setClientes([]);
+    setLoaded(false);
+    setLoadingClientes(false);
+    setActiveIndex(0);
+  }, [tiendaId]);
+
+  useEffect(() => {
+    if (!isOpen || loaded || !tiendaId) return;
+    let cancelled = false;
     setLoadingClientes(true);
-    apiFetch(`/clientes/tienda/${selectedStore.tienda.id}/`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => { setClientes(Array.isArray(data) ? data : []); setLoaded(true); })
-      .catch(() => setClientes([]))
-      .finally(() => setLoadingClientes(false));
-  }, [isOpen, loaded, selectedStore]);
+    getClientesTienda(tiendaId)
+      .then((data) => {
+        if (cancelled) return;
+        setClientes(data);
+        setLoaded(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setClientes([]);
+        setLoaded(false);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingClientes(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [isOpen, loaded, tiendaId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -54,24 +74,33 @@ export default function GlobalSearch({ isOpen, onClose }) {
 
   const q = query.toLowerCase().trim();
 
-  const filteredPages = PAGES.filter((p) => {
-    if (p.adminOnly && !isAdmin) return false;
-    return q ? p.label.toLowerCase().includes(q) : true;
-  }).slice(0, q ? 6 : 4);
+  const filteredPages = useMemo(
+    () => PAGES.filter((p) => {
+      if (p.adminOnly && !isAdmin) return false;
+      return q ? p.label.toLowerCase().includes(q) : true;
+    }).slice(0, q ? 6 : 4),
+    [isAdmin, q]
+  );
 
-  const filteredClients = q
-    ? clientes
-        .filter((c) => {
-          const haystack = `${c.nombres} ${c.apellidos} ${c.identificacion} ${c.nombre_local || ""}`.toLowerCase();
-          return haystack.includes(q);
-        })
-        .slice(0, 8)
-    : [];
+  const filteredClients = useMemo(
+    () => q
+      ? clientes
+          .filter((c) => {
+            const haystack = `${c.nombres} ${c.apellidos} ${c.identificacion} ${c.nombre_local || ""}`.toLowerCase();
+            return haystack.includes(q);
+          })
+          .slice(0, 8)
+      : [],
+    [clientes, q]
+  );
 
-  const allResults = [
-    ...filteredPages.map((p) => ({ type: "page", ...p })),
-    ...filteredClients.map((c) => ({ type: "client", ...c })),
-  ];
+  const allResults = useMemo(
+    () => [
+      ...filteredPages.map((p) => ({ type: "page", ...p })),
+      ...filteredClients.map((c) => ({ type: "client", ...c })),
+    ],
+    [filteredPages, filteredClients]
+  );
 
   const navigate = useCallback(
     (item) => {

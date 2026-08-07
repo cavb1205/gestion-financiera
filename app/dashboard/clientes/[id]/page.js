@@ -67,10 +67,16 @@ export default function DetalleCliente({ params }) {
         creditosConAtraso: 0,
         creditosPerdidos: 0,
         creditosCompletados: 0,
+        creditosActivos: 0,
+        creditosVencidos: 0,
+        exposicionActiva: 0,
+        exposicionVencida: 0,
+        capitalCastigado: 0,
         promedioAtraso: "0.0",
         creditoVigente: false,
         estadoCreditoVigente: null,
         beneficioNeto: 0,
+        resultadoAjustadoRiesgo: 0,
       };
     } else {
       let totalCreditos = 0;
@@ -84,6 +90,11 @@ export default function DetalleCliente({ params }) {
       let creditosPerdidos = 0;
       let creditosCompletados = 0;
       let totalDiasAtraso = 0;
+      let creditosActivos = 0;
+      let creditosVencidos = 0;
+      let exposicionActiva = 0;
+      let exposicionVencida = 0;
+      let capitalCastigado = 0;
 
       // Variables para crédito vigente
       let creditoVigente = false;
@@ -91,18 +102,30 @@ export default function DetalleCliente({ params }) {
       let totalMontoCreditos = 0;
 
       creditos.forEach((credito) => {
-        const monto = parseInt(credito.valor_venta) || 0;
-        const saldo = parseInt(credito.saldo_actual) || 0;
-        const intereses = parseInt(credito.total_a_pagar) || 0;
+        const monto = Number(credito.valor_venta) || 0;
+        const saldo = Number(credito.saldo_actual) || 0;
+        const intereses = Number(credito.total_a_pagar) || 0;
 
         totalCreditos += 1;
         totalMontoNeto += monto;
         totalMontoCreditos += monto;
 
-        // Calcular pérdidas (créditos vencidos con saldo pendiente)
+        // Capital castigado: pérdida definitiva ya declarada.
         if (credito.estado_venta === "Perdida") {
           totalPerdidas += saldo;
+          capitalCastigado += saldo;
           creditosPerdidos += 1;
+        }
+
+        // Exposición: dinero todavía comprometido en créditos abiertos.
+        // Un vencido sigue siendo pérdida potencial, no pérdida definitiva.
+        if (["Vigente", "Atrasado", "Vencido"].includes(credito.estado_venta)) {
+          creditosActivos += 1;
+          exposicionActiva += saldo;
+          if (credito.estado_venta === "Vencido") {
+            creditosVencidos += 1;
+            exposicionVencida += saldo;
+          }
         }
 
         // Calcular ingresos (solo créditos liquidados de verdad).
@@ -133,9 +156,13 @@ export default function DetalleCliente({ params }) {
         }
       });
 
-      // Utilidad neta = Ingresos - Pérdidas
+      // Resultado histórico realizado: solo intereses cobrados menos
+      // pérdidas definitivas ya reconocidas.
       const utilidadNeta = totalIngresos - totalPerdidas;
       const beneficioNeto = utilidadNeta;
+      // Resultado conservador para decidir si conviene seguir financiando al
+      // cliente: también descuenta el saldo actualmente vencido.
+      const resultadoAjustadoRiesgo = utilidadNeta - exposicionVencida;
 
       // Calcular calificación (0-100 puntos)
       let calificacion = 0;
@@ -188,6 +215,11 @@ export default function DetalleCliente({ params }) {
         creditosConAtraso,
         creditosPerdidos,
         creditosCompletados,
+        creditosActivos,
+        creditosVencidos,
+        exposicionActiva,
+        exposicionVencida,
+        capitalCastigado,
         promedioAtraso:
           creditosConAtraso > 0
             ? (totalDiasAtraso / creditosConAtraso).toFixed(1)
@@ -195,6 +227,7 @@ export default function DetalleCliente({ params }) {
         creditoVigente,
         estadoCreditoVigente,
         beneficioNeto,
+        resultadoAjustadoRiesgo,
       };
     }
   }, [creditos]);
@@ -505,11 +538,14 @@ export default function DetalleCliente({ params }) {
                    <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl">
                       <FiPieChart size={20} />
                    </div>
-                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cartera</span>
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Exposición</span>
                 </div>
                 <div>
-                   <p className="text-xl font-black text-slate-800 dark:text-white tracking-tight">{resumenFinanciero.totalCreditos}</p>
-                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Créditos Totales</p>
+                   <p className="text-xl font-black text-slate-800 dark:text-white tracking-tight">{formatMoney(resumenFinanciero.exposicionActiva)}</p>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Saldo en créditos abiertos</p>
+                   <p className="text-[9px] font-bold text-indigo-500 uppercase tracking-widest mt-2">
+                     {resumenFinanciero.creditosActivos} activos · {resumenFinanciero.totalCreditos} históricos
+                   </p>
                 </div>
               </div>
 
@@ -531,33 +567,54 @@ export default function DetalleCliente({ params }) {
                    <div className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl group-hover:scale-110 transition-transform">
                       <FiTrendingDown size={20} />
                    </div>
-                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-rose-500">Exposición</span>
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-rose-500">Pérdida potencial</span>
                 </div>
                 <div>
-                   <p className="text-xl font-black text-rose-600 tracking-tight">{formatMoney(resumenFinanciero.totalPerdidas)}</p>
-                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Capital Perdido</p>
+                   <p className="text-xl font-black text-rose-600 tracking-tight">{formatMoney(resumenFinanciero.exposicionVencida)}</p>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                     {resumenFinanciero.creditosVencidos} vencido(s) · saldo actual
+                   </p>
+                   {resumenFinanciero.capitalCastigado > 0 && (
+                     <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2">
+                       Castigado: {formatMoney(resumenFinanciero.capitalCastigado)}
+                     </p>
+                   )}
                 </div>
               </div>
 
-              <div className={`glass p-5 rounded-[2rem] border-white/60 dark:border-slate-800 flex flex-col justify-between group relative overflow-hidden`}>
+              <div className="glass p-5 rounded-[2rem] border-white/60 dark:border-slate-800 flex flex-col justify-between group relative overflow-hidden">
                 <div className="flex items-center justify-between mb-4">
-                   <div className={`p-2.5 ${resumenFinanciero.beneficioNeto >= 0 ? 'bg-indigo-600 text-white' : 'bg-rose-600 text-white'} rounded-xl transition-all shadow-lg`}>
+                   <div className={`p-2.5 ${resumenFinanciero.resultadoAjustadoRiesgo >= 0 ? 'bg-indigo-600 text-white' : 'bg-rose-600 text-white'} rounded-xl transition-all shadow-lg`}>
                       <FiDollarSign size={20} />
                    </div>
-                   <span className={`text-[9px] font-black uppercase tracking-widest ${resumenFinanciero.beneficioNeto >= 0 ? 'text-indigo-500' : 'text-rose-500'}`}>
-                     {resumenFinanciero.beneficioNeto >= 0 ? 'Beneficio Neto' : 'Pérdida Total'}
+                   <span className={`text-[9px] font-black uppercase tracking-widest ${resumenFinanciero.resultadoAjustadoRiesgo >= 0 ? 'text-indigo-500' : 'text-rose-500'}`}>
+                     {resumenFinanciero.resultadoAjustadoRiesgo >= 0 ? 'Resultado ajustado' : 'Déficit ajustado'}
                    </span>
                 </div>
                 <div>
-                   <p className={`text-xl font-black tracking-tight ${resumenFinanciero.beneficioNeto >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                     {formatMoney(Math.abs(resumenFinanciero.beneficioNeto))}
+                   <p className={`text-xl font-black tracking-tight ${resumenFinanciero.resultadoAjustadoRiesgo >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                     {resumenFinanciero.resultadoAjustadoRiesgo < 0 ? '−' : ''}{formatMoney(Math.abs(resumenFinanciero.resultadoAjustadoRiesgo))}
                    </p>
                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                     {resumenFinanciero.beneficioNeto >= 0 ? 'Ganancia Real' : 'Déficit Acumulado'}
+                     {resumenFinanciero.resultadoAjustadoRiesgo >= 0 ? 'Ganancia después del riesgo' : 'Pérdida después del riesgo'}
                    </p>
+                   <div className="space-y-1 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                     <div className="flex justify-between gap-2 text-[9px] font-bold uppercase tracking-wider">
+                       <span className="text-slate-400">Intereses cobrados</span>
+                       <span className="text-emerald-600 dark:text-emerald-400">{formatMoney(resumenFinanciero.totalIngresos)}</span>
+                     </div>
+                     <div className="flex justify-between gap-2 text-[9px] font-bold uppercase tracking-wider">
+                       <span className="text-slate-400">Capital castigado</span>
+                       <span className="text-rose-500">−{formatMoney(resumenFinanciero.capitalCastigado)}</span>
+                     </div>
+                     <div className="flex justify-between gap-2 text-[9px] font-bold uppercase tracking-wider">
+                       <span className="text-slate-400">Saldo vencido</span>
+                       <span className="text-rose-500">−{formatMoney(resumenFinanciero.exposicionVencida)}</span>
+                     </div>
+                   </div>
                 </div>
                 {/* Visual feedback glow */}
-                <div className={`absolute -right-5 -bottom-5 w-16 h-16 ${resumenFinanciero.beneficioNeto >= 0 ? 'bg-indigo-500/10' : 'bg-rose-500/10'} rounded-full blur-xl animate-pulse`}></div>
+                <div className={`absolute -right-5 -bottom-5 w-16 h-16 ${resumenFinanciero.resultadoAjustadoRiesgo >= 0 ? 'bg-indigo-500/10' : 'bg-rose-500/10'} rounded-full blur-xl animate-pulse`}></div>
               </div>
             </div>
           </div>
@@ -683,7 +740,12 @@ export default function DetalleCliente({ params }) {
                      <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm text-indigo-600">
                         <FiBarChart2 size={24} />
                      </div>
-                     <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Créditos Activos</h3>
+                     <div>
+                       <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Historial de créditos</h3>
+                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                         {resumenFinanciero.creditosActivos} abiertos · {resumenFinanciero.creditosVencidos} vencidos · {resumenFinanciero.creditosPerdidos} castigados
+                       </p>
+                     </div>
                   </div>
                   
                   <button
@@ -700,9 +762,9 @@ export default function DetalleCliente({ params }) {
                        <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                           <FiDollarSign size={32} className="text-slate-300" />
                        </div>
-                       <h4 className="text-lg font-black text-slate-800 dark:text-white mb-2 tracking-tight">Sin créditos activos</h4>
+                       <h4 className="text-lg font-black text-slate-800 dark:text-white mb-2 tracking-tight">Sin historial crediticio</h4>
                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest max-w-[240px] mx-auto leading-relaxed">
-                          Este cliente no tiene créditos vigentes en este momento.
+                          Este cliente todavía no tiene créditos registrados.
                        </p>
                     </div>
                   ) : (

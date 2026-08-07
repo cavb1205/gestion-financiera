@@ -201,7 +201,7 @@ export default function PagarAbonoPage() {
                           <FiAlertTriangle className="text-rose-500 shrink-0" size={14} />
                           <div className="min-w-0">
                             <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest leading-none">Mora</p>
-                            <p className="text-sm font-black text-rose-600 dark:text-rose-400 leading-tight">{diasAtrasados} día{diasAtrasados === 1 ? "" : "s"}</p>
+                            <p className="text-sm font-black text-rose-600 dark:text-rose-400 leading-tight">{diasAtrasados} cuota{diasAtrasados === 1 ? "" : "s"}</p>
                           </div>
                         </div>
                       )}

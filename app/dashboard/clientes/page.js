@@ -1,7 +1,7 @@
 // app/clientes/page.js
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FiUser, FiUsers, FiSearch, FiPlus, FiEdit, FiEye, FiFilter, FiX, FiPhone, FiMapPin, FiActivity, FiShield, FiAlertCircle, FiBarChart2, FiChevronUp, FiChevronDown } from 'react-icons/fi';
@@ -11,10 +11,12 @@ import LoadingSpinner from "../../components/LoadingSpinner";
 import Pagination from "../../components/Pagination";
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { SkeletonCard, SkeletonTableRows } from "../../components/Skeleton";
+import { getClientesTienda } from '../../utils/clientesCache';
 
 export default function ClientesPage() {
   const router = useRouter();
   const { selectedStore, isAuthenticated, loading } = useAuth();
+  const tiendaId = selectedStore?.tienda?.id;
   const [clientes, setClientes] = useState([]);
   const [filteredClientes, setFilteredClientes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,38 +33,18 @@ export default function ClientesPage() {
   const [scores, setScores] = useState({});
   const [sortByScore, setSortByScore] = useState(null);
 
-  useEffect(() => {
-    // Redirigir si no está autenticado o no tiene tienda seleccionada
-    if (!loading && (!isAuthenticated || !selectedStore)) {
-      router.push('/select-store');
-      return;
-    }
+  const fetchClientes = useCallback(async ({ force = false } = {}) => {
+    if (!tiendaId) return;
 
-    // Cargar clientes solo si está autenticado y tiene tienda seleccionada
-    if (selectedStore && !loading) {
-      fetchClientes();
-    }
-  }, [loading, isAuthenticated, selectedStore, router]);
-
-  const fetchClientes = async () => {
     try {
       setIsLoading(true);
       setError('');
-      
-      const response = await apiFetch(
-        `/clientes/tienda/${selectedStore.tienda.id}/`
-      );
 
-      if (!response.ok) {
-        throw new Error('Error al obtener los clientes');
-      }
-
-      const data = await response.json();
-      const clientesData = Array.isArray(data) ? data : [];
+      const clientesData = await getClientesTienda(tiendaId, { force });
       setClientes(clientesData);
       setFilteredClientes(clientesData);
 
-      apiFetch(`/clientes/scores/t/${selectedStore.tienda.id}/`)
+      apiFetch(`/clientes/scores/t/${tiendaId}/`)
         .then(r => r.ok ? r.json() : null)
         .then(d => { if (d) setScores(d); })
         .catch(() => {});
@@ -72,7 +54,20 @@ export default function ClientesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [tiendaId]);
+
+  useEffect(() => {
+    // Redirigir si no está autenticado o no tiene tienda seleccionada
+    if (!loading && (!isAuthenticated || !tiendaId)) {
+      router.push('/select-store');
+      return;
+    }
+
+    // Cargar clientes solo si está autenticado y tiene tienda seleccionada
+    if (tiendaId && !loading) {
+      fetchClientes();
+    }
+  }, [loading, isAuthenticated, tiendaId, router, fetchClientes]);
 
   useEffect(() => {
     // Aplicar filtros y búsqueda
@@ -354,7 +349,7 @@ export default function ClientesPage() {
              <p className="text-slate-800 dark:text-white font-black text-lg mb-2">Error de Sincronización</p>
              <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 max-w-md">{error}</p>
              <button 
-                onClick={fetchClientes}
+                onClick={() => fetchClientes({ force: true })}
                 className="px-8 py-3 bg-rose-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-200"
               >
                 Reintentar Operación

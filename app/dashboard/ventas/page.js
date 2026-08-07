@@ -8,23 +8,27 @@ import {
   FiFilter,
   FiSearch,
   FiPlus,
-  FiAlertCircle,
-  FiTrendingUp,
   FiTrendingDown,
   FiClock,
   FiDollarSign,
-  FiUser,
   FiInfo,
   FiActivity,
-  FiCalendar,
   FiPieChart,
   FiArrowUpRight,
+  FiPhone,
+  FiMessageCircle,
 } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import { apiFetch } from "../../utils/api";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../utils/format";
-import { clasificarDeterioro } from "../../utils/cartera";
+import {
+  clasificarDeterioro,
+  getCuotasAtrasadas,
+  getDiasSinAbono,
+  getMontoParaPonerseAlDia,
+  getPrioridadCobranza,
+} from "../../utils/cartera";
 import Link from "next/link";
 import Pagination from "../../components/Pagination";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
@@ -33,9 +37,53 @@ import { SkeletonCard, SkeletonTableRows } from "../../components/Skeleton";
 function calcVisitasRestantes(venta) {
   const cuotas = parseFloat(venta.cuotas);
   const pagos = parseFloat(venta.pagos_realizados);
-  const atraso = parseFloat(venta.dias_atrasados);
-  if (isNaN(cuotas) || isNaN(pagos) || isNaN(atraso)) return null;
+  const atraso = getCuotasAtrasadas(venta);
+  if (isNaN(cuotas) || isNaN(pagos)) return null;
   return Math.round(cuotas - pagos - atraso);
+}
+
+function formatDiasSinAbono(venta) {
+  const dias = getDiasSinAbono(venta);
+  if (dias === null) return "Sin dato";
+  if (parseMoney(venta.total_abonado) <= 0) {
+    return dias === 0 ? "Sin primer abono" : `Sin primer abono · ${dias}d`;
+  }
+  if (dias === 0) return "Hoy";
+  if (dias === 1) return "Ayer";
+  return `Hace ${dias} días`;
+}
+
+function formatCuotasAtrasadas(value) {
+  if (!value) return "0";
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+function getPriorityClasses(key) {
+  return {
+    critico: "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800",
+    urgente: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
+    hoy: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+    vigilar: "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800",
+    al_dia: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
+  }[key] || "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
+}
+
+function formatPhone(phone) {
+  if (!phone) return null;
+  return phone.replace(/\s+/g, "").replace(/^0/, "");
+}
+
+function buildWhatsAppUrl(venta) {
+  const phone = (venta.cliente?.telefono_principal || "").replace(/[^0-9]/g, "");
+  if (!phone) return null;
+  const nombre = venta.cliente?.nombres || "cliente";
+  const dias = getDiasSinAbono(venta);
+  const cuotas = getCuotasAtrasadas(venta);
+  const monto = getMontoParaPonerseAlDia(venta);
+  const atraso = cuotas > 0 ? `\n⚠️ Para ponerse al día: *${formatMoney(monto)}*` : "";
+  const seguimiento = dias === null ? "" : `\n📆 Último abono: hace *${dias} días*`;
+  const message = `Hola ${nombre}, le recordamos su crédito.${seguimiento}${atraso}\n💰 Saldo pendiente: *${formatMoney(venta.saldo_actual)}*`;
+  return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
 }
 
 export default function VentasPage() {
@@ -89,15 +137,38 @@ export default function VentasPage() {
     }
   };
 
-  const ventasOrdered = [...ventas].sort((a, b) => b.id - a.id);
+  const ventasOrdered = [...ventas].sort((a, b) => {
+    const prioridadA = getPrioridadCobranza(a);
+    const prioridadB = getPrioridadCobranza(b);
+    if (prioridadA.rank !== prioridadB.rank) return prioridadB.rank - prioridadA.rank;
+
+    const diasA = getDiasSinAbono(a) ?? -1;
+    const diasB = getDiasSinAbono(b) ?? -1;
+    if (diasA !== diasB) return diasB - diasA;
+
+    const cuotasA = getCuotasAtrasadas(a);
+    const cuotasB = getCuotasAtrasadas(b);
+    if (cuotasA !== cuotasB) return cuotasB - cuotasA;
+
+    return Number(b.id) - Number(a.id);
+  });
 
   const filteredVentas = ventasOrdered.filter((venta) => {
+    const prioridad = getPrioridadCobranza(venta);
     if (filters.estado === "PorVencer") {
       if (venta.estado_venta !== "Vigente" && venta.estado_venta !== "Atrasado") return false;
       const vr = calcVisitasRestantes(venta);
       if (vr === null || vr < 0 || vr > 3) return false;
+    } else if (filters.estado === "cob_hoy") {
+      if (prioridad.rank < 1) return false;
+    } else if (filters.estado === "cob_urgente") {
+      if (prioridad.rank < 2) return false;
+    } else if (filters.estado === "cob_sin_abono") {
+      if ((getDiasSinAbono(venta) ?? 0) < 1) return false;
+    } else if (filters.estado === "cob_atraso") {
+      if (getCuotasAtrasadas(venta) <= 0) return false;
     } else if (filters.estado.startsWith("det_")) {
-      // Tramos de deterioro: muestra el nivel elegido y peores (15d+ / 45d+ / 90d+).
+      // Tramos de deterioro: muestra el nivel elegido y peores según la frecuencia.
       const nivelMin = { det_dudoso: 1, det_critico: 2, det_irrecuperable: 3 }[filters.estado];
       if (clasificarDeterioro(venta).nivel < nivelMin) return false;
     } else if (filters.estado !== "Todos" && venta.estado_venta !== filters.estado) return false;
@@ -128,13 +199,25 @@ export default function VentasPage() {
       acc.totalVentas += 1;
       acc.saldoTotal += parseMoney(venta.saldo_actual);
       acc.abonosTotal += parseMoney(venta.total_abonado);
+      const prioridad = getPrioridadCobranza(venta);
+      if (prioridad.rank >= 1) acc.gestionarHoy += 1;
+      if ((getDiasSinAbono(venta) ?? 0) >= 1) acc.sinAbono += 1;
+      acc.montoAtrasado += getMontoParaPonerseAlDia(venta);
       if (venta.estado_venta === "Vencido") {
         acc.vencidas += 1;
         acc.perdidas += parseMoney(venta.perdida);
       }
       return acc;
     },
-    { totalVentas: 0, saldoTotal: 0, vencidas: 0, perdidas: 0 }
+    {
+      totalVentas: 0,
+      saldoTotal: 0,
+      vencidas: 0,
+      perdidas: 0,
+      gestionarHoy: 0,
+      sinAbono: 0,
+      montoAtrasado: 0,
+    }
   );
 
   const getStatusBadge = (estado) => {
@@ -229,20 +312,20 @@ export default function VentasPage() {
           <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 rounded-2xl">
-                  <FiShoppingBag size={24} />
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-2xl">
+                  <FiActivity size={24} />
                 </div>
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">Contratos</span>
+                <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest leading-none">Prioridad</span>
               </div>
               <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
-                {summary.totalVentas}
+                {summary.gestionarHoy}
               </p>
               <div className="flex items-center gap-2">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Ventas Activas</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Gestionar hoy</p>
                 <div className="group relative">
                   <FiInfo className="text-slate-300 hover:text-indigo-500 cursor-help transition-colors" size={12} />
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-4 bg-slate-900/95 backdrop-blur-xl text-[10px] text-slate-200 font-bold leading-relaxed rounded-2xl opacity-0 group-hover:opacity-100 transition-all transform scale-95 group-hover:scale-100 pointer-events-none z-50 shadow-2xl border border-white/10 text-center uppercase tracking-tighter">
-                    Número total de contratos de crédito que se encuentran en curso (Vigentes, Atrasados o Vencidos).
+                    Créditos con al menos un ciclo pendiente, atraso acumulado o señal de cobranza urgente.
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/95"></div>
                   </div>
                 </div>
@@ -253,20 +336,20 @@ export default function VentasPage() {
           <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl">
+                <div className="p-3 bg-sky-50 dark:bg-sky-900/30 text-sky-600 rounded-2xl">
                   <FiClock size={24} />
                 </div>
-                <span className="text-[10px] font-black text-rose-300 uppercase tracking-widest animate-pulse font-black leading-none">Crítico</span>
+                <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest leading-none">Seguimiento</span>
               </div>
               <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
-                {summary.vencidas}
+                {summary.sinAbono}
               </p>
               <div className="flex items-center gap-2">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Ventas Vencidas</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Sin abono reciente</p>
                 <div className="group relative">
                   <FiInfo className="text-slate-300 hover:text-indigo-500 cursor-help transition-colors" size={12} />
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-4 bg-slate-900/95 backdrop-blur-xl text-[10px] text-slate-200 font-bold leading-relaxed rounded-2xl opacity-0 group-hover:opacity-100 transition-all transform scale-95 group-hover:scale-100 pointer-events-none z-50 shadow-2xl border border-white/10 text-center uppercase tracking-tighter">
-                    Créditos que han superado su fecha de vencimiento sin haber sido cancelados en su totalidad.
+                    Créditos que llevan uno o más días calendario sin registrar un abono real.
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/95"></div>
                   </div>
                 </div>
@@ -280,17 +363,17 @@ export default function VentasPage() {
                 <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-2xl">
                   <FiTrendingDown size={24} />
                 </div>
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">Riesgo</span>
+                <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest leading-none">Cobranza</span>
               </div>
               <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
-                {formatMoney(summary.perdidas)}
+                {formatMoney(summary.montoAtrasado)}
               </p>
               <div className="flex items-center gap-2">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Monto en Mora Crítica</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Para ponerse al día</p>
                 <div className="group relative">
                   <FiInfo className="text-slate-300 hover:text-indigo-500 cursor-help transition-colors" size={12} />
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-4 bg-slate-900/95 backdrop-blur-xl text-[10px] text-slate-200 font-bold leading-relaxed rounded-2xl opacity-0 group-hover:opacity-100 transition-all transform scale-95 group-hover:scale-100 pointer-events-none z-50 shadow-2xl border border-white/10 text-center uppercase tracking-tighter">
-                    Total del saldo pendiente perteneciente exclusivamente a los créditos que ya están en estado Vencido.
+                    Suma del monto que los clientes con atraso deben abonar para cubrir sus cuotas pendientes.
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/95"></div>
                   </div>
                 </div>
@@ -324,14 +407,20 @@ export default function VentasPage() {
                       className="w-full pl-12 pr-10 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest appearance-none focus:ring-4 focus:ring-indigo-500/10 transition-all cursor-pointer relative z-0"
                     >
                       <option value="Todos">Todos los Estados</option>
-                      <option value="PorVencer">⚠️ Por vencer (≤3 días)</option>
+                      <option value="PorVencer">⚠️ Por vencer (≤3 cuotas)</option>
                       <option value="Vigente">🟢 Vigente</option>
                       <option value="Atrasado">🟡 Atrasado</option>
                       <option value="Vencido">🔴 Vencido</option>
-                      <optgroup label="Riesgo de castigo (sin abono)">
-                        <option value="det_dudoso">🟠 Dudoso recaudo (15d+)</option>
-                        <option value="det_critico">🔶 Crítico (45d+)</option>
-                        <option value="det_irrecuperable">💀 Irrecuperable (90d+)</option>
+                      <optgroup label="Seguimiento de cobranza">
+                        <option value="cob_hoy">🟡 Gestionar hoy o peor</option>
+                        <option value="cob_urgente">🟠 Urgente o peor</option>
+                        <option value="cob_sin_abono">⏱ 1+ día sin abono</option>
+                        <option value="cob_atraso">💰 Con cuotas atrasadas</option>
+                      </optgroup>
+                      <optgroup label="Deterioro según frecuencia">
+                        <option value="det_dudoso">🟠 Atención temprana</option>
+                        <option value="det_critico">🔶 Riesgo alto</option>
+                        <option value="det_irrecuperable">🔴 Riesgo crítico</option>
                       </optgroup>
                     </select>
                  </div>
@@ -370,33 +459,40 @@ export default function VentasPage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-slate-50/50 dark:bg-slate-800/20">
-                    <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Referencia</th>
-                    <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Titular del Crédito</th>
-                    <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha Venta</th>
-                    <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Valor Venta</th>
-                    <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Abonado</th>
-                    <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Saldo</th>
-                    <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estado / Mora</th>
+                    <th className="px-5 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Prioridad</th>
+                    <th className="px-5 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cliente</th>
+                    <th className="px-5 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Último abono</th>
+                    <th className="px-5 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Para ponerse al día</th>
+                    <th className="px-5 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Saldo</th>
+                    <th className="px-5 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Acción</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {isLoading ? (
-                    <SkeletonTableRows rows={8} cols={7} />
+                    <SkeletonTableRows rows={8} cols={6} />
                   ) : (
                     currentVentas.map((venta) => {
-                      const visitasRestantes = calcVisitasRestantes(venta);
-                      const proxVencer = (venta.estado_venta === "Vigente" || venta.estado_venta === "Atrasado") && visitasRestantes !== null && visitasRestantes >= 0 && visitasRestantes <= 3;
-                      const det = clasificarDeterioro(venta);
+                      const prioridad = getPrioridadCobranza(venta);
+                      const cuotasAtrasadas = getCuotasAtrasadas(venta);
+                      const montoAtrasado = getMontoParaPonerseAlDia(venta);
+                      const phone = formatPhone(venta.cliente?.telefono_principal);
+                      const whatsappUrl = buildWhatsAppUrl(venta);
                       return (
                       <tr
                         key={venta.id}
                         onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.target.closest("a")) return; router.push(`/dashboard/ventas/${venta.id}`); }}
-                        className={`group transition-all cursor-pointer ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/40 hover:bg-amber-100/60 dark:hover:bg-amber-950/60 border-l-4 border-amber-400" : "hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 border-l-4 border-transparent"}`}
+                        className={`group transition-all cursor-pointer ${prioridad.rank >= 2 ? "bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-100/50 dark:hover:bg-rose-950/40 border-l-4 border-rose-400" : prioridad.rank === 1 ? "bg-amber-50/50 dark:bg-amber-950/30 hover:bg-amber-100/50 dark:hover:bg-amber-950/50 border-l-4 border-amber-400" : "hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 border-l-4 border-transparent"}`}
                       >
-                        <td className="px-6 py-6 whitespace-nowrap">
-                           <span className="text-xs font-black text-slate-400 group-hover:text-indigo-600 transition-colors">#{venta.id}</span>
+                        <td className="px-5 py-5 whitespace-nowrap">
+                          <div className="flex flex-col items-start gap-1.5">
+                            <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-full border ${getPriorityClasses(prioridad.key)}`}>
+                              {prioridad.label}
+                            </span>
+                            {getStatusBadge(venta.estado_venta)}
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{prioridad.reason}</span>
+                          </div>
                         </td>
-                        <td className="px-6 py-6 whitespace-nowrap">
+                        <td className="px-5 py-5 whitespace-nowrap">
                           <div className="flex items-center gap-4">
                             <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 font-black text-sm group-hover:scale-110 transition-transform">
                               {venta.cliente.nombres.charAt(0)}
@@ -406,55 +502,58 @@ export default function VentasPage() {
                                 {venta.cliente.nombres} {venta.cliente.apellidos}
                               </Link>
                               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">
-                                {venta.cliente.identificacion}
+                                #{venta.id} · {venta.fecha_venta} · {venta.plazo || "Diario"} · Cuota {formatMoney(venta.valor_cuota)}
                               </p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-6 whitespace-nowrap">
-                           <div className="flex items-center gap-2 text-slate-500">
-                              <FiCalendar className="text-slate-300" />
-                              <span className="text-xs font-bold">{venta.fecha_venta}</span>
-                           </div>
+                        <td className="px-5 py-5 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <FiClock className={prioridad.rank >= 1 ? "text-amber-500" : "text-slate-300"} />
+                            <div>
+                              <p className={`text-sm font-black leading-none ${prioridad.rank >= 1 ? "text-amber-600 dark:text-amber-400" : "text-slate-700 dark:text-slate-200"}`}>
+                                {formatDiasSinAbono(venta)}
+                              </p>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                {parseMoney(venta.total_abonado) > 0 && getDiasSinAbono(venta) === 0 ? "Abono más reciente" : "Sin abono real"}
+                              </p>
+                            </div>
+                          </div>
                         </td>
-                        <td className="px-6 py-6 whitespace-nowrap text-right">
-                          <p className="text-sm font-black text-slate-800 dark:text-slate-200 leading-none">
-                            {formatMoney(venta.valor_venta)}
-                          </p>
+                        <td className="px-5 py-5 whitespace-nowrap text-right">
+                          {cuotasAtrasadas > 0 ? (
+                            <>
+                              <p className="text-sm font-black text-orange-600 dark:text-orange-400 leading-none">
+                                {formatMoney(montoAtrasado)}
+                              </p>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                {formatCuotasAtrasadas(cuotasAtrasadas)} cuotas atrasadas
+                              </p>
+                            </>
+                          ) : (
+                            <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Al día</span>
+                          )}
                         </td>
-                        <td className="px-6 py-6 whitespace-nowrap text-right">
-                          <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 leading-none">
-                            {formatMoney(venta.total_abonado)}
-                          </p>
-                        </td>
-                        <td className="px-6 py-6 whitespace-nowrap text-right">
+                        <td className="px-5 py-5 whitespace-nowrap text-right">
                           <p className={`text-lg font-black tracking-tight leading-none ${venta.saldo_actual > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600'}`}>
                             {formatMoney(venta.saldo_actual)}
                           </p>
                         </td>
-                        <td className="px-6 py-6 whitespace-nowrap text-center">
-                          <div className="flex flex-col items-center gap-2">
-                             {getStatusBadge(venta.estado_venta)}
-                             {proxVencer && (
-                               <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-amber-300 dark:border-amber-700 animate-pulse">
-                                 ⚠ {visitasRestantes === 0 ? "Última cuota" : `${visitasRestantes} ${visitasRestantes === 1 ? "cuota" : "cuotas"} p/ vencer`}
-                               </span>
-                             )}
-                             {!proxVencer && venta.dias_atrasados > 0 && (
-                               <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest">
-                                 {Math.round(venta.dias_atrasados)} Días Mora
-                               </span>
-                             )}
-                             {!proxVencer && venta.dias_atrasados < 0 && (
-                               <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">
-                                 {Math.round(Math.abs(venta.dias_atrasados))} Días Adelantado
-                               </span>
-                             )}
-                             {det.nivel > 0 && (
-                               <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-full border ${det.badge}`}>
-                                 {det.short} · {det.diasSinAbono}d s/abono
-                               </span>
-                             )}
+                        <td className="px-5 py-5 whitespace-nowrap text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            {phone && (
+                              <a href={`tel:${phone}`} className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-xl hover:bg-indigo-100 transition-all" title="Llamar">
+                                <FiPhone size={14} />
+                              </a>
+                            )}
+                            {whatsappUrl && (
+                              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-xl hover:bg-emerald-100 transition-all" title="WhatsApp">
+                                <FiMessageCircle size={14} />
+                              </a>
+                            )}
+                            <Link href={`/dashboard/ventas/${venta.id}`} className="px-3 py-2 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:opacity-90 transition-all">
+                              Ver
+                            </Link>
                           </div>
                         </td>
                       </tr>
@@ -488,12 +587,14 @@ export default function VentasPage() {
                 currentVentas.map((venta) => {
                   const visitasRestantes = calcVisitasRestantes(venta);
                   const proxVencer = (venta.estado_venta === "Vigente" || venta.estado_venta === "Atrasado") && visitasRestantes !== null && visitasRestantes >= 0 && visitasRestantes <= 3;
-                  const det = clasificarDeterioro(venta);
+                  const prioridad = getPrioridadCobranza(venta);
+                  const cuotasAtrasadas = getCuotasAtrasadas(venta);
+                  const montoAtrasado = getMontoParaPonerseAlDia(venta);
                   return (
                     <Link
                       key={venta.id}
                       href={`/dashboard/ventas/${venta.id}`}
-                      className={`block p-5 active:bg-slate-50 dark:active:bg-slate-800/30 transition-colors cursor-pointer ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/30 border-l-4 border-amber-400" : "border-l-4 border-transparent"}`}
+                      className={`block p-5 active:bg-slate-50 dark:active:bg-slate-800/30 transition-colors cursor-pointer ${prioridad.rank >= 2 ? "bg-rose-50/40 dark:bg-rose-950/20 border-l-4 border-rose-400" : prioridad.rank === 1 || proxVencer ? "bg-amber-50/60 dark:bg-amber-950/30 border-l-4 border-amber-400" : "border-l-4 border-transparent"}`}
                     >
                       {/* Header: avatar + nombre + estado */}
                       <div className="flex items-start justify-between gap-3 mb-4">
@@ -506,14 +607,19 @@ export default function VentasPage() {
                               {venta.cliente.nombres} {venta.cliente.apellidos}
                             </p>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                              #{venta.id} · {venta.fecha_venta}
+                              #{venta.id} · {venta.fecha_venta} · {venta.plazo || "Diario"}
                             </p>
                           </div>
                         </div>
-                        <div className="shrink-0">{getStatusBadge(venta.estado_venta)}</div>
+                        <div className="shrink-0 flex flex-col items-end gap-1.5">
+                          <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-full border ${getPriorityClasses(prioridad.key)}`}>
+                            {prioridad.label}
+                          </span>
+                          {getStatusBadge(venta.estado_venta)}
+                        </div>
                       </div>
 
-                      {/* 3-col grid: Saldo · Abonado · Venta */}
+                      {/* Señales clave: saldo · monto para ponerse al día · último abono */}
                       <div className="grid grid-cols-3 gap-2 p-4 bg-slate-50/50 dark:bg-slate-800/20 rounded-2xl border border-slate-100 dark:border-slate-800">
                         <div className="space-y-0.5">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Saldo</p>
@@ -522,44 +628,29 @@ export default function VentasPage() {
                           </p>
                         </div>
                         <div className="text-center space-y-0.5">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Abonado</p>
-                          <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
-                            {formatMoney(venta.total_abonado)}
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ponerse al día</p>
+                          <p className={`text-sm font-black tracking-tight ${montoAtrasado > 0 ? "text-orange-600 dark:text-orange-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                            {montoAtrasado > 0 ? formatMoney(montoAtrasado) : "Al día"}
                           </p>
                         </div>
                         <div className="text-right space-y-0.5">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Venta</p>
-                          <p className="text-sm font-black text-slate-800 dark:text-white tracking-tight">
-                            {formatMoney(venta.valor_venta)}
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Último abono</p>
+                          <p className={`text-sm font-black tracking-tight ${prioridad.rank >= 1 ? "text-amber-600 dark:text-amber-400" : "text-slate-800 dark:text-white"}`}>
+                            {formatDiasSinAbono(venta)}
                           </p>
                         </div>
                       </div>
 
-                      {/* Mora / por vencer */}
-                      {(proxVencer || venta.dias_atrasados > 0 || venta.dias_atrasados < 0) && (
-                        <div className="mt-3 text-center">
-                          {proxVencer ? (
-                            <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-amber-300 dark:border-amber-700 animate-pulse">
-                              ⚠ {visitasRestantes === 0 ? "Última cuota" : `${visitasRestantes} ${visitasRestantes === 1 ? "cuota" : "cuotas"} p/ vencer`}
-                            </span>
-                          ) : venta.dias_atrasados > 0 ? (
-                            <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">
-                              {Math.round(venta.dias_atrasados)} Días en Mora
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-                              {Math.round(Math.abs(venta.dias_atrasados))} Días Adelantado
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      {det.nivel > 0 && (
-                        <div className="mt-2 text-center">
-                          <span className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full border ${det.badge}`}>
-                            {det.label} · {det.diasSinAbono}d sin abono
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                          {cuotasAtrasadas > 0 ? `${formatCuotasAtrasadas(cuotasAtrasadas)} cuotas atrasadas` : prioridad.reason}
+                        </span>
+                        {proxVencer && (
+                          <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-amber-300 dark:border-amber-700">
+                            ⚠ {visitasRestantes === 0 ? "Última cuota" : `${visitasRestantes} p/ vencer`}
                           </span>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </Link>
                   );
                 })

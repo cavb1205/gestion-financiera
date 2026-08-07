@@ -17,7 +17,7 @@ import { apiFetch } from "../../utils/api";
 import { useRouter } from "next/navigation";
 import { formatMoney, parseMoney, parseLocalDate, formatDate as formatFechaDisplay } from "../../utils/format";
 
-const UltimosMovimientos = ({ tienda }) => {
+const UltimosMovimientos = ({ tienda, refreshKey = 0 }) => {
   const router = useRouter();
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -61,6 +61,52 @@ const UltimosMovimientos = ({ tienda }) => {
       fechaInicio: formatDate(fechaInicio),
       fechaFin: formatDate(hoy),
     };
+  };
+
+  const mapearMovimientos = (datos) => {
+    const aportesArray = Array.isArray(datos?.aportes) ? datos.aportes : [];
+    const gastosArray = Array.isArray(datos?.gastos) ? datos.gastos : [];
+    const utilidadesArray = Array.isArray(datos?.utilidades) ? datos.utilidades : [];
+    const ventasArray = Array.isArray(datos?.ventas) ? datos.ventas : [];
+
+    return [
+      ...aportesArray.map((aporte) => ({
+        id: aporte.id,
+        tipo: "aporte",
+        descripcion: `Aporte de ${aporte.comentario || "socio"} `,
+        monto: parseMoney(aporte.valor),
+        fecha: aporte.fecha,
+        icono: "trending-up",
+      })),
+      ...gastosArray.map((gasto) => ({
+        id: gasto.id,
+        tipo: "gasto",
+        descripcion: gasto.tipo_gasto?.tipo_gasto || "Gasto registrado",
+        monto: -parseMoney(gasto.valor),
+        fecha: gasto.fecha,
+        icono: "credit-card",
+      })),
+      ...utilidadesArray.map((utilidad) => ({
+        id: utilidad.id,
+        tipo: "retiro",
+        descripcion: "Retiro de utilidades",
+        monto: -parseMoney(utilidad.valor),
+        fecha: utilidad.fecha,
+        icono: "trending-down",
+        estado: "completado",
+        origen: "utilidad",
+      })),
+      ...ventasArray.map((venta) => ({
+        id: venta.id,
+        tipo: "venta",
+        descripcion: `Venta a ${venta.cliente?.nombres || "cliente"} ${
+          venta.cliente?.apellidos || ""
+        }`,
+        monto: parseMoney(venta.valor_venta),
+        fecha: venta.fecha_venta,
+        icono: "shopping-cart",
+      })),
+    ];
   };
 
   // Función para obtener movimientos de aportes
@@ -188,22 +234,38 @@ const UltimosMovimientos = ({ tienda }) => {
 
       const { fechaInicio, fechaFin } = getDateRange();
 
-      // Obtener todos los tipos de movimientos en paralelo
-      const [aportesData, gastosData, ventasData, utilidadesData] =
-        await Promise.all([
-          obtenerAportes(fechaInicio, fechaFin),
-          obtenerGastos(fechaInicio, fechaFin),
-          obtenerUtilidades(fechaFin),
-          obtenerVentas(fechaInicio, fechaFin),
-        ]);
+      let todosMovimientos;
+      try {
+        const response = await apiFetch(
+          `/tiendas/dashboard/movimientos/${fechaInicio}/${fechaFin}/t/${tienda.tienda.id}/`
+        );
 
-      // Combinar todos los movimientos
-      const todosMovimientos = [
-        ...aportesData,
-        ...gastosData,
-        ...utilidadesData,
-        ...ventasData,
-      ];
+        if (!response.ok) {
+          throw new Error("Error al cargar movimientos consolidados");
+        }
+
+        todosMovimientos = mapearMovimientos(await response.json());
+      } catch (consolidatedError) {
+        // Respaldo reversible mientras todos los entornos tengan el endpoint
+        // nuevo y también cubre una caída parcial del servicio consolidado.
+        console.warn(
+          "Se usará el respaldo del Stream de Actividad:",
+          consolidatedError
+        );
+        const [aportesData, gastosData, ventasData, utilidadesData] =
+          await Promise.all([
+            obtenerAportes(fechaInicio, fechaFin),
+            obtenerGastos(fechaInicio, fechaFin),
+            obtenerUtilidades(fechaFin),
+            obtenerVentas(fechaInicio, fechaFin),
+          ]);
+        todosMovimientos = [
+          ...aportesData,
+          ...gastosData,
+          ...utilidadesData,
+          ...ventasData,
+        ];
+      }
 
       // Ordenar por fecha (más recientes primero)
       todosMovimientos.sort((a, b) => parseLocalDate(b.fecha) - parseLocalDate(a.fecha));
@@ -263,10 +325,10 @@ const UltimosMovimientos = ({ tienda }) => {
   };
 
   useEffect(() => {
-    if (tienda) {
+    if (tienda?.tienda?.id) {
       cargarMovimientos();
     }
-  }, [tienda, periodo]);
+  }, [tienda?.tienda?.id, periodo, refreshKey]);
 
   if (cargando) {
     return (

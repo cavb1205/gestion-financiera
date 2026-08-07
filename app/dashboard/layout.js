@@ -59,6 +59,7 @@ const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "";
 // Menu items with role restrictions: adminOnly = true means only visible to admins (is_staff)
 const allMenuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: FiHome, adminOnly: true },
+  { path: '/dashboard/alertas', label: 'Alertas', icon: FiBell, adminOnly: true, alertasOnly: true },
   { path: '/dashboard/aportes', label: 'Gestión Aportes', icon: FiDollar, adminOnly: true },
   { path: '/dashboard/gastos', label: 'Control Gastos', icon: FiTrendingDown },
   { path: '/dashboard/utilidades', label: 'Utilidades', icon: FiTrendingUp, adminOnly: true },
@@ -112,6 +113,7 @@ export default function DashboardLayout({ children }) {
   const menuItems = allMenuItems.filter(item => {
     // Herramientas de administración: solo en el modo admin del root
     if (item.rootOnly) return rootAdminMode;
+    if (item.alertasOnly && user?.username !== 'cavb1205') return false;
     // Ítems operativos de una ruta: ocultos para el root mientras administra (sin ruta seleccionada)
     if (rootAdminMode) return false;
     if (item.adminOnly && isWorker) return false;

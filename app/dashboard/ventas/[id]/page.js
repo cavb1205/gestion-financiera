@@ -47,6 +47,14 @@ export default function VentaDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [pagos, setPagos] = useState([]);
+  const [isPagosLoading, setIsPagosLoading] = useState(false);
+  const [pagosMeta, setPagosMeta] = useState({
+    count: 0,
+    counts: { todos: 0, abonos: 0, fallidas: 0 },
+    pages: 0,
+    pageSize: 8,
+    latestId: null,
+  });
 
   // Estados para el modal de pérdida
   const [showLossModal, setShowLossModal] = useState(false);
@@ -70,7 +78,6 @@ export default function VentaDetailPage() {
 
   // Filtro historial
   const [filtroRecaudos, setFiltroRecaudos] = useState("todos");
-  const setFiltro = (f) => { setFiltroRecaudos(f); setPagosPage(1); };
 
   // Confirmación pérdida
   const [lossConfirmText, setLossConfirmText] = useState("");
@@ -116,6 +123,58 @@ export default function VentaDetailPage() {
     router.push(`/dashboard/liquidar/abonar`);
   };
 
+  const requestPagosPage = async (page, filtro) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(PAGOS_PER_PAGE),
+      filtro,
+    });
+    const response = await apiFetch(`/recaudos/list/${ventaId}/paginado/?${params.toString()}`);
+    if (!response.ok) throw new Error("No se pudo cargar el historial de pagos");
+    return response.json();
+  };
+
+  const applyPagosPage = (data, fallbackPage = 1) => {
+    const counts = data?.counts || { todos: 0, abonos: 0, fallidas: 0 };
+    setPagos(Array.isArray(data?.results) ? data.results : []);
+    setPagosPage(Number(data?.page) || fallbackPage);
+    setPagosMeta({
+      count: Number(data?.count) || 0,
+      counts: {
+        todos: Number(counts.todos) || 0,
+        abonos: Number(counts.abonos) || 0,
+        fallidas: Number(counts.fallidas) || 0,
+      },
+      pages: Number(data?.pages) || 0,
+      pageSize: Number(data?.page_size) || PAGOS_PER_PAGE,
+      latestId: data?.latest_id || null,
+    });
+  };
+
+  const fetchPagos = async (page = pagosPage, filtro = filtroRecaudos) => {
+    setIsPagosLoading(true);
+    try {
+      const data = await requestPagosPage(page, filtro);
+      applyPagosPage(data, page);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsPagosLoading(false);
+    }
+  };
+
+  const setFiltro = (filtro) => {
+    setFiltroRecaudos(filtro);
+    setPagosPage(1);
+    if (venta) fetchPagos(1, filtro);
+  };
+
+  const goToPagosPage = (page) => {
+    if (page < 1 || (pagosMeta.pages && page > pagosMeta.pages)) return;
+    setPagosPage(page);
+    fetchPagos(page, filtroRecaudos);
+  };
+
   useEffect(() => {
     if (!loading && isAuthenticated && selectedStore) {
       fetchVenta();
@@ -131,22 +190,24 @@ export default function VentaDetailPage() {
   const fetchVenta = async () => {
     try {
       setIsLoading(true);
-      const ventaResponse = await apiFetch(`/ventas/${ventaId}/`);
+      setIsPagosLoading(true);
+      setError("");
+      const [ventaResponse, pagosData] = await Promise.all([
+        apiFetch(`/ventas/${ventaId}/`),
+        requestPagosPage(1, filtroRecaudos),
+      ]);
 
       if (!ventaResponse.ok) throw new Error("No se pudo cargar la información de la venta");
       const ventaData = await ventaResponse.json();
       setVenta(ventaData);
-
-      const pagosResponse = await apiFetch(`/recaudos/list/${ventaId}/`);
-
-      if (!pagosResponse.ok) throw new Error("No se pudieron cargar los pagos de la venta");
-      const pagosData = await pagosResponse.json();
-      setPagos(Array.isArray(pagosData) ? pagosData : []);
+      applyPagosPage(pagosData);
 
       setIsLoading(false);
     } catch (err) {
       setError(err.message);
       setIsLoading(false);
+    } finally {
+      setIsPagosLoading(false);
     }
   };
 
@@ -213,7 +274,11 @@ export default function VentaDetailPage() {
       }
 
       toast.success("Venta marcada como pérdida");
-      setRefreshData(prev => !prev);
+      setVenta(prev => prev ? {
+        ...prev,
+        estado_venta: "Perdida",
+        comentario: "Venta en pérdida, cliente bloqueado",
+      } : prev);
       setShowLossModal(false);
       setLossConfirmText("");
     } catch (err) {
@@ -256,15 +321,11 @@ export default function VentaDetailPage() {
 
   // ID del pago más reciente
   const lastPagoId = pagos.length > 0
-    ? pagos.reduce((a, b) => a.fecha_recaudo >= b.fecha_recaudo ? a : b).id
+    ? pagosMeta.latestId
     : null;
 
   // Pagos filtrados según pestaña activa
-  const pagosFiltrados = filtroRecaudos === "abonos"
-    ? pagos.filter(p => parseFloat(p.valor_recaudo) > 0)
-    : filtroRecaudos === "fallidas"
-    ? pagos.filter(p => parseFloat(p.valor_recaudo) === 0 && p.visita_blanco)
-    : pagos;
+  const pagosFiltrados = pagos;
 
   const whatsappUrl = (() => {
     try {
@@ -339,7 +400,7 @@ export default function VentaDetailPage() {
             <div className="flex justify-between items-center px-1">
               <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Cliente</span>
               <span className="text-xs font-black text-slate-800 dark:text-white uppercase truncate ml-4">
-                {deletingRecaudo.venta?.cliente?.nombres} {deletingRecaudo.venta?.cliente?.apellidos}
+                {venta?.cliente?.nombres} {venta?.cliente?.apellidos}
               </span>
             </div>
             <div className="flex justify-between items-center px-1 pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
@@ -724,14 +785,21 @@ export default function VentaDetailPage() {
                       onClick={() => setFiltro(key)}
                       className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filtroRecaudos === key ? "bg-slate-900 dark:bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"}`}
                     >
-                      {label}
+                      {label} ({pagosMeta.counts[key] || 0})
                     </button>
                   ))}
                 </div>
               </div>
 
+              {isPagosLoading && (
+                <div className="px-8 py-16 md:py-20 text-center">
+                  <LoadingSpinner />
+                  <p className="mt-4 text-[10px] font-black text-slate-300 uppercase tracking-widest">Cargando historial...</p>
+                </div>
+              )}
+
               {/* Empty state */}
-              {pagosFiltrados.length === 0 && (
+              {!isPagosLoading && pagosFiltrados.length === 0 && (
                 <div className="px-8 py-16 md:py-20 text-center">
                   <FiActivity className="mx-auto text-4xl text-slate-200 mb-4" />
                   <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Sin registros de pago</p>
@@ -739,7 +807,7 @@ export default function VentaDetailPage() {
               )}
 
               {/* Desktop: Table */}
-              {pagosFiltrados.length > 0 && (
+              {!isPagosLoading && pagosFiltrados.length > 0 && (
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead>
@@ -751,7 +819,7 @@ export default function VentaDetailPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                      {pagosFiltrados.slice((pagosPage - 1) * PAGOS_PER_PAGE, pagosPage * PAGOS_PER_PAGE).map(pago => {
+                      {pagosFiltrados.map(pago => {
                         const valor = parseFloat(pago.valor_recaudo);
                         const isFallida = valor === 0 && pago.visita_blanco;
                         return (
@@ -794,9 +862,9 @@ export default function VentaDetailPage() {
               )}
 
               {/* Mobile: Cards */}
-              {pagosFiltrados.length > 0 && (
+              {!isPagosLoading && pagosFiltrados.length > 0 && (
                 <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                  {pagosFiltrados.slice((pagosPage - 1) * PAGOS_PER_PAGE, pagosPage * PAGOS_PER_PAGE).map(pago => {
+                  {pagosFiltrados.map(pago => {
                     const valor = parseFloat(pago.valor_recaudo);
                     const isFallida = valor === 0 && pago.visita_blanco;
                     return (
@@ -838,31 +906,31 @@ export default function VentaDetailPage() {
               )}
 
               {/* Paginación */}
-              {pagosFiltrados.length > PAGOS_PER_PAGE && (
+              {!isPagosLoading && pagosFiltrados.length > 0 && pagosMeta.pages > 1 && (
                 <div className="px-5 md:px-8 py-4 md:py-5 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between gap-3">
                   <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    {(pagosPage - 1) * PAGOS_PER_PAGE + 1}–{Math.min(pagosPage * PAGOS_PER_PAGE, pagosFiltrados.length)} de {pagosFiltrados.length}
+                    {(pagosPage - 1) * PAGOS_PER_PAGE + 1}–{Math.min(pagosPage * PAGOS_PER_PAGE, pagosMeta.count)} de {pagosMeta.count}
                   </p>
                   <div className="flex items-center gap-1.5 md:gap-2 flex-wrap justify-end">
                     <button
-                      onClick={() => setPagosPage(p => Math.max(1, p - 1))}
+                      onClick={() => goToPagosPage(pagosPage - 1)}
                       disabled={pagosPage === 1}
                       className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
                     >
                       <FiArrowLeft size={14} />
                     </button>
-                    {Array.from({ length: Math.ceil(pagosFiltrados.length / PAGOS_PER_PAGE) }, (_, i) => (
+                    {Array.from({ length: pagosMeta.pages }, (_, i) => (
                       <button
                         key={i}
-                        onClick={() => setPagosPage(i + 1)}
+                        onClick={() => goToPagosPage(i + 1)}
                         className={`w-8 h-8 rounded-xl text-[11px] font-black transition-all ${pagosPage === i + 1 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/40' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
                       >
                         {i + 1}
                       </button>
                     ))}
                     <button
-                      onClick={() => setPagosPage(p => Math.min(Math.ceil(pagosFiltrados.length / PAGOS_PER_PAGE), p + 1))}
-                      disabled={pagosPage === Math.ceil(pagosFiltrados.length / PAGOS_PER_PAGE)}
+                      onClick={() => goToPagosPage(pagosPage + 1)}
+                      disabled={pagosPage === pagosMeta.pages}
                       className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
                     >
                       <FiArrowUpRight size={14} className="rotate-90" />

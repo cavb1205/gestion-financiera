@@ -17,6 +17,7 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../../../../context/AuthContext";
 import { apiFetch } from "../../../../utils/api";
+import { invalidateClientesTienda } from "../../../../utils/clientesCache";
 import LoadingSpinner from "../../../../components/LoadingSpinner";
 
 export default function EditarCliente() {
@@ -179,6 +180,7 @@ export default function EditarCliente() {
       }
 
       // Éxito
+      invalidateClientesTienda(selectedStore.tienda.id);
       setSuccess(true);
       setTimeout(() => router.push(`/dashboard/clientes/${clienteId}`), 1500);
     } catch (err) {

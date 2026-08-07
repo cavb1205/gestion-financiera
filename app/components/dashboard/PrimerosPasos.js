@@ -15,6 +15,7 @@ import {
   FiCheck,
 } from "react-icons/fi";
 import { apiFetch } from "../../utils/api";
+import { getClientesTienda } from "../../utils/clientesCache";
 
 const doneKey = (tiendaId) => `cartera_primeros_pasos_done_${tiendaId}`;
 
@@ -45,7 +46,7 @@ export default function PrimerosPasos({ detail, activos = [] }) {
         .then((r) => (r.ok ? r.json() : []))
         .catch(() => []);
     Promise.all([
-      fetchArr(`/clientes/tienda/${tiendaId}/`),
+      getClientesTienda(tiendaId).catch(() => []),
       fetchArr(`/tiendas/cierres/t/${tiendaId}/`),
     ]).then(([clientes, cierres]) => {
       if (ignore) return;

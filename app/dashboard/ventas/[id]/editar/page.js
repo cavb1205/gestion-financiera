@@ -45,6 +45,7 @@ export default function EditarVentaPage() {
   const [error, setError] = useState("");
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [hasPagos, setHasPagos] = useState(false);
+  const [motivoCorreccion, setMotivoCorreccion] = useState("");
 
   useEffect(() => {
     if (!loading && isAuthenticated && selectedStore) {
@@ -67,15 +68,15 @@ export default function EditarVentaPage() {
       setIsLoading(true);
       const [response, pagosResponse] = await Promise.all([
         apiFetch(`/ventas/${ventaId}/`),
-        apiFetch(`/recaudos/list/${ventaId}/`),
+        apiFetch(`/recaudos/list/${ventaId}/paginado/?page=1&page_size=1&filtro=todos`),
       ]);
 
       if (!response.ok) throw new Error("No se pudieron cargar los datos de la venta");
+      if (!pagosResponse.ok) throw new Error("No se pudo verificar el historial de pagos");
       const ventaData = await response.json();
 
-      let pagos = [];
-      if (pagosResponse.ok) pagos = await pagosResponse.json();
-      setHasPagos(pagos.length > 0);
+      const pagosData = await pagosResponse.json();
+      setHasPagos(Number(pagosData?.count) > 0);
       
       const fechaVenta = new Date(ventaData.fecha_venta);
       const offset = fechaVenta.getTimezoneOffset() * 60000;
@@ -114,34 +115,49 @@ export default function EditarVentaPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (hasPagos) {
-      toast.error("Restricción de Integridad: No se permite editar ventas con pagos vinculados.");
-      return;
-    }
-    
+
     setIsSubmitting(true);
     setError("");
 
     try {
-      const ventaData = {
-        fecha_venta: adjustDateToUTC(formData.fecha_venta),
-        valor_venta: parseFloat(formData.valor_venta),
-        interes: parseFloat(formData.interes),
-        cuotas: parseInt(formData.cuotas),
-        comentario: formData.comentario,
-        tienda: selectedStore.tienda.id,
-      };
+      if (!formData.fecha_venta || !formData.cuotas || parseInt(formData.cuotas, 10) < 1) {
+        throw new Error("Indica una fecha y un número de cuotas válido.");
+      }
 
-      const response = await apiFetch(`/ventas/${ventaId}/update/t/${selectedStore.tienda.id}/`, {
-        method: "PUT",
-        body: JSON.stringify(ventaData),
-      });
+      let response;
+      if (hasPagos) {
+        if (motivoCorreccion.trim().length < 5) {
+          throw new Error("El motivo de la corrección debe tener al menos 5 caracteres.");
+        }
+        response = await apiFetch(`/ventas/${ventaId}/correccion-administrativa/t/${selectedStore.tienda.id}/`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            fecha_venta: adjustDateToUTC(formData.fecha_venta),
+            cuotas: parseInt(formData.cuotas, 10),
+            motivo: motivoCorreccion.trim(),
+          }),
+        });
+      } else {
+        const ventaData = {
+          fecha_venta: adjustDateToUTC(formData.fecha_venta),
+          valor_venta: parseFloat(formData.valor_venta),
+          interes: parseFloat(formData.interes),
+          cuotas: parseInt(formData.cuotas, 10),
+          comentario: formData.comentario,
+          tienda: selectedStore.tienda.id,
+        };
+
+        response = await apiFetch(`/ventas/${ventaId}/update/t/${selectedStore.tienda.id}/`, {
+          method: "PUT",
+          body: JSON.stringify(ventaData),
+        });
+      }
 
       if (!response.ok) {
         throw new Error(await getApiError(response, "Error al actualizar la venta"));
       }
 
-      toast.success("¡Contrato actualizado correctamente!");
+      toast.success(hasPagos ? "Corrección administrativa registrada." : "¡Contrato actualizado correctamente!");
       router.push(`/dashboard/ventas/${ventaId}`);
     } catch (err) {
       setError(err.message);
@@ -189,7 +205,7 @@ export default function EditarVentaPage() {
              <div>
                 <h3 className="text-sm font-black text-amber-900 dark:text-amber-400 uppercase tracking-tight mb-1">Bloqueo de Seguridad</h3>
                 <p className="text-[10px] font-bold text-amber-700/70 dark:text-amber-500/80 leading-relaxed uppercase tracking-widest">
-                  Parámetros financieros bloqueados parcialmente debido a recaudos existentes. Solo comentarios editables.
+                  Esta venta tiene recaudos. Un administrador puede corregir únicamente la fecha y las cuotas; el saldo, capital, tasa y pagos quedan intactos. El motivo es obligatorio.
                 </p>
              </div>
           </div>
@@ -236,12 +252,11 @@ export default function EditarVentaPage() {
                     <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-2">
                         <label htmlFor="fecha_venta" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha Original</label>
-                        <div className={`relative group custom-datepicker ${hasPagos ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                        <div className="relative group custom-datepicker">
                           <DatePicker
                             id="fecha_venta"
                             selected={formData.fecha_venta}
                             onChange={(date) => setFormData({ ...formData, fecha_venta: date })}
-                            disabled={hasPagos}
                             className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                             dateFormat="dd 'de' MMMM, yyyy"
                           />
@@ -254,6 +269,7 @@ export default function EditarVentaPage() {
                           id="comentario"
                           value={formData.comentario}
                           onChange={(e) => setFormData({ ...formData, comentario: e.target.value })}
+                          disabled={hasPagos}
                           className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none resize-none h-[80px]"
                           placeholder="Condiciones especiales..."
                         />
@@ -288,7 +304,7 @@ export default function EditarVentaPage() {
                          </div>
                       </div>
 
-                      <div className={`grid grid-cols-2 gap-4 ${hasPagos ? 'opacity-60 grayscale-[0.5]' : ''}`}>
+                      <div className="grid grid-cols-2 gap-4">
                          <div className="space-y-2">
                             <label htmlFor="interes" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Tasa (%)</label>
                             <div className="relative group">
@@ -312,7 +328,6 @@ export default function EditarVentaPage() {
                                 id="cuotas"
                                 type="number"
                                 value={formData.cuotas}
-                                disabled={hasPagos}
                                 onChange={(e) => setFormData({ ...formData, cuotas: e.target.value })}
                                 onWheel={(e) => e.target.blur()}
                                 className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
@@ -321,6 +336,23 @@ export default function EditarVentaPage() {
                          </div>
                       </div>
                    </div>
+
+                   {hasPagos && (
+                     <div className="space-y-2">
+                       <label htmlFor="motivoCorreccion" className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest ml-1">
+                         Motivo de la corrección *
+                       </label>
+                       <textarea
+                         id="motivoCorreccion"
+                         value={motivoCorreccion}
+                         onChange={(e) => setMotivoCorreccion(e.target.value)}
+                         required
+                         minLength={5}
+                         className="w-full px-5 py-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/40 rounded-2xl text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-amber-700/50 focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all outline-none resize-none h-[96px]"
+                         placeholder="Ej.: La fecha real del desembolso fue un día anterior."
+                       />
+                     </div>
+                   )}
 
                    <div className="bg-slate-900 dark:bg-slate-800/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
                       <div className="flex justify-between items-end">
@@ -350,7 +382,7 @@ export default function EditarVentaPage() {
                     ) : (
                       <>
                         <FiSave size={18} />
-                        Sincronizar Cambios
+                        {hasPagos ? "Registrar corrección" : "Sincronizar Cambios"}
                       </>
                     )}
                   </button>

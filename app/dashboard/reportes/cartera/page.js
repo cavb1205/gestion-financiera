@@ -23,7 +23,7 @@ import {
 } from "react-icons/fi";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../../utils/format";
-import { clasificarDeterioro, NIVEL_DETERIORO } from "../../../utils/cartera";
+import { clasificarDeterioro, getRiesgoCartera, NIVEL_DETERIORO } from "../../../utils/cartera";
 import { toast } from "react-toastify";
 
 export default function CarteraReportPage() {
@@ -67,7 +67,7 @@ export default function CarteraReportPage() {
   const totalPorCobrar = ventas.reduce((acc, v) => acc + parseMoney(v.saldo_actual), 0);
   const totalAbonado = ventas.reduce((acc, v) => acc + parseMoney(v.total_abonado), 0);
   const totalAPagar = ventas.reduce((acc, v) => acc + parseMoney(v.total_a_pagar), 0);
-  const ventasMorosas = ventas.filter((v) => v.dias_atrasados > 0);
+  const ventasMorosas = ventas.filter((v) => getRiesgoCartera(v).enMora);
   const tasaMorosidad = ventas.length > 0 ? (ventasMorosas.length / ventas.length) * 100 : 0;
   const promedioDiasMora =
     ventasMorosas.length > 0
@@ -93,10 +93,10 @@ export default function CarteraReportPage() {
   // --- Aging Buckets ---
   const agingBuckets = [
     { label: "Al Día", min: -Infinity, max: 0, count: 0, saldo: 0, intensity: "bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400" },
-    { label: "1-5 Días", min: 1, max: 5, count: 0, saldo: 0, intensity: "bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400" },
-    { label: "6-15 Días", min: 6, max: 15, count: 0, saldo: 0, intensity: "bg-orange-50 dark:bg-orange-900/10 text-orange-700 dark:text-orange-400" },
-    { label: "16-30 Días", min: 16, max: 30, count: 0, saldo: 0, intensity: "bg-rose-50 dark:bg-rose-900/10 text-rose-700 dark:text-rose-400" },
-    { label: "30+ Días", min: 31, max: Infinity, count: 0, saldo: 0, intensity: "bg-rose-100 dark:bg-rose-900/20 text-rose-800 dark:text-rose-300" },
+    { label: "1-5 Cuotas", min: 1, max: 5, count: 0, saldo: 0, intensity: "bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400" },
+    { label: "6-15 Cuotas", min: 6, max: 15, count: 0, saldo: 0, intensity: "bg-orange-50 dark:bg-orange-900/10 text-orange-700 dark:text-orange-400" },
+    { label: "16-30 Cuotas", min: 16, max: 30, count: 0, saldo: 0, intensity: "bg-rose-50 dark:bg-rose-900/10 text-rose-700 dark:text-rose-400" },
+    { label: "30+ Cuotas", min: 31, max: Infinity, count: 0, saldo: 0, intensity: "bg-rose-100 dark:bg-rose-900/20 text-rose-800 dark:text-rose-300" },
   ];
   ventas.forEach((v) => {
     const dias = v.dias_atrasados;
@@ -109,7 +109,7 @@ export default function CarteraReportPage() {
     }
   });
 
-  // --- Riesgo de castigo (deterioro por días sin abono) ---
+  // --- Deterioro de cartera según la frecuencia del crédito ---
   const deterioroTiers = [
     { ...NIVEL_DETERIORO[3], nivel: 3, count: 0, saldo: 0 },
     { ...NIVEL_DETERIORO[2], nivel: 2, count: 0, saldo: 0 },
@@ -125,10 +125,9 @@ export default function CarteraReportPage() {
   });
   const totalDeterioroCount = deterioroTiers.reduce((a, t) => a + t.count, 0);
   const totalDeterioroSaldo = deterioroTiers.reduce((a, t) => a + t.saldo, 0);
-  const saldoIrrecuperable = deterioroTiers.find((t) => t.nivel === 3)?.saldo || 0;
 
   // --- Top 10 Risky Clients ---
-  // Prioridad: nivel de deterioro desc (Irrecuperable→Crítico→Dudoso), luego
+  // Prioridad: nivel de deterioro desc (crítico→alto→atención), luego
   // estado (Vencido antes que Atrasado) y por último saldo desc.
   const estadoPriority = { Vencido: 0, Atrasado: 1 };
   const topRiesgo = [...ventasMorosas]
@@ -274,7 +273,7 @@ export default function CarteraReportPage() {
                 <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Tasa de Morosidad</p>
               </div>
 
-              {/* Promedio Días Mora */}
+              {/* Promedio cuotas de atraso */}
               <div className="glass p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-3 md:mb-4">
                   <div className="p-2.5 md:p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-xl md:rounded-2xl">
@@ -285,7 +284,7 @@ export default function CarteraReportPage() {
                 <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
                   {promedioDiasMora.toFixed(1)}
                 </p>
-                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Promedio Días Mora</p>
+                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Promedio Cuotas Atraso</p>
               </div>
 
               {/* Índice de Recuperación */}
@@ -363,7 +362,7 @@ export default function CarteraReportPage() {
                   </div>
                   <div>
                     <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Antigüedad de Mora</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Segmentación por días de atraso</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Segmentación por cuotas de atraso</p>
                   </div>
                 </div>
 
@@ -428,15 +427,15 @@ export default function CarteraReportPage() {
                 </div>
               </div>
 
-              {/* Riesgo de Castigo (deterioro por días sin abono) */}
+              {/* Deterioro de cartera según la frecuencia del crédito */}
               <div className="glass rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl lg:col-span-2">
                 <div className="px-6 md:px-10 py-6 md:py-8 border-b border-slate-100 dark:border-slate-800 flex items-center gap-4">
                   <div className="w-10 h-10 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-2xl flex items-center justify-center shrink-0">
                     <FiAlertTriangle size={20} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Riesgo de Castigo</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Créditos en mora clasificados por días sin abono</p>
+                    <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Deterioro de Cartera</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Créditos en mora · umbrales según Diario, Semanal o Mensual</p>
                   </div>
                   {totalDeterioroCount > 0 && (
                     <div className="text-right shrink-0">
@@ -448,8 +447,8 @@ export default function CarteraReportPage() {
 
                 {totalDeterioroCount === 0 ? (
                   <div className="p-10 text-center">
-                    <p className="text-sm font-bold text-slate-400">Sin créditos en riesgo de castigo.</p>
-                    <p className="text-[10px] font-bold text-slate-400/70 uppercase tracking-widest mt-1">Ningún crédito en mora supera 15 días sin abono.</p>
+                    <p className="text-sm font-bold text-slate-400">Sin créditos en deterioro.</p>
+                    <p className="text-[10px] font-bold text-slate-400/70 uppercase tracking-widest mt-1">Los umbrales se adaptan a la frecuencia de cada crédito.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800">
@@ -462,7 +461,7 @@ export default function CarteraReportPage() {
                         </div>
                         <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">{tier.count}</p>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
-                          crédito{tier.count !== 1 ? "s" : ""} · {tier.min}d+ sin abono
+                          crédito{tier.count !== 1 ? "s" : ""} · umbral según frecuencia
                         </p>
                         <p className={`text-sm font-black mt-3 tracking-tight ${tier.text}`}>{formatMoney(tier.saldo)}</p>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">saldo expuesto</p>
@@ -509,7 +508,7 @@ export default function CarteraReportPage() {
                           <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
                             <span className="text-indigo-500">{formatMoney(parseMoney(venta.saldo_actual))}</span>
                             <span className="text-slate-300 dark:text-slate-700">•</span>
-                            <span className="text-rose-500">{venta.dias_atrasados}d mora</span>
+                            <span className="text-rose-500">{venta.dias_atrasados} cuotas</span>
                             <span className="text-slate-300 dark:text-slate-700">•</span>
                             <span className="text-slate-400">{Math.round(venta.pagos_realizados || 0)}/{venta.cuotas}</span>
                             <span className={`ml-auto px-2 py-0.5 rounded-lg border text-[9px] ${estadoBadge(venta.estado_venta)}`}>
@@ -535,7 +534,7 @@ export default function CarteraReportPage() {
                           <tr className="bg-slate-50/50 dark:bg-slate-800/20">
                             <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cliente</th>
                             <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Saldo Pendiente</th>
-                            <th className="px-8 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Días Mora</th>
+                            <th className="px-8 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cuotas Atraso</th>
                             <th className="px-8 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cuotas Pagadas</th>
                             <th className="px-8 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estado</th>
                           </tr>

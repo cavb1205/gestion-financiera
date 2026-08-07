@@ -9,6 +9,7 @@ import {
 } from "react-icons/fi";
 import { apiFetch } from "@/app/utils/api";
 import { formatMoney } from "@/app/utils/format";
+import { invalidateClientesTienda } from "@/app/utils/clientesCache";
 
 const PAISES = [
   { code: "CO", name: "Colombia",  prefijo: "57", cupo: 100000, emoji: "🇨🇴" },
@@ -91,7 +92,10 @@ export default function OnboardingWizard({ isOpen, onClose, tienda }) {
         method: "POST",
         body: JSON.stringify({ ...cliente, tienda: tienda.id }),
       });
-      if (res.ok) setClienteCreado(true);
+      if (res.ok) {
+        invalidateClientesTienda(tienda.id);
+        setClienteCreado(true);
+      }
     } catch { /* continúa */ } finally {
       setSavingCliente(false);
       setStep(3);

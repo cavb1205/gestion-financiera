@@ -22,6 +22,18 @@ import {
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../../utils/format";
 
+function normalizarFilaReporte(fila) {
+  return {
+    ...fila,
+    cantidadVentas: Number(fila?.cantidadVentas || 0),
+    totalVendido: parseMoney(fila?.totalVendido),
+    interesesGenerados: parseMoney(fila?.interesesGenerados),
+    gastos: parseMoney(fila?.gastos),
+    perdidas: parseMoney(fila?.perdidas),
+    utilidad: parseMoney(fila?.utilidad),
+  };
+}
+
 export default function ReportesPage() {
   const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const [fechaInicio, setFechaInicio] = useState("");
@@ -57,20 +69,32 @@ export default function ReportesPage() {
         throw new Error("La fecha de inicio no puede ser mayor que la fecha de fin");
       }
 
-      const [ventasRes, gastosRes] = await Promise.all([
-        apiFetch(`/ventas/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`),
-        apiFetch(`/gastos/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`),
-      ]);
-
-      if (!ventasRes.ok || !gastosRes.ok) throw new Error("Error al consultar fuentes de datos.");
-
-      const ventasData = await ventasRes.json();
-      const gastosData = await gastosRes.json();
-
-      const processed = procesarDatosReporte(Array.isArray(ventasData) ? ventasData : [], Array.isArray(gastosData) ? gastosData : []);
-      setDatosReporte(processed);
-    } catch (err) {
-      setError(err.message || "Fallo en la sincronización de auditoría.");
+      const response = await apiFetch(
+        `/tiendas/reportes/utilidad/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`
+      );
+      if (!response.ok) throw new Error("Error al consultar el reporte consolidado.");
+      const data = await response.json();
+      if (!Array.isArray(data)) throw new Error("Respuesta incompleta del reporte consolidado.");
+      setDatosReporte(data.map(normalizarFilaReporte));
+    } catch (consolidatedError) {
+      // Respaldo reversible mientras el endpoint consolidado esté disponible.
+      console.warn("Se usará el respaldo del reporte de utilidad:", consolidatedError);
+      try {
+        const [ventasRes, gastosRes] = await Promise.all([
+          apiFetch(`/ventas/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/?vista=reporte`),
+          apiFetch(`/gastos/list/${fechaInicio}/${fechaFin}/t/${selectedStore.tienda.id}/`),
+        ]);
+        if (!ventasRes.ok || !gastosRes.ok) throw new Error("Error al consultar fuentes de datos.");
+        const ventasData = await ventasRes.json();
+        const gastosData = await gastosRes.json();
+        const processed = procesarDatosReporte(
+          Array.isArray(ventasData) ? ventasData : [],
+          Array.isArray(gastosData) ? gastosData : []
+        );
+        setDatosReporte(processed);
+      } catch (err) {
+        setError(err.message || "Fallo en la sincronización de auditoría.");
+      }
     } finally {
       setCargando(false);
     }

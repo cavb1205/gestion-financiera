@@ -28,7 +28,41 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRef } from "react";
 import { formatMoney, parseMoney } from "../../utils/format";
+import {
+   getCuotasAtrasadas,
+   getDiasSinAbono,
+   getMontoParaPonerseAlDia,
+   getRiesgoCartera,
+} from "../../utils/cartera";
 import Pagination from "../../components/Pagination";
+
+function formatDiasSinAbono(credito) {
+   const dias = getDiasSinAbono(credito);
+   if (dias === null) return "Sin dato";
+   if (parseMoney(credito.total_abonado) <= 0) {
+      return dias === 0 ? "Sin primer abono" : `Sin primer abono · ${dias}d`;
+   }
+   if (dias === 0) return "Hoy";
+   if (dias === 1) return "Ayer";
+   return `Hace ${dias} días`;
+}
+
+function formatSeguimientoAbono(credito) {
+   const dias = getDiasSinAbono(credito);
+   const texto = formatDiasSinAbono(credito);
+
+   // "Hoy" y "Ayer" ya expresan claramente el seguimiento.
+   // Solo aclaramos "sin abono" cuando la ausencia empieza a ser relevante.
+   if (dias > 1 && parseMoney(credito.total_abonado) > 0) {
+      return `${texto} sin abono`;
+   }
+   return texto;
+}
+
+function formatCuotasAtrasadas(value) {
+   if (!value) return "0";
+   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
 
 export default function LiquidarCreditosPage() {
    const { selectedStore, user, isAuthenticated, loading: authLoading } = useAuth();
@@ -126,7 +160,7 @@ export default function LiquidarCreditosPage() {
          const [creditosData, activosData, recaudosData, tiendaData] = await Promise.all([
             fetchJson(`/ventas/activas/liquidar/${selectedDate}/t/${selectedStore.tienda.id}/`),
             fetchJson(`/ventas/activas/t/${selectedStore.tienda.id}/`),
-            fetchJson(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`),
+            fetchJson(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/?vista=lista`),
             fetchJson(`/tiendas/detail/`),
          ]);
 
@@ -191,16 +225,15 @@ export default function LiquidarCreditosPage() {
    const calcVisitasRestantes = (c) => {
       const cuotas = parseFloat(c.cuotas);
       const pagos = parseFloat(c.pagos_realizados);
-      const atraso = parseFloat(c.dias_atrasados);
-      if (isNaN(cuotas) || isNaN(pagos) || isNaN(atraso)) return null;
+      const atraso = getCuotasAtrasadas(c);
+      if (isNaN(cuotas) || isNaN(pagos)) return null;
       return Math.round(cuotas - pagos - atraso);
    };
 
-   const getMoraBorderColor = (dias) => {
-      if (dias >= 30) return "border-l-rose-500";
-      if (dias >= 15) return "border-l-orange-500";
-      if (dias >= 5) return "border-l-amber-500";
-      if (dias > 0) return "border-l-yellow-500";
+   const getMoraBorderColor = (riesgo) => {
+      if (riesgo.prioridad.rank >= 3) return "border-l-rose-500";
+      if (riesgo.prioridad.rank >= 2) return "border-l-orange-500";
+      if (riesgo.prioridad.rank >= 1) return "border-l-amber-500";
       return "border-l-emerald-500";
    };
 
@@ -216,16 +249,20 @@ export default function LiquidarCreditosPage() {
       const cuota = formatMoney(credito.valor_cuota);
       const abonado = formatMoney(credito.total_abonado);
       const mora = Math.round(credito.dias_atrasados || 0);
+      const diasSinAbono = getDiasSinAbono(credito);
+      const montoParaPonerseAlDia = getMontoParaPonerseAlDia(credito);
       const pagosRealizados = Math.round(credito.pagos_realizados || 0);
       const totalCuotas = Math.round(credito.cuotas || 0);
       const estadoTexto = credito.estado_venta === "Vencido"
-         ? `vencido con *${mora} días* de mora`
+         ? `vencido con *${mora} cuotas* de atraso`
          : `con saldo pendiente`;
       const msg =
          `Hola ${nombre}, le recordamos que tiene un crédito ${estadoTexto}.\n\n` +
          `💰 Saldo pendiente: *${saldo}*\n` +
          `✅ Total abonado: *${abonado}*\n` +
-         `📅 Progreso: *${pagosRealizados}/${totalCuotas} días*\n` +
+         (diasSinAbono > 0 ? `📆 Sin abono: *${diasSinAbono} días*\n` : "") +
+         (montoParaPonerseAlDia > 0 ? `⚠️ Para ponerse al día: *${formatMoney(montoParaPonerseAlDia)}*\n` : "") +
+         `📅 Progreso: *${pagosRealizados}/${totalCuotas} cuotas*\n` +
          `📋 Valor cuota: *${cuota}*\n\n` ;
       return `https://api.whatsapp.com/send?phone=${raw}&text=${encodeURIComponent(msg)}`;
    };
@@ -240,7 +277,7 @@ export default function LiquidarCreditosPage() {
          cuotas: credito.cuotas,
          pagos_realizados: credito.pagos_realizados,
          total_abonado: credito.total_abonado,
-         dias_atrasados: credito.dias_atrasados,
+         dias_atrasados: getCuotasAtrasadas(credito),
          venta: credito.id,
          tienda: selectedStore.tienda.id,
       };
@@ -498,13 +535,23 @@ export default function LiquidarCreditosPage() {
                         <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-tighter">No hay créditos pendientes para el periodo {selectedDate}</p>
                      </div>
                   ) : (
-                     <table className="w-full border-collapse">
+                     <table className="w-full table-fixed border-collapse">
+                        <colgroup>
+                           <col style={{ width: "24%" }} />
+                           <col style={{ width: "8%" }} />
+                           <col style={{ width: "10%" }} />
+                           <col style={{ width: "11%" }} />
+                           <col style={{ width: "21%" }} />
+                           <col style={{ width: "14%" }} />
+                           <col style={{ width: "12%" }} />
+                        </colgroup>
                         <thead>
                            <tr className="bg-slate-50/50 dark:bg-slate-800/30">
                               <th className="px-5 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Cliente</th>
                               <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Contacto</th>
                               <th className="px-4 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Cuota</th>
                               <th className="px-4 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Progreso</th>
+                              <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Seguimiento</th>
                               <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Estado</th>
                               <th className="px-5 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Acción</th>
                            </tr>
@@ -512,33 +559,36 @@ export default function LiquidarCreditosPage() {
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                            {currentItems.map((credito) => {
                               const mora = Math.round(credito.dias_atrasados || 0);
+                              const riesgo = getRiesgoCartera(credito);
+                              const diasSinAbono = getDiasSinAbono(credito);
+                              const cuotasAtrasadas = getCuotasAtrasadas(credito);
+                              const montoParaPonerseAlDia = getMontoParaPonerseAlDia(credito);
                               const phone = formatPhone(credito.cliente.telefono_principal);
                               const vr = calcVisitasRestantes(credito);
                               const proxVencer = (credito.estado_venta === "Vigente" || credito.estado_venta === "Atrasado") && vr !== null && vr >= 0 && vr <= 3;
                               return (
-                                 <tr key={credito.id} className={`group transition-all border-l-4 ${getMoraBorderColor(mora)} ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/40 hover:bg-amber-100/60 dark:hover:bg-amber-950/60" : "hover:bg-slate-50/50 dark:hover:bg-indigo-500/5"}`}>
-                                    <td className="px-5 py-5 whitespace-nowrap">
-                                       <div className="flex items-center gap-3">
-                                          <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl flex items-center justify-center font-black text-sm uppercase shrink-0">
-                                             {credito.cliente.nombres.charAt(0)}
-                                          </div>
+                                 <tr key={credito.id} className={`group transition-all border-l-4 ${getMoraBorderColor(riesgo)} ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/40 hover:bg-amber-100/60 dark:hover:bg-amber-950/60" : "hover:bg-slate-50/50 dark:hover:bg-indigo-500/5"}`}>
+                                    <td className="px-4 py-5">
+                                       <div className="min-w-0">
                                           <Link
                                              href={`/dashboard/ventas/${credito.id}`}
-                                             className="group/name"
+                                             className="group/name block min-w-0"
                                           >
-                                             <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none group-hover/name:text-indigo-600 transition-colors">
+                                             <p className="truncate text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none group-hover/name:text-indigo-600 transition-colors">
                                                 {credito.cliente.nombres} {credito.cliente.apellidos}
                                              </p>
-                                             <p className="text-[9px] font-bold text-slate-400 mt-1">
+                                             <p className="truncate text-[9px] font-bold text-slate-400 mt-1">
                                                 Saldo: <span className="text-rose-500">{formatMoney(credito.saldo_actual)}</span>
                                                 <span className="mx-1.5 text-slate-300">·</span>
                                                 Abonado: <span className="text-emerald-600 dark:text-emerald-400">{formatMoney(credito.total_abonado)}</span>
+                                                <span className="mx-1.5 text-slate-300">·</span>
+                                                {credito.plazo || "Diario"}
                                              </p>
                                           </Link>
                                        </div>
                                     </td>
-                                    <td className="px-4 py-5 whitespace-nowrap">
-                                       <div className="flex items-center gap-1.5">
+                                    <td className="px-2 py-5">
+                                       <div className="flex items-center justify-center gap-1.5">
                                           {phone && (
                                              <>
                                                 <a
@@ -559,32 +609,16 @@ export default function LiquidarCreditosPage() {
                                                 >
                                                    <FiMessageCircle size={13} />
                                                 </a>
-                                                <span className="text-[10px] font-bold text-slate-400 ml-1">{credito.cliente.telefono_principal}</span>
                                              </>
                                           )}
-                                          {!phone && (
-                                             <span className="text-[10px] font-bold text-slate-300">Sin teléfono</span>
-                                          )}
                                        </div>
-                                       {credito.cliente.direccion && (
-                                          <a
-                                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(credito.cliente.direccion)}`}
-                                             target="_blank"
-                                             rel="noopener noreferrer"
-                                             className="flex items-center gap-1 mt-1 group/map hover:text-indigo-500 transition-colors"
-                                             onClick={(e) => e.stopPropagation()}
-                                          >
-                                             <FiMapPin size={10} className="text-slate-300 group-hover/map:text-indigo-500 shrink-0" />
-                                             <span className="text-[9px] font-bold text-slate-400 group-hover/map:text-indigo-500 truncate max-w-[160px] underline decoration-dotted underline-offset-2">{credito.cliente.direccion}</span>
-                                          </a>
-                                       )}
                                     </td>
-                                    <td className="px-4 py-5 text-right whitespace-nowrap">
+                                    <td className="px-2 py-5 text-right">
                                        <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none">
                                           {formatMoney(credito.valor_cuota)}
                                        </p>
                                     </td>
-                                    <td className="px-4 py-5 text-center whitespace-nowrap">
+                                    <td className="px-2 py-5 text-center">
                                        <div className="flex flex-col items-center">
                                           <span className="text-xs font-black text-slate-800 dark:text-white tracking-tighter mb-1">
                                              {Math.round(credito.pagos_realizados)}/{credito.cuotas}
@@ -597,7 +631,21 @@ export default function LiquidarCreditosPage() {
                                           </div>
                                        </div>
                                     </td>
-                                    <td className="px-4 py-5 whitespace-nowrap">
+                                    <td className="px-3 py-5">
+                                       <div className="space-y-1">
+                                          <p className={`text-[10px] font-black uppercase tracking-widest leading-tight ${diasSinAbono > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                                             {formatSeguimientoAbono(credito)}
+                                          </p>
+                                          {montoParaPonerseAlDia > 0 ? (
+                                             <p className="text-[10px] font-black text-orange-600 dark:text-orange-400 leading-tight">
+                                                {formatMoney(montoParaPonerseAlDia)} <span className="font-bold text-slate-400">· {formatCuotasAtrasadas(cuotasAtrasadas)} cuotas</span>
+                                             </p>
+                                          ) : (
+                                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-tight">Sin atraso acumulado</p>
+                                          )}
+                                       </div>
+                                    </td>
+                                    <td className="px-3 py-5">
                                        <div className="flex flex-col items-start gap-1">
                                           {getStatusBadge(credito.estado_venta)}
                                           {proxVencer && (
@@ -617,8 +665,8 @@ export default function LiquidarCreditosPage() {
                                           )}
                                        </div>
                                     </td>
-                                    <td className="px-5 py-5 text-right whitespace-nowrap">
-                                       <div className="flex items-center justify-end gap-2">
+                                    <td className="px-2 py-5 text-right">
+                                       <div className="flex items-center justify-end gap-1.5">
                                           <button
                                              onClick={() => handleReportarFalla(credito)}
                                              className="p-2.5 bg-white dark:bg-slate-800 text-slate-400 rounded-lg hover:text-rose-600 hover:shadow-lg transition-all border border-slate-100 dark:border-slate-700"
@@ -628,9 +676,9 @@ export default function LiquidarCreditosPage() {
                                           </button>
                                           <button
                                              onClick={() => handleAbonar(credito)}
-                                             className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all shadow-lg flex items-center gap-2"
+                                             className="px-3 py-2 bg-emerald-600 text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all shadow-lg flex items-center gap-1"
                                           >
-                                             Abonar <FiArrowRight size={13} />
+                                             Abonar <FiArrowRight size={12} />
                                           </button>
                                        </div>
                                     </td>
@@ -656,11 +704,15 @@ export default function LiquidarCreditosPage() {
                   ) : (
                      currentItems.map((credito) => {
                         const mora = Math.round(credito.dias_atrasados || 0);
+                        const riesgo = getRiesgoCartera(credito);
+                        const diasSinAbono = getDiasSinAbono(credito);
+                        const cuotasAtrasadas = getCuotasAtrasadas(credito);
+                        const montoParaPonerseAlDia = getMontoParaPonerseAlDia(credito);
                         const phone = formatPhone(credito.cliente.telefono_principal);
                         const vr = calcVisitasRestantes(credito);
                         const proxVencer = (credito.estado_venta === "Vigente" || credito.estado_venta === "Atrasado") && vr !== null && vr >= 0 && vr <= 3;
                         return (
-                           <div key={credito.id} className={`glass p-5 rounded-[2rem] border-l-4 ${getMoraBorderColor(mora)} border-white/60 dark:border-slate-800 shadow-lg space-y-4 ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/30" : ""}`}>
+                           <div key={credito.id} className={`glass p-5 rounded-[2rem] border-l-4 ${getMoraBorderColor(riesgo)} border-white/60 dark:border-slate-800 shadow-lg space-y-4 ${proxVencer ? "bg-amber-50/60 dark:bg-amber-950/30" : ""}`}>
                               {/* Client name → clickable to detail */}
                               <div className="flex items-start justify-between gap-3">
                                  <Link
@@ -672,16 +724,19 @@ export default function LiquidarCreditosPage() {
                                     </p>
                                     <div className="flex flex-wrap items-center gap-1.5">
                                        {getStatusBadge(credito.estado_venta)}
+                                       <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-[9px] font-black uppercase tracking-widest rounded-lg border border-indigo-100 dark:border-indigo-800">
+                                          {credito.plazo || "Diario"}
+                                       </span>
                                        {proxVencer && (
                                           <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-black uppercase tracking-widest rounded-lg border border-amber-300 dark:border-amber-700 animate-pulse">
                                              ⚠ {vr === 0 ? "Última cuota" : `${vr}c p/ vencer`}
                                           </span>
                                        )}
                                        {mora > 0 && (
-                                          <span className="px-2 py-0.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-rose-100 dark:border-rose-800">{mora}d Mora</span>
+                                          <span className="px-2 py-0.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-rose-100 dark:border-rose-800">{mora} cuotas atrasadas</span>
                                        )}
                                        {mora < 0 && (
-                                          <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-emerald-100 dark:border-emerald-800">{Math.abs(mora)}d Adelantado</span>
+                                          <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-emerald-100 dark:border-emerald-800">{Math.abs(mora)} cuotas adelantadas</span>
                                        )}
                                     </div>
                                  </Link>
@@ -741,6 +796,23 @@ export default function LiquidarCreditosPage() {
                                  <div className="text-right space-y-0.5">
                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Progreso</p>
                                     <p className="text-sm font-black text-slate-800 dark:text-white">{Math.round(credito.pagos_realizados)}/{credito.cuotas}</p>
+                                 </div>
+                              </div>
+
+                              {/* Seguimiento de cobranza */}
+                              <div className="flex items-start justify-between gap-3 px-4 py-3 bg-amber-50/60 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-900/30">
+                                 <div>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Último abono</p>
+                                    <p className={`text-sm font-black tracking-tight ${diasSinAbono > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                                       {formatDiasSinAbono(credito)}
+                                    </p>
+                                 </div>
+                                 <div className="text-right">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Para ponerse al día</p>
+                                    <p className={`text-sm font-black tracking-tight ${montoParaPonerseAlDia > 0 ? "text-orange-600 dark:text-orange-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                                       {montoParaPonerseAlDia > 0 ? formatMoney(montoParaPonerseAlDia) : "Al día"}
+                                    </p>
+                                    {cuotasAtrasadas > 0 && <p className="text-[9px] font-bold text-slate-400">{formatCuotasAtrasadas(cuotasAtrasadas)} cuotas</p>}
                                  </div>
                               </div>
 

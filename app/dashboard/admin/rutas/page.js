@@ -130,7 +130,9 @@ export default function AdminRutasPage() {
   const fetchTiendas = async (incluirArchivadas = verArchivadas) => {
     setLoading(true);
     try {
-      const response = await apiFetch(`/tiendas/list/${incluirArchivadas ? "?archivadas=1" : ""}`);
+      const response = await apiFetch(
+        `/tiendas/list/?vista=lista${incluirArchivadas ? "&archivadas=1" : ""}`
+      );
       if (!response.ok) throw new Error("Error al obtener las rutas");
       const data = await response.json();
       setTiendas(Array.isArray(data) ? data : []);

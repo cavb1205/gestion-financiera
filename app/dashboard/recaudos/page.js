@@ -34,12 +34,152 @@ import { formatMoney, parseMoney } from "../../utils/format";
 import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import Pagination from "../../components/Pagination";
+import { getIntervaloCobro } from "../../utils/cartera";
+
+function diasEntreFechas(fechaInicial, fechaFinal) {
+  if (!fechaInicial || !fechaFinal) return null;
+
+  const inicio = String(fechaInicial).slice(0, 10).split("-").map(Number);
+  const fin = String(fechaFinal).slice(0, 10).split("-").map(Number);
+  if (inicio.length !== 3 || fin.length !== 3 || [...inicio, ...fin].some(Number.isNaN)) {
+    return null;
+  }
+
+  const inicioUtc = Date.UTC(inicio[0], inicio[1] - 1, inicio[2]);
+  const finUtc = Date.UTC(fin[0], fin[1] - 1, fin[2]);
+  return Math.round((finUtc - inicioUtc) / 86400000);
+}
+
+function formatearFechaResumen(fecha) {
+  if (!fecha) return "la fecha seleccionada";
+  const [year, month, day] = fecha.split("-").map(Number);
+  if (![year, month, day].every(Number.isFinite)) return fecha;
+
+  return new Intl.DateTimeFormat("es-CL", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(year, month - 1, day));
+}
+
+function CumplimientoDiario({ resumen, selectedDate }) {
+  const porcentaje = Math.min(100, Math.max(0, resumen.cumplimiento));
+  const tieneProgramacion = resumen.creditosProgramados > 0;
+
+  return (
+    <section className="mb-10 overflow-hidden rounded-[2.5rem] bg-slate-950 text-white shadow-2xl shadow-slate-300/30 dark:shadow-none">
+      <div className="relative p-6 md:p-9">
+        <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
+
+        <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">
+              <FiTarget size={15} />
+              Control de cumplimiento
+            </div>
+            <h2 className="text-2xl font-black tracking-tight md:text-3xl">
+              ¿Qué debía pasar hoy?
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-slate-400">
+              Comparación de las cuotas programadas para {formatearFechaResumen(selectedDate)} con los recaudos reales registrados en esta ruta.
+            </p>
+          </div>
+
+          <Link
+            href="/dashboard/liquidar"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white/10 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white ring-1 ring-white/10 transition hover:bg-white/20"
+          >
+            Ver pendientes
+            <FiArrowRight size={15} />
+          </Link>
+        </div>
+
+        <div className="relative z-10 mt-8 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.07] p-4 md:p-5">
+            <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <FiCalendar size={14} className="text-indigo-300" />
+              Esperado hoy
+            </div>
+            <p className="text-xl font-black tracking-tight md:text-2xl">{formatMoney(resumen.esperado)}</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+              {resumen.creditosProgramados} crédito{resumen.creditosProgramados === 1 ? "" : "s"} programado{resumen.creditosProgramados === 1 ? "" : "s"}
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-emerald-400/20 bg-emerald-400/[0.08] p-4 md:p-5">
+            <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-300">
+              <FiDollarSign size={14} />
+              Recaudado
+            </div>
+            <p className="text-xl font-black tracking-tight text-emerald-300 md:text-2xl">{formatMoney(resumen.recaudado)}</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-emerald-200/50">
+              {resumen.creditosConAbono} con abono real
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-amber-400/20 bg-amber-400/[0.08] p-4 md:p-5">
+            <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-300">
+              <FiClock size={14} />
+              Falta cubrir
+            </div>
+            <p className="text-xl font-black tracking-tight text-amber-200 md:text-2xl">{formatMoney(resumen.pendiente)}</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-amber-200/50">
+              {resumen.sinGestion} sin gestión registrada
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-rose-400/20 bg-rose-400/[0.08] p-4 md:p-5">
+            <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-rose-300">
+              <FiUser size={14} />
+              Atención
+            </div>
+            <p className="text-xl font-black tracking-tight text-rose-200 md:text-2xl">{resumen.sinGestion}</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-rose-200/50">
+              no visitado{resumen.sinGestion === 1 ? "" : "s"} hoy
+            </p>
+          </div>
+        </div>
+
+        <div className="relative z-10 mt-7 border-t border-white/10 pt-6">
+          {tieneProgramacion ? (
+            <>
+              <div className="mb-3 flex flex-col gap-2 text-[10px] font-black uppercase tracking-widest sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-slate-400">Cumplimiento monetario de la programación</span>
+                <span className={porcentaje >= 100 ? "text-emerald-300" : porcentaje >= 70 ? "text-amber-300" : "text-rose-300"}>
+                  {porcentaje}% cubierto · {resumen.creditosConGestion}/{resumen.creditosProgramados} con gestión
+                </span>
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${porcentaje >= 100 ? "bg-emerald-400" : porcentaje >= 70 ? "bg-amber-400" : "bg-rose-400"}`}
+                  style={{ width: `${porcentaje}%` }}
+                />
+              </div>
+              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                <span>{resumen.fallas} falla{resumen.fallas === 1 ? "" : "s"} reportada{resumen.fallas === 1 ? "" : "s"}</span>
+                {resumen.superavit > 0 && <span className="text-emerald-300/70">{formatMoney(resumen.superavit)} sobre lo programado</span>}
+                {resumen.sinGestion > 0 && <span className="text-rose-300/80">Prioridad: revisar pendientes de visita</span>}
+              </div>
+            </>
+          ) : (
+            <div className="flex items-start gap-3 text-sm text-slate-400">
+              <FiInfo className="mt-0.5 shrink-0 text-indigo-300" />
+              <p>No hay cuotas programadas para esta fecha. Los abonos registrados pueden corresponder a recuperaciones o pagos anticipados.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function RecaudosPage() {
   const { selectedStore, isAuthenticated, loading: authLoading, user } = useAuth();
   const router = useRouter();
   const isWorker = !(user?.is_staff || user?.is_superuser);
   const [recaudos, setRecaudos] = useState([]);
+  const [ventasActivas, setVentasActivas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState("");
   const today = new Date();
@@ -74,19 +214,32 @@ export default function RecaudosPage() {
     if (!selectedStore || !selectedDate) return;
 
     setLoading(true);
+    setRecaudos([]);
+    setVentasActivas([]);
     try {
-      const response = await apiFetch(
-        `/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`
-      );
+      const [response, ventasResponse] = await Promise.all([
+        apiFetch(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/?vista=lista`),
+        apiFetch(`/ventas/activas/t/${selectedStore.tienda.id}/`),
+      ]);
 
       if (!response.ok) throw new Error("Error al sincronizar recaudos");
 
       const data = await response.json();
+      let ventasData = [];
+      if (ventasResponse.ok) {
+        try {
+          ventasData = await ventasResponse.json();
+        } catch (error) {
+          console.warn("No fue posible leer la cartera activa para el resumen:", error);
+        }
+      }
       setRecaudos(Array.isArray(data) ? data : []);
+      setVentasActivas(ventasResponse.ok && Array.isArray(ventasData) ? ventasData : []);
     } catch (error) {
       console.error("Error:", error);
       toast.error(error.message);
       setRecaudos([]);
+      setVentasActivas([]);
     } finally {
       setLoading(false);
     }
@@ -110,11 +263,79 @@ export default function RecaudosPage() {
   }, [searchTerm, recaudos]);
 
   const metrics = useMemo(() => {
-    const total = filteredRecaudos.reduce((acc, r) => acc + parseMoney(r.valor_recaudo), 0);
-    const abonos = filteredRecaudos.filter(r => parseFloat(r.valor_recaudo) > 0).length;
-    const fallas = filteredRecaudos.filter(r => parseFloat(r.valor_recaudo) === 0).length;
-    return { total, abonos, fallas, count: filteredRecaudos.length };
-  }, [filteredRecaudos]);
+    const recaudosReales = recaudos.filter((r) => !r.es_renovacion);
+    const total = recaudosReales.reduce((acc, r) => acc + parseMoney(r.valor_recaudo), 0);
+    const abonos = recaudosReales.filter(r => parseMoney(r.valor_recaudo) > 0).length;
+    const fallas = recaudosReales.filter(r => parseMoney(r.valor_recaudo) === 0).length;
+    return { total, abonos, fallas, count: recaudosReales.length };
+  }, [recaudos]);
+
+  const resumenCumplimiento = useMemo(() => {
+    const porVenta = new Map();
+
+    recaudos.forEach((recaudo) => {
+      if (recaudo.es_renovacion || !recaudo.venta?.id) return;
+
+      const ventaId = String(recaudo.venta.id);
+      const actual = porVenta.get(ventaId) || { tieneRegistro: false, abono: 0, fallas: 0 };
+      const valor = parseMoney(recaudo.valor_recaudo);
+      actual.tieneRegistro = true;
+      if (valor > 0) actual.abono += valor;
+      else actual.fallas += 1;
+      porVenta.set(ventaId, actual);
+    });
+
+    const programados = ventasActivas.filter((venta) => {
+      const dias = diasEntreFechas(venta.fecha_venta, selectedDate);
+      const intervalo = getIntervaloCobro(venta);
+      const saldo = parseMoney(venta.saldo_actual);
+      return dias !== null && dias >= intervalo && dias % intervalo === 0 && saldo > 0 && parseMoney(venta.valor_cuota) > 0;
+    });
+
+    let esperado = 0;
+    let creditosConGestion = 0;
+    let creditosConAbono = 0;
+    let sinGestion = 0;
+    let fallas = 0;
+    let pendiente = 0;
+    let cubiertoProgramado = 0;
+
+    programados.forEach((venta) => {
+      const cuota = parseMoney(venta.valor_cuota);
+      const saldo = parseMoney(venta.saldo_actual);
+      // El último cobro nunca debe exigir más que el saldo pendiente.
+      const esperadoVenta = Math.min(cuota, saldo);
+      esperado += esperadoVenta;
+
+      const registro = porVenta.get(String(venta.id));
+      if (!registro?.tieneRegistro) sinGestion += 1;
+      else creditosConGestion += 1;
+      if (registro?.abono > 0) creditosConAbono += 1;
+      if (registro?.fallas > 0 && !(registro?.abono > 0)) fallas += registro.fallas;
+
+      const abonoVenta = registro?.abono || 0;
+      cubiertoProgramado += Math.min(esperadoVenta, abonoVenta);
+      pendiente += Math.max(0, esperadoVenta - abonoVenta);
+    });
+
+    const recaudado = recaudos
+      .filter((r) => !r.es_renovacion)
+      .reduce((acc, r) => acc + Math.max(0, parseMoney(r.valor_recaudo)), 0);
+    const superavit = Math.max(0, recaudado - esperado);
+
+    return {
+      esperado,
+      recaudado,
+      pendiente,
+      superavit,
+      creditosProgramados: programados.length,
+      creditosConGestion,
+      creditosConAbono,
+      sinGestion,
+      fallas,
+      cumplimiento: esperado > 0 ? Math.round((cubiertoProgramado / esperado) * 100) : 0,
+    };
+  }, [recaudos, ventasActivas, selectedDate]);
 
   // Exportar CSV de lo que se ve en pantalla (respeta el filtro de búsqueda)
   const exportarCSV = () => {
@@ -249,6 +470,13 @@ export default function RecaudosPage() {
           </div>
         </div>
 
+        {!isWorker && (
+          <CumplimientoDiario
+            resumen={resumenCumplimiento}
+            selectedDate={selectedDate}
+          />
+        )}
+
         {/* Premium Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
            <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-2xl">
@@ -275,18 +503,18 @@ export default function RecaudosPage() {
                     <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl">
                        <FiCheck size={24} />
                     </div>
-                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Efectividad</span>
+                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Gestiones con pago</span>
                  </div>
                  <div className="flex items-end gap-3 mb-1">
                     <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">
-                       {metrics.count > 0 ? Math.round((metrics.abonos / metrics.count) * 100) : 0}%
+                       {metrics.abonos}
                     </p>
-                    <p className="text-xs font-bold text-slate-400 uppercase mb-0.5">({metrics.abonos} de {metrics.count})</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase mb-0.5">de {metrics.count} registros</p>
                  </div>
                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
-                      style={{ width: `${metrics.count > 0 ? (metrics.abonos / metrics.count) * 100 : 0}%` }}
+                      style={{ width: `${metrics.count > 0 ? Math.min(100, (metrics.abonos / metrics.count) * 100) : 0}%` }}
                     ></div>
                  </div>
               </div>
@@ -302,14 +530,14 @@ export default function RecaudosPage() {
                  </div>
                  <div className="flex items-end gap-3 mb-1">
                     <p className="text-3xl font-black tracking-tighter leading-none">
-                       {metrics.count > 0 ? Math.round((metrics.fallas / metrics.count) * 100) : 0}%
+                       {metrics.fallas}
                     </p>
-                    <p className="text-xs font-bold text-slate-400 uppercase mb-0.5">({metrics.fallas} reportadas)</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase mb-0.5">requieren revisión</p>
                  </div>
                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-rose-500 rounded-full transition-all duration-1000"
-                      style={{ width: `${metrics.count > 0 ? (metrics.fallas / metrics.count) * 100 : 0}%` }}
+                      style={{ width: `${metrics.count > 0 ? Math.min(100, (metrics.fallas / metrics.count) * 100) : 0}%` }}
                     ></div>
                  </div>
               </div>

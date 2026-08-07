@@ -76,7 +76,7 @@ export default function VisitasReportePage() {
     setLoading(true);
     try {
       const response = await apiFetch(
-        `/recaudos/list/${fechaConsulta}/t/${selectedStore.tienda.id}/`
+        `/recaudos/list/${fechaConsulta}/t/${selectedStore.tienda.id}/?vista=lista`
       );
 
       if (!response.ok) throw new Error("Error al consultar recaudos");

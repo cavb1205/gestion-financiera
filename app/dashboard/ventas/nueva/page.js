@@ -8,6 +8,7 @@ import {
   FiDollarSign,
   FiCreditCard,
   FiCalendar,
+  FiClock,
   FiUser,
   FiPercent,
   FiSave,
@@ -16,6 +17,7 @@ import {
   FiInfo,
   FiSearch,
   FiShield,
+  FiLock,
   FiActivity,
   FiArrowUpRight,
   FiArrowRight,
@@ -27,6 +29,7 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch, getApiError } from "../../../utils/api";
+import { invalidateClientesTienda } from "../../../utils/clientesCache";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { formatMoney, calcularTotal, calcularCuota } from "../../../utils/format";
@@ -41,12 +44,18 @@ function NuevaVentaContent() {
   
   const { selectedStore, isAuthenticated, loading, user } = useAuth();
   const isWorker = !(user?.is_staff || user?.is_superuser);
+  const frecuenciaDetalle = {
+    Diario: "1 cuota cada día",
+    Semanal: "1 cuota cada 7 días",
+    Mensual: "1 cuota cada 30 días",
+  };
 
   const [formData, setFormData] = useState({
     fecha_venta: new Date(),
     valor_venta: "",
     interes: 20,
     cuotas: 20,
+    plazo: "Diario",
     comentario: "",
     cliente: "",
   });
@@ -174,6 +183,7 @@ function NuevaVentaContent() {
         return;
       }
       const creado = await res.json();
+      invalidateClientesTienda(selectedStore.tienda.id);
       setClientes((prev) => [...prev, creado]);
       seleccionarCliente(creado);
       setShowCrearCliente(false);
@@ -259,6 +269,7 @@ function NuevaVentaContent() {
         valor_venta: parseFloat(formData.valor_venta),
         interes: parseFloat(formData.interes),
         cuotas: parseInt(formData.cuotas),
+        plazo: formData.plazo || "Diario",
         comentario: formData.comentario,
         cliente: formData.cliente,
         id_tienda: selectedStore.tienda.id,
@@ -502,7 +513,7 @@ function NuevaVentaContent() {
                 )}
 
                 {/* Fecha + Cuotas */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 px-1">
                        <FiCalendar className="text-indigo-500" size={14} />
@@ -541,6 +552,31 @@ function NuevaVentaContent() {
                       onWheel={(e) => e.target.blur()}
                       className="w-full px-4 md:px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                     />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 px-1">
+                       <FiClock className="text-indigo-500" size={14} />
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Frecuencia</span>
+                    </div>
+                    {isWorker ? (
+                      <div className="w-full px-4 md:px-5 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
+                        <span className="text-[13px] font-black text-slate-800 dark:text-white">Diario</span>
+                        <FiLock className="text-slate-400" size={14} />
+                      </div>
+                    ) : (
+                      <select
+                        value={formData.plazo}
+                        onChange={(e) => setFormData({ ...formData, plazo: e.target.value })}
+                        className="w-full px-4 md:px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                      >
+                        <option value="Diario">Diario</option>
+                        <option value="Semanal">Semanal</option>
+                        <option value="Mensual">Mensual</option>
+                      </select>
+                    )}
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                      {isWorker ? "Fijado para trabajadores" : frecuenciaDetalle[formData.plazo]}
+                    </p>
                   </div>
                 </div>
 

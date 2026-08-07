@@ -83,6 +83,23 @@ function procesarMes(ventas, gastos, aportes) {
    };
 }
 
+function normalizarMes(mes) {
+   return {
+      ...mes,
+      cantidadVentas: Number(mes?.cantidadVentas || 0),
+      totalVendido: parseMoney(mes?.totalVendido),
+      intereses: parseMoney(mes?.intereses),
+      totalGastos: parseMoney(mes?.totalGastos),
+      perdidas: parseMoney(mes?.perdidas),
+      totalAportes: parseMoney(mes?.totalAportes),
+      utilidad: parseMoney(mes?.utilidad),
+      margen: Number(mes?.margen || 0),
+      categorias: Object.fromEntries(
+         Object.entries(mes?.categorias || {}).map(([nombre, valor]) => [nombre, parseMoney(valor)])
+      ),
+   };
+}
+
 function calcVariacion(actual, anterior) {
    if (anterior === 0 && actual === 0) return 0;
    if (anterior === 0) return actual > 0 ? 100 : -100;
@@ -117,7 +134,7 @@ export default function ReporteComparativoPage() {
    const [cargando, setCargando] = useState(false);
    const [error, setError] = useState("");
 
-   const fetchMes = async (year, month) => {
+   const fetchMesLegacy = async (year, month) => {
       const { inicio, fin } = getMonthRange(year, month);
       const tiendaId = selectedStore.tienda.id;
 
@@ -129,7 +146,7 @@ export default function ReporteComparativoPage() {
       };
 
       const [ventas, gastos, aportes] = await Promise.all([
-         fetchJson(`/ventas/list/${inicio}/${fin}/t/${tiendaId}/`),
+         fetchJson(`/ventas/list/${inicio}/${fin}/t/${tiendaId}/?vista=reporte`),
          fetchJson(`/gastos/list/${inicio}/${fin}/t/${tiendaId}/`),
          fetchJson(`/aportes/list/${inicio}/${fin}/t/${tiendaId}/`),
       ]);
@@ -144,13 +161,30 @@ export default function ReporteComparativoPage() {
       setDatos(null);
 
       try {
-         const [anterior, actual] = await Promise.all([
-            fetchMes(mesA.year, mesA.month),
-            fetchMes(mesB.year, mesB.month),
-         ]);
-         setDatos({ actual, anterior });
-      } catch (err) {
-         setError(err.message || "Error al generar el comparativo.");
+         const rangoA = getMonthRange(mesA.year, mesA.month);
+         const rangoB = getMonthRange(mesB.year, mesB.month);
+         const response = await apiFetch(
+            `/tiendas/reportes/comparativo/${rangoA.inicio}/${rangoA.fin}/${rangoB.inicio}/${rangoB.fin}/t/${selectedStore.tienda.id}/`
+         );
+         if (!response.ok) throw new Error("Error al consultar el comparativo consolidado");
+         const data = await response.json();
+         if (!data?.mes_a || !data?.mes_b) throw new Error("Respuesta incompleta del comparativo consolidado");
+         setDatos({
+            actual: normalizarMes(data.mes_b),
+            anterior: normalizarMes(data.mes_a),
+         });
+      } catch (consolidatedError) {
+         // Respaldo reversible si el endpoint consolidado no está disponible.
+         console.warn("Se usará el respaldo del comparativo:", consolidatedError);
+         try {
+            const [anterior, actual] = await Promise.all([
+               fetchMesLegacy(mesA.year, mesA.month),
+               fetchMesLegacy(mesB.year, mesB.month),
+            ]);
+            setDatos({ actual, anterior });
+         } catch (err) {
+            setError(err.message || "Error al generar el comparativo.");
+         }
       } finally {
          setCargando(false);
       }

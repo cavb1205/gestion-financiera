@@ -19,6 +19,7 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../../../../context/AuthContext";
 import { apiFetch } from "../../../../utils/api";
+import { invalidateClientesTienda } from "../../../../utils/clientesCache";
 import LoadingSpinner from "../../../../components/LoadingSpinner";
 
 export default function EliminarCliente() {
@@ -84,6 +85,7 @@ export default function EliminarCliente() {
 
       // Manejar respuesta exitosa
       if (response.status === 200 || response.status === 204) {
+        invalidateClientesTienda(selectedStore.tienda.id);
         setSuccess(true);
         setTimeout(() => router.push("/dashboard/clientes"), 1500);
         return;

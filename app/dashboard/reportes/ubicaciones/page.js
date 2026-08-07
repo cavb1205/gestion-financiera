@@ -45,7 +45,7 @@ export default function UbicacionesPage() {
   useEffect(() => {
     if (!selectedStore || !selectedDate) return;
     setLoading(true);
-    apiFetch(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`)
+    apiFetch(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/?vista=lista`)
       .then((r) => r.ok ? r.json() : [])
       .then((data) => setRecaudos(Array.isArray(data) ? data : []))
       .catch(() => toast.error("Error al cargar recaudos"))
@@ -82,7 +82,7 @@ export default function UbicacionesPage() {
           <button
             onClick={() => {
               setLoading(true);
-              apiFetch(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/`)
+              apiFetch(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/?vista=lista`)
                 .then((r) => r.ok ? r.json() : [])
                 .then((data) => setRecaudos(Array.isArray(data) ? data : []))
                 .catch((err) => { console.error("Error al recargar recaudos:", err); toast.error("Error al cargar recaudos"); })

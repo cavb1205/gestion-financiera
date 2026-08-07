@@ -54,16 +54,15 @@ export default function EliminarVentaPage() {
       setIsLoading(true);
       const [response, pagosResponse] = await Promise.all([
         apiFetch(`/ventas/${ventaId}/`),
-        apiFetch(`/recaudos/list/${ventaId}/`),
+        apiFetch(`/recaudos/list/${ventaId}/paginado/?page=1&page_size=1&filtro=todos`),
       ]);
 
       if (!response.ok) throw new Error("No se pudieron cargar los datos de la venta");
+      if (!pagosResponse.ok) throw new Error("No se pudo verificar el historial de pagos");
       const venta = await response.json();
 
-      let pagos = [];
-      if (pagosResponse.ok) pagos = await pagosResponse.json();
-      
-      setHasPagos(pagos.length > 0);
+      const pagosData = await pagosResponse.json();
+      setHasPagos(Number(pagosData?.count) > 0);
       setVentaData(venta);
       setIsLoading(false);
     } catch (err) {

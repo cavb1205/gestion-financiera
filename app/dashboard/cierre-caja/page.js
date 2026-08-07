@@ -115,41 +115,64 @@ export default function CierreCajaPage() {
     setLoadingResumen(true);
     try {
       const id = selectedStore.tienda.id;
-      const toArr = async (promise) => {
-        const r = await promise;
-        if (!r.ok) return [];
-        const d = await r.json();
-        return Array.isArray(d) ? d : [];
-      };
-      const fetchDayData = (fecha) => Promise.all([
-        toArr(apiFetch(`/aportes/list/${fecha}/t/${id}/`)),
-        toArr(apiFetch(`/gastos/list/${fecha}/t/${id}/`)),
-        toArr(apiFetch(`/utilidades/list/${fecha}/t/${id}/`)),
-        toArr(apiFetch(`/recaudos/list/${fecha}/t/${id}/`)),
-        toArr(apiFetch(`/ventas/list/${fecha}/t/${id}/`)),
-      ]);
-
       const hoyStr = (() => {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       })();
       const esHoy = selectedDate === hoyStr;
 
-      // Fetch datos de la fecha seleccionada y, si es distinta, también de hoy
-      const [datosFecha, datosHoy] = await Promise.all([
-        fetchDayData(selectedDate),
-        esHoy ? Promise.resolve(null) : fetchDayData(hoyStr),
-      ]);
-      const [aportes, gastos, utilidades, recaudos, ventas] = datosFecha;
+      let datosConsolidados;
+      try {
+        const response = await apiFetch(
+          `/tiendas/cierre/resumen/${selectedDate}/t/${id}/`
+        );
+        if (!response.ok) throw new Error("Error al consultar el resumen consolidado");
+        datosConsolidados = await response.json();
+      } catch (consolidatedError) {
+        // Respaldo temporal: conserva el flujo anterior si el endpoint
+        // consolidado no está disponible o presenta una caída parcial.
+        console.warn(
+          "Se usará el respaldo del resumen de cierre:",
+          consolidatedError
+        );
+        const toArr = async (promise) => {
+          const r = await promise;
+          if (!r.ok) return [];
+          const d = await r.json();
+          return Array.isArray(d) ? d : [];
+        };
+        const fetchDayData = (fecha) => Promise.all([
+          toArr(apiFetch(`/aportes/list/${fecha}/t/${id}/`)),
+          toArr(apiFetch(`/gastos/list/${fecha}/t/${id}/`)),
+          toArr(apiFetch(`/utilidades/list/${fecha}/t/${id}/`)),
+          toArr(apiFetch(`/recaudos/list/${fecha}/t/${id}/?vista=lista`)),
+          toArr(apiFetch(`/ventas/list/${fecha}/t/${id}/?vista=reporte`)),
+        ]);
+        const [datosFecha, datosHoy] = await Promise.all([
+          fetchDayData(selectedDate),
+          esHoy ? Promise.resolve(null) : fetchDayData(hoyStr),
+        ]);
+        const [aportes, gastos, utilidades, recaudos, ventas] = datosFecha;
+        const sum = (arr, field) => arr.reduce((acc, item) => acc + parseFloat(item[field] || 0), 0);
+        const movsHoy = datosHoy ?? datosFecha;
+        datosConsolidados = {
+          fecha: {
+            aportes: sum(aportes, "valor"),
+            gastos: sum(gastos, "valor"),
+            utilidades: sum(utilidades, "valor"),
+            recaudos: sum(recaudos, "valor_recaudo"),
+            count_recaudos: recaudos.length,
+            ventas: sum(ventas, "valor_venta"),
+            count_ventas: ventas.length,
+          },
+          hoy: {
+            tiene_movimientos: movsHoy.some((items) => items.length > 0),
+          },
+        };
+      }
 
-      const sum = (arr, field) => arr.reduce((acc, item) => acc + parseFloat(item[field] || 0), 0);
+      const datosFecha = datosConsolidados.fecha || {};
       const cierreDelDia = cierres.find(c => c.fecha_cierre === selectedDate);
-
-      // ¿Hubo movimientos hoy?
-      const movsHoy = datosHoy ?? datosFecha; // si esHoy, usar datosFecha
-      const hoyTieneMovimientos =
-        movsHoy[0].length > 0 || movsHoy[1].length > 0 || movsHoy[2].length > 0 ||
-        movsHoy[3].length > 0 || movsHoy[4].length > 0;
 
       let saldo_cierre, estado_saldo;
       if (cierreDelDia) {
@@ -164,16 +187,16 @@ export default function CierreCajaPage() {
       }
 
       setResumenDia({
-        aportes:        sum(aportes, "valor"),
-        gastos:         sum(gastos, "valor"),
-        utilidades:     sum(utilidades, "valor"),
-        recaudos:       sum(recaudos, "valor_recaudo"),
-        count_recaudos: recaudos.length,
-        ventas:         sum(ventas, "valor_venta"),
-        count_ventas:   ventas.length,
+        aportes:        parseFloat(datosFecha.aportes || 0),
+        gastos:         parseFloat(datosFecha.gastos || 0),
+        utilidades:     parseFloat(datosFecha.utilidades || 0),
+        recaudos:       parseFloat(datosFecha.recaudos || 0),
+        count_recaudos: datosFecha.count_recaudos || 0,
+        ventas:         parseFloat(datosFecha.ventas || 0),
+        count_ventas:   datosFecha.count_ventas || 0,
         saldo_cierre,
         estado_saldo,
-        hoy_tiene_movimientos: hoyTieneMovimientos,
+        hoy_tiene_movimientos: Boolean(datosConsolidados.hoy?.tiene_movimientos),
       });
     } catch {
       setResumenDia(null);
