@@ -111,6 +111,21 @@ export default function VentasPage() {
     }
   }, [loading, isAuthenticated, selectedStore, router]);
 
+  // Permite que reportes/cartera abra esta lista con un segmento ya aplicado.
+  // Se lee en el cliente para conservar compatibilidad con la página actual
+  // y evitar que el filtro altere la consulta de ventas al backend.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const filtro = params.get("filtro");
+    const buscar = params.get("buscar");
+    if (filtro) {
+      setFilters((prev) => ({ ...prev, estado: filtro }));
+    }
+    if (buscar) {
+      setSearchTerm(buscar);
+    }
+  }, []);
+
   const fetchVentas = async () => {
     try {
       setIsLoading(true);
@@ -161,6 +176,8 @@ export default function VentasPage() {
       if (prioridad.rank < 2) return false;
     } else if (filters.estado === "cob_sin_abono") {
       if ((getDiasSinAbono(venta) ?? 0) < 1) return false;
+    } else if (filters.estado === "cob_sin_primer_abono") {
+      if (parseMoney(venta.total_abonado) > 0) return false;
     } else if (filters.estado === "cob_atraso") {
       if (getCuotasAtrasadas(venta) <= 0) return false;
     } else if (filters.estado.startsWith("det_")) {
@@ -411,6 +428,7 @@ export default function VentasPage() {
                         <option value="cob_hoy">🟡 Gestionar hoy o peor</option>
                         <option value="cob_urgente">🟠 Urgente o peor</option>
                         <option value="cob_sin_abono">⏱ 1+ día sin abono</option>
+                        <option value="cob_sin_primer_abono">🆕 Sin primer abono</option>
                         <option value="cob_atraso">💰 Con cuotas atrasadas</option>
                       </optgroup>
                       <optgroup label="Deterioro según frecuencia">

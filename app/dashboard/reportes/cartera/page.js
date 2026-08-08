@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
@@ -16,14 +15,12 @@ import {
   FiShield,
   FiBarChart2,
   FiUsers,
-  FiChevronRight,
   FiCalendar,
 } from "react-icons/fi";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../../utils/format";
 import {
   clasificarDeterioro,
-  formatDiasSinAbono,
   getMontoParaPonerseAlDia,
   getRiesgoCartera,
   NIVEL_DETERIORO,
@@ -42,7 +39,6 @@ const nombreCliente = (venta) =>
 
 export default function CarteraReportPage() {
   const { selectedStore, isAuthenticated, loading: authLoading, user } = useAuth();
-  const router = useRouter();
   const [ventas, setVentas] = useState([]);
   const [auditoria, setAuditoria] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -176,28 +172,60 @@ export default function CarteraReportPage() {
   const totalDeterioroCount = deterioroTiers.reduce((a, t) => a + t.count, 0);
   const totalDeterioroSaldo = deterioroTiers.reduce((a, t) => a + t.saldo, 0);
 
-  // --- Top 10 Risky Clients ---
-  // Prioridad: nivel de deterioro desc (crítico→alto→atención), luego
-  // estado (Vencido antes que Atrasado) y por último saldo desc.
-  const estadoPriority = { Vencido: 0, Atrasado: 1 };
-  const topRiesgo = [...ventasMorosas]
+  // Agrupa los créditos morosos por persona para que la exposición no se
+  // disperse cuando un mismo cliente tiene más de una venta activa.
+  const clientesRiesgoMap = new Map();
+  ventasMorosas.forEach((venta) => {
+    const cliente = venta.cliente || {};
+    const key = cliente.id || cliente.identificacion || nombreCliente(venta);
+    const riesgo = getRiesgoCartera(venta);
+    const deterioro = clasificarDeterioro(venta);
+    const existente = clientesRiesgoMap.get(key);
+    const diasSinAbono = numero(riesgo.diasSinAbono);
+    const cuotasAtrasadas = numero(riesgo.cuotasAtrasadas);
+
+    if (!existente) {
+      clientesRiesgoMap.set(key, {
+        key,
+        nombre: nombreCliente(venta),
+        identificacion: cliente.identificacion || "",
+        creditos: 1,
+        saldo: parseMoney(venta.saldo_actual),
+        capitalExpuesto: parseMoney(venta.capital_expuesto),
+        montoPonerseAlDia: getMontoParaPonerseAlDia(venta),
+        diasSinAbono,
+        cuotasAtrasadas,
+        prioridad: riesgo.prioridad,
+        nivelDeterioro: deterioro.nivel,
+        deterioro,
+      });
+      return;
+    }
+
+    existente.creditos += 1;
+    existente.saldo += parseMoney(venta.saldo_actual);
+    existente.capitalExpuesto += parseMoney(venta.capital_expuesto);
+    existente.montoPonerseAlDia += getMontoParaPonerseAlDia(venta);
+    existente.diasSinAbono = Math.max(existente.diasSinAbono, diasSinAbono);
+    existente.cuotasAtrasadas += cuotasAtrasadas;
+    if (riesgo.prioridad.rank > existente.prioridad.rank) existente.prioridad = riesgo.prioridad;
+    if (deterioro.nivel > existente.nivelDeterioro) {
+      existente.nivelDeterioro = deterioro.nivel;
+      existente.deterioro = deterioro;
+    }
+  });
+  const clientesRiesgo = [...clientesRiesgoMap.values()]
     .sort((a, b) => {
-      const ra = getRiesgoCartera(a);
-      const rb = getRiesgoCartera(b);
-      if (ra.prioridad.rank !== rb.prioridad.rank) return rb.prioridad.rank - ra.prioridad.rank;
-      const na = clasificarDeterioro(a).nivel;
-      const nb = clasificarDeterioro(b).nivel;
-      if (na !== nb) return nb - na;
-      const pa = estadoPriority[a.estado_venta] ?? 99;
-      const pb = estadoPriority[b.estado_venta] ?? 99;
-      if (pa !== pb) return pa - pb;
-      if (ra.diasSinAbono !== rb.diasSinAbono) return (rb.diasSinAbono || 0) - (ra.diasSinAbono || 0);
-      return parseMoney(b.saldo_actual) - parseMoney(a.saldo_actual);
+      if (a.prioridad.rank !== b.prioridad.rank) return b.prioridad.rank - a.prioridad.rank;
+      if (a.nivelDeterioro !== b.nivelDeterioro) return b.nivelDeterioro - a.nivelDeterioro;
+      if (a.capitalExpuesto !== b.capitalExpuesto) return b.capitalExpuesto - a.capitalExpuesto;
+      return b.saldo - a.saldo;
     })
     .slice(0, 10);
 
   const moraTemprana = ventasMorosas.filter((v) => clasificarDeterioro(v).nivel === 0);
   const saldoMoraTemprana = moraTemprana.reduce((acc, v) => acc + parseMoney(v.saldo_actual), 0);
+  const ventasConCuotasAtrasadas = ventas.filter((v) => getRiesgoCartera(v).cuotasAtrasadas > 0);
 
   // --- Distribution by Plazo ---
   const plazoGroups = {};
@@ -261,6 +289,14 @@ export default function CarteraReportPage() {
     if (rank >= 1) return "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-100 dark:border-amber-900/30";
     return "bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700";
   };
+
+  const saldoLista = (lista) => lista.reduce((acc, venta) => acc + parseMoney(venta.saldo_actual), 0);
+  const segmentosRapidos = [
+    { filtro: "cob_hoy", label: "Gestionar hoy", count: ventasGestion.length, saldo: saldoGestion, tone: "amber" },
+    { filtro: "cob_urgente", label: "Urgentes o críticos", count: ventasUrgentes.length, saldo: saldoUrgente, tone: "rose" },
+    { filtro: "cob_atraso", label: "Con cuotas atrasadas", count: ventasConCuotasAtrasadas.length, saldo: saldoLista(ventasConCuotasAtrasadas), tone: "orange" },
+    { filtro: "cob_sin_primer_abono", label: "Sin primer abono", count: ventasSinPrimerAbono.length, saldo: saldoLista(ventasSinPrimerAbono), tone: "slate" },
+  ];
 
   return (
     <div className="min-h-screen bg-transparent pb-12">
@@ -398,6 +434,37 @@ export default function CarteraReportPage() {
                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Primer abono y castigo</p>
                 <p className="mt-2 text-xl font-black text-slate-800 dark:text-white">{ventasSinPrimerAbono.length} sin primer abono</p>
                 <p className="mt-1 text-[10px] font-medium text-slate-500 dark:text-slate-400">{ventasCandidatasCastigo.length} candidatos a revisión por 90+ días.</p>
+              </div>
+            </div>
+
+            {/* Accesos rápidos a la cartera operativa */}
+            <div className="mb-8 rounded-[2rem] border border-slate-200/80 bg-white/70 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/60 md:p-6">
+              <div className="mb-4 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-tight text-slate-800 dark:text-white">Acciones rápidas</h2>
+                  <p className="mt-1 text-[10px] font-medium uppercase tracking-widest text-slate-400">Abre ventas activas con el filtro aplicado</p>
+                </div>
+                <Link href="/dashboard/ventas" className="text-[10px] font-black uppercase tracking-widest text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-400">Ver cartera completa →</Link>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {segmentosRapidos.map((segmento) => {
+                  const tone = {
+                    amber: "border-amber-200 bg-amber-50/70 hover:border-amber-300 dark:border-amber-900/40 dark:bg-amber-900/10",
+                    rose: "border-rose-200 bg-rose-50/70 hover:border-rose-300 dark:border-rose-900/40 dark:bg-rose-900/10",
+                    orange: "border-orange-200 bg-orange-50/70 hover:border-orange-300 dark:border-orange-900/40 dark:bg-orange-900/10",
+                    slate: "border-slate-200 bg-slate-50/80 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/50",
+                  }[segmento.tone];
+                  return (
+                    <Link key={segmento.filtro} href={`/dashboard/ventas?filtro=${segmento.filtro}`} className={`rounded-2xl border p-4 transition hover:-translate-y-0.5 ${tone}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300">{segmento.label}</p>
+                        <span className="text-lg font-black text-slate-800 dark:text-white">{segmento.count}</span>
+                      </div>
+                      <p className="mt-2 text-sm font-black text-slate-800 dark:text-white">{formatMoney(segmento.saldo)}</p>
+                      <p className="mt-1 text-[9px] font-bold uppercase tracking-widest text-slate-400">saldo del segmento</p>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 
@@ -602,7 +669,11 @@ export default function CarteraReportPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800 mt-4">
                     {deterioroTiers.map((tier) => (
-                      <div key={tier.nivel} className="p-6 md:p-8">
+                      <Link
+                        key={tier.nivel}
+                        href={`/dashboard/ventas?filtro=${tier.nivel === 1 ? "det_dudoso" : tier.nivel === 2 ? "det_critico" : "det_irrecuperable"}`}
+                        className="block p-6 transition hover:bg-slate-50/70 dark:hover:bg-slate-800/30 md:p-8"
+                      >
                         <div className="flex items-center gap-2 mb-3">
                           <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-full border ${tier.badge}`}>
                             {tier.label}
@@ -614,65 +685,55 @@ export default function CarteraReportPage() {
                         </p>
                         <p className={`text-sm font-black mt-3 tracking-tight ${tier.text}`}>{formatMoney(tier.saldo)}</p>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">saldo expuesto</p>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Top 10 Créditos en Riesgo */}
+              {/* Clientes con mayor riesgo */}
               <div className="glass rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl lg:col-span-2">
                 <div className="px-6 md:px-10 py-6 md:py-8 border-b border-slate-100 dark:border-slate-800 flex items-center gap-4">
                   <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-2xl flex items-center justify-center shrink-0">
                     <FiUsers size={20} />
                   </div>
                   <div>
-                    <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Top 10 Créditos en Riesgo</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Prioridad de gestión · exposición · atraso</p>
+                    <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Clientes con mayor riesgo</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Agrupado por persona · prioridad · capital expuesto</p>
                   </div>
                 </div>
 
-                {topRiesgo.length === 0 ? (
+                {clientesRiesgo.length === 0 ? (
                   <div className="p-10 text-center">
-                    <p className="text-sm font-bold text-slate-400">No hay créditos en mora actualmente.</p>
+                    <p className="text-sm font-bold text-slate-400">No hay clientes en mora actualmente.</p>
                   </div>
                 ) : (
                   <>
                     {/* Mobile card view */}
                     <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                      {topRiesgo.map((venta) => {
-                        const det = clasificarDeterioro(venta);
-                        const riesgo = getRiesgoCartera(venta);
-                        return (
-                        <Link
-                          key={venta.id}
-                          href={`/dashboard/ventas/${venta.id}`}
-                          className="block px-5 py-4 active:bg-slate-50 dark:active:bg-slate-800/50 cursor-pointer transition-all"
-                        >
-                          <div className="flex items-center justify-between mb-1.5">
-                            <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight truncate pr-2">
-                              {nombreCliente(venta)}
-                            </p>
-                            <FiChevronRight size={14} className="text-slate-300 shrink-0" />
+                      {clientesRiesgo.map((cliente) => (
+                        <div key={cliente.key} className="px-5 py-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <Link href={`/dashboard/ventas?filtro=cob_atraso&buscar=${encodeURIComponent(cliente.nombre)}`} className="min-w-0 truncate text-xs font-black uppercase tracking-tight text-slate-800 hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400">
+                              {cliente.nombre}
+                            </Link>
+                            <span className="shrink-0 text-[10px] font-black text-slate-400">{cliente.creditos} crédito{cliente.creditos !== 1 ? "s" : ""}</span>
                           </div>
-                          <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
-                            <span className="text-indigo-500">{formatMoney(parseMoney(venta.saldo_actual))}</span>
+                          <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px] font-black uppercase tracking-widest">
+                            <span className="text-indigo-500">{formatMoney(cliente.saldo)}</span>
                             <span className="text-slate-300 dark:text-slate-700">•</span>
-                            <span className="text-rose-500">{numero(riesgo.cuotasAtrasadas)} cuotas</span>
-                            <span className="text-slate-300 dark:text-slate-700">•</span>
-                            <span className="text-slate-400">{formatDiasSinAbono(venta)}</span>
-                            <span className={`ml-auto px-2 py-0.5 rounded-lg border text-[9px] ${prioridadBadge(riesgo.prioridad.rank)}`}>
-                              {riesgo.prioridad.label}
-                            </span>
+                            <span className="text-rose-500">{formatMoney(cliente.capitalExpuesto)} capital expuesto</span>
+                            <span className={`ml-auto rounded-lg border px-2 py-0.5 ${prioridadBadge(cliente.prioridad.rank)}`}>{cliente.prioridad.label}</span>
                           </div>
                           <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                            <span>Para ponerse al día: <strong className="text-indigo-600 dark:text-indigo-400">{formatMoney(getMontoParaPonerseAlDia(venta))}</strong></span>
+                            <span>Para ponerse al día: <strong className="text-indigo-600 dark:text-indigo-400">{formatMoney(cliente.montoPonerseAlDia)}</strong></span>
                             <span>·</span>
-                            <span>{det.nivel > 0 ? det.label : "Mora temprana"}</span>
+                            <span>{cliente.diasSinAbono > 0 ? `${cliente.diasSinAbono} días sin abono` : "Abono reciente"}</span>
+                            <span>·</span>
+                            <span>{cliente.deterioro.nivel > 0 ? cliente.deterioro.label : "Mora temprana"}</span>
                           </div>
-                        </Link>
-                        );
-                      })}
+                        </div>
+                      ))}
                     </div>
 
                     {/* Desktop table */}
@@ -681,53 +742,43 @@ export default function CarteraReportPage() {
                         <thead>
                           <tr className="bg-slate-50/50 dark:bg-slate-800/20">
                             <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cliente</th>
-                            <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Exposición</th>
+                            <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Exposición total</th>
                             <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Para ponerse al día</th>
                             <th className="px-8 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Seguimiento</th>
                             <th className="px-8 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Prioridad</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                          {topRiesgo.map((venta) => {
-                            const det = clasificarDeterioro(venta);
-                            const riesgo = getRiesgoCartera(venta);
-                            return (
-                            <tr
-                              key={venta.id}
-                              onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.target.closest("a")) return; router.push(`/dashboard/ventas/${venta.id}`); }}
-                              className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all cursor-pointer"
-                            >
+                          {clientesRiesgo.map((cliente) => (
+                            <tr key={cliente.key} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
                               <td className="px-8 py-5 whitespace-nowrap">
-                                <Link href={`/dashboard/ventas/${venta.id}`} className="block text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter group-hover:text-indigo-600 transition-colors">
-                                  {nombreCliente(venta)}
+                                <Link href={`/dashboard/ventas?filtro=cob_atraso&buscar=${encodeURIComponent(cliente.nombre)}`} className="block text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter group-hover:text-indigo-600 transition-colors">
+                                  {cliente.nombre}
                                 </Link>
-                                <p className="text-[10px] font-bold text-slate-400 mt-0.5">{venta.cliente.identificacion}</p>
+                                <p className="text-[10px] font-bold text-slate-400 mt-0.5">{cliente.identificacion || "Sin identificación"} · {cliente.creditos} crédito{cliente.creditos !== 1 ? "s" : ""}</p>
                               </td>
                               <td className="px-8 py-5 text-right">
-                                <p className="text-sm font-black text-indigo-600 dark:text-indigo-400 tracking-tight">{formatMoney(parseMoney(venta.saldo_actual))}</p>
-                                <p className="mt-1 text-[9px] font-bold text-slate-400">Capital expuesto: {formatMoney(parseMoney(venta.capital_expuesto))}</p>
+                                <p className="text-sm font-black text-indigo-600 dark:text-indigo-400 tracking-tight">{formatMoney(cliente.saldo)}</p>
+                                <p className="mt-1 text-[9px] font-bold text-slate-400">Capital expuesto: {formatMoney(cliente.capitalExpuesto)}</p>
                               </td>
                               <td className="px-8 py-5 text-right">
-                                <p className="text-sm font-black text-amber-600 dark:text-amber-400 tracking-tight">{formatMoney(getMontoParaPonerseAlDia(venta))}</p>
-                                <p className="mt-1 text-[9px] font-bold text-slate-400">para ponerse al día</p>
+                                <p className="text-sm font-black text-amber-600 dark:text-amber-400 tracking-tight">{formatMoney(cliente.montoPonerseAlDia)}</p>
+                                <p className="mt-1 text-[9px] font-bold text-slate-400">monto acumulado</p>
                               </td>
                               <td className="px-8 py-5 text-center">
-                                <p className="text-xs font-black text-slate-700 dark:text-slate-300">{formatDiasSinAbono(venta)}</p>
-                                <p className="mt-1 text-[9px] font-bold text-slate-400">{numero(riesgo.cuotasAtrasadas)} cuotas vencidas</p>
+                                <p className="text-xs font-black text-slate-700 dark:text-slate-300">{cliente.diasSinAbono > 0 ? `${cliente.diasSinAbono} días sin abono` : "Abono reciente"}</p>
+                                <p className="mt-1 text-[9px] font-bold text-slate-400">{cliente.cuotasAtrasadas.toFixed(1)} cuotas equivalentes</p>
                               </td>
                               <td className="px-8 py-5 text-center">
                                 <div className="flex flex-col items-center gap-1.5">
-                                  <span className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest ${prioridadBadge(riesgo.prioridad.rank)}`}>
-                                    {riesgo.prioridad.label}
-                                  </span>
-                                  <span className={`px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest ${det.nivel > 0 ? det.badge : "bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"}`}>
-                                    {det.nivel > 0 ? det.label : "Mora temprana"}
+                                  <span className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest ${prioridadBadge(cliente.prioridad.rank)}`}>{cliente.prioridad.label}</span>
+                                  <span className={`px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest ${cliente.deterioro.nivel > 0 ? cliente.deterioro.badge : "bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"}`}>
+                                    {cliente.deterioro.nivel > 0 ? cliente.deterioro.label : "Mora temprana"}
                                   </span>
                                 </div>
                               </td>
                             </tr>
-                            );
-                          })}
+                          ))}
                         </tbody>
                       </table>
                     </div>
