@@ -28,6 +28,8 @@ function crearFilaVacia(fecha) {
     interesesGenerados: 0,
     gastos: 0,
     perdidas: 0,
+    perdidaCapital: 0,
+    interesNoCobrado: 0,
     utilidad: 0,
     utilidadEstimada: 0,
     capitalRecuperado: 0,
@@ -57,6 +59,8 @@ function normalizarFilaReporte(fila) {
     interesesGenerados: parseMoney(fila?.interesesGenerados),
     gastos: parseMoney(fila?.gastos),
     perdidas: parseMoney(fila?.perdidas),
+    perdidaCapital: parseMoney(fila?.perdidaCapital),
+    interesNoCobrado: parseMoney(fila?.interesNoCobrado),
     utilidad,
     utilidadEstimada: utilidad,
     capitalRecuperado: parseMoney(fila?.capitalRecuperado),
@@ -92,6 +96,7 @@ export default function ReportesPage() {
   const [error, setError] = useState("");
   const [usandoRespaldo, setUsandoRespaldo] = useState(false);
   const [incluyeUtilidadCobrada, setIncluyeUtilidadCobrada] = useState(false);
+  const [incluyeDesglosePerdidas, setIncluyeDesglosePerdidas] = useState(false);
 
   const ajustarFechaLocal = (fecha) => {
     const date = new Date(fecha);
@@ -117,6 +122,7 @@ export default function ReportesPage() {
     setDatosReporte(null);
     setUsandoRespaldo(false);
     setIncluyeUtilidadCobrada(false);
+    setIncluyeDesglosePerdidas(false);
 
     try {
       if (!fechaInicio || !fechaFin) {
@@ -133,6 +139,7 @@ export default function ReportesPage() {
       const data = await response.json();
       if (!Array.isArray(data)) throw new Error("Respuesta incompleta del reporte consolidado.");
       setIncluyeUtilidadCobrada(data.some((fila) => Object.prototype.hasOwnProperty.call(fila, "utilidadCobrada")));
+      setIncluyeDesglosePerdidas(data.some((fila) => Object.prototype.hasOwnProperty.call(fila, "perdidaCapital")));
       setDatosReporte(data.map(normalizarFilaReporte));
     } catch (consolidatedError) {
       // Respaldo reversible mientras el endpoint consolidado esté disponible.
@@ -151,6 +158,7 @@ export default function ReportesPage() {
         );
         setUsandoRespaldo(true);
         setIncluyeUtilidadCobrada(false);
+        setIncluyeDesglosePerdidas(false);
         setDatosReporte(processed.map(normalizarFilaReporte));
       } catch (err) {
         setError(err.message || "Fallo en la sincronización de auditoría.");
@@ -202,6 +210,8 @@ export default function ReportesPage() {
     interesesGenerados: acc.interesesGenerados + curr.interesesGenerados,
     gastos: acc.gastos + curr.gastos,
     perdidas: acc.perdidas + curr.perdidas,
+    perdidaCapital: acc.perdidaCapital + curr.perdidaCapital,
+    interesNoCobrado: acc.interesNoCobrado + curr.interesNoCobrado,
     utilidad: acc.utilidad + curr.utilidad,
     capitalRecuperado: acc.capitalRecuperado + curr.capitalRecuperado,
     interesesCobrados: acc.interesesCobrados + curr.interesesCobrados,
@@ -219,6 +229,8 @@ export default function ReportesPage() {
     interesesGenerados: 0,
     gastos: 0,
     perdidas: 0,
+    perdidaCapital: 0,
+    interesNoCobrado: 0,
     utilidad: 0,
     capitalRecuperado: 0,
     interesesCobrados: 0,
@@ -241,6 +253,9 @@ export default function ReportesPage() {
   const diasNegativos = datosReporte ? datosReporte.filter(d => utilidadDeFila(d) < 0).length : 0;
   const utilidadPrincipal = totales
     ? (incluyeUtilidadCobrada ? totales.utilidadCobrada : totales.utilidad)
+    : 0;
+  const perdidaCapitalPrincipal = totales
+    ? (incluyeDesglosePerdidas ? totales.perdidaCapital : totales.perdidas)
     : 0;
   const interesPrincipal = totales
     ? (incluyeUtilidadCobrada ? totales.interesesCobrados : totales.interesesGenerados)
@@ -286,7 +301,8 @@ export default function ReportesPage() {
                     "Capital Recuperado",
                     "Interés Cobrado",
                     "Gastos",
-                    "Pérdidas",
+                    "Pérdida de Capital",
+                    "Interés No Cobrado",
                     "Utilidad Estimada",
                     "Utilidad Cobrada",
                     "Recaudos Efectivos",
@@ -302,7 +318,8 @@ export default function ReportesPage() {
                     fila.capitalRecuperado,
                     fila.interesesCobrados,
                     fila.gastos,
-                    fila.perdidas,
+                    incluyeDesglosePerdidas ? fila.perdidaCapital : fila.perdidas,
+                    fila.interesNoCobrado,
                     fila.utilidad,
                     fila.utilidadCobrada,
                     fila.recaudos,
@@ -423,9 +440,9 @@ export default function ReportesPage() {
                   <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Egresos</span>
                 </div>
                 <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
-                  {formatMoney(totales.gastos + totales.perdidas)}
+                  {formatMoney(totales.gastos + perdidaCapitalPrincipal)}
                 </p>
-                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Carga Ops + Pérdidas</p>
+                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Gastos + Pérdida Capital</p>
               </div>
 
               <div className={`p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border relative overflow-hidden shadow-2xl ${utilidadPrincipal >= 0 ? 'bg-emerald-600 border-emerald-500 shadow-emerald-200 dark:shadow-none' : 'bg-rose-600 border-rose-500 shadow-rose-200 dark:shadow-none'}`}>
@@ -553,7 +570,10 @@ export default function ReportesPage() {
                         <span className="text-amber-500">Interés cob.: {formatMoney(fila.interesesCobrados)}</span>
                         <span className="text-yellow-500">Interés est.: {formatMoney(fila.interesesGenerados)}</span>
                         <span className="text-rose-400">Gastos: {formatMoney(fila.gastos)}</span>
-                        <span className="text-orange-500">Pérdidas: {formatMoney(fila.perdidas)}</span>
+                        <span className="text-orange-500">Pérdida cap.: {formatMoney(incluyeDesglosePerdidas ? fila.perdidaCapital : fila.perdidas)}</span>
+                        {incluyeDesglosePerdidas && (
+                          <span className="text-orange-300">Interés no cob.: {formatMoney(fila.interesNoCobrado)}</span>
+                        )}
                         {fila.cantidadVentas > 0 && (
                           <span className="text-slate-400">{fila.cantidadVentas} venta(s)</span>
                         )}
@@ -570,7 +590,10 @@ export default function ReportesPage() {
                       <span className="text-amber-500">Interés cob.: {formatMoney(totales.interesesCobrados)}</span>
                       <span className="text-yellow-500">Interés est.: {formatMoney(totales.interesesGenerados)}</span>
                       <span className="text-rose-400">Gastos: {formatMoney(totales.gastos)}</span>
-                      <span className="text-orange-500">Pérdidas: {formatMoney(totales.perdidas)}</span>
+                      <span className="text-orange-500">Pérdida cap.: {formatMoney(perdidaCapitalPrincipal)}</span>
+                      {incluyeDesglosePerdidas && (
+                        <span className="text-orange-300">Interés no cob.: {formatMoney(totales.interesNoCobrado)}</span>
+                      )}
                       <span className="text-slate-500">{totales.cantidadVentas} venta(s)</span>
                     </div>
                   </div>
@@ -588,7 +611,8 @@ export default function ReportesPage() {
                         <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Interés Est.</th>
                         <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Interés Cob.</th>
                         <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Gastos</th>
-                        <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Pérdidas</th>
+                        <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Pérdida Cap.</th>
+                        <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Int. No Cob.</th>
                         <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{incluyeUtilidadCobrada ? "Utilidad Cob." : "Utilidad Est."}</th>
                       </tr>
                     </thead>
@@ -619,7 +643,10 @@ export default function ReportesPage() {
                             <p className="text-xs font-bold text-rose-500">{formatMoney(fila.gastos)}</p>
                           </td>
                           <td className="px-6 py-5 text-right">
-                            <p className="text-xs font-bold text-orange-500">{formatMoney(fila.perdidas)}</p>
+                            <p className="text-xs font-bold text-orange-500">{formatMoney(incluyeDesglosePerdidas ? fila.perdidaCapital : fila.perdidas)}</p>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <p className="text-xs font-bold text-orange-300">{formatMoney(fila.interesNoCobrado)}</p>
                           </td>
                           <td className="px-6 py-5 text-right">
                             <p className={`text-sm font-black tracking-tight ${utilidadDeFila(fila) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -638,7 +665,8 @@ export default function ReportesPage() {
                         <td className="px-6 py-6 text-right text-sm font-black text-amber-600">{formatMoney(totales.interesesGenerados)}</td>
                         <td className="px-6 py-6 text-right text-sm font-black text-yellow-600">{formatMoney(totales.interesesCobrados)}</td>
                         <td className="px-6 py-6 text-right text-sm font-black text-rose-500">{formatMoney(totales.gastos)}</td>
-                        <td className="px-6 py-6 text-right text-sm font-black text-orange-500">{formatMoney(totales.perdidas)}</td>
+                        <td className="px-6 py-6 text-right text-sm font-black text-orange-500">{formatMoney(perdidaCapitalPrincipal)}</td>
+                        <td className="px-6 py-6 text-right text-sm font-black text-orange-300">{formatMoney(totales.interesNoCobrado)}</td>
                         <td className="px-6 py-6 text-right text-lg font-black text-indigo-600 dark:text-indigo-400">{formatMoney(utilidadPrincipal)}</td>
                       </tr>
                     </tfoot>
@@ -661,11 +689,20 @@ export default function ReportesPage() {
                   </div>
                   <div className="flex items-center justify-between p-5 md:p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800">
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Pérdidas de Cartera</p>
-                      <p className="text-xl font-black text-orange-500 tracking-tight">{formatMoney(totales.perdidas)}</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Pérdida de Capital</p>
+                      <p className="text-xl font-black text-orange-500 tracking-tight">{formatMoney(perdidaCapitalPrincipal)}</p>
                     </div>
                     <div className="w-12 h-12 bg-orange-50 dark:bg-orange-900/20 text-orange-500 rounded-2xl flex items-center justify-center shrink-0">
                       <FiAlertCircle size={24} />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-5 md:p-6 bg-orange-50/50 dark:bg-orange-900/10 rounded-3xl border border-orange-100 dark:border-orange-900/20">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Interés No Cobrado</p>
+                      <p className="text-xl font-black text-orange-300 tracking-tight">{formatMoney(totales.interesNoCobrado)}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/20 text-orange-300 rounded-2xl flex items-center justify-center shrink-0">
+                      <FiPercent size={24} />
                     </div>
                   </div>
                   <div className="pt-2">
@@ -691,7 +728,7 @@ export default function ReportesPage() {
                 <div className="mt-8 px-4 flex items-start gap-4">
                   <FiInfo className="text-slate-300 mt-1 shrink-0" />
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                    La utilidad cobrada reconoce solo el interés que queda después de recuperar capital. Los gastos y las pérdidas de cartera se muestran por separado para facilitar la revisión.
+                    La utilidad cobrada reconoce solo el interés que queda después de recuperar capital. La pérdida de capital y el interés no cobrado se muestran separados; el segundo no se cuenta como pérdida de capital.
                   </p>
                 </div>
               </div>

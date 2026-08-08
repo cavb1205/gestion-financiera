@@ -23,6 +23,31 @@ import LoadingSpinner from "../../../components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../../utils/format";
 import Pagination from "../../../components/Pagination";
 
+function metricasPerdida(venta) {
+  const capitalOriginal = parseMoney(venta?.valor_venta);
+  const abonadoHistorico = parseMoney(venta?.total_abonado);
+  const capitalRecuperado = venta?.capital_recuperado != null
+    ? parseMoney(venta.capital_recuperado)
+    : Math.min(abonadoHistorico, capitalOriginal);
+  const capitalExpuesto = venta?.capital_expuesto != null
+    ? parseMoney(venta.capital_expuesto)
+    : Math.max(capitalOriginal - capitalRecuperado, 0);
+  const interesTotal = capitalOriginal * parseMoney(venta?.interes) / 100;
+  const interesCobrado = venta?.interes_cobrado != null
+    ? parseMoney(venta.interes_cobrado)
+    : Math.min(Math.max(abonadoHistorico - capitalOriginal, 0), interesTotal);
+  const interesNoCobrado = venta?.interes_no_cobrado != null
+    ? parseMoney(venta.interes_no_cobrado)
+    : Math.max(interesTotal - interesCobrado, 0);
+
+  return {
+    capitalOriginal,
+    capitalRecuperado,
+    capitalExpuesto,
+    interesNoCobrado,
+  };
+}
+
 export default function VentasPerdidasPage() {
   const router = useRouter();
   const { selectedStore, isAuthenticated, loading } = useAuth();
@@ -93,13 +118,15 @@ export default function VentasPerdidasPage() {
 
   const summary = filteredVentas.reduce(
     (acc, venta) => {
+      const metricas = metricasPerdida(venta);
       acc.totalPerdidas += 1;
-      acc.capitalPerdido += parseMoney(venta.valor_venta);
-      acc.saldoPerdido += parseMoney(venta.saldo_actual);
-      acc.totalAbonado += parseMoney(venta.total_abonado);
+      acc.capitalOriginal += metricas.capitalOriginal;
+      acc.capitalRecuperado += metricas.capitalRecuperado;
+      acc.capitalExpuesto += metricas.capitalExpuesto;
+      acc.interesNoCobrado += metricas.interesNoCobrado;
       return acc;
     },
-    { totalPerdidas: 0, capitalPerdido: 0, saldoPerdido: 0, totalAbonado: 0 }
+    { totalPerdidas: 0, capitalOriginal: 0, capitalRecuperado: 0, capitalExpuesto: 0, interesNoCobrado: 0 }
   );
 
   if (loading || !isAuthenticated || !selectedStore) {
@@ -154,7 +181,7 @@ export default function VentasPerdidasPage() {
         </div>
 
         {/* Metrics Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
           <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
@@ -180,15 +207,15 @@ export default function VentasPerdidasPage() {
                 </div>
                 <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">Capital</span>
               </div>
-              <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
-                {formatMoney(summary.capitalPerdido)}
+                <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
+                {formatMoney(summary.capitalOriginal)}
               </p>
               <div className="flex items-center gap-2">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Capital Total Vendido</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Capital Original</p>
                 <div className="group relative">
                   <FiInfo className="text-slate-300 hover:text-rose-500 cursor-help transition-colors" size={12} />
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-4 bg-slate-900/95 backdrop-blur-xl text-[10px] text-slate-200 font-bold leading-relaxed rounded-2xl opacity-0 group-hover:opacity-100 transition-all transform scale-95 group-hover:scale-100 pointer-events-none z-50 shadow-2xl border border-white/10 text-center uppercase tracking-tighter">
-                    Suma del valor de venta original de todos los créditos marcados como pérdida.
+                    Suma del capital original colocado en los créditos marcados como pérdida.
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/95"></div>
                   </div>
                 </div>
@@ -205,14 +232,14 @@ export default function VentasPerdidasPage() {
                 <span className="text-[10px] font-black text-rose-300 uppercase tracking-widest leading-none">Irrecuperable</span>
               </div>
               <p className="text-3xl font-black text-rose-600 dark:text-rose-400 tracking-tighter mb-1">
-                {formatMoney(summary.saldoPerdido)}
+                {formatMoney(summary.capitalExpuesto)}
               </p>
               <div className="flex items-center gap-2">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Saldo No Recuperado</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Pérdida de Capital</p>
                 <div className="group relative">
                   <FiInfo className="text-slate-300 hover:text-rose-500 cursor-help transition-colors" size={12} />
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-4 bg-slate-900/95 backdrop-blur-xl text-[10px] text-slate-200 font-bold leading-relaxed rounded-2xl opacity-0 group-hover:opacity-100 transition-all transform scale-95 group-hover:scale-100 pointer-events-none z-50 shadow-2xl border border-white/10 text-center uppercase tracking-tighter">
-                    Monto que quedó pendiente al momento de marcar la venta como pérdida. Este dinero no se recuperará.
+                    Capital original que no se alcanzó a recuperar. No incluye el interés futuro que quedó sin cobrar.
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/95"></div>
                   </div>
                 </div>
@@ -229,15 +256,39 @@ export default function VentasPerdidasPage() {
                 <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest leading-none">Recuperado</span>
               </div>
               <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter mb-1">
-                {formatMoney(summary.totalAbonado)}
+                {formatMoney(summary.capitalRecuperado)}
               </p>
               <div className="flex items-center gap-2">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Total Abonado</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Capital Recuperado</p>
                 <div className="group relative">
                   <FiInfo className="text-slate-300 hover:text-emerald-500 cursor-help transition-colors" size={12} />
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-4 bg-slate-900/95 backdrop-blur-xl text-[10px] text-slate-200 font-bold leading-relaxed rounded-2xl opacity-0 group-hover:opacity-100 transition-all transform scale-95 group-hover:scale-100 pointer-events-none z-50 shadow-2xl border border-white/10 text-center uppercase tracking-tighter">
-                    Total de pagos que se alcanzaron a recaudar antes de que el crédito fuera declarado como pérdida.
+                    Los pagos se aplican primero al capital; este monto muestra cuánto del capital original se recuperó.
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/95"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-orange-50 dark:bg-orange-900/30 text-orange-400 rounded-2xl">
+                  <FiInfo size={24} />
+                </div>
+                <span className="text-[10px] font-black text-orange-300 uppercase tracking-widest leading-none">No cobrado</span>
+              </div>
+              <p className="text-3xl font-black text-orange-400 dark:text-orange-300 tracking-tighter mb-1">
+                {formatMoney(summary.interesNoCobrado)}
+              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Interés No Cobrado</p>
+                <div className="group relative">
+                  <FiInfo className="text-slate-300 hover:text-orange-400 cursor-help transition-colors" size={12} />
+                  <div className="absolute bottom-full right-0 mb-2 w-56 p-4 bg-slate-900/95 backdrop-blur-xl text-[10px] text-slate-200 font-bold leading-relaxed rounded-2xl opacity-0 group-hover:opacity-100 transition-all transform scale-95 group-hover:scale-100 pointer-events-none z-50 shadow-2xl border border-white/10 text-center uppercase tracking-tighter">
+                    Interés que estaba pactado, pero no se alcanzó a cobrar. No se cuenta como pérdida de capital.
+                    <div className="absolute top-full right-8 border-8 border-transparent border-t-slate-900/95"></div>
                   </div>
                 </div>
               </div>
@@ -281,16 +332,17 @@ export default function VentasPerdidasPage() {
                   <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Referencia</th>
                   <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cliente</th>
                   <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha Venta</th>
-                  <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Valor Venta</th>
-                  <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Abonado</th>
-                  <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Pérdida Neta</th>
+                  <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Capital Original</th>
+                  <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Capital Recup.</th>
+                  <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Pérdida Capital</th>
+                  <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Int. No Cob.</th>
                   <th className="px-8 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredVentas.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-8 py-24 text-center">
+                    <td colSpan="8" className="px-8 py-24 text-center">
                       <div className="bg-slate-50 dark:bg-slate-800/50 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                         <FiAlertTriangle className="text-4xl text-slate-200" />
                       </div>
@@ -336,14 +388,19 @@ export default function VentasPerdidasPage() {
                       </td>
                       <td className="px-6 py-6 whitespace-nowrap text-right">
                         <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 leading-none">
-                          {formatMoney(venta.total_abonado)}
+                          {formatMoney(metricasPerdida(venta).capitalRecuperado)}
                         </p>
                       </td>
                       <td className="px-6 py-6 whitespace-nowrap text-right">
                         <p className="text-lg font-black text-rose-600 dark:text-rose-400 tracking-tight leading-none mb-1">
-                          {formatMoney(venta.saldo_actual)}
+                          {formatMoney(metricasPerdida(venta).capitalExpuesto)}
                         </p>
-                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">No Recuperado</p>
+                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Capital</p>
+                      </td>
+                      <td className="px-6 py-6 whitespace-nowrap text-right">
+                        <p className="text-sm font-black text-orange-400 dark:text-orange-300 leading-none">
+                          {formatMoney(metricasPerdida(venta).interesNoCobrado)}
+                        </p>
                       </td>
                       <td className="px-4 py-6 whitespace-nowrap text-center">
                         <span className="px-3 py-1.5 bg-slate-800 dark:bg-slate-700 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-sm">
@@ -392,18 +449,22 @@ export default function VentasPerdidasPage() {
                       Pérdida
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Venta</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Capital</p>
                       <p className="text-xs font-black text-slate-700 dark:text-slate-200">{formatMoney(venta.valor_venta)}</p>
                     </div>
                     <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-3 text-center">
-                      <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Abonado</p>
-                      <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">{formatMoney(venta.total_abonado)}</p>
+                      <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Capital recup.</p>
+                      <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">{formatMoney(metricasPerdida(venta).capitalRecuperado)}</p>
                     </div>
                     <div className="bg-rose-50 dark:bg-rose-900/10 rounded-xl p-3 text-center">
-                      <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-1">Pérdida</p>
-                      <p className="text-xs font-black text-rose-600 dark:text-rose-400">{formatMoney(venta.saldo_actual)}</p>
+                      <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-1">Pérdida cap.</p>
+                      <p className="text-xs font-black text-rose-600 dark:text-rose-400">{formatMoney(metricasPerdida(venta).capitalExpuesto)}</p>
+                    </div>
+                    <div className="bg-orange-50 dark:bg-orange-900/10 rounded-xl p-3 text-center">
+                      <p className="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-1">Int. no cob.</p>
+                      <p className="text-xs font-black text-orange-400 dark:text-orange-300">{formatMoney(metricasPerdida(venta).interesNoCobrado)}</p>
                     </div>
                   </div>
                 </Link>
@@ -437,15 +498,15 @@ export default function VentasPerdidasPage() {
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Tasa de Pérdida</span>
                     <span className="text-lg font-black text-rose-600 dark:text-rose-400">
-                      {summary.capitalPerdido > 0
-                        ? ((summary.saldoPerdido / summary.capitalPerdido) * 100).toFixed(1)
+                      {summary.capitalOriginal > 0
+                        ? ((summary.capitalExpuesto / summary.capitalOriginal) * 100).toFixed(1)
                         : 0}%
                     </span>
                   </div>
                   <div className="h-3 w-full bg-rose-100 dark:bg-rose-900/30 rounded-full overflow-hidden p-0.5">
                     <div
                       className="h-full rounded-full bg-rose-500 transition-all duration-1000 shadow-sm"
-                      style={{ width: `${summary.capitalPerdido > 0 ? ((summary.saldoPerdido / summary.capitalPerdido) * 100) : 0}%` }}
+                      style={{ width: `${summary.capitalOriginal > 0 ? Math.min(100, (summary.capitalExpuesto / summary.capitalOriginal) * 100) : 0}%` }}
                     />
                   </div>
                   <p className="text-[9px] font-bold text-rose-400 uppercase tracking-wider mt-2">
@@ -457,17 +518,28 @@ export default function VentasPerdidasPage() {
                   <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Promedio por Pérdida</p>
                     <p className="text-lg font-black text-slate-800 dark:text-white tracking-tight">
-                      {formatMoney(summary.totalPerdidas > 0 ? summary.saldoPerdido / summary.totalPerdidas : 0)}
+                      {formatMoney(summary.totalPerdidas > 0 ? summary.capitalExpuesto / summary.totalPerdidas : 0)}
                     </p>
                   </div>
                   <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Tasa de Recupero</p>
                     <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
-                      {summary.capitalPerdido > 0
-                        ? ((summary.totalAbonado / summary.capitalPerdido) * 100).toFixed(1)
+                      {summary.capitalOriginal > 0
+                        ? ((summary.capitalRecuperado / summary.capitalOriginal) * 100).toFixed(1)
                         : 0}%
                     </p>
                   </div>
+                </div>
+                <div className="p-5 bg-orange-50/50 dark:bg-orange-900/10 rounded-2xl border border-orange-100 dark:border-orange-900/20">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">Interés no cobrado</span>
+                    <span className="text-lg font-black text-orange-400 dark:text-orange-300">
+                      {formatMoney(summary.interesNoCobrado)}
+                    </span>
+                  </div>
+                  <p className="text-[9px] font-bold text-orange-300 uppercase tracking-wider mt-2">
+                    Utilidad pactada que no llegó a convertirse en cobro
+                  </p>
                 </div>
               </div>
             </div>
@@ -484,7 +556,7 @@ export default function VentasPerdidasPage() {
               <div className="space-y-4 relative z-10">
                 <div className="p-5 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-900/20">
                   <p className="text-[10px] font-bold text-amber-600 leading-relaxed uppercase tracking-tighter">
-                    Las ventas en pérdida son créditos cerrados permanentemente. El cliente asociado queda bloqueado automáticamente y el saldo restante se registra como pérdida neta.
+                    Las ventas en pérdida son créditos cerrados permanentemente. El cliente asociado queda bloqueado automáticamente y el capital no recuperado se registra como pérdida de capital.
                   </p>
                 </div>
 
@@ -504,7 +576,7 @@ export default function VentasPerdidasPage() {
                   <div className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                     <FiDollarSign className="text-slate-500 mt-0.5 shrink-0" size={14} />
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter leading-relaxed">
-                      El saldo pendiente se contabiliza como pérdida neta en los reportes de utilidad
+                      Solo el capital no recuperado se contabiliza como pérdida de capital; el interés no cobrado se muestra separado y no se suma a esa pérdida.
                     </p>
                   </div>
                 </div>
