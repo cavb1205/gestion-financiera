@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-Última actualización: 7 de agosto de 2026.
+Última actualización: 8 de agosto de 2026.
 
 Este documento resume lo implementado en la plataforma Cartera Financiera y sirve como memoria de continuidad para los siguientes cambios.
 
@@ -31,7 +31,7 @@ Se agregaron días completos sin abono, cuotas atrasadas y monto para ponerse al
 - El trabajador no puede modificar la frecuencia; siempre registra créditos diarios.
 - Solo los administradores pueden elegir Diario, Semanal o Mensual.
 - El backend aplica la misma restricción, no depende únicamente del formulario.
-- Los umbrales se calculan según la frecuencia y los días desde el último abono real.
+- Los umbrales se calculan según la frecuencia y las jornadas completas desde el último abono real.
 - El primer abono del día actual no se considera atrasado antes de que termine ese día.
 - Las renovaciones técnicas no se confunden con pagos reales.
 
@@ -71,7 +71,7 @@ La política actual es:
   - **Resumen de membresías:** estado de suscripciones, actividad e ingresos de membresías;
   - **Resumen de cartera:** cobro programado, recaudo, pendientes, fallas, cierres y riesgos por ruta.
 
-El cron de producción quedó configurado a las **08:00 de `America/Santiago`**. El comando usa la fecha local de Chile y reporta la jornada anterior, evitando que el reloj UTC del servidor cierre el día antes de tiempo.
+El cron de producción debe cerrar la jornada anterior a las **08:00 de `America/Santiago`**. Como el servidor trabaja en UTC, se ejecuta cada hora y un wrapper solo continúa cuando la hora local de Chile es 08:00; esto mantiene el horario correcto cuando cambia el horario de verano.
 
 Comando:
 
@@ -86,9 +86,7 @@ El 7 de agosto de 2026 se ejecutó manualmente para validar el reporte del 6 de 
 - Frontend: `https://app.carterafinanciera.com`.
 - Frontend en GitHub: `cavb1205/gestion-financiera`, rama `main`.
 - Vercel está conectado al repositorio; cada push a `main` inicia el despliegue automático.
-- Último commit frontend relacionado: `06ed36c`.
 - Backend en GitHub: `cavb1205/sellsystem`, rama `main`.
-- Último commit backend: `cd7fadf`.
 - Backend publicado en `https://api.carterafinanciera.com` y Gunicorn recargado después de los cambios.
 - Verificaciones realizadas: `manage.py check`, `npm run lint` y `npm run build` correctos.
 

@@ -841,7 +841,7 @@ Estos endpoints sí devuelven `[]` cuando no hay datos.
 ## 16. Notas de mantenimiento
 
 - **Drift de migraciones en `Tiendas`**: nunca usar `makemigrations` autogenerado en esa app; el estado de las migraciones no coincide con los modelos.
-- **Cron diario** (VPS, 08:00 de `America/Santiago`, crontab de `cavb1205`): `python manage.py mantenimiento_membresias` → recalcula estados, cierra la jornada anterior y envía por separado los resúmenes de membresías y cartera. Log en `/home/cavb1205/mantenimiento_membresias.log`.
+- **Cron diario** (VPS, 08:00 de `America/Santiago`, wrapper horario de `cavb1205`): `python manage.py mantenimiento_membresias` → recalcula estados, cierra la jornada anterior y envía por separado los resúmenes de membresías y cartera. El wrapper se evalúa cada hora y solo ejecuta el comando cuando la hora local de Chile es 08:00. Log en `/home/cavb1205/mantenimiento_membresias.log`.
 - **Credenciales del bot** en `variables.py` del VPS: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `TELEGRAM_WEBHOOK_SECRET`, `CUENTA_DESTINO_*`.
 - **Nunca probar flujos que mutan datos** (crear ventas, recaudos, activar membresías) contra registros reales de producción.
 
