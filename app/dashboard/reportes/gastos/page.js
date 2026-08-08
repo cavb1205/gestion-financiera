@@ -13,8 +13,9 @@ import {
   FiBarChart2,
   FiCalendar,
   FiPieChart,
-  FiHash,
-  FiActivity,
+  FiSearch,
+  FiFilter,
+  FiX,
 } from "react-icons/fi";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../../utils/format";
@@ -33,6 +34,24 @@ const CATEGORY_COLORS = [
   { bg: "bg-indigo-50 dark:bg-indigo-900/20", text: "text-indigo-600", bar: "bg-indigo-500", border: "border-indigo-100 dark:border-indigo-900/30" },
 ];
 
+const escaparCsv = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+
+const diasDelPeriodo = (inicio, fin) => {
+  if (!inicio || !fin) return 0;
+  const [inicioAnio, inicioMes, inicioDia] = inicio.split("-").map(Number);
+  const [finAnio, finMes, finDia] = fin.split("-").map(Number);
+  const fechaInicio = Date.UTC(inicioAnio, inicioMes - 1, inicioDia);
+  const fechaFin = Date.UTC(finAnio, finMes - 1, finDia);
+  if (!Number.isFinite(fechaInicio) || !Number.isFinite(fechaFin) || fechaFin < fechaInicio) return 0;
+  return Math.floor((fechaFin - fechaInicio) / 86400000) + 1;
+};
+
+const formatearFecha = (fecha) => {
+  if (!fecha || typeof fecha !== "string") return "—";
+  const [anio, mes, dia] = fecha.split("-");
+  return anio && mes && dia ? `${dia}/${mes}/${anio}` : fecha;
+};
+
 export default function ReporteGastosPage() {
   const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const [fechaInicio, setFechaInicio] = useState("");
@@ -41,6 +60,8 @@ export default function ReporteGastosPage() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
   const [fechasListas, setFechasListas] = useState(false);
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("Todas");
+  const [busquedaDetalle, setBusquedaDetalle] = useState("");
 
   const ajustarFechaLocal = (fecha) => {
     const date = new Date(fecha);
@@ -53,9 +74,8 @@ export default function ReporteGastosPage() {
   useEffect(() => {
     const hoy = new Date();
     const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
     setFechaInicio(ajustarFechaLocal(primerDiaMes));
-    setFechaFin(ajustarFechaLocal(ultimoDiaMes));
+    setFechaFin(ajustarFechaLocal(hoy));
     setFechasListas(true);
   }, []);
 
@@ -68,7 +88,7 @@ export default function ReporteGastosPage() {
     setGastos(null);
 
     try {
-      if (new Date(fechaInicio) > new Date(fechaFin)) {
+      if (fechaInicio > fechaFin) {
         throw new Error("La fecha de inicio no puede ser mayor que la fecha de fin");
       }
 
@@ -100,7 +120,7 @@ export default function ReporteGastosPage() {
     if (fechasListas && selectedStore) {
       generarReporte();
     }
-  }, [fechasListas, selectedStore]);
+  }, [fechasListas, selectedStore, generarReporte]);
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 
@@ -130,22 +150,38 @@ export default function ReporteGastosPage() {
   const uniqueDates = gastos
     ? [...new Set(gastos.map((g) => g.fecha))].sort((a, b) => b.localeCompare(a))
     : [];
-  const promedioDiario = uniqueDates.length > 0 ? totalGastos / uniqueDates.length : 0;
+  const periodoDias = diasDelPeriodo(fechaInicio, fechaFin);
+  const promedioPeriodo = periodoDias > 0 ? totalGastos / periodoDias : 0;
+  const promedioDiaConGasto = uniqueDates.length > 0 ? totalGastos / uniqueDates.length : 0;
+  const mayorGasto = gastos && gastos.length > 0
+    ? gastos.reduce((mayor, gasto) => parseMoney(gasto.valor) > parseMoney(mayor.valor) ? gasto : mayor)
+    : null;
 
   // Group expenses by date
+  const busquedaNormalizada = busquedaDetalle.trim().toLowerCase();
+  const gastosDetalle = gastos
+    ? gastos.filter((g) => {
+      const categoriaId = String(g.tipo_gasto?.id || 0);
+      const texto = `${g.tipo_gasto?.tipo_gasto || "Sin categoría"} ${g.comentario || ""}`.toLowerCase();
+      const coincideCategoria = categoriaSeleccionada === "Todas" || categoriaId === categoriaSeleccionada;
+      return coincideCategoria && (!busquedaNormalizada || texto.includes(busquedaNormalizada));
+    })
+    : [];
+  const totalDetalle = gastosDetalle.reduce((sum, gasto) => sum + parseMoney(gasto.valor), 0);
   const gastosPorFecha = {};
-  if (gastos) {
-    gastos.forEach((g) => {
+  gastosDetalle.forEach((g) => {
       if (!gastosPorFecha[g.fecha]) {
         gastosPorFecha[g.fecha] = { fecha: g.fecha, items: [], total: 0 };
       }
       gastosPorFecha[g.fecha].items.push(g);
       gastosPorFecha[g.fecha].total += parseMoney(g.valor);
-    });
-  }
+  });
   const fechasAgrupadas = Object.values(gastosPorFecha).sort(
     (a, b) => new Date(b.fecha) - new Date(a.fecha)
   );
+  const diaMayorGasto = fechasAgrupadas.length > 0
+    ? fechasAgrupadas.reduce((mayor, grupo) => grupo.total > mayor.total ? grupo : mayor)
+    : null;
 
   // CSV export
   const exportarCSV = () => {
@@ -154,8 +190,8 @@ export default function ReporteGastosPage() {
       "Fecha,Categoría,Comentario,Valor",
       ...gastos.map((g) => {
         const cat = g.tipo_gasto?.tipo_gasto || "Sin categoría";
-        const comentario = (g.comentario || "").replace(/,/g, ";").replace(/\n/g, " ");
-        return `${g.fecha},"${cat}","${comentario}",${parseMoney(g.valor)}`;
+        const comentario = (g.comentario || "").replace(/\r?\n/g, " ");
+        return [g.fecha, cat, comentario, parseMoney(g.valor)].map(escaparCsv).join(",");
       }),
     ].join("\n");
     const blob = new Blob([rows], { type: "text/csv" });
@@ -244,7 +280,7 @@ export default function ReporteGastosPage() {
         {gastos && gastos.length > 0 ? (
           <>
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
               {/* Total Gastos */}
               <div className="glass p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-3 md:mb-4">
@@ -257,6 +293,18 @@ export default function ReporteGastosPage() {
                   {formatMoney(totalGastos)}
                 </p>
                 <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Total Gastos</p>
+              </div>
+
+              {/* Registros */}
+              <div className="glass p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden">
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <div className="p-2.5 md:p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl md:rounded-2xl">
+                    <FiBarChart2 size={20} />
+                  </div>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{uniqueDates.length} días</span>
+                </div>
+                <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">{gastos.length}</p>
+                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Registros del período</p>
               </div>
 
               {/* Categoría Mayor */}
@@ -277,20 +325,41 @@ export default function ReporteGastosPage() {
                 </p>
               </div>
 
-              {/* Promedio Diario */}
+              {/* Mayor gasto individual */}
               <div className="col-span-2 lg:col-span-1 glass p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-3 md:mb-4">
-                  <div className="p-2.5 md:p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl md:rounded-2xl">
-                    <FiActivity size={20} />
+                  <div className="p-2.5 md:p-3 bg-orange-50 dark:bg-orange-900/30 text-orange-600 rounded-xl md:rounded-2xl">
+                    <FiTrendingDown size={20} />
                   </div>
-                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
-                    {uniqueDates.length} días
-                  </span>
+                  <span className="text-[9px] font-black text-orange-500 uppercase tracking-widest">pico individual</span>
                 </div>
                 <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1 select-all">
-                  {formatMoney(promedioDiario)}
+                  {formatMoney(mayorGasto?.valor || 0)}
                 </p>
-                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Promedio Diario</p>
+                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none truncate" title={mayorGasto?.comentario || "Sin descripción"}>
+                  {mayorGasto ? `${formatearFecha(mayorGasto.fecha)} · ${mayorGasto.tipo_gasto?.tipo_gasto || "Sin categoría"}` : "---"}
+                </p>
+              </div>
+            </div>
+
+            {/* Ritmo del período */}
+            <div className="glass mb-8 grid grid-cols-1 gap-4 rounded-[2rem] border-white/60 p-5 shadow-xl dark:border-slate-800 md:grid-cols-4 md:p-6">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Promedio por día calendario</p>
+                <p className="mt-1 text-lg font-black tracking-tight text-indigo-600 dark:text-indigo-400">{formatMoney(promedioPeriodo)}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Promedio por día con gasto</p>
+                <p className="mt-1 text-lg font-black tracking-tight text-slate-800 dark:text-white">{formatMoney(promedioDiaConGasto)}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Días con gasto</p>
+                <p className="mt-1 text-lg font-black tracking-tight text-slate-800 dark:text-white">{uniqueDates.length} <span className="text-xs font-bold text-slate-400">de {periodoDias}</span></p>
+              </div>
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Día más costoso</p>
+                <p className="mt-1 text-lg font-black tracking-tight text-rose-600 dark:text-rose-400">{formatMoney(diaMayorGasto?.total || 0)}</p>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">{formatearFecha(diaMayorGasto?.fecha)}</p>
               </div>
             </div>
 
@@ -302,7 +371,7 @@ export default function ReporteGastosPage() {
                 </div>
                 <div>
                   <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Desglose por Categoría</h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{categories.length} categorías detectadas</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{categories.length} categorías · haz clic para filtrar el detalle</p>
                 </div>
               </div>
 
@@ -313,7 +382,14 @@ export default function ReporteGastosPage() {
                   const barWidth = maxCategoryTotal > 0 ? (cat.total / maxCategoryTotal) * 100 : 0;
 
                   return (
-                    <div key={cat.id} className={`p-5 md:p-6 ${color.bg} rounded-3xl border ${color.border}`}>
+                    <button
+                      type="button"
+                      key={cat.id}
+                      onClick={() => setCategoriaSeleccionada((actual) => actual === String(cat.id) ? "Todas" : String(cat.id))}
+                      aria-pressed={categoriaSeleccionada === String(cat.id)}
+                      title="Filtrar detalle por esta categoría"
+                      className={`w-full p-5 md:p-6 ${color.bg} rounded-3xl border ${color.border} text-left transition hover:-translate-y-0.5 hover:shadow-md ${categoriaSeleccionada === String(cat.id) ? "ring-2 ring-indigo-400 ring-offset-2 dark:ring-offset-slate-950" : ""}`}
+                    >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className={`w-3 h-3 rounded-full ${color.bar} shrink-0`} />
@@ -341,7 +417,7 @@ export default function ReporteGastosPage() {
                           {formatMoney(cat.total)}
                         </p>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -355,17 +431,62 @@ export default function ReporteGastosPage() {
                 </div>
                 <div>
                   <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Detalle Cronológico</h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{gastos.length} registros en {uniqueDates.length} fechas</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Revisión de {gastosDetalle.length} de {gastos.length} registros</p>
                 </div>
+              </div>
+
+              <div className="border-b border-slate-100 p-5 dark:border-slate-800 md:p-6">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                  <div className="relative">
+                    <FiFilter className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                    <select
+                      value={categoriaSeleccionada}
+                      onChange={(e) => setCategoriaSeleccionada(e.target.value)}
+                      className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-xs font-black uppercase tracking-wide text-slate-600 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300"
+                    >
+                      <option value="Todas">Todas las categorías</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={String(cat.id)}>{cat.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="relative">
+                    <FiSearch className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                    <input
+                      type="search"
+                      value={busquedaDetalle}
+                      onChange={(e) => setBusquedaDetalle(e.target.value)}
+                      placeholder="Buscar categoría o comentario..."
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-xs font-bold text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-200"
+                    />
+                  </div>
+                  {(categoriaSeleccionada !== "Todas" || busquedaDetalle) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCategoriaSeleccionada("Todas");
+                        setBusquedaDetalle("");
+                      }}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 transition hover:bg-slate-100 hover:text-rose-500 dark:hover:bg-slate-800"
+                    >
+                      <FiX size={14} /> Limpiar
+                    </button>
+                  )}
+                </div>
+                <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  {gastosDetalle.length > 0 ? `${formatMoney(totalDetalle)} en el detalle filtrado` : "Sin movimientos para estos filtros"}
+                </p>
               </div>
 
               {/* Mobile card view */}
               <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                {fechasAgrupadas.map((grupo) => (
+                {gastosDetalle.length === 0 ? (
+                  <div className="px-5 py-12 text-center text-xs font-bold text-slate-400">No hay gastos que coincidan con la búsqueda.</div>
+                ) : fechasAgrupadas.map((grupo) => (
                   <div key={grupo.fecha}>
                     {/* Date header */}
                     <div className="px-5 py-3 bg-slate-50/80 dark:bg-slate-800/30 flex items-center justify-between">
-                      <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{grupo.fecha}</p>
+                      <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{formatearFecha(grupo.fecha)}</p>
                       <p className="text-xs font-black text-rose-500">{formatMoney(grupo.total)}</p>
                     </div>
                     {/* Items */}
@@ -389,8 +510,8 @@ export default function ReporteGastosPage() {
                 {/* Mobile footer */}
                 <div className="px-5 py-4 bg-slate-50 dark:bg-slate-800/50">
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Período</p>
-                    <p className="text-base font-black text-rose-600">{formatMoney(totalGastos)}</p>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{gastosDetalle.length === gastos.length ? "Total Período" : "Total filtrado"}</p>
+                    <p className="text-base font-black text-rose-600">{formatMoney(totalDetalle)}</p>
                   </div>
                 </div>
               </div>
@@ -407,13 +528,17 @@ export default function ReporteGastosPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {fechasAgrupadas.map((grupo) => (
+                    {gastosDetalle.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="px-8 py-16 text-center text-xs font-bold text-slate-400">No hay gastos que coincidan con la búsqueda.</td>
+                      </tr>
+                    ) : fechasAgrupadas.map((grupo) => (
                       grupo.items.map((gasto, gIdx) => (
                         <tr key={gasto.id} className="group hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 transition-all">
                           <td className="px-8 py-5 whitespace-nowrap">
                             {gIdx === 0 ? (
                               <div className="flex items-center gap-2">
-                                <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter">{gasto.fecha}</p>
+                                <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter">{formatearFecha(gasto.fecha)}</p>
                                 <span className="text-[9px] font-black text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded-lg">
                                   {formatMoney(grupo.total)}
                                 </span>
@@ -443,12 +568,12 @@ export default function ReporteGastosPage() {
                   </tbody>
                   <tfoot className="bg-slate-50 dark:bg-slate-800/50 border-t-2 border-slate-200 dark:border-slate-800">
                     <tr>
-                      <td className="px-8 py-6 text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Total Período</td>
+                      <td className="px-8 py-6 text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">{gastosDetalle.length === gastos.length ? "Total Período" : "Total filtrado"}</td>
                       <td className="px-8 py-6" />
                       <td className="px-8 py-6">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{gastos.length} registros</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{gastosDetalle.length} registros</p>
                       </td>
-                      <td className="px-8 py-6 text-right text-lg font-black text-rose-600">{formatMoney(totalGastos)}</td>
+                      <td className="px-8 py-6 text-right text-lg font-black text-rose-600">{formatMoney(totalDetalle)}</td>
                     </tr>
                   </tfoot>
                 </table>
