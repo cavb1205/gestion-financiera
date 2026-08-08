@@ -43,6 +43,10 @@ export default function CarteraReportPage() {
   const [auditoria, setAuditoria] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [busquedaCliente, setBusquedaCliente] = useState("");
+  const [filtroClientes, setFiltroClientes] = useState("todos");
+  const [ordenClientes, setOrdenClientes] = useState("prioridad");
+  const [montoMinimoCliente, setMontoMinimoCliente] = useState("");
   const tiendaId = selectedStore?.tienda?.id;
   const isAdmin = user?.is_staff || user?.is_superuser;
 
@@ -138,11 +142,11 @@ export default function CarteraReportPage() {
 
   // --- Aging Buckets ---
   const agingBuckets = [
-    { label: "Al Día", min: -Infinity, max: 0, count: 0, saldo: 0, intensity: "bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400" },
-    { label: "1-5 Cuotas", min: 1, max: 5, count: 0, saldo: 0, intensity: "bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400" },
-    { label: "6-15 Cuotas", min: 6, max: 15, count: 0, saldo: 0, intensity: "bg-orange-50 dark:bg-orange-900/10 text-orange-700 dark:text-orange-400" },
-    { label: "16-30 Cuotas", min: 16, max: 30, count: 0, saldo: 0, intensity: "bg-rose-50 dark:bg-rose-900/10 text-rose-700 dark:text-rose-400" },
-    { label: "30+ Cuotas", min: 31, max: Infinity, count: 0, saldo: 0, intensity: "bg-rose-100 dark:bg-rose-900/20 text-rose-800 dark:text-rose-300" },
+    { label: "Al Día", filter: "cob_al_dia", min: -Infinity, max: 0, count: 0, saldo: 0, intensity: "bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400" },
+    { label: "1-5 Cuotas", filter: "cob_1_5", min: 1, max: 5, count: 0, saldo: 0, intensity: "bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400" },
+    { label: "6-15 Cuotas", filter: "cob_6_15", min: 6, max: 15, count: 0, saldo: 0, intensity: "bg-orange-50 dark:bg-orange-900/10 text-orange-700 dark:text-orange-400" },
+    { label: "16-30 Cuotas", filter: "cob_16_30", min: 16, max: 30, count: 0, saldo: 0, intensity: "bg-rose-50 dark:bg-rose-900/10 text-rose-700 dark:text-rose-400" },
+    { label: "30+ Cuotas", filter: "cob_30_mas", min: 31, max: Infinity, count: 0, saldo: 0, intensity: "bg-rose-100 dark:bg-rose-900/20 text-rose-800 dark:text-rose-300" },
   ];
   ventas.forEach((v) => {
     const dias = numero(getRiesgoCartera(v).cuotasAtrasadas);
@@ -214,8 +218,29 @@ export default function CarteraReportPage() {
       existente.deterioro = deterioro;
     }
   });
-  const clientesRiesgo = [...clientesRiesgoMap.values()]
+  const clientesRiesgoTodos = [...clientesRiesgoMap.values()];
+  const busquedaClienteNormalizada = busquedaCliente.trim().toLowerCase();
+  const clientesRiesgoFiltrados = clientesRiesgoTodos.filter((cliente) => {
+    if (busquedaClienteNormalizada) {
+      const textoCliente = `${cliente.nombre} ${cliente.identificacion}`.toLowerCase();
+      if (!textoCliente.includes(busquedaClienteNormalizada)) return false;
+    }
+    if (filtroClientes === "hoy" && cliente.prioridad.rank < 1) return false;
+    if (filtroClientes === "urgente" && cliente.prioridad.rank < 2) return false;
+    if (filtroClientes === "deterioro" && cliente.nivelDeterioro < 1) return false;
+    if (filtroClientes === "critico" && cliente.nivelDeterioro < 3) return false;
+    if (filtroClientes === "temprana" && cliente.nivelDeterioro !== 0) return false;
+    if (montoMinimoCliente && cliente.capitalExpuesto < Number(montoMinimoCliente)) return false;
+    return true;
+  });
+  const clientesRiesgo = [...clientesRiesgoFiltrados]
     .sort((a, b) => {
+      if (ordenClientes === "saldo") return b.saldo - a.saldo;
+      if (ordenClientes === "capital") return b.capitalExpuesto - a.capitalExpuesto;
+      if (ordenClientes === "atraso") {
+        if (b.diasSinAbono !== a.diasSinAbono) return b.diasSinAbono - a.diasSinAbono;
+        return b.cuotasAtrasadas - a.cuotasAtrasadas;
+      }
       if (a.prioridad.rank !== b.prioridad.rank) return b.prioridad.rank - a.prioridad.rank;
       if (a.nivelDeterioro !== b.nivelDeterioro) return b.nivelDeterioro - a.nivelDeterioro;
       if (a.capitalExpuesto !== b.capitalExpuesto) return b.capitalExpuesto - a.capitalExpuesto;
@@ -494,7 +519,13 @@ export default function CarteraReportPage() {
                     <div key={estado}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
-                          <span className={`text-xs font-black uppercase tracking-widest ${c.label}`}>{estado}</span>
+                          {estado === "Otros" ? (
+                            <span className={`text-xs font-black uppercase tracking-widest ${c.label}`}>{estado}</span>
+                          ) : (
+                            <Link href={`/dashboard/ventas?filtro=${estado}`} className={`text-xs font-black uppercase tracking-widest transition hover:underline ${c.label}`}>
+                              {estado} ↗
+                            </Link>
+                          )}
                           <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-black text-slate-500">
                             {data.count} créditos
                           </span>
@@ -573,16 +604,16 @@ export default function CarteraReportPage() {
                 {/* Mobile card view */}
                 <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
                   {agingBuckets.map((bucket, idx) => (
-                    <div key={idx} className={`px-5 py-4 ${bucket.intensity}`}>
+                    <Link key={idx} href={`/dashboard/ventas?filtro=${bucket.filter}`} className={`block px-5 py-4 transition hover:brightness-95 ${bucket.intensity}`}>
                       <div className="flex items-center justify-between mb-1.5">
                         <p className="text-xs font-black uppercase tracking-tight">{bucket.label}</p>
-                        <p className="text-sm font-black tracking-tight">{formatMoney(bucket.saldo)}</p>
+                        <p className="text-sm font-black tracking-tight">{formatMoney(bucket.saldo)} <span className="ml-1 text-[9px] opacity-60">↗</span></p>
                       </div>
                       <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
                         <span>{bucket.count} créditos</span>
                         <span className="ml-auto">{totalPorCobrar > 0 ? ((bucket.saldo / totalPorCobrar) * 100).toFixed(1) : 0}%</span>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
 
@@ -601,7 +632,9 @@ export default function CarteraReportPage() {
                       {agingBuckets.map((bucket, idx) => (
                         <tr key={idx} className={`group transition-all ${bucket.intensity}`}>
                           <td className="px-8 py-5 whitespace-nowrap">
-                            <p className="text-xs font-black uppercase tracking-tighter">{bucket.label}</p>
+                            <Link href={`/dashboard/ventas?filtro=${bucket.filter}`} className="text-xs font-black uppercase tracking-tighter transition hover:text-indigo-600">
+                              {bucket.label} <span className="ml-1 text-[9px] opacity-60">↗</span>
+                            </Link>
                           </td>
                           <td className="px-8 py-5 text-center">
                             <span className="px-3 py-1 bg-white/60 dark:bg-slate-800/60 rounded-lg text-xs font-black">
@@ -699,13 +732,60 @@ export default function CarteraReportPage() {
                   </div>
                   <div>
                     <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Clientes con mayor riesgo</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Agrupado por persona · prioridad · capital expuesto</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Agrupado por persona · busca y ordena para priorizar gestión</p>
                   </div>
+                </div>
+
+                <div className="border-b border-slate-100 p-5 dark:border-slate-800 md:p-6">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <input
+                      type="search"
+                      value={busquedaCliente}
+                      onChange={(e) => setBusquedaCliente(e.target.value)}
+                      placeholder="Buscar cliente o identificación..."
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-200"
+                    />
+                    <select
+                      value={filtroClientes}
+                      onChange={(e) => setFiltroClientes(e.target.value)}
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-black uppercase tracking-wide text-slate-600 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300"
+                    >
+                      <option value="todos">Todos los clientes en mora</option>
+                      <option value="hoy">Gestionar hoy o peor</option>
+                      <option value="urgente">Urgente o peor</option>
+                      <option value="deterioro">Con deterioro</option>
+                      <option value="critico">Deterioro crítico</option>
+                      <option value="temprana">Mora temprana</option>
+                    </select>
+                    <select
+                      value={ordenClientes}
+                      onChange={(e) => setOrdenClientes(e.target.value)}
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-black uppercase tracking-wide text-slate-600 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300"
+                    >
+                      <option value="prioridad">Orden: prioridad</option>
+                      <option value="saldo">Orden: mayor saldo</option>
+                      <option value="capital">Orden: mayor capital expuesto</option>
+                      <option value="atraso">Orden: más días sin abono</option>
+                    </select>
+                    <input
+                      type="number"
+                      min="0"
+                      value={montoMinimoCliente}
+                      onChange={(e) => setMontoMinimoCliente(e.target.value)}
+                      placeholder="Capital expuesto mínimo"
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-200"
+                    />
+                  </div>
+                  <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    {clientesRiesgoFiltrados.length} cliente{clientesRiesgoFiltrados.length !== 1 ? "s" : ""} coincide{clientesRiesgoFiltrados.length !== 1 ? "n" : ""} · mostrando máximo 10
+                  </p>
                 </div>
 
                 {clientesRiesgo.length === 0 ? (
                   <div className="p-10 text-center">
-                    <p className="text-sm font-bold text-slate-400">No hay clientes en mora actualmente.</p>
+                    <p className="text-sm font-bold text-slate-400">
+                      {clientesRiesgoTodos.length > 0 ? "No hay clientes que coincidan con estos filtros." : "No hay clientes en mora actualmente."}
+                    </p>
                   </div>
                 ) : (
                   <>
@@ -806,13 +886,13 @@ export default function CarteraReportPage() {
                     };
                     const c = plazoColors[plazo] || { bg: "bg-slate-50 dark:bg-slate-800/50", border: "border-slate-100 dark:border-slate-800", label: "text-slate-400", value: "text-slate-600 dark:text-slate-400" };
                     return (
-                      <div key={plazo} className={`p-5 md:p-6 ${c.bg} rounded-3xl border ${c.border}`}>
+                      <Link key={plazo} href={plazo === "Otro" ? "/dashboard/ventas" : `/dashboard/ventas?plazo=${encodeURIComponent(plazo)}`} className={`block p-5 md:p-6 ${c.bg} rounded-3xl border ${c.border} transition hover:-translate-y-0.5 hover:shadow-md`}>
                         <p className={`text-[9px] font-black uppercase tracking-widest mb-2 ${c.label}`}>{plazo}</p>
-                        <p className={`text-xl font-black tracking-tight mb-1 ${c.value}`}>{formatMoney(data.saldo)}</p>
+                        <p className={`text-xl font-black tracking-tight mb-1 ${c.value}`}>{formatMoney(data.saldo)} <span className="ml-1 text-xs opacity-50">↗</span></p>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{data.count} créditos</p>
                         <p className="mt-3 text-[10px] font-black text-rose-500">{formatMoney(data.moraSaldo)} en mora · {data.moraCount} créditos</p>
                         <p className="mt-1 text-[9px] font-bold text-slate-400">{data.saldo > 0 ? ((data.moraSaldo / data.saldo) * 100).toFixed(1) : 0}% del plazo</p>
-                      </div>
+                      </Link>
                     );
                   })}
                 </div>

@@ -93,6 +93,7 @@ export default function VentasPage() {
   const debouncedSearch = useDebouncedValue(searchTerm);
   const [filters, setFilters] = useState({
     estado: "Todos",
+    plazo: "Todos",
     montoMin: "",
     montoMax: "",
   });
@@ -118,8 +119,13 @@ export default function VentasPage() {
     const params = new URLSearchParams(window.location.search);
     const filtro = params.get("filtro");
     const buscar = params.get("buscar");
-    if (filtro) {
-      setFilters((prev) => ({ ...prev, estado: filtro }));
+    const plazo = params.get("plazo");
+    if (filtro || plazo) {
+      setFilters((prev) => ({
+        ...prev,
+        ...(filtro ? { estado: filtro } : {}),
+        ...(plazo ? { plazo } : {}),
+      }));
     }
     if (buscar) {
       setSearchTerm(buscar);
@@ -180,11 +186,25 @@ export default function VentasPage() {
       if (parseMoney(venta.total_abonado) > 0) return false;
     } else if (filters.estado === "cob_atraso") {
       if (getCuotasAtrasadas(venta) <= 0) return false;
+    } else if (filters.estado === "cob_al_dia") {
+      if (getCuotasAtrasadas(venta) > 0) return false;
+    } else if (filters.estado === "cob_1_5") {
+      const cuotas = getCuotasAtrasadas(venta);
+      if (cuotas < 1 || cuotas > 5) return false;
+    } else if (filters.estado === "cob_6_15") {
+      const cuotas = getCuotasAtrasadas(venta);
+      if (cuotas < 6 || cuotas > 15) return false;
+    } else if (filters.estado === "cob_16_30") {
+      const cuotas = getCuotasAtrasadas(venta);
+      if (cuotas < 16 || cuotas > 30) return false;
+    } else if (filters.estado === "cob_30_mas") {
+      if (getCuotasAtrasadas(venta) < 31) return false;
     } else if (filters.estado.startsWith("det_")) {
       // Tramos de deterioro: muestra el nivel elegido y peores según la frecuencia.
       const nivelMin = { det_dudoso: 1, det_critico: 2, det_irrecuperable: 3 }[filters.estado];
       if (clasificarDeterioro(venta).nivel < nivelMin) return false;
     } else if (filters.estado !== "Todos" && venta.estado_venta !== filters.estado) return false;
+    if (filters.plazo !== "Todos" && venta.plazo !== filters.plazo) return false;
     if (filters.montoMin && parseFloat(venta.saldo_actual) < parseFloat(filters.montoMin)) return false;
     if (filters.montoMax && parseFloat(venta.saldo_actual) > parseFloat(filters.montoMax)) return false;
 
@@ -431,11 +451,31 @@ export default function VentasPage() {
                         <option value="cob_sin_primer_abono">🆕 Sin primer abono</option>
                         <option value="cob_atraso">💰 Con cuotas atrasadas</option>
                       </optgroup>
+                      <optgroup label="Rangos de cuotas vencidas">
+                        <option value="cob_al_dia">🟢 Al día</option>
+                        <option value="cob_1_5">🟡 1-5 cuotas</option>
+                        <option value="cob_6_15">🟠 6-15 cuotas</option>
+                        <option value="cob_16_30">🔴 16-30 cuotas</option>
+                        <option value="cob_30_mas">⛔ 30+ cuotas</option>
+                      </optgroup>
                       <optgroup label="Deterioro según frecuencia">
                         <option value="det_dudoso">🟠 Atención temprana</option>
                         <option value="det_critico">🔶 Riesgo alto</option>
                         <option value="det_irrecuperable">🔴 Riesgo crítico</option>
                       </optgroup>
+                    </select>
+                 </div>
+                 <div className="relative group min-w-[150px]">
+                    <FiClock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors z-10" />
+                    <select
+                      value={filters.plazo}
+                      onChange={(e) => setFilters({ ...filters, plazo: e.target.value })}
+                      className="w-full pl-12 pr-10 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest appearance-none focus:ring-4 focus:ring-indigo-500/10 transition-all cursor-pointer relative z-0"
+                    >
+                      <option value="Todos">Todos los plazos</option>
+                      <option value="Diario">Diario</option>
+                      <option value="Semanal">Semanal</option>
+                      <option value="Mensual">Mensual</option>
                     </select>
                  </div>
               </div>
