@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
 import {
-  FiCalendar,
   FiDollarSign,
   FiTrendingUp,
   FiTrendingDown,
@@ -15,14 +14,39 @@ import {
   FiCheckCircle,
   FiBarChart2,
   FiPercent,
-  FiActivity,
   FiInfo,
   FiTarget,
 } from "react-icons/fi";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../../utils/format";
 
+function crearFilaVacia(fecha) {
+  return {
+    fecha,
+    cantidadVentas: 0,
+    totalVendido: 0,
+    interesesGenerados: 0,
+    gastos: 0,
+    perdidas: 0,
+    utilidad: 0,
+    utilidadEstimada: 0,
+    recaudos: 0,
+    aportes: 0,
+    utilidadesRetiradas: 0,
+    categoriasGastos: {},
+  };
+}
+
+function normalizarCategoriasGastos(categorias) {
+  if (!categorias || typeof categorias !== "object") return {};
+  return Object.entries(categorias).reduce((resultado, [nombre, valor]) => {
+    resultado[nombre] = parseMoney(valor);
+    return resultado;
+  }, {});
+}
+
 function normalizarFilaReporte(fila) {
+  const utilidad = parseMoney(fila?.utilidadEstimada ?? fila?.utilidad);
   return {
     ...fila,
     cantidadVentas: Number(fila?.cantidadVentas || 0),
@@ -30,8 +54,27 @@ function normalizarFilaReporte(fila) {
     interesesGenerados: parseMoney(fila?.interesesGenerados),
     gastos: parseMoney(fila?.gastos),
     perdidas: parseMoney(fila?.perdidas),
-    utilidad: parseMoney(fila?.utilidad),
+    utilidad,
+    utilidadEstimada: utilidad,
+    recaudos: parseMoney(fila?.recaudos),
+    aportes: parseMoney(fila?.aportes),
+    utilidadesRetiradas: parseMoney(fila?.utilidadesRetiradas),
+    categoriasGastos: normalizarCategoriasGastos(fila?.categoriasGastos),
   };
+}
+
+function diasDelPeriodo(inicio, fin) {
+  if (!inicio || !fin) return 0;
+  const [inicioAnio, inicioMes, inicioDia] = inicio.split("-").map(Number);
+  const [finAnio, finMes, finDia] = fin.split("-").map(Number);
+  const fechaInicio = Date.UTC(inicioAnio, inicioMes - 1, inicioDia);
+  const fechaFin = Date.UTC(finAnio, finMes - 1, finDia);
+  if (!Number.isFinite(fechaInicio) || !Number.isFinite(fechaFin) || fechaFin < fechaInicio) return 0;
+  return Math.floor((fechaFin - fechaInicio) / 86400000) + 1;
+}
+
+function escaparCsv(valor) {
+  return `"${String(valor ?? "").replaceAll('"', '""')}"`;
 }
 
 export default function ReportesPage() {
@@ -41,6 +84,7 @@ export default function ReportesPage() {
   const [datosReporte, setDatosReporte] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
+  const [usandoRespaldo, setUsandoRespaldo] = useState(false);
 
   const ajustarFechaLocal = (fecha) => {
     const date = new Date(fecha);
@@ -53,9 +97,10 @@ export default function ReportesPage() {
   useEffect(() => {
     const hoy = new Date();
     const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
     setFechaInicio(ajustarFechaLocal(primerDiaMes));
-    setFechaFin(ajustarFechaLocal(ultimoDiaMes));
+    // El período inicial termina hoy: no incluimos días futuros en promedios
+    // ni presentamos esos días como si ya hubieran sido auditados.
+    setFechaFin(ajustarFechaLocal(hoy));
   }, []);
 
   const generarReporte = async (e) => {
@@ -63,9 +108,13 @@ export default function ReportesPage() {
     setCargando(true);
     setError("");
     setDatosReporte(null);
+    setUsandoRespaldo(false);
 
     try {
-      if (new Date(fechaInicio) > new Date(fechaFin)) {
+      if (!fechaInicio || !fechaFin) {
+        throw new Error("Seleccione las dos fechas del período");
+      }
+      if (fechaInicio > fechaFin) {
         throw new Error("La fecha de inicio no puede ser mayor que la fecha de fin");
       }
 
@@ -91,7 +140,8 @@ export default function ReportesPage() {
           Array.isArray(ventasData) ? ventasData : [],
           Array.isArray(gastosData) ? gastosData : []
         );
-        setDatosReporte(processed);
+        setUsandoRespaldo(true);
+        setDatosReporte(processed.map(normalizarFilaReporte));
       } catch (err) {
         setError(err.message || "Fallo en la sincronización de auditoría.");
       }
@@ -105,7 +155,7 @@ export default function ReportesPage() {
     ventas.forEach((venta) => {
       const fecha = venta.fecha_venta;
       if (!datosPorFecha[fecha]) {
-        datosPorFecha[fecha] = { fecha, cantidadVentas: 0, totalVendido: 0, interesesGenerados: 0, gastos: 0, perdidas: 0, utilidad: 0 };
+        datosPorFecha[fecha] = crearFilaVacia(fecha);
       }
       datosPorFecha[fecha].cantidadVentas += 1;
       datosPorFecha[fecha].totalVendido += parseMoney(venta.valor_venta);
@@ -118,13 +168,14 @@ export default function ReportesPage() {
     gastos.forEach((gasto) => {
       const fecha = gasto.fecha;
       if (!datosPorFecha[fecha]) {
-        datosPorFecha[fecha] = { fecha, cantidadVentas: 0, totalVendido: 0, interesesGenerados: 0, gastos: 0, perdidas: 0, utilidad: 0 };
+        datosPorFecha[fecha] = crearFilaVacia(fecha);
       }
       datosPorFecha[fecha].gastos += parseMoney(gasto.valor);
     });
 
     Object.values(datosPorFecha).forEach((datos) => {
       datos.utilidad = datos.interesesGenerados - datos.gastos - datos.perdidas;
+      datos.utilidadEstimada = datos.utilidad;
     });
 
     return Object.values(datosPorFecha)
@@ -142,7 +193,25 @@ export default function ReportesPage() {
     gastos: acc.gastos + curr.gastos,
     perdidas: acc.perdidas + curr.perdidas,
     utilidad: acc.utilidad + curr.utilidad,
-  }), { cantidadVentas: 0, totalVendido: 0, interesesGenerados: 0, gastos: 0, perdidas: 0, utilidad: 0 }) : null;
+    recaudos: acc.recaudos + curr.recaudos,
+    aportes: acc.aportes + curr.aportes,
+    utilidadesRetiradas: acc.utilidadesRetiradas + curr.utilidadesRetiradas,
+    categoriasGastos: Object.entries(curr.categoriasGastos || {}).reduce((categorias, [nombre, valor]) => {
+      categorias[nombre] = (categorias[nombre] || 0) + valor;
+      return categorias;
+    }, acc.categoriasGastos),
+  }), {
+    cantidadVentas: 0,
+    totalVendido: 0,
+    interesesGenerados: 0,
+    gastos: 0,
+    perdidas: 0,
+    utilidad: 0,
+    recaudos: 0,
+    aportes: 0,
+    utilidadesRetiradas: 0,
+    categoriasGastos: {},
+  }) : null;
 
   // Advanced metrics
   const mejorDia = datosReporte && datosReporte.length > 0
@@ -153,9 +222,16 @@ export default function ReportesPage() {
     : null;
   const diasPositivos = datosReporte ? datosReporte.filter(d => d.utilidad > 0).length : 0;
   const diasNegativos = datosReporte ? datosReporte.filter(d => d.utilidad < 0).length : 0;
-  const promedioDiario = datosReporte && datosReporte.length > 0
-    ? Math.round(totales.utilidad / datosReporte.length)
+  const periodoDias = diasDelPeriodo(fechaInicio, fechaFin);
+  const diasSinActividad = datosReporte
+    ? Math.max(0, periodoDias - datosReporte.length)
     : 0;
+  const promedioDiario = totales && periodoDias > 0
+    ? Math.round(totales.utilidad / periodoDias)
+    : 0;
+  const categoriasGastosOrdenadas = totales
+    ? Object.entries(totales.categoriasGastos).sort(([, valorA], [, valorB]) => valorB - valorA)
+    : [];
 
   return (
     <div className="min-h-screen bg-transparent pb-12">
@@ -166,7 +242,7 @@ export default function ReportesPage() {
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase truncate">Inteligencia de Utilidad</h1>
             <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none mt-1">
-              Rentabilidad • <span className="text-slate-400">{selectedStore.tienda.nombre}</span>
+              Rentabilidad estimada • <span className="text-slate-400">{selectedStore.tienda.nombre}</span>
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -179,13 +255,44 @@ export default function ReportesPage() {
             {datosReporte && (
               <button
                 onClick={() => {
-                  const csv = ["Fecha,Num Ventas,Capital Colocado,Intereses Brutos,Gastos,Perdidas,Utilidad Neta", ...datosReporte.map(r => `${r.fecha},${r.cantidadVentas},${r.totalVendido},${r.interesesGenerados},${r.gastos},${r.perdidas},${r.utilidad}`)].join("\n");
-                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const encabezados = [
+                    "Fecha",
+                    "Num Ventas",
+                    "Capital Colocado",
+                    "Interés Estimado",
+                    "Gastos",
+                    "Pérdidas",
+                    "Utilidad Estimada",
+                    "Recaudos Efectivos",
+                    "Aportes",
+                    "Retiros de Utilidad",
+                    "Categorías de Gasto",
+                  ];
+                  const filas = datosReporte.map((fila) => [
+                    fila.fecha,
+                    fila.cantidadVentas,
+                    fila.totalVendido,
+                    fila.interesesGenerados,
+                    fila.gastos,
+                    fila.perdidas,
+                    fila.utilidad,
+                    fila.recaudos,
+                    fila.aportes,
+                    fila.utilidadesRetiradas,
+                    Object.entries(fila.categoriasGastos || {})
+                      .map(([nombre, valor]) => `${nombre}: ${valor}`)
+                      .join(" | "),
+                  ]);
+                  const csv = [encabezados, ...filas]
+                    .map((fila) => fila.map(escaparCsv).join(","))
+                    .join("\n");
+                  const blob = new Blob(["\uFEFF", csv], { type: 'text/csv;charset=utf-8;' });
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
                   a.download = `utilidad_${fechaInicio}_${fechaFin}.csv`;
                   a.click();
+                  window.URL.revokeObjectURL(url);
                 }}
                 className="flex items-center justify-center gap-2 px-5 py-3.5 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all"
               >
@@ -238,7 +345,16 @@ export default function ReportesPage() {
           </div>
         )}
 
-        {datosReporte && totales ? (
+        {usandoRespaldo && (
+          <div className="mb-8 p-5 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-[2rem] flex items-start gap-4 text-amber-700 dark:text-amber-300">
+            <FiInfo size={20} className="shrink-0 mt-0.5" />
+            <p className="text-[11px] font-black uppercase tracking-widest leading-relaxed">
+              Se muestran datos de respaldo: la utilidad se estimó desde ventas y gastos. Los movimientos de caja detallados pueden no estar disponibles en este cálculo.
+            </p>
+          </div>
+        )}
+
+        {datosReporte && datosReporte.length > 0 && totales ? (
           <>
             {/* Summary Metrics */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
@@ -267,7 +383,7 @@ export default function ReportesPage() {
                 <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
                   {formatMoney(totales.interesesGenerados)}
                 </p>
-                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Utilidad Bruta</p>
+                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Interés Estimado</p>
               </div>
 
               <div className="glass p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden">
@@ -294,9 +410,37 @@ export default function ReportesPage() {
                   <p className="text-xl md:text-3xl font-black tracking-tighter mb-1 select-all">
                     {formatMoney(totales.utilidad)}
                   </p>
-                  <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest leading-none opacity-80">Rendimiento Neto</p>
+                  <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest leading-none opacity-80">Utilidad Estimada</p>
                 </div>
                 <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+              </div>
+            </div>
+
+            {/* Cash movements kept separate from estimated profitability */}
+            <div className="glass p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 mb-8">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6">
+                <div>
+                  <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Movimientos de caja</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Información de efectivo del período</p>
+                </div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">No modifica la utilidad estimada</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-5 bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl border border-emerald-100 dark:border-emerald-900/20">
+                  <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-2">Recaudos efectivos</p>
+                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{formatMoney(totales.recaudos)}</p>
+                  <p className="text-[9px] font-bold text-slate-400 mt-1">Pagos positivos, sin renovaciones técnicas</p>
+                </div>
+                <div className="p-5 bg-indigo-50 dark:bg-indigo-900/10 rounded-3xl border border-indigo-100 dark:border-indigo-900/20">
+                  <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-2">Aportes</p>
+                  <p className="text-xl font-black text-indigo-600 dark:text-indigo-400">{formatMoney(totales.aportes)}</p>
+                  <p className="text-[9px] font-bold text-slate-400 mt-1">Entradas de capital registradas</p>
+                </div>
+                <div className="p-5 bg-orange-50 dark:bg-orange-900/10 rounded-3xl border border-orange-100 dark:border-orange-900/20">
+                  <p className="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-2">Retiros de utilidad</p>
+                  <p className="text-xl font-black text-orange-600 dark:text-orange-400">{formatMoney(totales.utilidadesRetiradas)}</p>
+                  <p className="text-[9px] font-bold text-slate-400 mt-1">Salidas registradas por distribución</p>
+                </div>
               </div>
             </div>
 
@@ -307,7 +451,7 @@ export default function ReportesPage() {
                 <p className={`text-lg md:text-xl font-black tracking-tight ${promedioDiario >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                   {formatMoney(promedioDiario)}
                 </p>
-                <p className="text-[9px] font-bold text-slate-400 mt-1">{datosReporte?.length || 0} días analizados</p>
+                <p className="text-[9px] font-bold text-slate-400 mt-1">{periodoDias} días del período · {diasSinActividad} sin actividad</p>
               </div>
               {mejorDia && (
                 <div className="glass p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-white/60 dark:border-slate-800">
@@ -348,7 +492,7 @@ export default function ReportesPage() {
                   </div>
                   <div>
                     <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Desglose Cronológico</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Auditando {datosReporte.length} Unidades de Tiempo</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{datosReporte.length} días con movimientos · {diasSinActividad} sin actividad · {periodoDias} días del período</p>
                   </div>
                 </div>
 
@@ -362,12 +506,12 @@ export default function ReportesPage() {
                           {formatMoney(fila.utilidad)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
-                        <span className="text-amber-500">{formatMoney(fila.interesesGenerados)}</span>
-                        <span className="text-slate-300 dark:text-slate-700">•</span>
-                        <span className="text-rose-400">{formatMoney(fila.gastos + fila.perdidas)}</span>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[9px] font-black uppercase tracking-widest">
+                        <span className="text-amber-500">Interés: {formatMoney(fila.interesesGenerados)}</span>
+                        <span className="text-rose-400">Gastos: {formatMoney(fila.gastos)}</span>
+                        <span className="text-orange-500">Pérdidas: {formatMoney(fila.perdidas)}</span>
                         {fila.cantidadVentas > 0 && (
-                          <span className="ml-auto text-slate-400">{fila.cantidadVentas} mov.</span>
+                          <span className="text-slate-400">{fila.cantidadVentas} venta(s)</span>
                         )}
                       </div>
                     </div>
@@ -377,11 +521,11 @@ export default function ReportesPage() {
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Totales</p>
                       <p className="text-base font-black text-indigo-600 dark:text-indigo-400">{formatMoney(totales.utilidad)}</p>
                     </div>
-                    <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
-                      <span className="text-amber-500">{formatMoney(totales.interesesGenerados)}</span>
-                      <span className="text-slate-300 dark:text-slate-700">•</span>
-                      <span className="text-rose-400">{formatMoney(totales.gastos + totales.perdidas)}</span>
-                      <span className="ml-auto text-slate-500">{totales.cantidadVentas} mov.</span>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[9px] font-black uppercase tracking-widest">
+                      <span className="text-amber-500">Interés: {formatMoney(totales.interesesGenerados)}</span>
+                      <span className="text-rose-400">Gastos: {formatMoney(totales.gastos)}</span>
+                      <span className="text-orange-500">Pérdidas: {formatMoney(totales.perdidas)}</span>
+                      <span className="text-slate-500">{totales.cantidadVentas} venta(s)</span>
                     </div>
                   </div>
                 </div>
@@ -394,9 +538,10 @@ export default function ReportesPage() {
                         <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha</th>
                         <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Ventas</th>
                         <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Capital</th>
-                        <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Int. Bruto</th>
+                        <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Interés Est.</th>
                         <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Gastos</th>
-                        <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Margen Neto</th>
+                        <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Pérdidas</th>
+                        <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Utilidad Est.</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -417,7 +562,10 @@ export default function ReportesPage() {
                             <p className="text-xs font-bold text-amber-600">{formatMoney(fila.interesesGenerados)}</p>
                           </td>
                           <td className="px-6 py-5 text-right">
-                            <p className="text-xs font-bold text-rose-500">{formatMoney(fila.gastos + fila.perdidas)}</p>
+                            <p className="text-xs font-bold text-rose-500">{formatMoney(fila.gastos)}</p>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <p className="text-xs font-bold text-orange-500">{formatMoney(fila.perdidas)}</p>
                           </td>
                           <td className="px-6 py-5 text-right">
                             <p className={`text-sm font-black tracking-tight ${fila.utilidad >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -433,7 +581,8 @@ export default function ReportesPage() {
                         <td className="px-6 py-6 text-center text-sm font-black text-slate-800 dark:text-white">{totales.cantidadVentas}</td>
                         <td className="px-6 py-6 text-right text-sm font-black text-indigo-600 dark:text-indigo-400">{formatMoney(totales.totalVendido)}</td>
                         <td className="px-6 py-6 text-right text-sm font-black text-amber-600">{formatMoney(totales.interesesGenerados)}</td>
-                        <td className="px-6 py-6 text-right text-sm font-black text-rose-500">{formatMoney(totales.gastos + totales.perdidas)}</td>
+                        <td className="px-6 py-6 text-right text-sm font-black text-rose-500">{formatMoney(totales.gastos)}</td>
+                        <td className="px-6 py-6 text-right text-sm font-black text-orange-500">{formatMoney(totales.perdidas)}</td>
                         <td className="px-6 py-6 text-right text-lg font-black text-indigo-600 dark:text-indigo-400">{formatMoney(totales.utilidad)}</td>
                       </tr>
                     </tfoot>
@@ -463,6 +612,24 @@ export default function ReportesPage() {
                       <FiAlertCircle size={24} />
                     </div>
                   </div>
+                  <div className="pt-2">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Por categoría</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Gastos registrados</p>
+                    </div>
+                    {categoriasGastosOrdenadas.length > 0 ? (
+                      <div className="space-y-3">
+                        {categoriasGastosOrdenadas.map(([nombre, valor]) => (
+                          <div key={nombre} className="flex items-center justify-between gap-4 text-xs">
+                            <span className="font-bold text-slate-500 dark:text-slate-400 truncate">{nombre}</span>
+                            <span className="font-black text-slate-700 dark:text-slate-200 whitespace-nowrap">{formatMoney(valor)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sin gastos categorizados en el período</p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-8 px-4 flex items-start gap-4">
@@ -479,7 +646,7 @@ export default function ReportesPage() {
                 <div className="space-y-8">
                   <div className="space-y-3">
                     <div className="flex justify-between items-end">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Margen Neto sobre Interés</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Utilidad estimada sobre interés</p>
                       <p className={`text-lg font-black ${totales.utilidad >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                         {totales.interesesGenerados > 0 ? ((totales.utilidad / totales.interesesGenerados) * 100).toFixed(1) : 0}%
                       </p>
@@ -494,13 +661,13 @@ export default function ReportesPage() {
 
                   <div className="grid grid-cols-2 gap-4 md:gap-6 pt-2">
                     <div className="p-5 md:p-6 bg-indigo-50 dark:bg-indigo-900/10 rounded-3xl border border-indigo-100 dark:border-indigo-900/20">
-                      <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2">ROI sobre Capital</p>
+                      <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2">ROI estimado sobre capital</p>
                       <p className={`text-base font-black uppercase tracking-tight ${totales.totalVendido > 0 && (totales.utilidad / totales.totalVendido) >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-500'}`}>
                         {totales.totalVendido > 0 ? ((totales.utilidad / totales.totalVendido) * 100).toFixed(1) : 0}%
                       </p>
                     </div>
                     <div className="p-5 md:p-6 bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl border border-emerald-100 dark:border-emerald-900/20">
-                      <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-2">Yield Bruto</p>
+                      <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-2">Yield bruto estimado</p>
                       <p className="text-base font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tight">
                         {totales.totalVendido > 0 ? ((totales.interesesGenerados / totales.totalVendido) * 100).toFixed(1) : 0}%
                       </p>
@@ -516,8 +683,14 @@ export default function ReportesPage() {
             <div className="w-20 md:w-24 h-20 md:h-24 bg-slate-100 dark:bg-slate-800 text-slate-300 rounded-[2rem] flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-inner">
               <FiBarChart2 size={40} />
             </div>
-            <h2 className="text-xl md:text-2xl font-black text-slate-400 uppercase tracking-widest mb-2">Esperando Auditoría</h2>
-            <p className="text-sm font-bold text-slate-400">Seleccione un período y pulse &quot;Generar Reporte&quot; para visualizar la inteligencia de utilidad.</p>
+            <h2 className="text-xl md:text-2xl font-black text-slate-400 uppercase tracking-widest mb-2">
+              {datosReporte ? "Sin movimientos en el período" : "Esperando Auditoría"}
+            </h2>
+            <p className="text-sm font-bold text-slate-400">
+              {datosReporte
+                ? "No hay ventas, gastos ni movimientos de caja registrados para las fechas seleccionadas."
+                : "Seleccione un período y pulse &quot;Generar Reporte&quot; para visualizar la inteligencia de utilidad."}
+            </p>
           </div>
         )}
       </div>
