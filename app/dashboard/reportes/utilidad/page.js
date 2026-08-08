@@ -36,6 +36,13 @@ function crearFilaVacia(fecha) {
     interesesCobrados: 0,
     utilidadCobrada: 0,
     recaudos: 0,
+    recaudosAplicados: 0,
+    recaudosConciliados: 0,
+    recaudosFueraRuta: 0,
+    recaudosDeOtrasRutas: 0,
+    recaudosSinVenta: 0,
+    recaudosNegativos: 0,
+    recaudosPorRevisar: 0,
     aportes: 0,
     utilidadesRetiradas: 0,
     categoriasGastos: {},
@@ -67,6 +74,13 @@ function normalizarFilaReporte(fila) {
     interesesCobrados: parseMoney(fila?.interesesCobrados),
     utilidadCobrada: parseMoney(fila?.utilidadCobrada),
     recaudos: parseMoney(fila?.recaudos),
+    recaudosAplicados: parseMoney(fila?.recaudosAplicados),
+    recaudosConciliados: parseMoney(fila?.recaudosConciliados),
+    recaudosFueraRuta: parseMoney(fila?.recaudosFueraRuta),
+    recaudosDeOtrasRutas: parseMoney(fila?.recaudosDeOtrasRutas),
+    recaudosSinVenta: parseMoney(fila?.recaudosSinVenta),
+    recaudosNegativos: parseMoney(fila?.recaudosNegativos),
+    recaudosPorRevisar: parseMoney(fila?.recaudosPorRevisar),
     aportes: parseMoney(fila?.aportes),
     utilidadesRetiradas: parseMoney(fila?.utilidadesRetiradas),
     categoriasGastos: normalizarCategoriasGastos(fila?.categoriasGastos),
@@ -97,6 +111,7 @@ export default function ReportesPage() {
   const [usandoRespaldo, setUsandoRespaldo] = useState(false);
   const [incluyeUtilidadCobrada, setIncluyeUtilidadCobrada] = useState(false);
   const [incluyeDesglosePerdidas, setIncluyeDesglosePerdidas] = useState(false);
+  const [incluyeConciliacion, setIncluyeConciliacion] = useState(false);
 
   const ajustarFechaLocal = (fecha) => {
     const date = new Date(fecha);
@@ -123,6 +138,7 @@ export default function ReportesPage() {
     setUsandoRespaldo(false);
     setIncluyeUtilidadCobrada(false);
     setIncluyeDesglosePerdidas(false);
+    setIncluyeConciliacion(false);
 
     try {
       if (!fechaInicio || !fechaFin) {
@@ -140,6 +156,7 @@ export default function ReportesPage() {
       if (!Array.isArray(data)) throw new Error("Respuesta incompleta del reporte consolidado.");
       setIncluyeUtilidadCobrada(data.some((fila) => Object.prototype.hasOwnProperty.call(fila, "utilidadCobrada")));
       setIncluyeDesglosePerdidas(data.some((fila) => Object.prototype.hasOwnProperty.call(fila, "perdidaCapital")));
+      setIncluyeConciliacion(data.some((fila) => Object.prototype.hasOwnProperty.call(fila, "recaudosPorRevisar")));
       setDatosReporte(data.map(normalizarFilaReporte));
     } catch (consolidatedError) {
       // Respaldo reversible mientras el endpoint consolidado esté disponible.
@@ -159,6 +176,7 @@ export default function ReportesPage() {
         setUsandoRespaldo(true);
         setIncluyeUtilidadCobrada(false);
         setIncluyeDesglosePerdidas(false);
+        setIncluyeConciliacion(false);
         setDatosReporte(processed.map(normalizarFilaReporte));
       } catch (err) {
         setError(err.message || "Fallo en la sincronización de auditoría.");
@@ -217,6 +235,13 @@ export default function ReportesPage() {
     interesesCobrados: acc.interesesCobrados + curr.interesesCobrados,
     utilidadCobrada: acc.utilidadCobrada + curr.utilidadCobrada,
     recaudos: acc.recaudos + curr.recaudos,
+    recaudosAplicados: acc.recaudosAplicados + curr.recaudosAplicados,
+    recaudosConciliados: acc.recaudosConciliados + curr.recaudosConciliados,
+    recaudosFueraRuta: acc.recaudosFueraRuta + curr.recaudosFueraRuta,
+    recaudosDeOtrasRutas: acc.recaudosDeOtrasRutas + curr.recaudosDeOtrasRutas,
+    recaudosSinVenta: acc.recaudosSinVenta + curr.recaudosSinVenta,
+    recaudosNegativos: acc.recaudosNegativos + curr.recaudosNegativos,
+    recaudosPorRevisar: acc.recaudosPorRevisar + curr.recaudosPorRevisar,
     aportes: acc.aportes + curr.aportes,
     utilidadesRetiradas: acc.utilidadesRetiradas + curr.utilidadesRetiradas,
     categoriasGastos: Object.entries(curr.categoriasGastos || {}).reduce((categorias, [nombre, valor]) => {
@@ -236,6 +261,13 @@ export default function ReportesPage() {
     interesesCobrados: 0,
     utilidadCobrada: 0,
     recaudos: 0,
+    recaudosAplicados: 0,
+    recaudosConciliados: 0,
+    recaudosFueraRuta: 0,
+    recaudosDeOtrasRutas: 0,
+    recaudosSinVenta: 0,
+    recaudosNegativos: 0,
+    recaudosPorRevisar: 0,
     aportes: 0,
     utilidadesRetiradas: 0,
     categoriasGastos: {},
@@ -270,6 +302,9 @@ export default function ReportesPage() {
   const categoriasGastosOrdenadas = totales
     ? Object.entries(totales.categoriasGastos).sort(([, valorA], [, valorB]) => valorB - valorA)
     : [];
+  const conciliacionTieneProblemas = Boolean(
+    incluyeConciliacion && totales && totales.recaudosPorRevisar > 0
+  );
 
   return (
     <div className="min-h-screen bg-transparent pb-12">
@@ -305,7 +340,13 @@ export default function ReportesPage() {
                     "Interés No Cobrado",
                     "Utilidad Estimada",
                     "Utilidad Cobrada",
-                    "Recaudos Efectivos",
+                    "Recaudos Registrados",
+                    "Recaudos Aplicados",
+                    "Recaudos Conciliados",
+                    "Recaudos Fuera de Ruta",
+                    "Recaudos de Otras Rutas",
+                    "Ajustes Negativos",
+                    "Recaudos por Revisar",
                     "Aportes",
                     "Retiros de Utilidad",
                     "Categorías de Gasto",
@@ -323,6 +364,12 @@ export default function ReportesPage() {
                     fila.utilidad,
                     fila.utilidadCobrada,
                     fila.recaudos,
+                    fila.recaudosAplicados,
+                    fila.recaudosConciliados,
+                    fila.recaudosFueraRuta,
+                    fila.recaudosDeOtrasRutas,
+                    fila.recaudosNegativos,
+                    fila.recaudosPorRevisar,
                     fila.aportes,
                     fila.utilidadesRetiradas,
                     Object.entries(fila.categoriasGastos || {})
@@ -476,9 +523,9 @@ export default function ReportesPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="p-5 bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl border border-emerald-100 dark:border-emerald-900/20">
-                  <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-2">Recaudos efectivos</p>
+                  <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-2">Recaudos registrados</p>
                   <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{formatMoney(totales.recaudos)}</p>
-                  <p className="text-[9px] font-bold text-slate-400 mt-1">Pagos positivos, sin renovaciones técnicas</p>
+                  <p className="text-[9px] font-bold text-slate-400 mt-1">Pagos positivos anotados en esta ruta</p>
                 </div>
                 <div className="p-5 bg-sky-50 dark:bg-sky-900/10 rounded-3xl border border-sky-100 dark:border-sky-900/20">
                   <p className="text-[9px] font-black text-sky-500 uppercase tracking-widest mb-2">Capital recuperado</p>
@@ -502,6 +549,97 @@ export default function ReportesPage() {
                 </div>
               </div>
             </div>
+
+            {incluyeConciliacion ? (
+              <div className={`glass p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border mb-8 ${
+                conciliacionTieneProblemas
+                  ? "border-amber-200 dark:border-amber-900/40"
+                  : "border-emerald-200 dark:border-emerald-900/40"
+              }`}>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-2xl ${
+                      conciliacionTieneProblemas
+                        ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600"
+                        : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600"
+                    }`}>
+                      {conciliacionTieneProblemas ? <FiAlertCircle size={22} /> : <FiCheckCircle size={22} />}
+                    </div>
+                    <div>
+                      <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Conciliación de recaudos</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Cada peso debe quedar explicado</p>
+                    </div>
+                  </div>
+                  <span className={`self-start md:self-auto px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${
+                    conciliacionTieneProblemas
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                  }`}>
+                    {conciliacionTieneProblemas ? "Hay movimientos para revisar" : "Todo conciliado"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Registrados en ruta</p>
+                    <p className="text-xl font-black text-slate-700 dark:text-slate-200">{formatMoney(totales.recaudos)}</p>
+                    <p className="text-[9px] font-bold text-slate-400 mt-1">Entrada de caja</p>
+                  </div>
+                  <div className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-2xl">
+                    <p className="text-[9px] font-black text-sky-500 uppercase tracking-widest mb-2">Aplicados a créditos</p>
+                    <p className="text-xl font-black text-sky-600 dark:text-sky-400">{formatMoney(totales.recaudosAplicados)}</p>
+                    <p className="text-[9px] font-bold text-slate-400 mt-1">Ventas de esta ruta</p>
+                  </div>
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl">
+                    <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-2">Conciliados</p>
+                    <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{formatMoney(totales.recaudosConciliados)}</p>
+                    <p className="text-[9px] font-bold text-slate-400 mt-1">Ruta y venta coinciden</p>
+                  </div>
+                  <div className={`p-4 rounded-2xl ${
+                    conciliacionTieneProblemas
+                      ? "bg-amber-50 dark:bg-amber-900/10"
+                      : "bg-slate-50 dark:bg-slate-800/50"
+                  }`}>
+                    <p className={`text-[9px] font-black uppercase tracking-widest mb-2 ${conciliacionTieneProblemas ? "text-amber-600" : "text-slate-400"}`}>Por revisar</p>
+                    <p className={`text-xl font-black ${conciliacionTieneProblemas ? "text-amber-600 dark:text-amber-400" : "text-slate-700 dark:text-slate-200"}`}>{formatMoney(totales.recaudosPorRevisar)}</p>
+                    <p className="text-[9px] font-bold text-slate-400 mt-1">No es pérdida confirmada</p>
+                  </div>
+                </div>
+
+                {conciliacionTieneProblemas ? (
+                  <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-[10px] font-black uppercase tracking-widest">
+                    <div className="flex items-center justify-between gap-3 p-3 bg-amber-50/70 dark:bg-amber-900/10 rounded-xl text-amber-700 dark:text-amber-300">
+                      <span>Venta de ruta fuera</span>
+                      <span>{formatMoney(totales.recaudosFueraRuta)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 p-3 bg-amber-50/70 dark:bg-amber-900/10 rounded-xl text-amber-700 dark:text-amber-300">
+                      <span>Otra ruta aquí</span>
+                      <span>{formatMoney(totales.recaudosDeOtrasRutas)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 p-3 bg-rose-50/70 dark:bg-rose-900/10 rounded-xl text-rose-700 dark:text-rose-300">
+                      <span>Ajustes negativos</span>
+                      <span>{formatMoney(Math.abs(totales.recaudosNegativos))}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-slate-600 dark:text-slate-300">
+                      <span>Sin venta asociada</span>
+                      <span>{formatMoney(totales.recaudosSinVenta)}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-5 flex items-start gap-3 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest leading-relaxed">
+                    <FiCheckCircle className="mt-0.5 shrink-0" size={14} />
+                    Los recaudos positivos de la ruta coinciden con ventas de la misma ruta y no hay ajustes negativos pendientes.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="glass p-5 md:p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 mb-8 flex items-start gap-3">
+                <FiInfo className="text-slate-400 mt-0.5 shrink-0" size={16} />
+                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-relaxed">
+                  La conciliación no está disponible en el modo de respaldo del reporte. Vuelva a intentarlo para auditar los recaudos del período.
+                </p>
+              </div>
+            )}
 
             {/* Advanced Metrics */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
@@ -574,6 +712,9 @@ export default function ReportesPage() {
                         {incluyeDesglosePerdidas && (
                           <span className="text-orange-300">Interés no cob.: {formatMoney(fila.interesNoCobrado)}</span>
                         )}
+                        {incluyeConciliacion && fila.recaudosPorRevisar > 0 && (
+                          <span className="text-amber-600">Revisar recaudos: {formatMoney(fila.recaudosPorRevisar)}</span>
+                        )}
                         {fila.cantidadVentas > 0 && (
                           <span className="text-slate-400">{fila.cantidadVentas} venta(s)</span>
                         )}
@@ -594,6 +735,9 @@ export default function ReportesPage() {
                       {incluyeDesglosePerdidas && (
                         <span className="text-orange-300">Interés no cob.: {formatMoney(totales.interesNoCobrado)}</span>
                       )}
+                      {incluyeConciliacion && (
+                        <span className="text-amber-600">Por revisar: {formatMoney(totales.recaudosPorRevisar)}</span>
+                      )}
                       <span className="text-slate-500">{totales.cantidadVentas} venta(s)</span>
                     </div>
                   </div>
@@ -613,6 +757,9 @@ export default function ReportesPage() {
                         <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Gastos</th>
                         <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Pérdida Cap.</th>
                         <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Int. No Cob.</th>
+                        {incluyeConciliacion && (
+                          <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Por Revisar</th>
+                        )}
                         <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{incluyeUtilidadCobrada ? "Utilidad Cob." : "Utilidad Est."}</th>
                       </tr>
                     </thead>
@@ -648,6 +795,11 @@ export default function ReportesPage() {
                           <td className="px-6 py-5 text-right">
                             <p className="text-xs font-bold text-orange-300">{formatMoney(fila.interesNoCobrado)}</p>
                           </td>
+                          {incluyeConciliacion && (
+                            <td className="px-6 py-5 text-right">
+                              <p className={`text-xs font-black ${fila.recaudosPorRevisar > 0 ? "text-amber-600" : "text-emerald-600"}`}>{formatMoney(fila.recaudosPorRevisar)}</p>
+                            </td>
+                          )}
                           <td className="px-6 py-5 text-right">
                             <p className={`text-sm font-black tracking-tight ${utilidadDeFila(fila) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                               {formatMoney(utilidadDeFila(fila))}
@@ -667,6 +819,9 @@ export default function ReportesPage() {
                         <td className="px-6 py-6 text-right text-sm font-black text-rose-500">{formatMoney(totales.gastos)}</td>
                         <td className="px-6 py-6 text-right text-sm font-black text-orange-500">{formatMoney(perdidaCapitalPrincipal)}</td>
                         <td className="px-6 py-6 text-right text-sm font-black text-orange-300">{formatMoney(totales.interesNoCobrado)}</td>
+                        {incluyeConciliacion && (
+                          <td className="px-6 py-6 text-right text-sm font-black text-amber-600">{formatMoney(totales.recaudosPorRevisar)}</td>
+                        )}
                         <td className="px-6 py-6 text-right text-lg font-black text-indigo-600 dark:text-indigo-400">{formatMoney(utilidadPrincipal)}</td>
                       </tr>
                     </tfoot>
