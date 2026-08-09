@@ -1,6 +1,6 @@
 // app/components/dashboard/UltimosMovimientos.js
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   FiShoppingCart,
   FiCreditCard,
@@ -12,232 +12,172 @@ import {
   FiRefreshCw,
   FiCalendar,
 } from "react-icons/fi";
-import { useAuth } from "../../context/AuthContext";
 import { apiFetch } from "../../utils/api";
 import { useRouter } from "next/navigation";
 import { formatMoney, parseMoney, parseLocalDate, formatDate as formatFechaDisplay } from "../../utils/format";
+
+const CHILE_TIME_ZONE = "America/Santiago";
+
+const getChileToday = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: CHILE_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = parts.reduce((result, part) => {
+    if (part.type !== "literal") result[part.type] = Number(part.value);
+    return result;
+  }, {});
+  return new Date(values.year, values.month - 1, values.day);
+};
+
+const formatDateForApi = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
+const PERIODOS = {
+  semana: { label: "Últimos 7 días", dias: 7 },
+  mes: { label: "Últimos 30 días", dias: 30 },
+  trimestre: { label: "Últimos 90 días", dias: 90 },
+};
+
+const getDateRange = (periodo) => {
+  const fechaFin = getChileToday();
+  const fechaInicio = new Date(fechaFin);
+  const dias = PERIODOS[periodo]?.dias || PERIODOS.semana.dias;
+  fechaInicio.setDate(fechaInicio.getDate() - (dias - 1));
+
+  return {
+    fechaInicio: formatDateForApi(fechaInicio),
+    fechaFin: formatDateForApi(fechaFin),
+  };
+};
+
+const getTipoLabel = (tipo) => ({
+  venta: "Venta",
+  gasto: "Gasto",
+  aporte: "Aporte",
+  retiro: "Retiro",
+}[tipo] || "Movimiento");
+
+const mapearMovimientos = (datos) => {
+  const aportesArray = Array.isArray(datos?.aportes) ? datos.aportes : [];
+  const gastosArray = Array.isArray(datos?.gastos) ? datos.gastos : [];
+  const utilidadesArray = Array.isArray(datos?.utilidades) ? datos.utilidades : [];
+  const ventasArray = Array.isArray(datos?.ventas) ? datos.ventas : [];
+
+  return [
+    ...aportesArray.map((aporte) => ({
+      id: aporte.id,
+      tipo: "aporte",
+      descripcion: `Aporte de ${aporte.comentario || "socio"}`,
+      monto: parseMoney(aporte.valor),
+      fecha: aporte.fecha,
+    })),
+    ...gastosArray.map((gasto) => ({
+      id: gasto.id,
+      tipo: "gasto",
+      descripcion: gasto.tipo_gasto?.tipo_gasto || "Gasto registrado",
+      monto: -parseMoney(gasto.valor),
+      fecha: gasto.fecha,
+    })),
+    ...utilidadesArray.map((utilidad) => ({
+      id: utilidad.id,
+      tipo: "retiro",
+      descripcion: "Retiro de utilidades",
+      monto: -parseMoney(utilidad.valor),
+      fecha: utilidad.fecha,
+    })),
+    ...ventasArray.map((venta) => ({
+      id: venta.id,
+      tipo: "venta",
+      descripcion: `Venta a ${venta.cliente?.nombres || "cliente"} ${venta.cliente?.apellidos || ""}`.trim(),
+      monto: parseMoney(venta.valor_venta),
+      fecha: venta.fecha_venta,
+    })),
+  ];
+};
+
+const cargarMovimientosLegacy = async (tiendaId, fechaInicio, fechaFin) => {
+  const obtenerLista = async (path, mapear) => {
+    const response = await apiFetch(path);
+    if (!response.ok) throw new Error("No se pudo cargar el historial financiero.");
+    const datos = await response.json();
+    return mapear(Array.isArray(datos) ? datos : []);
+  };
+
+  const [aportes, gastos, utilidades, ventas] = await Promise.all([
+    obtenerLista(
+      `/aportes/list/${fechaInicio}/${fechaFin}/t/${tiendaId}/`,
+      (datos) => datos.map((aporte) => ({
+        id: aporte.id,
+        tipo: "aporte",
+        descripcion: `Aporte de ${aporte.comentario || "socio"}`,
+        monto: parseMoney(aporte.valor),
+        fecha: aporte.fecha,
+      }))
+    ),
+    obtenerLista(
+      `/gastos/list/${fechaInicio}/${fechaFin}/t/${tiendaId}/`,
+      (datos) => datos.map((gasto) => ({
+        id: gasto.id,
+        tipo: "gasto",
+        descripcion: gasto.tipo_gasto?.tipo_gasto || "Gasto registrado",
+        monto: -parseMoney(gasto.valor),
+        fecha: gasto.fecha,
+      }))
+    ),
+    obtenerLista(
+      `/utilidades/list/${fechaFin}/t/${tiendaId}/`,
+      (datos) => datos.map((utilidad) => ({
+        id: utilidad.id,
+        tipo: "retiro",
+        descripcion: "Retiro de utilidades",
+        monto: -parseMoney(utilidad.valor),
+        fecha: utilidad.fecha,
+      }))
+    ),
+    obtenerLista(
+      `/ventas/list/${fechaInicio}/${fechaFin}/t/${tiendaId}/`,
+      (datos) => datos.map((venta) => ({
+        id: venta.id,
+        tipo: "venta",
+        descripcion: `Venta a ${venta.cliente?.nombres || "cliente"} ${venta.cliente?.apellidos || ""}`.trim(),
+        monto: parseMoney(venta.valor_venta),
+        fecha: venta.fecha_venta,
+      }))
+    ),
+  ]);
+
+  return [...aportes, ...gastos, ...utilidades, ...ventas];
+};
 
 const UltimosMovimientos = ({ tienda, refreshKey = 0 }) => {
   const router = useRouter();
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
-  const [periodo, setPeriodo] = useState("semana"); // semana, mes, custom
-
-  // Función para formatear fechas en YYYY-MM-DD (partes locales, no UTC:
-  // toISOString() después de las 7 PM en UTC-5 devolvería el día siguiente)
-  const formatDate = (date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
-
-  // Obtener fechas según el período seleccionado
-  const getDateRange = () => {
-    const hoy = new Date();
-    let fechaInicio;
-
-    switch (periodo) {
-      case "semana":
-        fechaInicio = new Date();
-        fechaInicio.setDate(hoy.getDate() - 7);
-        break;
-      case "mes":
-        fechaInicio = new Date();
-        fechaInicio.setMonth(hoy.getMonth() - 1);
-        break;
-      case "custom":
-        // Para custom necesitarías un selector de fechas
-        fechaInicio = new Date();
-        fechaInicio.setDate(hoy.getDate() - 15);
-        break;
-      default:
-        fechaInicio = new Date();
-        fechaInicio.setDate(hoy.getDate() - 7);
-    }
-
-    return {
-      fechaInicio: formatDate(fechaInicio),
-      fechaFin: formatDate(hoy),
-    };
-  };
-
-  const mapearMovimientos = (datos) => {
-    const aportesArray = Array.isArray(datos?.aportes) ? datos.aportes : [];
-    const gastosArray = Array.isArray(datos?.gastos) ? datos.gastos : [];
-    const utilidadesArray = Array.isArray(datos?.utilidades) ? datos.utilidades : [];
-    const ventasArray = Array.isArray(datos?.ventas) ? datos.ventas : [];
-
-    return [
-      ...aportesArray.map((aporte) => ({
-        id: aporte.id,
-        tipo: "aporte",
-        descripcion: `Aporte de ${aporte.comentario || "socio"} `,
-        monto: parseMoney(aporte.valor),
-        fecha: aporte.fecha,
-        icono: "trending-up",
-      })),
-      ...gastosArray.map((gasto) => ({
-        id: gasto.id,
-        tipo: "gasto",
-        descripcion: gasto.tipo_gasto?.tipo_gasto || "Gasto registrado",
-        monto: -parseMoney(gasto.valor),
-        fecha: gasto.fecha,
-        icono: "credit-card",
-      })),
-      ...utilidadesArray.map((utilidad) => ({
-        id: utilidad.id,
-        tipo: "retiro",
-        descripcion: "Retiro de utilidades",
-        monto: -parseMoney(utilidad.valor),
-        fecha: utilidad.fecha,
-        icono: "trending-down",
-        estado: "completado",
-        origen: "utilidad",
-      })),
-      ...ventasArray.map((venta) => ({
-        id: venta.id,
-        tipo: "venta",
-        descripcion: `Venta a ${venta.cliente?.nombres || "cliente"} ${
-          venta.cliente?.apellidos || ""
-        }`,
-        monto: parseMoney(venta.valor_venta),
-        fecha: venta.fecha_venta,
-        icono: "shopping-cart",
-      })),
-    ];
-  };
-
-  // Función para obtener movimientos de aportes
-  const obtenerAportes = async (fechaInicio, fechaFin) => {
-    try {
-      const response = await apiFetch(
-        `/aportes/list/${fechaInicio}/${fechaFin}/t/${tienda.tienda.id}/`
-      );
-
-      if (!response.ok) {
-        throw new Error("Error al cargar aportes");
-      }
-
-      const datos = await response.json();
-      const aportesArray = Array.isArray(datos) ? datos : [];
-
-      // Mapear los datos de aportes al formato común de movimientos
-      return aportesArray.map((aporte) => ({
-        id: aporte.id,
-        tipo: `aporte`,
-        descripcion: `Aporte de ${aporte.comentario || "socio"} `,
-        monto: parseMoney(aporte.valor),
-        fecha: aporte.fecha,
-        icono: "trending-up",
-      }));
-    } catch (err) {
-      console.error("Error al obtener aportes:", err);
-      return [];
-    }
-  };
-
-  // Función para obtener movimientos de gastos
-  const obtenerGastos = async (fechaInicio, fechaFin) => {
-    try {
-      const response = await apiFetch(
-        `/gastos/list/${fechaInicio}/${fechaFin}/t/${tienda.tienda.id}/`
-      );
-
-      if (!response.ok) {
-        throw new Error("Error al cargar gastos");
-      }
-
-      const datos = await response.json();
-      const gastosArray = Array.isArray(datos) ? datos : [];
-
-      return gastosArray.map((gasto) => ({
-        id: gasto.id,
-        tipo: "gasto",
-        descripcion: gasto.tipo_gasto.tipo_gasto || "Gasto registrado",
-        monto: -parseMoney(gasto.valor), // Negativo porque es un gasto
-        fecha: gasto.fecha,
-        icono: "credit-card",
-      }));
-    } catch (err) {
-      console.error("Error al obtener gastos:", err);
-      return [];
-    }
-  };
-
-  //Función para obtener movimientos de utilidades (retiros)
-  const obtenerUtilidades = async (fechaFin) => {
-    try {
-      const response = await apiFetch(
-        `/utilidades/list/${fechaFin}/t/${tienda.tienda.id}/`
-      );
-
-      if (!response.ok) {
-        throw new Error("Error al cargar utilidades");
-      }
-
-      const datos = await response.json();
-      const utilidadesArray = Array.isArray(datos) ? datos : [];
-
-      return utilidadesArray.map((utilidad) => ({
-        id: utilidad.id,
-        tipo: "retiro",
-        descripcion: `Retiro de utilidades`,
-        monto: -parseMoney(utilidad.valor), // Negativo porque es un retiro
-        fecha: utilidad.fecha,
-        icono: "trending-down",
-        estado: "completado",
-        origen: "utilidad",
-      }));
-    } catch (err) {
-      console.error("Error al obtener utilidades:", err);
-      return [];
-    }
-  };
-
-  // Función para obtener movimientos de ventas
-  const obtenerVentas = async (fechaInicio, fechaFin) => {
-    try {
-      const response = await apiFetch(
-        `/ventas/list/${fechaInicio}/${fechaFin}/t/${tienda.tienda.id}/`
-      );
-
-      if (!response.ok) {
-        throw new Error("Error al cargar ventas");
-      }
-
-      const datos = await response.json();
-      const ventasArray = Array.isArray(datos) ? datos : [];
-
-      return ventasArray.map((venta) => ({
-        id: venta.id,
-        tipo: "venta",
-        descripcion: `Venta a ${venta.cliente.nombres || "cliente"} ${
-          venta.cliente.apellidos || ""
-        }`,
-        monto: parseMoney(venta.valor_venta),
-        fecha: venta.fecha_venta,
-        icono: "shopping-cart",
-      }));
-    } catch (err) {
-      console.error("Error al obtener ventas:", err);
-      return [];
-    }
-  };
+  const [periodo, setPeriodo] = useState("semana");
+  const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
+  const tiendaId = tienda?.tienda?.id;
 
   // Función principal para cargar todos los movimientos
-  const cargarMovimientos = async () => {
+  const cargarMovimientos = useCallback(async () => {
+    if (!tiendaId) return;
     try {
       setCargando(true);
       setError(null);
 
-      const { fechaInicio, fechaFin } = getDateRange();
+      const { fechaInicio, fechaFin } = getDateRange(periodo);
 
       let todosMovimientos;
       try {
         const response = await apiFetch(
-          `/tiendas/dashboard/movimientos/${fechaInicio}/${fechaFin}/t/${tienda.tienda.id}/`
+          `/tiendas/dashboard/movimientos/${fechaInicio}/${fechaFin}/t/${tiendaId}/`
         );
 
         if (!response.ok) {
@@ -252,19 +192,7 @@ const UltimosMovimientos = ({ tienda, refreshKey = 0 }) => {
           "Se usará el respaldo del Stream de Actividad:",
           consolidatedError
         );
-        const [aportesData, gastosData, ventasData, utilidadesData] =
-          await Promise.all([
-            obtenerAportes(fechaInicio, fechaFin),
-            obtenerGastos(fechaInicio, fechaFin),
-            obtenerUtilidades(fechaFin),
-            obtenerVentas(fechaInicio, fechaFin),
-          ]);
-        todosMovimientos = [
-          ...aportesData,
-          ...gastosData,
-          ...utilidadesData,
-          ...ventasData,
-        ];
+        todosMovimientos = await cargarMovimientosLegacy(tiendaId, fechaInicio, fechaFin);
       }
 
       // Ordenar por fecha (más recientes primero)
@@ -272,13 +200,14 @@ const UltimosMovimientos = ({ tienda, refreshKey = 0 }) => {
 
       // Limitar a los últimos 10 movimientos
       setMovimientos(todosMovimientos.slice(0, 10));
+      setUltimaActualizacion(new Date());
     } catch (err) {
       setError(err.message);
       console.error("Error al cargar movimientos:", err);
     } finally {
       setCargando(false);
     }
-  };
+  }, [tiendaId, periodo]);
 
   const obtenerIcono = (tipo) => {
     switch (tipo) {
@@ -314,9 +243,10 @@ const UltimosMovimientos = ({ tienda, refreshKey = 0 }) => {
   const obtenerTextoAmigable = (fecha) => {
     const fechaMovimiento = parseLocalDate(fecha);
     if (!fechaMovimiento) return "—";
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const diffDias = Math.round((hoy - fechaMovimiento) / 86400000);
+    const hoy = getChileToday();
+    const hoyUtc = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    const movimientoUtc = Date.UTC(fechaMovimiento.getFullYear(), fechaMovimiento.getMonth(), fechaMovimiento.getDate());
+    const diffDias = Math.round((hoyUtc - movimientoUtc) / 86400000);
 
     if (diffDias <= 0) return "Hoy";
     if (diffDias === 1) return "Ayer";
@@ -325,10 +255,8 @@ const UltimosMovimientos = ({ tienda, refreshKey = 0 }) => {
   };
 
   useEffect(() => {
-    if (tienda?.tienda?.id) {
-      cargarMovimientos();
-    }
-  }, [tienda?.tienda?.id, periodo, refreshKey]);
+    void cargarMovimientos();
+  }, [cargarMovimientos, refreshKey]);
 
   if (cargando) {
     return (
@@ -355,9 +283,12 @@ const UltimosMovimientos = ({ tienda, refreshKey = 0 }) => {
     );
   }
 
+  const rango = getDateRange(periodo);
+  const rangoTexto = `${formatFechaDisplay(rango.fechaInicio, { day: "numeric", month: "short" })} – ${formatFechaDisplay(rango.fechaFin, { day: "numeric", month: "short" })}`;
+
   return (
     <div className="glass rounded-[2.5rem] p-8 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 border-indigo-500/10 group">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-7">
         <div>
           <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-3">
             <div className="p-2.5 bg-indigo-500/10 rounded-2xl group-hover:scale-110 transition-transform">
@@ -365,22 +296,64 @@ const UltimosMovimientos = ({ tienda, refreshKey = 0 }) => {
             </div>
             Stream de Actividad
           </h2>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-1 ml-1">Últimos Eventos</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-1 ml-1">
+            {PERIODOS[periodo].label} · {rangoTexto}
+          </p>
         </div>
-        <button 
-          onClick={cargarMovimientos}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl shadow-slate-200/20 dark:shadow-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400"
-        >
-          <FiRefreshCw className={`transition-transform duration-700 ${cargando ? 'animate-spin' : 'group-hover:rotate-180'}`} />
-        </button>
+        <div className="flex items-center gap-2 w-full lg:w-auto">
+          <label className="sr-only" htmlFor="periodo-movimientos">Período de movimientos</label>
+          <select
+            id="periodo-movimientos"
+            value={periodo}
+            onChange={(event) => setPeriodo(event.target.value)}
+            className="min-w-0 flex-1 lg:flex-none px-3 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 outline-none focus:ring-2 focus:ring-indigo-500/30"
+          >
+            {Object.entries(PERIODOS).map(([value, option]) => (
+              <option key={value} value={value}>{option.label}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => void cargarMovimientos()}
+            disabled={cargando}
+            aria-label="Actualizar movimientos"
+            title={ultimaActualizacion ? `Última actualización: ${ultimaActualizacion.toLocaleTimeString("es-CL", { timeZone: CHILE_TIME_ZONE, hour: "2-digit", minute: "2-digit" })}` : "Actualizar movimientos"}
+            className="flex items-center justify-center w-11 h-11 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl shadow-slate-200/20 dark:shadow-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-indigo-600 dark:text-indigo-400 disabled:opacity-50"
+          >
+            <FiRefreshCw className={`transition-transform duration-700 ${cargando ? "animate-spin" : "group-hover:rotate-180"}`} />
+          </button>
+        </div>
       </div>
+
+      <div className="flex items-center justify-between gap-3 mb-6 px-1">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          {ultimaActualizacion
+            ? `Actualizado ${ultimaActualizacion.toLocaleTimeString("es-CL", { timeZone: CHILE_TIME_ZONE, hour: "2-digit", minute: "2-digit" })}`
+            : "Esperando actualización"}
+        </p>
+        <p className="text-[10px] font-bold text-slate-400">Máximo 10 eventos</p>
+      </div>
+
+      {error && (
+        <div className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40">
+          <FiRefreshCw className="text-amber-500 shrink-0" size={15} />
+          <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 flex-1">{error}</p>
+          <button
+            type="button"
+            onClick={() => void cargarMovimientos()}
+            className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300 hover:underline"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {movimientos.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="w-20 h-20 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center mb-6 border border-slate-100 dark:border-slate-800">
             <FiCalendar className="text-4xl text-slate-300" />
           </div>
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Sin registros recientes</p>
+          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Sin movimientos en este período</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -388,7 +361,15 @@ const UltimosMovimientos = ({ tienda, refreshKey = 0 }) => {
             <div
               key={`${movimiento.tipo}-${movimiento.id}-${idx}`}
               onClick={() => movimiento.tipo === "venta" && router.push(`/dashboard/ventas/${movimiento.id}`)}
-              className="flex items-center justify-between p-4 rounded-[1.75rem] hover:bg-white dark:hover:bg-slate-800/80 hover:shadow-xl hover:shadow-indigo-500/5 border border-transparent hover:border-indigo-500/10 transition-all cursor-pointer group/item"
+              role={movimiento.tipo === "venta" ? "button" : undefined}
+              tabIndex={movimiento.tipo === "venta" ? 0 : undefined}
+              onKeyDown={(event) => {
+                if (movimiento.tipo === "venta" && (event.key === "Enter" || event.key === " ")) {
+                  event.preventDefault();
+                  router.push(`/dashboard/ventas/${movimiento.id}`);
+                }
+              }}
+              className={`flex items-center justify-between p-4 rounded-[1.75rem] hover:bg-white dark:hover:bg-slate-800/80 hover:shadow-xl hover:shadow-indigo-500/5 border border-transparent hover:border-indigo-500/10 transition-all group/item ${movimiento.tipo === "venta" ? "cursor-pointer" : "cursor-default"}`}
             >
               <div className="flex items-center gap-5">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl transition-all group-hover/item:scale-110 ${
@@ -410,7 +391,7 @@ const UltimosMovimientos = ({ tienda, refreshKey = 0 }) => {
                       movimiento.tipo === 'aporte' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' :
                       'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
                     }`}>
-                      {movimiento.tipo}
+                      {getTipoLabel(movimiento.tipo)}
                     </span>
                     <span className="text-[10px] font-bold text-slate-400 italic">
                       {obtenerTextoAmigable(movimiento.fecha)}
@@ -425,13 +406,17 @@ const UltimosMovimientos = ({ tienda, refreshKey = 0 }) => {
                 }`}>
                   {movimiento.monto < 0 ? '-' : '+'}{formatMoney(Math.abs(movimiento.monto))}
                 </p>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Monto</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{movimiento.monto < 0 ? "Salida" : "Entrada"}</p>
               </div>
             </div>
           ))}
           
-          <button className="w-full mt-6 py-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 hover:border-indigo-500/30 transition-all">
-            Ver Todo el Historial
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/reportes/utilidad")}
+            className="w-full mt-6 py-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 hover:border-indigo-500/30 transition-all"
+          >
+            Ver historial financiero completo
           </button>
         </div>
       )}
