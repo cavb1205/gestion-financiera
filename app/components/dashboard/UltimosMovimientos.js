@@ -289,7 +289,7 @@ const UltimosMovimientos = ({ tienda, refreshKey = 0 }) => {
   return (
     <div className="glass rounded-[2.5rem] p-8 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 border-indigo-500/10 group">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-7">
-        <div>
+        <div className="min-w-0 flex-1">
           <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-3">
             <div className="p-2.5 bg-indigo-500/10 rounded-2xl group-hover:scale-110 transition-transform">
               <FiCalendar className="text-indigo-600 dark:text-indigo-400" />
@@ -300,13 +300,13 @@ const UltimosMovimientos = ({ tienda, refreshKey = 0 }) => {
             {PERIODOS[periodo].label} · {rangoTexto}
           </p>
         </div>
-        <div className="flex items-center gap-2 w-full lg:w-auto">
+        <div className="grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1fr)_2.75rem] items-center gap-2 lg:flex lg:w-auto">
           <label className="sr-only" htmlFor="periodo-movimientos">Período de movimientos</label>
           <select
             id="periodo-movimientos"
             value={periodo}
             onChange={(event) => setPeriodo(event.target.value)}
-            className="min-w-0 flex-1 lg:flex-none px-3 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 outline-none focus:ring-2 focus:ring-indigo-500/30"
+            className="w-full min-w-0 max-w-full px-3 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 outline-none focus:ring-2 focus:ring-indigo-500/30 lg:w-40"
           >
             {Object.entries(PERIODOS).map(([value, option]) => (
               <option key={value} value={value}>{option.label}</option>
