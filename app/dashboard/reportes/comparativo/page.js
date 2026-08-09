@@ -1,11 +1,10 @@
 // app/dashboard/reportes/comparativo/page.js
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
 import {
-   FiTrendingUp,
    FiTrendingDown,
    FiRefreshCw,
    FiDownload,
@@ -38,11 +37,6 @@ function getPrevMonth(year, month) {
    return { year, month: month - 1 };
 }
 
-function getNextMonth(year, month) {
-   if (month === 11) return { year: year + 1, month: 0 };
-   return { year, month: month + 1 };
-}
-
 function procesarMes(ventas, gastos, aportes) {
    let cantidadVentas = 0, totalVendido = 0, intereses = 0, perdidas = 0;
    let totalGastos = 0, totalAportes = 0;
@@ -53,14 +47,14 @@ function procesarMes(ventas, gastos, aportes) {
       totalVendido += parseMoney(v.valor_venta);
       intereses += parseMoney(v.total_a_pagar) - parseMoney(v.valor_venta);
       if (v.estado_venta === "Perdida") {
-         perdidas += parseMoney(v.perdida);
+         perdidas += parseMoney(v.perdida ?? v.saldo_actual);
       }
    });
 
    gastos.forEach((g) => {
       const val = parseMoney(g.valor);
       totalGastos += val;
-      const cat = g.categoria || "Sin categoría";
+      const cat = g.tipo_gasto?.tipo_gasto || g.categoria || "Sin categoría";
       categorias[cat] = (categorias[cat] || 0) + val;
    });
 
@@ -101,15 +95,19 @@ function normalizarMes(mes) {
 }
 
 function calcVariacion(actual, anterior) {
-   if (anterior === 0 && actual === 0) return 0;
-   if (anterior === 0) return actual > 0 ? 100 : -100;
+   if (anterior === 0) return actual === 0 ? 0 : null;
    return ((actual - anterior) / Math.abs(anterior)) * 100;
 }
 
-function VariacionBadge({ valor, invertir = false }) {
+function VariacionBadge({ valor, invertir = false, unidad = "%" }) {
+   if (valor === null) return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-lg text-[10px] font-black">
+         — Sin base
+      </span>
+   );
    if (valor === 0) return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-lg text-[10px] font-black">
-         <FiMinus size={10} /> 0%
+         <FiMinus size={10} /> 0{unidad}
       </span>
    );
    const positivo = invertir ? valor < 0 : valor > 0;
@@ -119,10 +117,14 @@ function VariacionBadge({ valor, invertir = false }) {
          : "bg-rose-50 dark:bg-rose-900/20 text-rose-600"
          }`}>
          {positivo ? <FiArrowUp size={10} /> : <FiArrowDown size={10} />}
-         {Math.abs(valor).toFixed(1)}%
+         {Math.abs(valor).toFixed(1)}{unidad}
       </span>
    );
 }
+
+const escaparCsv = (valor) => `"${String(valor ?? "").replace(/"/g, '""')}"`;
+const etiquetaMes = ({ year, month }) => `${MESES[month]} ${year}`;
+const formatearVariacionCsv = (valor) => valor === null ? "N/D" : `${valor.toFixed(1)}%`;
 
 export default function ReporteComparativoPage() {
    const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
@@ -133,14 +135,17 @@ export default function ReporteComparativoPage() {
    const [datos, setDatos] = useState(null);
    const [cargando, setCargando] = useState(false);
    const [error, setError] = useState("");
+   const solicitudRef = useRef(0);
 
-   const fetchMesLegacy = async (year, month) => {
+   const fetchMesLegacy = useCallback(async (year, month) => {
       const { inicio, fin } = getMonthRange(year, month);
       const tiendaId = selectedStore.tienda.id;
 
       const fetchJson = async (path) => {
          const res = await apiFetch(path);
-         if (!res.ok) return [];
+         if (!res.ok) {
+            throw new Error(`No se pudo consultar ${path.split("/")[1] || "los datos"}`);
+         }
          const data = await res.json();
          return Array.isArray(data) ? data : [];
       };
@@ -152,10 +157,19 @@ export default function ReporteComparativoPage() {
       ]);
 
       return procesarMes(ventas, gastos, aportes);
-   };
+   }, [selectedStore]);
 
-   const generarComparativo = async () => {
+   const generarComparativo = useCallback(async () => {
       if (!selectedStore) return;
+      const solicitud = ++solicitudRef.current;
+
+      if (mesA.year === mesB.year && mesA.month === mesB.month) {
+         setCargando(false);
+         setDatos(null);
+         setError("Seleccione dos meses diferentes para comparar.");
+         return;
+      }
+
       setCargando(true);
       setError("");
       setDatos(null);
@@ -169,10 +183,12 @@ export default function ReporteComparativoPage() {
          if (!response.ok) throw new Error("Error al consultar el comparativo consolidado");
          const data = await response.json();
          if (!data?.mes_a || !data?.mes_b) throw new Error("Respuesta incompleta del comparativo consolidado");
-         setDatos({
-            actual: normalizarMes(data.mes_b),
-            anterior: normalizarMes(data.mes_a),
-         });
+         if (solicitud === solicitudRef.current) {
+            setDatos({
+               actual: normalizarMes(data.mes_b),
+               anterior: normalizarMes(data.mes_a),
+            });
+         }
       } catch (consolidatedError) {
          // Respaldo reversible si el endpoint consolidado no está disponible.
          console.warn("Se usará el respaldo del comparativo:", consolidatedError);
@@ -181,45 +197,58 @@ export default function ReporteComparativoPage() {
                fetchMesLegacy(mesA.year, mesA.month),
                fetchMesLegacy(mesB.year, mesB.month),
             ]);
-            setDatos({ actual, anterior });
+            if (solicitud === solicitudRef.current) {
+               setDatos({ actual, anterior });
+            }
          } catch (err) {
-            setError(err.message || "Error al generar el comparativo.");
+            if (solicitud === solicitudRef.current) {
+               setError(err.message || "Error al generar el comparativo.");
+            }
          }
       } finally {
-         setCargando(false);
+         if (solicitud === solicitudRef.current) {
+            setCargando(false);
+         }
       }
-   };
+   }, [fetchMesLegacy, mesA, mesB, selectedStore]);
 
    useEffect(() => {
       if (selectedStore) {
          generarComparativo();
       }
-   }, [selectedStore, mesA, mesB]);
+   }, [selectedStore, generarComparativo]);
 
    const exportarCSV = () => {
       if (!datos) return;
       const { actual: a, anterior: p } = datos;
       const rows = [
-         "Métrica,Mes Anterior,Mes Actual,Variación %",
-         `Ventas (cantidad),${p.cantidadVentas},${a.cantidadVentas},${calcVariacion(a.cantidadVentas, p.cantidadVentas).toFixed(1)}%`,
-         `Capital Colocado,${p.totalVendido},${a.totalVendido},${calcVariacion(a.totalVendido, p.totalVendido).toFixed(1)}%`,
-         `Intereses,${p.intereses},${a.intereses},${calcVariacion(a.intereses, p.intereses).toFixed(1)}%`,
-         `Gastos,${p.totalGastos},${a.totalGastos},${calcVariacion(a.totalGastos, p.totalGastos).toFixed(1)}%`,
-         `Pérdidas,${p.perdidas},${a.perdidas},${calcVariacion(a.perdidas, p.perdidas).toFixed(1)}%`,
-         `Aportes,${p.totalAportes},${a.totalAportes},${calcVariacion(a.totalAportes, p.totalAportes).toFixed(1)}%`,
-         `Utilidad Neta,${p.utilidad},${a.utilidad},${calcVariacion(a.utilidad, p.utilidad).toFixed(1)}%`,
-      ];
-      const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+         ["Métrica", etiquetaMes(mesA), etiquetaMes(mesB), "Diferencia", "Variación"],
+         ["Ventas (cantidad)", p.cantidadVentas, a.cantidadVentas, a.cantidadVentas - p.cantidadVentas, formatearVariacionCsv(calcVariacion(a.cantidadVentas, p.cantidadVentas))],
+         ["Capital colocado", p.totalVendido, a.totalVendido, a.totalVendido - p.totalVendido, formatearVariacionCsv(calcVariacion(a.totalVendido, p.totalVendido))],
+         ["Intereses brutos", p.intereses, a.intereses, a.intereses - p.intereses, formatearVariacionCsv(calcVariacion(a.intereses, p.intereses))],
+         ["Gastos operativos", p.totalGastos, a.totalGastos, a.totalGastos - p.totalGastos, formatearVariacionCsv(calcVariacion(a.totalGastos, p.totalGastos))],
+         ["Pérdidas de cartera", p.perdidas, a.perdidas, a.perdidas - p.perdidas, formatearVariacionCsv(calcVariacion(a.perdidas, p.perdidas))],
+         ["Aportes de capital", p.totalAportes, a.totalAportes, a.totalAportes - p.totalAportes, formatearVariacionCsv(calcVariacion(a.totalAportes, p.totalAportes))],
+         ["Utilidad neta", p.utilidad, a.utilidad, a.utilidad - p.utilidad, formatearVariacionCsv(calcVariacion(a.utilidad, p.utilidad))],
+         ["Margen neto", `${p.margen.toFixed(1)}%`, `${a.margen.toFixed(1)}%`, `${(a.margen - p.margen).toFixed(1)} pp`, "N/D"],
+      ].map((row) => row.map(escaparCsv).join(","));
+      const blob = new Blob([`\uFEFF${rows.join("\n")}`], { type: "text/csv;charset=utf-8" });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `comparativo_${MESES[mesA.month]}_${mesA.year}_vs_${MESES[mesB.month]}_${mesB.year}.csv`;
+      link.download = `comparativo_${mesA.year}-${String(mesA.month + 1).padStart(2, "0")}_vs_${mesB.year}-${String(mesB.month + 1).padStart(2, "0")}.csv`;
       link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
    };
 
    if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 
    const { actual, anterior } = datos || {};
+   const mismaComparacion = mesA.year === mesB.year && mesA.month === mesB.month;
+   const mesComparadoEnCurso = mesB.year === hoy.getFullYear() && mesB.month === hoy.getMonth();
+   const mesBaseEnCurso = mesA.year === hoy.getFullYear() && mesA.month === hoy.getMonth();
+   const variacionUtilidad = datos ? calcVariacion(actual.utilidad, anterior.utilidad) : null;
 
    // All categories from both months
    const todasCategorias = datos
@@ -230,6 +259,7 @@ export default function ReporteComparativoPage() {
    const maxCategoria = datos
       ? Math.max(...todasCategorias.map(c => Math.max(actual.categorias[c] || 0, anterior.categorias[c] || 0)), 1)
       : 1;
+   const tieneCategoriasReales = todasCategorias.some((categoria) => categoria !== "Sin categoría");
 
    return (
       <div className="min-h-screen bg-transparent pb-12">
@@ -240,13 +270,15 @@ export default function ReporteComparativoPage() {
                <div className="min-w-0 flex-1">
                   <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase truncate">Comparativo Mensual</h1>
                   <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none mt-1">
-                     Evolución • <span className="text-slate-400">{selectedStore.tienda.nombre}</span>
+                     {etiquetaMes(mesA)} vs {etiquetaMes(mesB)} • <span className="text-slate-400">{selectedStore.tienda.nombre}</span>
                   </p>
                </div>
                <div className="flex items-center gap-3 shrink-0">
                   <button
                      onClick={generarComparativo}
-                     className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
+                     disabled={cargando}
+                     aria-label="Actualizar comparativo"
+                     className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group disabled:cursor-not-allowed disabled:opacity-50"
                   >
                      <FiRefreshCw size={18} className={cargando ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
                   </button>
@@ -282,7 +314,7 @@ export default function ReporteComparativoPage() {
                            onChange={(e) => setMesA(prev => ({ ...prev, year: parseInt(e.target.value) }))}
                            className="w-24 px-3 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none appearance-none cursor-pointer"
                         >
-                           {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                           {Array.from({ length: 7 }, (_, i) => hoy.getFullYear() - i).map(y => (
                               <option key={y} value={y}>{y}</option>
                            ))}
                         </select>
@@ -311,7 +343,7 @@ export default function ReporteComparativoPage() {
                            onChange={(e) => setMesB(prev => ({ ...prev, year: parseInt(e.target.value) }))}
                            className="w-24 px-3 py-4 bg-slate-50 dark:bg-slate-800/50 border border-indigo-200 dark:border-indigo-800/40 rounded-2xl text-[13px] font-black text-indigo-600 dark:text-indigo-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none appearance-none cursor-pointer"
                         >
-                           {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                           {Array.from({ length: 7 }, (_, i) => hoy.getFullYear() - i).map(y => (
                               <option key={y} value={y}>{y}</option>
                            ))}
                         </select>
@@ -319,6 +351,17 @@ export default function ReporteComparativoPage() {
                   </div>
                </div>
             </div>
+
+            {(mesComparadoEnCurso || mesBaseEnCurso) && !mismaComparacion ? (
+               <div className="mb-8 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
+                  <FiAlertCircle size={16} className="mt-0.5 shrink-0" />
+                  <p className="text-[10px] font-bold leading-relaxed">
+                     {mesComparadoEnCurso && mesBaseEnCurso
+                        ? "Ambos períodos corresponden al mes en curso y sus cifras todavía pueden cambiar."
+                        : `El período ${mesComparadoEnCurso ? etiquetaMes(mesB) : etiquetaMes(mesA)} está en curso; sus cifras todavía pueden aumentar y no representan un cierre mensual.`}
+                  </p>
+               </div>
+            ) : null}
 
             {error && (
                <div className="mb-8 p-5 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-[2rem] flex items-center gap-4 text-rose-600">
@@ -349,7 +392,7 @@ export default function ReporteComparativoPage() {
                         <p className="text-lg md:text-2xl font-black text-slate-800 dark:text-white tracking-tighter mb-0.5">
                            {formatMoney(actual.totalVendido)}
                         </p>
-                        <p className="text-[9px] font-bold text-slate-400 mb-2">Ant: {formatMoney(anterior.totalVendido)}</p>
+                        <p className="text-[9px] font-bold text-slate-400 mb-2">Base: {formatMoney(anterior.totalVendido)}</p>
                         <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Capital Colocado</p>
                      </div>
 
@@ -364,7 +407,7 @@ export default function ReporteComparativoPage() {
                         <p className="text-lg md:text-2xl font-black text-slate-800 dark:text-white tracking-tighter mb-0.5">
                            {formatMoney(actual.intereses)}
                         </p>
-                        <p className="text-[9px] font-bold text-slate-400 mb-2">Ant: {formatMoney(anterior.intereses)}</p>
+                        <p className="text-[9px] font-bold text-slate-400 mb-2">Base: {formatMoney(anterior.intereses)}</p>
                         <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Intereses Brutos</p>
                      </div>
 
@@ -379,7 +422,7 @@ export default function ReporteComparativoPage() {
                         <p className="text-lg md:text-2xl font-black text-slate-800 dark:text-white tracking-tighter mb-0.5">
                            {formatMoney(actual.totalGastos + actual.perdidas)}
                         </p>
-                        <p className="text-[9px] font-bold text-slate-400 mb-2">Ant: {formatMoney(anterior.totalGastos + anterior.perdidas)}</p>
+                        <p className="text-[9px] font-bold text-slate-400 mb-2">Base: {formatMoney(anterior.totalGastos + anterior.perdidas)}</p>
                         <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Gastos + Pérdidas</p>
                      </div>
 
@@ -393,15 +436,21 @@ export default function ReporteComparativoPage() {
                               <div className="p-2 md:p-2.5 bg-white/20 rounded-xl">
                                  <FiTarget size={18} />
                               </div>
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black bg-white/20`}>
-                                 {calcVariacion(actual.utilidad, anterior.utilidad) > 0 ? <FiArrowUp size={10} /> : calcVariacion(actual.utilidad, anterior.utilidad) < 0 ? <FiArrowDown size={10} /> : <FiMinus size={10} />}
-                                 {Math.abs(calcVariacion(actual.utilidad, anterior.utilidad)).toFixed(1)}%
-                              </span>
+                              {variacionUtilidad === null ? (
+                                 <span className="inline-flex items-center gap-1 rounded-lg bg-white/20 px-2 py-0.5 text-[10px] font-black">
+                                    — Sin base
+                                 </span>
+                              ) : (
+                                 <span className="inline-flex items-center gap-1 rounded-lg bg-white/20 px-2 py-0.5 text-[10px] font-black">
+                                    {variacionUtilidad > 0 ? <FiArrowUp size={10} /> : variacionUtilidad < 0 ? <FiArrowDown size={10} /> : <FiMinus size={10} />}
+                                    {Math.abs(variacionUtilidad).toFixed(1)}%
+                                 </span>
+                              )}
                            </div>
                            <p className="text-lg md:text-2xl font-black tracking-tighter mb-0.5">
                               {formatMoney(actual.utilidad)}
                            </p>
-                           <p className="text-[9px] font-bold text-white/60 mb-2">Ant: {formatMoney(anterior.utilidad)}</p>
+                           <p className="text-[9px] font-bold text-white/60 mb-2">Base: {formatMoney(anterior.utilidad)}</p>
                            <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest leading-none opacity-80">Utilidad Neta</p>
                         </div>
                         <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
@@ -416,15 +465,16 @@ export default function ReporteComparativoPage() {
                            <p className="text-lg md:text-xl font-black text-slate-800 dark:text-white">{actual.cantidadVentas}</p>
                            <VariacionBadge valor={calcVariacion(actual.cantidadVentas, anterior.cantidadVentas)} />
                         </div>
-                        <p className="text-[9px] font-bold text-slate-400 mt-1">Ant: {anterior.cantidadVentas}</p>
+                        <p className="text-[9px] font-bold text-slate-400 mt-1">Base: {anterior.cantidadVentas}</p>
                      </div>
 
                      <div className="glass p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-white/60 dark:border-slate-800">
                         <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Aportes Capital</p>
                         <div className="flex items-baseline gap-2">
                            <p className="text-lg md:text-xl font-black text-slate-800 dark:text-white">{formatMoney(actual.totalAportes)}</p>
+                           <VariacionBadge valor={calcVariacion(actual.totalAportes, anterior.totalAportes)} />
                         </div>
-                        <p className="text-[9px] font-bold text-slate-400 mt-1">Ant: {formatMoney(anterior.totalAportes)}</p>
+                        <p className="text-[9px] font-bold text-slate-400 mt-1">Base: {formatMoney(anterior.totalAportes)}</p>
                      </div>
 
                      <div className="glass p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-white/60 dark:border-slate-800">
@@ -433,9 +483,9 @@ export default function ReporteComparativoPage() {
                            <p className={`text-lg md:text-xl font-black ${actual.margen >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                               {actual.margen.toFixed(1)}%
                            </p>
-                           <VariacionBadge valor={actual.margen - anterior.margen} />
+                           <VariacionBadge valor={actual.margen - anterior.margen} unidad=" pp" />
                         </div>
-                        <p className="text-[9px] font-bold text-slate-400 mt-1">Ant: {anterior.margen.toFixed(1)}%</p>
+                        <p className="text-[9px] font-bold text-slate-400 mt-1">Base: {anterior.margen.toFixed(1)}%</p>
                      </div>
                   </div>
 
@@ -448,7 +498,7 @@ export default function ReporteComparativoPage() {
                         <div>
                            <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Detalle Comparativo</h3>
                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                              {MESES[mesA.month]} vs {MESES[mesB.month]} {mesB.year}
+                              Base: {etiquetaMes(mesA)} · Comparado: {etiquetaMes(mesB)}
                            </p>
                         </div>
                      </div>
@@ -459,8 +509,8 @@ export default function ReporteComparativoPage() {
                            <thead>
                               <tr className="bg-slate-50/50 dark:bg-slate-800/20">
                                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Métrica</th>
-                                 <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">{MESES[mesA.month]}</th>
-                                 <th className="px-6 py-5 text-right text-[10px] font-black text-indigo-500 uppercase tracking-[0.15em]">{MESES[mesB.month]}</th>
+                                 <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">{etiquetaMes(mesA)}</th>
+                                 <th className="px-6 py-5 text-right text-[10px] font-black text-indigo-500 uppercase tracking-[0.15em]">{etiquetaMes(mesB)}</th>
                                  <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Diferencia</th>
                                  <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Variación</th>
                               </tr>
@@ -526,14 +576,20 @@ export default function ReporteComparativoPage() {
                                  </p>
                                  <VariacionBadge valor={calcVariacion(row.act, row.ant)} invertir={row.invertir} />
                               </div>
-                              <div className="flex items-baseline justify-between">
-                                 <p className="text-[10px] font-bold text-slate-400">{formatMoney(row.ant)}</p>
-                                 <p className={`text-base font-black tracking-tight ${row.highlight
-                                    ? (row.act >= 0 ? "text-emerald-600" : "text-rose-600")
-                                    : "text-slate-800 dark:text-white"
-                                    }`}>
-                                    {formatMoney(row.act)}
-                                 </p>
+                              <div className="flex items-end justify-between gap-4">
+                                 <div>
+                                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Base</p>
+                                    <p className="text-[10px] font-bold text-slate-400">{formatMoney(row.ant)}</p>
+                                 </div>
+                                 <div className="text-right">
+                                    <p className="text-[8px] font-black uppercase tracking-widest text-indigo-400">Comparado</p>
+                                    <p className={`text-base font-black tracking-tight ${row.highlight
+                                       ? (row.act >= 0 ? "text-emerald-600" : "text-rose-600")
+                                       : "text-slate-800 dark:text-white"
+                                       }`}>
+                                       {formatMoney(row.act)}
+                                    </p>
+                                 </div>
                               </div>
                            </div>
                         ))}
@@ -548,8 +604,12 @@ export default function ReporteComparativoPage() {
                               <FiTrendingDown size={20} />
                            </div>
                            <div>
-                              <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Gastos por Categoría</h3>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Distribución comparativa</p>
+                              <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">
+                                 {tieneCategoriasReales ? "Gastos por Categoría" : "Gastos Operativos"}
+                              </h3>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                 {tieneCategoriasReales ? "Distribución comparativa" : "Total comparado por período"}
+                              </p>
                            </div>
                         </div>
 
@@ -558,11 +618,11 @@ export default function ReporteComparativoPage() {
                            <div className="flex items-center gap-6 mb-2">
                               <div className="flex items-center gap-2">
                                  <div className="w-3 h-3 bg-slate-300 dark:bg-slate-600 rounded-sm" />
-                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{MESES[mesA.month]}</span>
+                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{etiquetaMes(mesA)}</span>
                               </div>
                               <div className="flex items-center gap-2">
                                  <div className="w-3 h-3 bg-indigo-500 rounded-sm" />
-                                 <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{MESES[mesB.month]}</span>
+                                 <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{etiquetaMes(mesB)}</span>
                               </div>
                            </div>
 
@@ -574,7 +634,9 @@ export default function ReporteComparativoPage() {
                               return (
                                  <div key={cat}>
                                     <div className="flex items-center justify-between mb-2">
-                                       <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{cat}</p>
+                                       <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">
+                                          {cat === "Sin categoría" && !tieneCategoriasReales ? "Total gastos operativos" : cat}
+                                       </p>
                                        <VariacionBadge valor={calcVariacion(valAct, valAnt)} invertir />
                                     </div>
                                     <div className="space-y-1.5">
