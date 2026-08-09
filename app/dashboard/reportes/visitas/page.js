@@ -1,7 +1,7 @@
 // app/dashboard/reportes/visitas/page.js
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
 import { useRouter } from "next/navigation";
@@ -27,6 +27,10 @@ import {
   FiThermometer,
   FiTarget,
   FiInfo,
+  FiDownload,
+  FiSearch,
+  FiFilter,
+  FiX,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -45,6 +49,20 @@ const FALLA_CONFIG = {
 
 const getFallaConfig = (tipo) => FALLA_CONFIG[tipo] || FALLA_CONFIG["Otro Motivo"];
 
+const fechaLocal = (desplazamiento = 0) => {
+  const date = new Date();
+  date.setDate(date.getDate() + desplazamiento);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
+
+const formatearFecha = (valor) => {
+  if (!valor || typeof valor !== "string") return "—";
+  const [anio, mes, dia] = valor.split("-");
+  return anio && mes && dia ? `${dia}/${mes}/${anio}` : valor;
+};
+
+const escaparCsv = (valor) => `"${String(valor ?? "").replace(/"/g, '""')}"`;
+
 export default function VisitasReportePage() {
   const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -53,27 +71,16 @@ export default function VisitasReportePage() {
   const [recaudos, setRecaudos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
+  const [error, setError] = useState("");
+  const [filtroFalla, setFiltroFalla] = useState("Todas");
+  const [busquedaFalla, setBusquedaFalla] = useState("");
 
-  // Initialize date to today
-  useEffect(() => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-    setFecha(`${year}-${month}-${day}`);
-  }, []);
-
-  // Auto-fetch on mount when fecha and auth are ready
-  useEffect(() => {
-    if (fecha && selectedStore && !fetched) {
-      fetchRecaudos(fecha);
-    }
-  }, [fecha, selectedStore]);
-
-  const fetchRecaudos = async (fechaConsulta) => {
+  const fetchRecaudos = useCallback(async (fechaConsulta) => {
     if (!selectedStore || !fechaConsulta) return;
 
     setLoading(true);
+    setError("");
+    setFetched(false);
     try {
       const response = await apiFetch(
         `/recaudos/list/${fechaConsulta}/t/${selectedStore.tienda.id}/?vista=lista`
@@ -82,17 +89,32 @@ export default function VisitasReportePage() {
       if (!response.ok) throw new Error("Error al consultar recaudos");
 
       const data = await response.json();
-      // API may return {message: "..."} when empty
+      // API may return {message: "..."} when empty.
       setRecaudos(Array.isArray(data) ? data : []);
       setFetched(true);
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error(error.message || "Error al sincronizar datos de visitas");
+    } catch (requestError) {
+      console.error("Error:", requestError);
+      const message = requestError.message || "Error al sincronizar datos de visitas";
+      setError(message);
+      toast.error(message);
       setRecaudos([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedStore]);
+
+  // Una jornada cerrada es más útil como punto de partida que el día actual,
+  // que todavía puede estar incompleto.
+  useEffect(() => {
+    setFecha(fechaLocal(-1));
+  }, []);
+
+  // Auto-fetch on mount when fecha and auth are ready
+  useEffect(() => {
+    if (fecha && selectedStore) {
+      fetchRecaudos(fecha);
+    }
+  }, [fecha, selectedStore, fetchRecaudos]);
 
   const handleConsultar = (e) => {
     if (e) e.preventDefault();
@@ -104,33 +126,37 @@ export default function VisitasReportePage() {
     d.setDate(d.getDate() + offset);
     const newFecha = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     setFecha(newFecha);
-    fetchRecaudos(newFecha);
   };
 
   const goToToday = () => {
-    const today = new Date();
-    const newFecha = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const newFecha = fechaLocal();
     setFecha(newFecha);
-    fetchRecaudos(newFecha);
   };
 
   const goToYesterday = () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const newFecha = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+    const newFecha = fechaLocal(-1);
     setFecha(newFecha);
-    fetchRecaudos(newFecha);
   };
 
   // Computed data
-  const visitasFallidas = useMemo(
-    () => recaudos.filter((r) => parseFloat(r.valor_recaudo) === 0),
+  const renovacionesAutomaticas = useMemo(
+    () => recaudos.filter((r) => r.es_renovacion),
     [recaudos]
   );
 
-  const visitasExitosas = useMemo(
-    () => recaudos.filter((r) => parseFloat(r.valor_recaudo) > 0),
+  const visitasRegistradas = useMemo(
+    () => recaudos.filter((r) => !r.es_renovacion),
     [recaudos]
+  );
+
+  const visitasFallidas = useMemo(
+    () => visitasRegistradas.filter((r) => parseMoney(r.valor_recaudo) <= 0),
+    [visitasRegistradas]
+  );
+
+  const visitasExitosas = useMemo(
+    () => visitasRegistradas.filter((r) => parseMoney(r.valor_recaudo) > 0 && !r.visita_blanco),
+    [visitasRegistradas]
   );
 
   const totalRecaudado = useMemo(
@@ -144,9 +170,20 @@ export default function VisitasReportePage() {
   );
 
   const tasaFallo = useMemo(
-    () => (recaudos.length > 0 ? ((visitasFallidas.length / recaudos.length) * 100).toFixed(1) : "0.0"),
-    [recaudos, visitasFallidas]
+    () => (visitasRegistradas.length > 0 ? ((visitasFallidas.length / visitasRegistradas.length) * 100).toFixed(1) : "0.0"),
+    [visitasRegistradas, visitasFallidas]
   );
+
+  const visitasFallidasFiltradas = useMemo(() => {
+    const search = busquedaFalla.trim().toLowerCase();
+    return visitasFallidas.filter((recaudo) => {
+      const tipo = recaudo.visita_blanco?.tipo_falla || "Otro Motivo";
+      const ventaId = recaudo.venta?.id || recaudo.venta || "";
+      const cliente = recaudo.venta?.cliente;
+      const texto = `${cliente?.nombres || ""} ${cliente?.apellidos || ""} ${tipo} ${recaudo.visita_blanco?.comentario || ""} ${ventaId}`.toLowerCase();
+      return (filtroFalla === "Todas" || tipo === filtroFalla) && (!search || texto.includes(search));
+    });
+  }, [busquedaFalla, filtroFalla, visitasFallidas]);
 
   // Distribution by failure reason
   const distribucionFallas = useMemo(() => {
@@ -172,6 +209,32 @@ export default function VisitasReportePage() {
     [distribucionFallas]
   );
 
+  const exportarCSV = () => {
+    if (visitasFallidasFiltradas.length === 0) return;
+    const filas = [
+      ["Fecha", "Venta", "Cliente", "Motivo", "Comentario", "Recaudo"].map(escaparCsv).join(","),
+      ...visitasFallidasFiltradas.map((recaudo) => {
+        const ventaId = recaudo.venta?.id || recaudo.venta || "";
+        const cliente = recaudo.venta?.cliente;
+        return [
+          recaudo.fecha_recaudo || fecha,
+          ventaId,
+          `${cliente?.nombres || ""} ${cliente?.apellidos || ""}`.trim() || `Venta #${ventaId}`,
+          recaudo.visita_blanco?.tipo_falla || "Otro Motivo",
+          (recaudo.visita_blanco?.comentario || "").replace(/\r?\n/g, " "),
+          parseMoney(recaudo.valor_recaudo),
+        ].map(escaparCsv).join(",");
+      }),
+    ].join("\n");
+    const blob = new Blob([filas], { type: "text/csv;charset=utf-8" });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `visitas_fallidas_${fecha}.csv`;
+    anchor.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 
   return (
@@ -185,10 +248,20 @@ export default function VisitasReportePage() {
               Análisis de Visitas
             </h1>
             <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none mt-1">
-              Visitas Fallidas • <span className="text-slate-400">{selectedStore.tienda.nombre}</span>
+              Jornada cerrada · {formatearFecha(fecha)} · <span className="text-slate-400">{selectedStore.tienda.nombre}</span>
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
+            {visitasFallidasFiltradas.length > 0 && (
+              <button
+                onClick={exportarCSV}
+                className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 py-3.5 text-[10px] font-black uppercase tracking-widest text-emerald-700 transition-all hover:border-emerald-300 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-400"
+                title="Exportar fallas visibles"
+              >
+                <FiDownload size={16} />
+                <span className="hidden md:inline">Exportar</span>
+              </button>
+            )}
             <button
               onClick={() => fetchRecaudos(fecha)}
               className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
@@ -259,6 +332,13 @@ export default function VisitasReportePage() {
           </form>
         </div>
 
+        {error && (
+          <div className="mb-8 flex items-center gap-4 rounded-[2rem] border border-rose-100 bg-rose-50 p-5 text-rose-600 dark:border-rose-900/30 dark:bg-rose-900/20">
+            <FiAlertCircle size={20} className="shrink-0" />
+            <p className="text-[11px] font-black uppercase tracking-widest">{error}</p>
+          </div>
+        )}
+
         {/* Loading */}
         {loading && <LoadingSpinner />}
 
@@ -266,7 +346,7 @@ export default function VisitasReportePage() {
         {!loading && fetched && (
           <>
             {/* KPI Cards */}
-            <div className="grid grid-cols-3 gap-4 md:gap-6 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
               {/* Total Visitas */}
               <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-3 md:mb-4">
@@ -276,7 +356,7 @@ export default function VisitasReportePage() {
                   <FiActivity className="text-indigo-400" size={14} />
                 </div>
                 <p className="text-lg md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
-                  {recaudos.length}
+                  {visitasRegistradas.length}
                 </p>
                 <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
                   Total Visitas
@@ -326,6 +406,31 @@ export default function VisitasReportePage() {
               </div>
             </div>
 
+            {/* Cobros exitosos */}
+            <div className="glass mb-8 p-5 md:p-6 rounded-[2rem] border-white/60 dark:border-slate-800">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl">
+                    <FiCheckCircle size={18} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cobros exitosos</p>
+                    <p className="mt-1 text-xl font-black tracking-tight text-slate-800 dark:text-white">{visitasExitosas.length} <span className="text-xs font-bold text-slate-400">visitas</span></p>
+                  </div>
+                </div>
+                <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formatMoney(totalRecaudado)}</p>
+              </div>
+            </div>
+
+            {renovacionesAutomaticas.length > 0 && (
+              <div className="mb-8 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
+                <FiInfo size={16} className="mt-0.5 shrink-0" />
+                <p className="text-[10px] font-bold leading-relaxed">
+                  Se excluyeron <strong>{renovacionesAutomaticas.length}</strong> renovación{renovacionesAutomaticas.length !== 1 ? "es" : ""} automática{renovacionesAutomaticas.length !== 1 ? "s" : ""} del cálculo: no representan una visita física ni un cobro del trabajador.
+                </p>
+              </div>
+            )}
+
             {/* Distribution by Failure Reason */}
             {visitasFallidas.length > 0 && (
               <div className="glass rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl mb-8">
@@ -347,7 +452,13 @@ export default function VisitasReportePage() {
                   {distribucionFallas.map((item) => {
                     const Icon = item.config.icon;
                     return (
-                      <div key={item.tipo} className="space-y-2.5">
+                      <button
+                        key={item.tipo}
+                        type="button"
+                        aria-pressed={filtroFalla === item.tipo}
+                        onClick={() => setFiltroFalla(filtroFalla === item.tipo ? "Todas" : item.tipo)}
+                        className={`w-full rounded-2xl p-3 -m-3 text-left transition-all ${filtroFalla === item.tipo ? "bg-indigo-50/80 ring-2 ring-indigo-200 dark:bg-indigo-900/20 dark:ring-indigo-800" : "hover:bg-slate-50/80 dark:hover:bg-slate-800/30"}`}
+                      >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className={`p-2 ${item.config.bg} ${item.config.text} rounded-xl`}>
@@ -372,7 +483,7 @@ export default function VisitasReportePage() {
                             style={{ width: `${maxFallaCount > 0 ? (item.count / maxFallaCount) * 100 : 0}%` }}
                           />
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -390,9 +501,52 @@ export default function VisitasReportePage() {
                     Detalle de Visitas Fallidas
                   </h3>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                    Registro individual de cada falla
+                    Registro individual · {formatearFecha(fecha)}
                   </p>
                 </div>
+              </div>
+
+              <div className="border-b border-slate-100 bg-slate-50/40 px-6 py-5 dark:border-slate-800 dark:bg-slate-800/10 md:px-10">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                  <div className="relative">
+                    <FiFilter className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                    <select
+                      value={filtroFalla}
+                      onChange={(e) => setFiltroFalla(e.target.value)}
+                      className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-10 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 outline-none transition-all focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                      aria-label="Filtrar por motivo de falla"
+                    >
+                      <option value="Todas">Todos los motivos</option>
+                      {distribucionFallas.map((item) => (
+                        <option key={item.tipo} value={item.tipo}>{item.tipo}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="relative">
+                    <FiSearch className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                    <input
+                      type="search"
+                      value={busquedaFalla}
+                      onChange={(e) => setBusquedaFalla(e.target.value)}
+                      placeholder="Buscar cliente, venta o comentario..."
+                      className="w-full rounded-xl border border-slate-200 bg-white px-10 py-3 text-xs font-bold text-slate-700 outline-none transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                      aria-label="Buscar visita fallida"
+                    />
+                  </div>
+                  {(filtroFalla !== "Todas" || busquedaFalla) && (
+                    <button
+                      type="button"
+                      onClick={() => { setFiltroFalla("Todas"); setBusquedaFalla(""); }}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 transition-all hover:border-indigo-200 hover:text-indigo-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-indigo-800 dark:hover:text-indigo-400"
+                    >
+                      <FiX size={14} />
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+                <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  {visitasFallidasFiltradas.length} de {visitasFallidas.length} fallas visibles
+                </p>
               </div>
 
               {visitasFallidas.length === 0 ? (
@@ -405,6 +559,18 @@ export default function VisitasReportePage() {
                   </p>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     No se registraron visitas fallidas en esta fecha
+                  </p>
+                </div>
+              ) : visitasFallidasFiltradas.length === 0 ? (
+                <div className="p-12 md:p-16 text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                    <FiSearch size={26} />
+                  </div>
+                  <p className="mb-1 text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white">
+                    Sin coincidencias
+                  </p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    Cambie el motivo o la búsqueda para ver otras fallas
                   </p>
                 </div>
               ) : (
@@ -429,7 +595,7 @@ export default function VisitasReportePage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {visitasFallidas.map((recaudo) => {
+                        {visitasFallidasFiltradas.map((recaudo) => {
                           const tipo = recaudo.visita_blanco?.tipo_falla || "Otro Motivo";
                           const comentario = recaudo.visita_blanco?.comentario || "";
                           const config = getFallaConfig(tipo);
@@ -473,7 +639,7 @@ export default function VisitasReportePage() {
 
                   {/* Mobile cards */}
                   <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                    {visitasFallidas.map((recaudo) => {
+                    {visitasFallidasFiltradas.map((recaudo) => {
                       const tipo = recaudo.visita_blanco?.tipo_falla || "Otro Motivo";
                       const comentario = recaudo.visita_blanco?.comentario || "";
                       const config = getFallaConfig(tipo);
