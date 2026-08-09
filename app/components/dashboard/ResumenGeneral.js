@@ -27,6 +27,18 @@ export default function ResumenGeneral({ tienda }) {
   const porcentajeRetiros = calcularPorcentaje(tienda.tienda.utilidades);
   const porcentajeGastos = calcularPorcentaje(tienda.tienda.gastos);
   const porcentajeAportes = calcularPorcentaje(tienda.tienda.inversion);
+  // La barra muestra qué proporción de los recursos de corto plazo está
+  // pendiente de cobro, sin depender del indicador histórico de intereses.
+  const dineroPorCobrar = Math.max(
+    0,
+    Number(tienda.tienda.dinero_x_cobrar) || 0,
+  );
+  const cajaDisponible = Math.max(0, Number(tienda.tienda.caja) || 0);
+  const recursosCortoPlazo = cajaDisponible + dineroPorCobrar;
+  const porcentajePorCobrar =
+    recursosCortoPlazo > 0
+      ? (dineroPorCobrar / recursosCortoPlazo) * 100
+      : 0;
   // Resultado histórico con intereses efectivamente cobrados.
   const utilidadNeta =
     ingresosVentas - tienda.tienda.gastos - tienda.tienda.perdidas;
