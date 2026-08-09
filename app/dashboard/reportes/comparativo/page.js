@@ -19,6 +19,7 @@ import {
 } from "react-icons/fi";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../../utils/format";
+import { getAppDateString } from "../../../utils/datetime";
 
 const MESES = [
    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -128,10 +129,12 @@ const formatearVariacionCsv = (valor) => valor === null ? "N/D" : `${valor.toFix
 
 export default function ReporteComparativoPage() {
    const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
-   const hoy = new Date();
-   const prev = getPrevMonth(hoy.getFullYear(), hoy.getMonth());
+   const fechaHoy = getAppDateString();
+   const anioActual = Number(fechaHoy.slice(0, 4));
+   const mesActual = Number(fechaHoy.slice(5, 7)) - 1;
+   const prev = getPrevMonth(anioActual, mesActual);
    const [mesA, setMesA] = useState({ year: prev.year, month: prev.month }); // "base" (left)
-   const [mesB, setMesB] = useState({ year: hoy.getFullYear(), month: hoy.getMonth() }); // "comparar" (right)
+   const [mesB, setMesB] = useState({ year: anioActual, month: mesActual }); // "comparar" (right)
    const [datos, setDatos] = useState(null);
    const [cargando, setCargando] = useState(false);
    const [error, setError] = useState("");
@@ -246,8 +249,8 @@ export default function ReporteComparativoPage() {
 
    const { actual, anterior } = datos || {};
    const mismaComparacion = mesA.year === mesB.year && mesA.month === mesB.month;
-   const mesComparadoEnCurso = mesB.year === hoy.getFullYear() && mesB.month === hoy.getMonth();
-   const mesBaseEnCurso = mesA.year === hoy.getFullYear() && mesA.month === hoy.getMonth();
+   const mesComparadoEnCurso = mesB.year === anioActual && mesB.month === mesActual;
+   const mesBaseEnCurso = mesA.year === anioActual && mesA.month === mesActual;
    const variacionUtilidad = datos ? calcVariacion(actual.utilidad, anterior.utilidad) : null;
 
    // All categories from both months
@@ -314,7 +317,7 @@ export default function ReporteComparativoPage() {
                            onChange={(e) => setMesA(prev => ({ ...prev, year: parseInt(e.target.value) }))}
                            className="w-24 px-3 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none appearance-none cursor-pointer"
                         >
-                           {Array.from({ length: 7 }, (_, i) => hoy.getFullYear() - i).map(y => (
+                           {Array.from({ length: 7 }, (_, i) => anioActual - i).map(y => (
                               <option key={y} value={y}>{y}</option>
                            ))}
                         </select>
@@ -343,7 +346,7 @@ export default function ReporteComparativoPage() {
                            onChange={(e) => setMesB(prev => ({ ...prev, year: parseInt(e.target.value) }))}
                            className="w-24 px-3 py-4 bg-slate-50 dark:bg-slate-800/50 border border-indigo-200 dark:border-indigo-800/40 rounded-2xl text-[13px] font-black text-indigo-600 dark:text-indigo-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none appearance-none cursor-pointer"
                         >
-                           {Array.from({ length: 7 }, (_, i) => hoy.getFullYear() - i).map(y => (
+                           {Array.from({ length: 7 }, (_, i) => anioActual - i).map(y => (
                               <option key={y} value={y}>{y}</option>
                            ))}
                         </select>
@@ -364,7 +367,7 @@ export default function ReporteComparativoPage() {
             ) : null}
 
             {error && (
-               <div className="mb-8 p-5 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-[2rem] flex items-center gap-4 text-rose-600">
+               <div role="alert" className="mb-8 p-5 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-[2rem] flex items-center gap-4 text-rose-600">
                   <FiAlertCircle size={20} className="shrink-0" />
                   <p className="text-[11px] font-black uppercase tracking-widest leading-none">{error}</p>
                </div>

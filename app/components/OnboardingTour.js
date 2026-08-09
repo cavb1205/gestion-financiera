@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FiShoppingBag,
   FiHome,
@@ -194,8 +194,6 @@ export default function OnboardingTour({ isOpen, onClose, isAdmin = true }) {
   const steps = isAdmin ? adminSteps : workerSteps;
   const [current, setCurrent] = useState(0);
 
-  if (!isOpen) return null;
-
   const step = steps[current];
   const isFirst = current === 0;
   const isLast = current === steps.length - 1;
@@ -216,8 +214,27 @@ export default function OnboardingTour({ isOpen, onClose, isAdmin = true }) {
     onClose();
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setCurrent(0);
+        onClose();
+      } else if (event.key === "ArrowRight") {
+        if (current === steps.length - 1) onClose();
+        else setCurrent((c) => c + 1);
+      } else if (event.key === "ArrowLeft" && current > 0) {
+        setCurrent((c) => c - 1);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, current, onClose, steps.length]);
+
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
@@ -232,7 +249,9 @@ export default function OnboardingTour({ isOpen, onClose, isAdmin = true }) {
         <div className="p-8">
           {/* Close */}
           <button
+            type="button"
             onClick={handleClose}
+            aria-label="Cerrar tour"
             className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <FiX size={18} />
@@ -242,8 +261,11 @@ export default function OnboardingTour({ isOpen, onClose, isAdmin = true }) {
           <div className="flex items-center gap-1.5 mb-8 flex-wrap">
             {steps.map((_, i) => (
               <button
+                type="button"
                 key={i}
                 onClick={() => setCurrent(i)}
+                aria-label={`Ir al paso ${i + 1}`}
+                aria-current={i === current ? "step" : undefined}
                 className={`rounded-full transition-all duration-300 ${
                   i === current
                     ? `w-6 h-2 ${step.iconBg}`
@@ -266,7 +288,7 @@ export default function OnboardingTour({ isOpen, onClose, isAdmin = true }) {
           </p>
 
           {/* Title */}
-          <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter leading-tight mb-3">
+          <h2 id="onboarding-title" className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter leading-tight mb-3">
             {step.title}
           </h2>
 
@@ -295,6 +317,7 @@ export default function OnboardingTour({ isOpen, onClose, isAdmin = true }) {
           <div className="flex items-center gap-3">
             {!isFirst && (
               <button
+                type="button"
                 onClick={handleBack}
                 className="flex items-center gap-2 px-5 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95"
               >
@@ -304,6 +327,7 @@ export default function OnboardingTour({ isOpen, onClose, isAdmin = true }) {
             )}
 
             <button
+              type="button"
               onClick={handleNext}
               className={`flex-1 flex items-center justify-center gap-2 py-3 ${step.iconBg} text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:opacity-90 transition-all active:scale-95 shadow-lg ${step.iconGlow} group`}
             >
@@ -318,6 +342,7 @@ export default function OnboardingTour({ isOpen, onClose, isAdmin = true }) {
           {/* Skip */}
           {!isLast && (
             <button
+              type="button"
               onClick={handleClose}
               className="w-full mt-4 text-[10px] font-bold text-slate-400 hover:text-slate-500 uppercase tracking-widest transition-colors"
             >

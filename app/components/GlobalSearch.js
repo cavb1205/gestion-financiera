@@ -6,20 +6,38 @@ import {
   FiSearch, FiUser, FiArrowRight, FiX,
   FiHome, FiShoppingCart, FiUsers, FiCheckCircle,
   FiPackage, FiTrendingDown, FiCreditCard, FiBarChart2,
+  FiBell, FiDollarSign, FiTrendingUp, FiMapPin, FiShield,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
 import { getClientesTienda } from "@/app/utils/clientesCache";
 
 const PAGES = [
   { label: "Dashboard", path: "/dashboard", icon: FiHome, adminOnly: true },
+  { label: "Alertas", path: "/dashboard/alertas", icon: FiBell, adminOnly: true, alertasOnly: true },
+  { label: "Gestión de Aportes", path: "/dashboard/aportes", icon: FiDollarSign, adminOnly: true },
   { label: "Clientes", path: "/dashboard/clientes", icon: FiUsers },
   { label: "Ventas Activas", path: "/dashboard/ventas", icon: FiShoppingCart },
+  { label: "Ventas en Pérdida", path: "/dashboard/ventas/perdidas", icon: FiTrendingDown, adminOnly: true },
   { label: "Liquidación", path: "/dashboard/liquidar", icon: FiCheckCircle },
   { label: "Recaudos", path: "/dashboard/recaudos", icon: FiPackage },
   { label: "Gastos", path: "/dashboard/gastos", icon: FiTrendingDown },
+  { label: "Utilidades", path: "/dashboard/utilidades", icon: FiTrendingUp, adminOnly: true },
+  { label: "Publicidad", path: "/dashboard/publicidad", icon: FiMapPin },
   { label: "Cierre de Caja", path: "/dashboard/cierre-caja", icon: FiCreditCard },
-  { label: "Reportes Utilidad", path: "/dashboard/reportes/utilidad", icon: FiBarChart2, adminOnly: true },
+  { label: "Membresía", path: "/dashboard/membresias", icon: FiShield },
+  { label: "Mi Perfil", path: "/dashboard/perfil", icon: FiUser },
+  { label: "Reporte de Utilidad", path: "/dashboard/reportes/utilidad", icon: FiBarChart2, adminOnly: true },
+  { label: "Reporte de Cartera", path: "/dashboard/reportes/cartera", icon: FiBarChart2, adminOnly: true },
+  { label: "Reporte de Gastos", path: "/dashboard/reportes/gastos", icon: FiBarChart2, adminOnly: true },
+  { label: "Reporte de Visitas", path: "/dashboard/reportes/visitas", icon: FiBarChart2, adminOnly: true },
+  { label: "Reporte Comparativo", path: "/dashboard/reportes/comparativo", icon: FiBarChart2, adminOnly: true },
+  { label: "Mapa de Cobros", path: "/dashboard/reportes/ubicaciones", icon: FiMapPin, adminOnly: true },
+  { label: "Mapa de Publicidad", path: "/dashboard/reportes/publicidad", icon: FiMapPin, adminOnly: true },
   { label: "Trabajadores", path: "/dashboard/trabajadores", icon: FiUsers, adminOnly: true },
+  { label: "Cálculo de Sueldo", path: "/dashboard/sueldos", icon: FiCreditCard, adminOnly: true },
+  { label: "Administración", path: "/dashboard/admin", icon: FiHome, rootOnly: true },
+  { label: "Administrar Rutas", path: "/dashboard/admin/rutas", icon: FiShield, rootOnly: true },
+  { label: "Conciliación de Pagos", path: "/dashboard/admin/conciliacion", icon: FiCreditCard, rootOnly: true },
 ];
 
 export default function GlobalSearch({ isOpen, onClose }) {
@@ -77,9 +95,11 @@ export default function GlobalSearch({ isOpen, onClose }) {
   const filteredPages = useMemo(
     () => PAGES.filter((p) => {
       if (p.adminOnly && !isAdmin) return false;
+      if (p.alertasOnly && user?.username !== "cavb1205") return false;
+      if (p.rootOnly && user?.username !== "root") return false;
       return q ? p.label.toLowerCase().includes(q) : true;
     }).slice(0, q ? 6 : 4),
-    [isAdmin, q]
+    [isAdmin, q, user?.username]
   );
 
   const filteredClients = useMemo(
@@ -129,20 +149,21 @@ export default function GlobalSearch({ isOpen, onClose }) {
   return (
     <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[8vh] px-4">
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
+      <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200" role="dialog" aria-modal="true" aria-label="Búsqueda global">
 
         {/* Search input */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
           <FiSearch className="text-indigo-500 shrink-0" size={18} />
           <input
             ref={inputRef}
+            aria-label="Buscar en la plataforma"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar cliente, página..."
             className="flex-1 bg-transparent text-[14px] font-bold text-slate-800 dark:text-white placeholder:text-slate-400 outline-none"
           />
           {query ? (
-            <button onClick={() => setQuery("")} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+            <button type="button" onClick={() => setQuery("")} aria-label="Limpiar búsqueda" className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
               <FiX size={16} />
             </button>
           ) : (
@@ -173,6 +194,7 @@ export default function GlobalSearch({ isOpen, onClose }) {
                 return (
                   <button
                     key={item.path}
+                    type="button"
                     onClick={() => navigate({ type: "page", ...item })}
                     className={`w-full flex items-center justify-between px-5 py-3 transition-all ${
                       activeIndex === idx ? "bg-indigo-50 dark:bg-indigo-900/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
@@ -200,6 +222,7 @@ export default function GlobalSearch({ isOpen, onClose }) {
                 return (
                   <button
                     key={c.id}
+                    type="button"
                     onClick={() => navigate({ type: "client", ...c })}
                     className={`w-full flex items-center gap-3 px-5 py-3 transition-all ${
                       activeIndex === globalIdx ? "bg-indigo-50 dark:bg-indigo-900/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"

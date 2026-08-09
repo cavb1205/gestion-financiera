@@ -19,6 +19,7 @@ import {
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "@/app/utils/format";
+import { formatAppDate, getAppDateString } from "@/app/utils/datetime";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -62,7 +63,7 @@ export default function IngresosMembresiasPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [year, setYear] = useState(Number(getAppDateString().slice(0, 4)));
   const [mesFiltro, setMesFiltro] = useState(null); // 1-12 o null
 
   const fetchData = useCallback(async (y) => {
@@ -84,9 +85,11 @@ export default function IngresosMembresiasPage() {
     if (isAuthenticated && user?.is_superuser) fetchData(year);
   }, [isAuthenticated, user, year, fetchData]);
 
-  const hoy = new Date();
-  const esAnioActual = data?.year === hoy.getFullYear();
-  const mesActual = data && esAnioActual ? data.por_mes[hoy.getMonth()] : null;
+  const hoy = getAppDateString();
+  const anioActual = Number(hoy.slice(0, 4));
+  const mesActualNumero = Number(hoy.slice(5, 7));
+  const esAnioActual = data?.year === anioActual;
+  const mesActual = data && esAnioActual ? data.por_mes[mesActualNumero - 1] : null;
 
   const variacion = useMemo(() => {
     if (!data || !data.total_anio_anterior) return null;
@@ -354,7 +357,7 @@ export default function IngresosMembresiasPage() {
                         return (
                           <tr key={p.id} className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                             <td className="px-5 py-3 text-[11px] font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                              {new Date(p.fecha + "T12:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+                              {formatAppDate(p.fecha, { day: "numeric", month: "short" })}
                             </td>
                             <td className="px-5 py-3 text-[12px] font-black text-slate-700 dark:text-white">
                               {p.tienda}

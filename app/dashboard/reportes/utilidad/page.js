@@ -19,6 +19,7 @@ import {
 } from "react-icons/fi";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../../utils/format";
+import { getAppDateString } from "../../../utils/datetime";
 
 function crearFilaVacia(fecha) {
   return {
@@ -113,21 +114,12 @@ export default function ReportesPage() {
   const [incluyeDesglosePerdidas, setIncluyeDesglosePerdidas] = useState(false);
   const [incluyeConciliacion, setIncluyeConciliacion] = useState(false);
 
-  const ajustarFechaLocal = (fecha) => {
-    const date = new Date(fecha);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
   useEffect(() => {
-    const hoy = new Date();
-    const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    setFechaInicio(ajustarFechaLocal(primerDiaMes));
+    const hoy = getAppDateString();
+    setFechaInicio(`${hoy.slice(0, 8)}01`);
     // El período inicial termina hoy: no incluimos días futuros en promedios
     // ni presentamos esos días como si ya hubieran sido auditados.
-    setFechaFin(ajustarFechaLocal(hoy));
+    setFechaFin(hoy);
   }, []);
 
   const generarReporte = async (e) => {
@@ -432,7 +424,7 @@ export default function ReportesPage() {
         </div>
 
         {error && (
-          <div className="mb-8 p-5 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-[2rem] flex items-center gap-4 text-rose-600">
+          <div role="alert" className="mb-8 p-5 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-[2rem] flex items-center gap-4 text-rose-600">
             <FiAlertCircle size={20} className="shrink-0" />
             <p className="text-[11px] font-black uppercase tracking-widest leading-none">{error}</p>
           </div>

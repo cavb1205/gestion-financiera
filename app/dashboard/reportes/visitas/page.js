@@ -35,6 +35,7 @@ import {
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, parseMoney } from "../../../utils/format";
+import { getAppDateString, shiftAppDate } from "../../../utils/datetime";
 
 // Color map for failure reasons
 const FALLA_CONFIG = {
@@ -50,9 +51,7 @@ const FALLA_CONFIG = {
 const getFallaConfig = (tipo) => FALLA_CONFIG[tipo] || FALLA_CONFIG["Otro Motivo"];
 
 const fechaLocal = (desplazamiento = 0) => {
-  const date = new Date();
-  date.setDate(date.getDate() + desplazamiento);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return getAppDateString(desplazamiento);
 };
 
 const formatearFecha = (valor) => {
@@ -122,10 +121,7 @@ export default function VisitasReportePage() {
   };
 
   const navigateDate = (offset) => {
-    const d = new Date(fecha + "T12:00:00");
-    d.setDate(d.getDate() + offset);
-    const newFecha = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    setFecha(newFecha);
+    setFecha(shiftAppDate(fecha, offset));
   };
 
   const goToToday = () => {
@@ -333,7 +329,7 @@ export default function VisitasReportePage() {
         </div>
 
         {error && (
-          <div className="mb-8 flex items-center gap-4 rounded-[2rem] border border-rose-100 bg-rose-50 p-5 text-rose-600 dark:border-rose-900/30 dark:bg-rose-900/20">
+          <div role="alert" className="mb-8 flex items-center gap-4 rounded-[2rem] border border-rose-100 bg-rose-50 p-5 text-rose-600 dark:border-rose-900/30 dark:bg-rose-900/20">
             <FiAlertCircle size={20} className="shrink-0" />
             <p className="text-[11px] font-black uppercase tracking-widest">{error}</p>
           </div>

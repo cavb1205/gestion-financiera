@@ -22,12 +22,11 @@ import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import { formatMoney } from "@/app/utils/format";
+import { formatAppDateTime } from "@/app/utils/datetime";
 
 function formatFecha(iso) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString(undefined, {
-    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-  });
+  return formatAppDateTime(iso, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 function SolicitudCard({ solicitud, onVerComprobante, onAccion, actioning, modo }) {

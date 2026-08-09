@@ -1,7 +1,7 @@
 // utils/format.js
 // Utilidades de formato compartidas
 
-const formatter = new Intl.NumberFormat(undefined, {
+const formatter = new Intl.NumberFormat("es-CL", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
@@ -87,5 +87,5 @@ export function parseLocalDate(value) {
  */
 export function formatDate(value, options = { day: "numeric", month: "short", year: "numeric" }) {
   const d = parseLocalDate(value);
-  return d ? d.toLocaleDateString(undefined, options) : "—";
+  return d ? d.toLocaleDateString("es-CL", options) : "—";
 }

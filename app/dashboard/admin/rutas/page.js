@@ -36,6 +36,7 @@ import LoadingSpinner from "@/app/components/LoadingSpinner";
 import Pagination from "@/app/components/Pagination";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import { formatMoney } from "@/app/utils/format";
+import { formatAppDate, formatAppDateTime, getAppDateDifference, shiftAppDate } from "@/app/utils/datetime";
 
 // Badge por origen del pago (mismo criterio que /dashboard/admin/ingresos)
 const ORIGEN_BADGE = {
@@ -71,17 +72,14 @@ const STATUS_CONFIG = {
 // Semántica de vencimiento/gracia/bloqueo (misma que el backend: gracia 1d, bloqueo V+2)
 const getMembresiaInfo = (fechaVencimiento) => {
   if (!fechaVencimiento) return { days: 0, graceDays: 0, status: "expired", label: "—" };
-  const [y, m, d] = fechaVencimiento.split("-").map(Number);
-  const vence = new Date(y, m - 1, d);
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  const pendientePago = new Date(vence); pendientePago.setDate(pendientePago.getDate() + 1);
-  const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 2);
-  const days = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24));
-  const graceDays = Math.ceil((vencida - hoy) / (1000 * 60 * 60 * 24));
+  const vencimientoDiff = getAppDateDifference(fechaVencimiento);
+  if (vencimientoDiff === null) return { days: 0, graceDays: 0, status: "expired", label: "—" };
+  const days = -vencimientoDiff;
+  const graceDays = -getAppDateDifference(shiftAppDate(fechaVencimiento, 2));
 
   let status, label;
-  if (hoy >= vencida) { status = "expired"; label = "Bloqueada"; }
-  else if (hoy >= pendientePago) { status = "grace"; label = `Gracia · ${graceDays}d`; }
+  if (days <= -2) { status = "expired"; label = "Bloqueada"; }
+  else if (days <= -1) { status = "grace"; label = `Gracia · ${graceDays}d`; }
   else if (days === 0) { status = "today"; label = `Vence hoy · ${graceDays}d p/bloqueo`; }
   else { status = days <= 3 ? "warn" : "ok"; label = `${days}d`; }
 
@@ -246,22 +244,15 @@ export default function AdminRutasPage() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "\u2014";
-    const [y, m, d] = dateStr.split("-").map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString(undefined, {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    return formatAppDate(dateStr, { day: "numeric", month: "short", year: "numeric" });
   };
 
   // D\u00edas desde la \u00faltima se\u00f1al de uso real (recaudo o cierre de caja).
   // Detecta rutas "pagando pero muertas" antes de que cancelen.
   const actividadInfo = (fecha) => {
     if (!fecha) return { label: "Sin uso", color: "text-slate-400" };
-    const [y, m, d] = fecha.split("-").map(Number);
-    const dt = new Date(y, m - 1, d);
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    const days = Math.round((hoy - dt) / 86400000);
+    const days = getAppDateDifference(fecha);
+    if (days === null) return { label: "Sin uso", color: "text-slate-400" };
     if (days <= 0) return { label: "Hoy", color: "text-emerald-600" };
     if (days === 1) return { label: "Ayer", color: "text-emerald-600" };
     if (days <= 3) return { label: `Hace ${days}d`, color: "text-emerald-600" };
@@ -272,9 +263,7 @@ export default function AdminRutasPage() {
   // Para timestamps ISO (p.ej. \u00faltimo acceso del admin)
   const formatDateTime = (iso) => {
     if (!iso) return "\u2014";
-    return new Date(iso).toLocaleDateString(undefined, {
-      day: "numeric", month: "short", year: "numeric",
-    });
+    return formatAppDateTime(iso, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   };
 
   // Mensaje de cobro por WhatsApp seg\u00fan el estado de la membres\u00eda.

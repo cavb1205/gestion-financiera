@@ -1,6 +1,6 @@
 // app/components/ConfirmModal.js
 "use client";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { FiAlertCircle, FiX } from "react-icons/fi";
 
 export default function ConfirmModal({
@@ -14,14 +14,37 @@ export default function ConfirmModal({
   isLoading = false,
   children,
 }) {
+  const dialogRef = useRef(null);
+  const confirmButtonRef = useRef(null);
+
   // Cerrar con Escape (no mientras procesa, para no interrumpir la operación)
   useEffect(() => {
     if (!isOpen) return;
+    const previousFocus = document.activeElement;
+    const focusableSelector =
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])';
+    requestAnimationFrame(() => confirmButtonRef.current?.focus());
+
     const onKey = (e) => {
       if (e.key === "Escape" && !isLoading) onClose?.();
+      if (e.key !== "Tab") return;
+      const focusable = dialogRef.current?.querySelectorAll(focusableSelector);
+      if (!focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      previousFocus?.focus?.();
+    };
   }, [isOpen, isLoading, onClose]);
 
   if (!isOpen) return null;
@@ -32,8 +55,9 @@ export default function ConfirmModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-modal-title"
+      aria-describedby={message ? "confirm-modal-message" : undefined}
     >
-      <div className="glass max-w-md w-full rounded-[2.5rem] border-white/20 p-10 shadow-2xl relative overflow-hidden">
+      <div ref={dialogRef} className="glass max-w-md w-full rounded-[2.5rem] border-white/20 p-10 shadow-2xl relative overflow-hidden">
         {/* Decorative bg */}
         <div className="absolute -right-10 -top-10 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl"></div>
         <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
@@ -41,6 +65,7 @@ export default function ConfirmModal({
         <div className="relative z-10">
           {/* Close button */}
           <button
+            type="button"
             onClick={onClose}
             disabled={isLoading}
             aria-label="Cerrar"
@@ -58,7 +83,7 @@ export default function ConfirmModal({
               {title}
             </h2>
             {message && (
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+              <p id="confirm-modal-message" className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
                 {message}
               </p>
             )}
@@ -70,8 +95,11 @@ export default function ConfirmModal({
           {/* Actions */}
           <div className="flex flex-col gap-3">
             <button
+              ref={confirmButtonRef}
+              type="button"
               onClick={onConfirm}
               disabled={isLoading}
+              aria-busy={isLoading}
               className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-rose-700 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-3"
             >
               {isLoading ? (
@@ -84,6 +112,7 @@ export default function ConfirmModal({
               )}
             </button>
             <button
+              type="button"
               onClick={onClose}
               disabled={isLoading}
               className="w-full py-3 text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:text-slate-600 dark:hover:text-slate-200 transition-colors"

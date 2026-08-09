@@ -33,8 +33,6 @@ import {
   FiSettings,
   FiMapPin,
   FiSearch,
-  FiWifiOff,
-  FiWifi,
   FiMessageCircle,
   FiTag,
 } from "react-icons/fi";
@@ -55,6 +53,47 @@ import OfflineBanner from "../components/OfflineBanner";
 const workerAllowedPaths = ['/dashboard/liquidar', '/dashboard/recaudos', '/dashboard/cierre-caja', '/dashboard/ventas', '/dashboard/clientes', '/dashboard/gastos', '/dashboard/perfil', '/dashboard/publicidad', '/dashboard/membresias'];
 
 const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "";
+
+const PAGE_TITLES = [
+  ["/dashboard/admin/conciliacion", "Conciliación de pagos"],
+  ["/dashboard/admin/cuenta-bancaria", "Cuenta bancaria"],
+  ["/dashboard/admin/ingresos", "Ingresos de membresías"],
+  ["/dashboard/admin/planes", "Planes y precios"],
+  ["/dashboard/admin/rutas", "Administrar rutas"],
+  ["/dashboard/admin", "Administración"],
+  ["/dashboard/reportes/utilidad", "Reporte de utilidad"],
+  ["/dashboard/reportes/cartera", "Reporte de cartera"],
+  ["/dashboard/reportes/gastos", "Reporte de gastos"],
+  ["/dashboard/reportes/visitas", "Reporte de visitas"],
+  ["/dashboard/reportes/comparativo", "Reporte comparativo"],
+  ["/dashboard/reportes/ubicaciones", "Mapa de cobros"],
+  ["/dashboard/reportes/publicidad", "Mapa de publicidad"],
+  ["/dashboard/reportes", "Reportes"],
+  ["/dashboard/ventas/perdidas", "Ventas en pérdida"],
+  ["/dashboard/ventas/nueva", "Nueva venta"],
+  ["/dashboard/ventas", "Ventas activas"],
+  ["/dashboard/liquidar/abonar", "Registrar abono"],
+  ["/dashboard/liquidar/reportar", "Reportar visita"],
+  ["/dashboard/liquidar", "Liquidación"],
+  ["/dashboard/clientes/crear", "Nuevo cliente"],
+  ["/dashboard/clientes", "Clientes"],
+  ["/dashboard/alertas", "Centro de alertas"],
+  ["/dashboard/aportes", "Gestión de aportes"],
+  ["/dashboard/gastos", "Control de gastos"],
+  ["/dashboard/utilidades", "Utilidades"],
+  ["/dashboard/recaudos", "Recaudos"],
+  ["/dashboard/publicidad", "Publicidad"],
+  ["/dashboard/trabajadores", "Trabajadores"],
+  ["/dashboard/sueldos", "Cálculo de sueldo"],
+  ["/dashboard/cierre-caja", "Cierre de caja"],
+  ["/dashboard/membresias", "Membresía"],
+  ["/dashboard/perfil", "Mi perfil"],
+  ["/dashboard", "Dashboard"],
+];
+
+function getPageTitle(pathname) {
+  return PAGE_TITLES.find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`))?.[1] || "Cartera";
+}
 
 // Menu items with role restrictions: adminOnly = true means only visible to admins (is_staff)
 const allMenuItems = [
@@ -121,8 +160,6 @@ export default function DashboardLayout({ children }) {
     return true;
   });
 
-  const [isOnline, setIsOnline] = useState(true);
-  const [justReconnected, setJustReconnected] = useState(false);
   const [storeInfo, setStoreInfo] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -131,31 +168,6 @@ export default function DashboardLayout({ children }) {
   const [showWizard, setShowWizard] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [badgeVencer, setBadgeVencer] = useState(0);
-
-  // Offline detection
-  useEffect(() => {
-    setIsOnline(navigator.onLine);
-    const handleOnline = () => {
-      setIsOnline(true);
-      setJustReconnected(true);
-    };
-    const handleOffline = () => {
-      setIsOnline(false);
-      setJustReconnected(false);
-    };
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!justReconnected) return;
-    const t = setTimeout(() => setJustReconnected(false), 5000);
-    return () => clearTimeout(t);
-  }, [justReconnected]);
 
   // Badge: créditos a ≤3 cuotas de vencer (por visitas, no por fecha)
   useEffect(() => {
@@ -391,6 +403,7 @@ export default function DashboardLayout({ children }) {
     }
     return pathname.startsWith(path);
   };
+  const pageTitle = getPageTitle(pathname);
 
   return (
     <div className="flex flex-col h-screen h-[100svh] bg-slate-50 dark:bg-slate-950 md:flex-row overflow-hidden font-sans antialiased text-slate-900">
@@ -401,21 +414,7 @@ export default function DashboardLayout({ children }) {
             <FiShoppingBag className="text-white text-lg" />
           </div>
           <h1 className="text-xl font-black tracking-tighter text-slate-800 dark:text-white">
-            {isActive("/dashboard/clientes") ? "Clientes" :
-              isActive("/dashboard/aportes") ? "Aportes" :
-                isActive("/dashboard/ventas") ? "Ventas" :
-                  isActive("/dashboard/gastos") ? "Gastos" :
-                    isActive("/dashboard/utilidades") ? "Utilidades" :
-                      isActive("/dashboard/trabajadores") ? "Trabajadores" :
-                        isActive("/dashboard/sueldos") ? "Sueldos" :
-                          isActive("/dashboard/liquidar") ? "Créditos" :
-                            isActive("/dashboard/recaudos") ? "Recaudos" :
-                              isActive("/dashboard/publicidad") ? "Publicidad" :
-                              isActive("/dashboard/cierre-caja") ? "Cierre de Caja" :
-                                isActive("/dashboard/reportes") ? "Reportes" :
-                                  isActive("/dashboard/membresias") ? "Membresía" :
-                                    isActive("/dashboard/perfil") ? "Mi Perfil" :
-                                      isActive("/dashboard/admin") ? "Administración" : "Dashboard"}
+            {pageTitle}
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -477,7 +476,7 @@ export default function DashboardLayout({ children }) {
               </div>
               <div>
                 <h1 className="text-xl font-black tracking-tight">Cartera</h1>
-                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Enterprise Edition</p>
+                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Gestión de cartera</p>
               </div>
             </div>
 
@@ -789,10 +788,10 @@ export default function DashboardLayout({ children }) {
         <header className="hidden md:flex items-center justify-between px-10 py-8 bg-transparent">
           <div className="flex items-center gap-4">
             <div className="p-2.5 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 text-indigo-600">
-              <FiActivity size={20} />
+            <FiActivity size={20} />
             </div>
             <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">
-              Evolución de Negocio
+              {pageTitle}
             </h2>
           </div>
 
@@ -843,39 +842,6 @@ export default function DashboardLayout({ children }) {
         </main>
 
       </div>
-
-      {/* Offline / Reconectado banner */}
-      {(!isOnline || justReconnected) && (
-        <div
-          className={`fixed bottom-0 left-0 right-0 z-[500] flex items-center justify-between gap-3 px-5 py-3.5 transition-all ${
-            !isOnline
-              ? 'bg-rose-600'
-              : 'bg-emerald-600'
-          }`}
-        >
-          <div className="flex items-center gap-2.5">
-            {!isOnline
-              ? <FiWifiOff size={15} className="text-white shrink-0" />
-              : <FiWifi size={15} className="text-white shrink-0" />
-            }
-            <span className="text-white text-[11px] font-black uppercase tracking-widest">
-              {!isOnline
-                ? 'Sin conexión — los datos no se actualizarán'
-                : 'Conexión restaurada'
-              }
-            </span>
-          </div>
-          {justReconnected && (
-            <button
-              onClick={() => window.location.reload()}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-xl text-white text-[10px] font-black uppercase tracking-widest transition-colors shrink-0"
-            >
-              <FiRefreshCw size={11} />
-              Actualizar
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Búsqueda global */}
       <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />

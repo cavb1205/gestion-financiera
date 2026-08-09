@@ -36,6 +36,7 @@ import {
    formatDiasSinAbono as formatDiasSinAbonoBase,
 } from "../../utils/cartera";
 import Pagination from "../../components/Pagination";
+import { getAppDateString } from "../../utils/datetime";
 
 function formatDiasSinAbono(credito) {
    return formatDiasSinAbonoBase(credito);
@@ -72,12 +73,7 @@ export default function LiquidarCreditosPage() {
 
    // Establecer fecha actual por defecto (workers siempre ven solo hoy)
    useEffect(() => {
-      const today = new Date();
-      const formattedDate = new Date(
-         today.getTime() - today.getTimezoneOffset() * 60000
-      )
-         .toISOString()
-         .split("T")[0];
+      const formattedDate = getAppDateString();
 
       if (isWorker) {
          setSelectedDate(formattedDate);
@@ -315,8 +311,7 @@ export default function LiquidarCreditosPage() {
                   {!isWorker && (
                      <button
                         onClick={() => {
-                           const today = new Date();
-                           const formattedDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+                           const formattedDate = getAppDateString();
                            setSelectedDate(formattedDate);
                         }}
                         className="px-4 py-3 md:px-6 md:py-4 bg-white dark:bg-slate-900 text-slate-500 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-800 font-black text-[10px] uppercase tracking-widest hover:text-emerald-600 transition-all shadow-sm"

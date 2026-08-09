@@ -19,11 +19,10 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { formatAppTime, getAppDateString, shiftAppDate } from "@/app/utils/datetime";
 
 function fechaLocal(desplazamiento = 0) {
-  const date = new Date();
-  date.setDate(date.getDate() + desplazamiento);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return getAppDateString(desplazamiento);
 }
 
 function formatearFecha(valor) {
@@ -46,10 +45,7 @@ function tieneCoordenadas(punto) {
 }
 
 function formatHora(horaStr) {
-  if (!horaStr) return "—";
-  const date = new Date(horaStr);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+  return formatAppTime(horaStr);
 }
 
 const MapaPublicidad = dynamic(() => import("@/app/components/maps/MapaPublicidad"), {
@@ -127,9 +123,7 @@ export default function PublicidadReportePage() {
   }, [authLoading, isAuthenticated, selectedStore, fetchPuntos]);
 
   const navigateDate = (offset) => {
-    const date = new Date(`${selectedDate}T12:00:00`);
-    date.setDate(date.getDate() + offset);
-    setSelectedDate(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`);
+    setSelectedDate(shiftAppDate(selectedDate, offset));
   };
 
   const puntosOrdenados = useMemo(
@@ -279,7 +273,7 @@ export default function PublicidadReportePage() {
         </div>
 
         {error && (
-          <div className="flex items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50 p-4 text-rose-600 dark:border-rose-900/30 dark:bg-rose-900/20">
+          <div role="alert" className="flex items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50 p-4 text-rose-600 dark:border-rose-900/30 dark:bg-rose-900/20">
             <FiAlertTriangle size={17} className="shrink-0" />
             <p className="text-[10px] font-black uppercase tracking-widest">{error}</p>
           </div>

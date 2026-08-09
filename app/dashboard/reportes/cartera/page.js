@@ -26,6 +26,7 @@ import {
   NIVEL_DETERIORO,
 } from "../../../utils/cartera";
 import { toast } from "react-toastify";
+import { getAppDateString } from "../../../utils/datetime";
 
 const numero = (value) => {
   const parsed = Number(value);
@@ -303,7 +304,7 @@ export default function CarteraReportPage() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `cartera_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `cartera_${getAppDateString()}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -355,7 +356,7 @@ export default function CarteraReportPage() {
         </div>
 
         {error && (
-          <div className="mb-8 p-5 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-[2rem] flex items-center gap-4 text-rose-600">
+          <div role="alert" className="mb-8 p-5 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-[2rem] flex items-center gap-4 text-rose-600">
             <FiAlertCircle size={20} className="shrink-0" />
             <p className="text-[11px] font-black uppercase tracking-widest leading-none">{error}</p>
           </div>

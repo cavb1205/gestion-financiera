@@ -3,7 +3,7 @@ import React from 'react';
 import { FiLoader, FiActivity } from 'react-icons/fi';
 
 const LoadingSpinner = () => (
-  <div className="min-h-[400px] w-full flex flex-col items-center justify-center bg-transparent animate-in fade-in duration-500">
+  <div className="min-h-[400px] w-full flex flex-col items-center justify-center bg-transparent animate-in fade-in duration-500" role="status" aria-live="polite" aria-label="Cargando información">
     <div className="relative flex items-center justify-center">
       {/* Outer Pulse */}
       <div className="absolute inset-0 bg-indigo-500/20 dark:bg-indigo-400/10 rounded-full blur-2xl animate-pulse scale-110"></div>

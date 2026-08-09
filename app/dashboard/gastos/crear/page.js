@@ -19,6 +19,7 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../../../utils/format";
+import { getAppDateString } from "../../../utils/datetime";
 
 export default function CrearGastoPage() {
   const { selectedStore, isAuthenticated, loading: authLoading, user } = useAuth();
@@ -47,8 +48,7 @@ export default function CrearGastoPage() {
         const data = await response.json();
         setTiposGasto(Array.isArray(data) ? data : []);
 
-        const today = new Date();
-        const formattedDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+        const formattedDate = getAppDateString();
         setFormData((prev) => ({ ...prev, fecha: formattedDate }));
       } catch (error) {
         toast.error(error.message);

@@ -29,6 +29,7 @@ import LoadingSpinner from "../../components/LoadingSpinner";
 import { useAuth } from "../../context/AuthContext";
 import { apiFetch, getApiError } from "../../utils/api";
 import { formatMoney, parseMoney } from "../../utils/format";
+import { formatAppDateTime, getAppDateDifference, getAppDateString } from "../../utils/datetime";
 import {
   getCuotasAtrasadas,
   getDiasSinAbono,
@@ -133,21 +134,13 @@ function quitarFormatoTelegram(valor = "") {
 }
 
 function fechaCorta(valor) {
-  if (!valor) return "Sin fecha";
-  const fecha = new Date(valor);
-  if (Number.isNaN(fecha.getTime())) return "Sin fecha";
-  return new Intl.DateTimeFormat("es-CO", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(fecha);
+  return valor ? formatAppDateTime(valor) : "Sin fecha";
 }
 
 function fechaRelativa(valor) {
   if (!valor) return "";
-  const fecha = new Date(valor);
-  const dias = Math.floor((Date.now() - fecha.getTime()) / 86400000);
+  const dias = getAppDateDifference(valor);
+  if (dias === null) return "";
   if (dias <= 0) return "Hoy";
   if (dias === 1) return "Ayer";
   return `Hace ${dias} días`;
@@ -169,14 +162,7 @@ function obtenerTextoBusqueda(alerta) {
 }
 
 function fechaLocal(offset = 0) {
-  const fecha = new Date();
-  fecha.setHours(12, 0, 0, 0);
-  fecha.setDate(fecha.getDate() + offset);
-  return [
-    fecha.getFullYear(),
-    String(fecha.getMonth() + 1).padStart(2, "0"),
-    String(fecha.getDate()).padStart(2, "0"),
-  ].join("-");
+  return getAppDateString(offset);
 }
 
 async function leerJsonSeguro(ruta, valorAlternativo) {

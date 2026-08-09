@@ -63,6 +63,7 @@ export default function Pagination({
         <div className="items-center gap-3 hidden sm:flex">
           {onItemsPerPageChange && (
             <select
+              aria-label="Elementos por página"
               className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-widest focus:ring-2 focus:ring-indigo-500/20"
               value={itemsPerPage}
               onChange={(e) => onItemsPerPageChange(parseInt(e.target.value))}
@@ -86,6 +87,8 @@ export default function Pagination({
       {/* Page buttons */}
       <div className="flex items-center gap-1.5 mx-auto sm:mx-0">
         <button
+          type="button"
+          aria-label="Página anterior"
           disabled={currentPage === 1}
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           className={`p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 ${hoverAccent} disabled:opacity-30 transition-all shadow-sm active:scale-95`}
@@ -95,6 +98,9 @@ export default function Pagination({
 
         {getPageNumbers(currentPage, totalPages).map((n) => (
           <button
+            type="button"
+            aria-label={`Ir a la página ${n}`}
+            aria-current={currentPage === n ? "page" : undefined}
             key={n}
             onClick={() => onPageChange(n)}
             className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all active:scale-95 ${
@@ -108,6 +114,8 @@ export default function Pagination({
         ))}
 
         <button
+          type="button"
+          aria-label="Página siguiente"
           disabled={currentPage === totalPages}
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           className={`p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 ${hoverAccent} disabled:opacity-30 transition-all shadow-sm active:scale-95`}

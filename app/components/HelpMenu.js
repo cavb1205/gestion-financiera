@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   FiHelpCircle,
@@ -21,6 +21,15 @@ export default function HelpMenu({ onStartTour, direction = "down", buttonClassN
   const [open, setOpen] = useState(false);
 
   const close = () => setOpen(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   const waHref = SUPPORT_WHATSAPP
     ? `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent("Hola, necesito ayuda con la plataforma.")}`

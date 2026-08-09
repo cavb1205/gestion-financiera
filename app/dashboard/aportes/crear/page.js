@@ -22,6 +22,7 @@ import { toast } from "react-toastify";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import { formatMoney } from "../../../utils/format";
 import { apiFetch, getApiError } from "../../../utils/api";
+import { getAppDateString } from "../../../utils/datetime";
 
 export default function NuevoAportePage() {
   const { selectedStore, loading: authLoading } = useAuth();
@@ -37,7 +38,7 @@ export default function NuevoAportePage() {
 
   const [formData, setFormData] = useState({
     trabajador: "",
-    fecha: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })(),
+    fecha: getAppDateString(),
     valor: "",
     comentario: "",
   });

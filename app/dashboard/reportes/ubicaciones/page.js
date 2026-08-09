@@ -21,11 +21,10 @@ import {
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney, parseMoney } from "@/app/utils/format";
+import { getAppDateString, shiftAppDate } from "@/app/utils/datetime";
 
 function fechaLocal(desplazamiento = 0) {
-  const date = new Date();
-  date.setDate(date.getDate() + desplazamiento);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return getAppDateString(desplazamiento);
 }
 
 function formatearFecha(valor) {
@@ -102,9 +101,7 @@ export default function UbicacionesPage() {
   }, [fetchRecaudos, selectedStore]);
 
   const navigateDate = (offset) => {
-    const date = new Date(`${selectedDate}T12:00:00`);
-    date.setDate(date.getDate() + offset);
-    setSelectedDate(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`);
+    setSelectedDate(shiftAppDate(selectedDate, offset));
   };
 
   const goToToday = () => setSelectedDate(fechaLocal());
@@ -250,7 +247,7 @@ export default function UbicacionesPage() {
         </div>
 
         {error && (
-          <div className="flex items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50 p-4 text-rose-600 dark:border-rose-900/30 dark:bg-rose-900/20">
+          <div role="alert" className="flex items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50 p-4 text-rose-600 dark:border-rose-900/30 dark:bg-rose-900/20">
             <FiAlertTriangle size={17} className="shrink-0" />
             <p className="text-[10px] font-black uppercase tracking-widest">{error}</p>
           </div>

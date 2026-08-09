@@ -13,6 +13,7 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { formatAppDateTime } from "@/app/utils/datetime";
 
 const CAMPOS = [
   { key: "banco", label: "Banco", placeholder: "Ej: Banco Estado" },
@@ -151,7 +152,7 @@ export default function CuentaBancariaPage() {
             {actualizada && (
               <p className="text-[10px] font-bold text-slate-400 mb-5">
                 Última actualización:{" "}
-                {new Date(actualizada).toLocaleString(undefined, {
+                {formatAppDateTime(actualizada, {
                   day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
                 })}
               </p>

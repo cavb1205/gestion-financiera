@@ -25,6 +25,7 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "../../utils/format";
+import { formatAppDate, getAppDateString } from "../../utils/datetime";
 import { apiFetch } from "../../utils/api";
 import Pagination from "../../components/Pagination";
 
@@ -36,10 +37,7 @@ export default function CierreCajaPage() {
   const [cierres, setCierres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  });
+  const [selectedDate, setSelectedDate] = useState(() => getAppDateString());
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -115,10 +113,7 @@ export default function CierreCajaPage() {
     setLoadingResumen(true);
     try {
       const id = selectedStore.tienda.id;
-      const hoyStr = (() => {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      })();
+      const hoyStr = getAppDateString();
       const esHoy = selectedDate === hoyStr;
 
       let datosConsolidados;
@@ -275,8 +270,7 @@ export default function CierreCajaPage() {
   );
 
   const formatDate = (dateStr) => {
-    const date = new Date(dateStr + "T00:00:00");
-    return date.toLocaleDateString("es", {
+    return formatAppDate(dateStr, {
       weekday: "short",
       day: "numeric",
       month: "short",
@@ -286,15 +280,8 @@ export default function CierreCajaPage() {
 
   // Validación: se puede cerrar hoy (sin cierre previo)
   // o ayer (sin cierre previo y sin movimientos hoy — saldo actual = saldo al cierre de ayer)
-  const hoyStr = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  })();
-  const ayerStr = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  })();
+  const hoyStr = getAppDateString();
+  const ayerStr = getAppDateString(-1);
   const yaTieneCierre = cierres.some(c => c.fecha_cierre === selectedDate);
   const esHoy = selectedDate === hoyStr;
   const esAyer = selectedDate === ayerStr;

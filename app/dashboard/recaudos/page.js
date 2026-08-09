@@ -31,6 +31,7 @@ import { SkeletonTableRows } from "@/app/components/Skeleton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatMoney, parseMoney } from "../../utils/format";
+import { formatAppDate, getAppDateString } from "../../utils/datetime";
 import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import Pagination from "../../components/Pagination";
@@ -52,14 +53,7 @@ function diasEntreFechas(fechaInicial, fechaFinal) {
 
 function formatearFechaResumen(fecha) {
   if (!fecha) return "la fecha seleccionada";
-  const [year, month, day] = fecha.split("-").map(Number);
-  if (![year, month, day].every(Number.isFinite)) return fecha;
-
-  return new Intl.DateTimeFormat("es-CL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(year, month - 1, day));
+  return formatAppDate(fecha, { day: "numeric", month: "long", year: "numeric" });
 }
 
 function CumplimientoDiario({ resumen, selectedDate }) {
@@ -182,8 +176,7 @@ export default function RecaudosPage() {
   const [ventasActivas, setVentasActivas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState("");
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const todayStr = getAppDateString();
   const canEditDelete = !isWorker || selectedDate === todayStr;
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -199,13 +192,7 @@ export default function RecaudosPage() {
     if (storedDate) {
       setSelectedDate(storedDate);
     } else {
-      const today = new Date();
-      const formattedDate = new Date(
-        today.getTime() - today.getTimezoneOffset() * 60000
-      )
-        .toISOString()
-        .split("T")[0];
-      setSelectedDate(formattedDate);
+      setSelectedDate(getAppDateString());
     }
   }, []);
 
@@ -456,7 +443,7 @@ export default function RecaudosPage() {
 
           <div className="flex items-center gap-3">
              <button 
-              onClick={() => { const d = new Date(); setSelectedDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`); }}
+              onClick={() => setSelectedDate(getAppDateString())}
               className="px-6 py-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 font-black text-[10px] uppercase tracking-widest hover:text-indigo-600 transition-all shadow-sm"
              >
                Hoy
@@ -562,7 +549,7 @@ export default function RecaudosPage() {
               </div>
 
               <div className="flex-1 w-full space-y-2">
-                 <label htmlFor="busqueda-recaudos" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Auditores de Búsqueda</label>
+                 <label htmlFor="busqueda-recaudos" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Buscar recaudos</label>
                  <div className="relative group">
                     <FiSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
                     <input
@@ -798,9 +785,9 @@ export default function RecaudosPage() {
                     <FiShield size={28} />
                  </div>
                  <div>
-                    <h4 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">Protocolo de Auditoría de Campo</h4>
+                    <h4 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">Historial de recaudos</h4>
                     <p className="text-xs font-bold text-slate-400 leading-relaxed uppercase tracking-tighter">
-                       Todos los recaudos aquí listados han sido registrados por los cobradores en tiempo real. Cualquier ajuste realizado por supervisión queda registrado con un hash de auditoría inmutable en el historial central.
+                       Aquí puedes revisar los recaudos registrados por el equipo y los ajustes realizados por supervisión. Usa la fecha y el buscador para encontrar rápidamente un movimiento.
                     </p>
                  </div>
               </div>

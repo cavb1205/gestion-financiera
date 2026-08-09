@@ -36,6 +36,7 @@ import { formatMoney, calcularTotal, calcularCuota } from "../../../utils/format
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-toastify";
+import { getAppDateString, parseAppDate } from "../../../utils/datetime";
 
 function NuevaVentaContent() {
   const router = useRouter();
@@ -51,7 +52,7 @@ function NuevaVentaContent() {
   };
 
   const [formData, setFormData] = useState({
-    fecha_venta: new Date(),
+    fecha_venta: parseAppDate(getAppDateString()),
     valor_venta: "",
     interes: 20,
     cuotas: 20,

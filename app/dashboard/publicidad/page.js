@@ -8,6 +8,7 @@ import { FiMapPin, FiPlus, FiTrash2, FiRefreshCw, FiClock, FiX } from "react-ico
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { useRouter } from "next/navigation";
+import { formatAppTime, getAppDateString } from "@/app/utils/datetime";
 
 export default function PublicidadPage() {
   const { selectedStore, user, isAuthenticated, loading: authLoading } = useAuth();
@@ -63,9 +64,7 @@ export default function PublicidadPage() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
-  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-    .toISOString()
-    .split("T")[0];
+  const today = getAppDateString();
 
   const fetchPuntos = useCallback(async () => {
     if (!selectedStore || !isAuthenticated) return;
@@ -138,8 +137,7 @@ export default function PublicidadPage() {
 
   const formatHora = (horaStr) => {
     if (!horaStr) return "—";
-    const d = new Date(horaStr);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return formatAppTime(horaStr);
   };
 
   if (authLoading) return <LoadingSpinner />;
@@ -162,7 +160,9 @@ export default function PublicidadPage() {
           </div>
         </div>
         <button
+          type="button"
           onClick={fetchPuntos}
+          aria-label="Actualizar puntos de publicidad"
           className="p-3 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
         >
           <FiRefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
@@ -182,7 +182,9 @@ export default function PublicidadPage() {
             </p>
           </div>
           <button
+            type="button"
             onClick={() => setGpsBannerDismissed(true)}
+            aria-label="Cerrar aviso de ubicación"
             className="text-rose-300 hover:text-rose-500 transition-colors shrink-0 text-lg leading-none"
           >
             &times;

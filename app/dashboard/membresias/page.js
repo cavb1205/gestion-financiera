@@ -25,6 +25,7 @@ import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../../utils/format";
 import { apiFetch, getApiError } from "../../utils/api";
+import { formatAppDate, getAppDateDifference, shiftAppDate } from "../../utils/datetime";
 
 const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "";
 
@@ -319,21 +320,19 @@ export default function MembresiasPage() {
 
   const getMembresiaInfo = () => {
     if (!membresia) return { days: 0, graceDays: 0, memStatus: "expired" };
-    const vence = parseFechaLocal(membresia.fecha_vencimiento);
-    if (!vence) return { days: 0, graceDays: 0, memStatus: "expired" };
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    const preactivadaHasta = parseFechaLocal(membresia.pre_activada_hasta);
+    const vencimiento = membresia.fecha_vencimiento;
+    const vencimientoDiff = getAppDateDifference(vencimiento);
+    if (vencimientoDiff === null) return { days: 0, graceDays: 0, memStatus: "expired" };
+    const preactivadaDiff = getAppDateDifference(membresia.pre_activada_hasta);
     const preactivadaVigente = membresia.estado === "Pre-activada"
-      && preactivadaHasta
-      && preactivadaHasta >= hoy;
-    const pendientePago = new Date(vence); pendientePago.setDate(pendientePago.getDate() + 1);
-    const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 2);
-    const days = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24));
-    const graceDays = Math.ceil((vencida - hoy) / (1000 * 60 * 60 * 24));
+      && preactivadaDiff !== null
+      && preactivadaDiff <= 0;
+    const days = -vencimientoDiff;
+    const graceDays = -getAppDateDifference(shiftAppDate(vencimiento, 2));
     let memStatus;
     if (preactivadaVigente) memStatus = "preactive";
-    else if (hoy >= vencida) memStatus = "expired";
-    else if (hoy >= pendientePago) memStatus = "grace";
+    else if (days <= -2) memStatus = "expired";
+    else if (days <= -1) memStatus = "grace";
     else if (days === 0) memStatus = "today";
     else memStatus = days <= 3 ? "warn" : "ok";
     return { days, graceDays, memStatus };
@@ -351,11 +350,7 @@ export default function MembresiasPage() {
   };
 
   const formatDate = (dateStr) => {
-    const date = parseFechaLocal(dateStr);
-    if (!date) return "—";
-    return date.toLocaleDateString("es-CL", {
-      day: "numeric", month: "short", year: "numeric",
-    });
+    return formatAppDate(dateStr, { day: "numeric", month: "short", year: "numeric" });
   };
 
   if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;

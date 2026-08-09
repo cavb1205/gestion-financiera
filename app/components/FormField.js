@@ -1,11 +1,15 @@
 "use client";
 
 // Wrapper: label + arbitrary input/select/textarea + inline error message
-export default function FormField({ label, error, children, className = "" }) {
+export default function FormField({ label, id, error, children, className = "" }) {
+  const fieldId = id || children?.props?.id;
   return (
     <div className={`space-y-1.5 ${className}`}>
       {label && (
-        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
+        <label
+          htmlFor={fieldId}
+          className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1"
+        >
           {label}
         </label>
       )}

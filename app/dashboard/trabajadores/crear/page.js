@@ -162,21 +162,21 @@ export default function CrearTrabajadorPage() {
                       </FormField>
                     </div>
 
-                    <FormField label="Documento *" error={errors.identificacion}>
+                    <FormField id="identificacion" label="Documento *" error={errors.identificacion}>
                       <div className="relative">
                         <FiCreditCard className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                         <input id="identificacion" type="text" name="identificacion" value={values.identificacion} onChange={handleChange} placeholder="Número de identificación" className={inputClass(!!errors.identificacion, "pl-12 pr-5")} />
                       </div>
                     </FormField>
 
-                    <FormField label="Teléfono">
+                    <FormField id="telefono" label="Teléfono">
                       <div className="relative">
                         <FiPhone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                         <input id="telefono" type="tel" name="telefono" value={values.telefono} onChange={handleChange} className={inputClass(false, "pl-12 pr-5")} />
                       </div>
                     </FormField>
 
-                    <FormField label="Dirección">
+                    <FormField id="direccion" label="Dirección">
                       <div className="relative">
                         <FiMapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                         <input id="direccion" type="text" name="direccion" value={values.direccion} onChange={handleChange} className={inputClass(false, "pl-12 pr-5")} />

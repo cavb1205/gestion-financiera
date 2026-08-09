@@ -35,6 +35,7 @@ import LoadingSpinner from "../../../components/LoadingSpinner";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import EditarRecaudo from "@/app/components/recaudos/EditarRecaudo";
 import { toast } from "react-toastify";
+import { getAppDateString } from "../../../utils/datetime";
 
 export default function VentaDetailPage() {
   const router = useRouter();
@@ -103,8 +104,7 @@ export default function VentaDetailPage() {
       parseMoney(venta.saldo_actual),
       parseMoney(venta.valor_cuota)
     );
-    const today = new Date();
-    const selectedDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+    const selectedDate = getAppDateString();
 
     const abono = {
       fecha_recaudo: selectedDate,
@@ -212,8 +212,7 @@ export default function VentaDetailPage() {
   };
 
   const todayISO = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return getAppDateString();
   };
 
   const openRenovarModal = () => {
@@ -314,9 +313,7 @@ export default function VentaDetailPage() {
     const promedio = parseMoney(venta?.promedio_pago);
     if (promedio <= 0 || saldo <= 0) return null;
     const diasRestantes = Math.ceil(saldo / promedio);
-    const fecha = new Date();
-    fecha.setDate(fecha.getDate() + diasRestantes);
-    return fecha.toISOString().split("T")[0];
+    return getAppDateString(diasRestantes);
   })();
 
   // ID del pago más reciente
