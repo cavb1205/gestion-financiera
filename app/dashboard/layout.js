@@ -266,6 +266,23 @@ export default function DashboardLayout({ children }) {
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
 
+      // Una preactivación vigente concede acceso temporal aunque la fecha
+      // del plan anterior ya haya vencido. La solicitud queda pendiente de
+      // confirmación, pero el usuario no debe ser expulsado del sistema.
+      const preactivadaHasta = selectedStore.pre_activada_hasta
+        ? new Date(`${selectedStore.pre_activada_hasta}T00:00:00`)
+        : null;
+      const preactivadaVigente = selectedStore.estado === 'Pre-activada'
+        && preactivadaHasta
+        && preactivadaHasta >= hoy;
+      if (preactivadaVigente) {
+        setIsExpired(false);
+        setIsGrace(false);
+        setDaysRemaining(null);
+        setGraceDaysRemaining(Math.ceil((preactivadaHasta - hoy) / (1000 * 60 * 60 * 24)) + 1);
+        return;
+      }
+
       // Espejo exacto del backend: pendiente_pago = vencimiento+1d, vencida = vencimiento+2d
       const pendientePagoDate = new Date(vencimiento);
       pendientePagoDate.setDate(pendientePagoDate.getDate() + 1);

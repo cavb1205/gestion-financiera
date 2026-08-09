@@ -48,11 +48,15 @@ const calcDiasRestantes = (s) => {
 };
 
 // Espejo del backend: Activa → Pendiente Pago (gracia 1d) → Vencida (bloqueo V+2)
-const calcEstadoMembresia = (s) => {
+const calcEstadoMembresia = (s, estado, preActivadaHasta) => {
   if (!s) return "ok";
   const [y, m, d] = s.split("-").map(Number);
   const vence = new Date(y, m - 1, d);
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const preHasta = preActivadaHasta
+    ? new Date(`${preActivadaHasta}T00:00:00`)
+    : null;
+  if (estado === "Pre-activada" && preHasta && preHasta >= hoy) return "preactive";
   const pendientePago = new Date(vence); pendientePago.setDate(pendientePago.getDate() + 1);
   const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 2);
   if (hoy >= vencida) return "expired";
@@ -149,6 +153,8 @@ export default function DashboardPage() {
       tienda: selectedStore.tienda,
       membresia: selectedStore.membresia,
       fecha_vencimiento: selectedStore.fecha_vencimiento,
+      estado: selectedStore.estado,
+      pre_activada_hasta: selectedStore.pre_activada_hasta,
     });
     fetchTienda();
     fetchAlertas();
@@ -170,7 +176,11 @@ export default function DashboardPage() {
 
   const t = tienda.tienda;
   const dias = calcDiasRestantes(tienda.fecha_vencimiento);
-  const memStatus = calcEstadoMembresia(tienda.fecha_vencimiento);
+  const memStatus = calcEstadoMembresia(
+    tienda.fecha_vencimiento,
+    tienda.estado,
+    tienda.pre_activada_hasta
+  );
   const cajaPositiva = (t.caja ?? 0) >= 0;
 
   // Ruta nueva: aún sin ventas (históricas ni activas) — se atenúa la "pared de ceros".
@@ -264,7 +274,13 @@ export default function DashboardPage() {
                   ? "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400"
                   : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
             }`}>
-              {memStatus === "ok" ? `Plan ${tienda.membresia?.nombre}` : memStatus === "grace" ? "Período de gracia" : dias <= 0 ? "Vence hoy" : `${dias}d para vencer`}
+              {memStatus === "ok"
+                ? `Plan ${tienda.membresia?.nombre}`
+                : memStatus === "preactive"
+                  ? "Pago en validación"
+                  : memStatus === "grace"
+                    ? "Período de gracia"
+                    : dias <= 0 ? "Vence hoy" : `${dias}d para vencer`}
             </span>
           </div>
         </div>

@@ -24,7 +24,7 @@ import {
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../../utils/format";
-import { apiFetch } from "../../utils/api";
+import { apiFetch, getApiError } from "../../utils/api";
 
 const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "";
 
@@ -39,7 +39,7 @@ function CopyButton({ value, small }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(value);
+      await navigator.clipboard.writeText(String(value ?? ""));
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -99,16 +99,29 @@ function SupportButton({ tienda, quien }) {
   );
 }
 
+function parseFechaLocal(dateStr) {
+  if (!dateStr || typeof dateStr !== "string") return null;
+  const [year, month, day] = dateStr.split("-").map(Number);
+  if (![year, month, day].every(Number.isFinite)) return null;
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export default function MembresiasPage() {
   const router = useRouter();
   const { selectedStore, profile, isAuthenticated, loading: authLoading, refreshSelectedStore } = useAuth();
   const [membresia, setMembresia] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [membershipError, setMembershipError] = useState("");
+  const [planes, setPlanes] = useState([]);
+  const [planesLoading, setPlanesLoading] = useState(true);
   const [requesting, setRequesting] = useState(null); // 'Mensual' | 'Anual'
   const [solicitud, setSolicitud] = useState(null);
+  const [solicitudLoading, setSolicitudLoading] = useState(true);
   const [comprobante, setComprobante] = useState(null);
   const [comprobantePreview, setComprobantePreview] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [canceling, setCanceling] = useState(false);
   const pollingRef = useRef(null);
 
   const fetchMembresia = useCallback(async () => {
@@ -116,10 +129,13 @@ export default function MembresiasPage() {
     try {
       setIsLoading(true);
       const response = await apiFetch(`/tiendas/detail/admin/${selectedStore.tienda.id}/`);
-      if (!response.ok) throw new Error("No se pudo cargar la membresía.");
+      if (!response.ok) throw new Error(await getApiError(response, "No se pudo cargar la membresía."));
       const data = await response.json();
       setMembresia(data);
+      setMembershipError("");
     } catch (error) {
+      setMembresia(null);
+      setMembershipError(error.message || "No se pudo cargar la membresía.");
       toast.error(error.message);
     } finally {
       setIsLoading(false);
@@ -129,6 +145,23 @@ export default function MembresiasPage() {
   useEffect(() => {
     fetchMembresia();
   }, [fetchMembresia]);
+
+  const fetchPlanes = useCallback(async () => {
+    setPlanesLoading(true);
+    try {
+      const response = await apiFetch("/tiendas/planes/");
+      if (!response.ok) throw new Error(await getApiError(response, "No se pudieron cargar los precios."));
+      const data = await response.json();
+      setPlanes(
+        (Array.isArray(data) ? data : []).filter((plan) => ["Mensual", "Anual"].includes(plan.nombre))
+      );
+    } catch (error) {
+      setPlanes([]);
+      toast.error(error.message || "No se pudieron cargar los precios.");
+    } finally {
+      setPlanesLoading(false);
+    }
+  }, []);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -148,12 +181,12 @@ export default function MembresiasPage() {
         stopPolling();
         toast.success("✅ Pago confirmado. Tu membresía está activa.");
         await refreshSelectedStore?.();
-        fetchMembresia();
+        await fetchMembresia();
       } else if (data.estado === "rechazada") {
         stopPolling();
         toast.error(`❌ Pago rechazado: ${data.motivo_rechazo || "verifica el comprobante."}`);
         await refreshSelectedStore?.();
-        fetchMembresia();
+        await fetchMembresia();
       } else if (data.estado === "expirada") {
         stopPolling();
         fetchMembresia();
@@ -166,7 +199,38 @@ export default function MembresiasPage() {
     pollingRef.current = setInterval(() => handleSolicitudUpdate(codigo), 10000);
   }, [stopPolling, handleSolicitudUpdate]);
 
+  const fetchSolicitudActual = useCallback(async () => {
+    if (!selectedStore) return;
+    setSolicitudLoading(true);
+    try {
+      const response = await apiFetch(
+        `/tiendas/solicitud-pago/actual/t/${selectedStore.tienda.id}/`
+      );
+      if (!response.ok) throw new Error(await getApiError(response, "No se pudo recuperar la solicitud."));
+      const data = await response.json();
+      const actual = data.solicitud || null;
+      setSolicitud(actual);
+      if (actual?.estado === "pendiente_confirmacion") startPolling(actual.codigo);
+    } catch (error) {
+      console.error("Error al recuperar solicitud de membresía:", error);
+      setSolicitud(null);
+    } finally {
+      setSolicitudLoading(false);
+    }
+  }, [selectedStore, startPolling]);
+
   useEffect(() => () => stopPolling(), [stopPolling]);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && selectedStore) {
+      fetchPlanes();
+      fetchSolicitudActual();
+    }
+  }, [authLoading, isAuthenticated, selectedStore, fetchPlanes, fetchSolicitudActual]);
+
+  useEffect(() => () => {
+    if (comprobantePreview) URL.revokeObjectURL(comprobantePreview);
+  }, [comprobantePreview]);
 
   const solicitarPago = async (plan) => {
     setRequesting(plan);
@@ -176,11 +240,11 @@ export default function MembresiasPage() {
         body: JSON.stringify({ plan, tienda_id: selectedStore.tienda.id }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Error al generar el código de pago.");
+        throw new Error(await getApiError(res, "Error al generar el código de pago."));
       }
       const data = await res.json();
-      setSolicitud({ ...data, estado: "pendiente" });
+      setSolicitud(data);
+      if (data.estado === "pendiente_confirmacion") startPolling(data.codigo);
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -199,6 +263,7 @@ export default function MembresiasPage() {
       toast.error("La imagen no debe superar 5 MB.");
       return;
     }
+    if (comprobantePreview) URL.revokeObjectURL(comprobantePreview);
     setComprobante(file);
     setComprobantePreview(URL.createObjectURL(file));
   };
@@ -217,13 +282,12 @@ export default function MembresiasPage() {
         body: fd,
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "No se pudo enviar el comprobante.");
+        throw new Error(await getApiError(res, "No se pudo enviar el comprobante."));
       }
       const data = await res.json();
-      setSolicitud(prev => ({ ...prev, estado: data.estado }));
+      setSolicitud(prev => ({ ...prev, estado: data.estado, pre_activada_hasta: data.pre_activada_hasta }));
       await refreshSelectedStore?.();
-      fetchMembresia();
+      await fetchMembresia();
       startPolling(solicitud.codigo);
     } catch (error) {
       toast.error(error.message);
@@ -232,8 +296,22 @@ export default function MembresiasPage() {
     }
   };
 
-  const cancelarSolicitud = () => {
+  const cancelarSolicitud = async () => {
+    if (solicitud?.estado === "pendiente") {
+      setCanceling(true);
+      try {
+        const response = await apiFetch(`/tiendas/solicitud-pago/${solicitud.codigo}/cancelar/`, { method: "POST" });
+        if (!response.ok) throw new Error(await getApiError(response, "No se pudo cancelar la solicitud."));
+      } catch (error) {
+        toast.error(error.message);
+        setCanceling(false);
+        return;
+      } finally {
+        setCanceling(false);
+      }
+    }
     stopPolling();
+    if (comprobantePreview) URL.revokeObjectURL(comprobantePreview);
     setSolicitud(null);
     setComprobante(null);
     setComprobantePreview(null);
@@ -241,15 +319,20 @@ export default function MembresiasPage() {
 
   const getMembresiaInfo = () => {
     if (!membresia) return { days: 0, graceDays: 0, memStatus: "expired" };
-    const [y, m, d] = membresia.fecha_vencimiento.split("-").map(Number);
-    const vence = new Date(y, m - 1, d);
+    const vence = parseFechaLocal(membresia.fecha_vencimiento);
+    if (!vence) return { days: 0, graceDays: 0, memStatus: "expired" };
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const preactivadaHasta = parseFechaLocal(membresia.pre_activada_hasta);
+    const preactivadaVigente = membresia.estado === "Pre-activada"
+      && preactivadaHasta
+      && preactivadaHasta >= hoy;
     const pendientePago = new Date(vence); pendientePago.setDate(pendientePago.getDate() + 1);
     const vencida = new Date(vence); vencida.setDate(vencida.getDate() + 2);
     const days = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24));
     const graceDays = Math.ceil((vencida - hoy) / (1000 * 60 * 60 * 24));
     let memStatus;
-    if (hoy >= vencida) memStatus = "expired";
+    if (preactivadaVigente) memStatus = "preactive";
+    else if (hoy >= vencida) memStatus = "expired";
     else if (hoy >= pendientePago) memStatus = "grace";
     else if (days === 0) memStatus = "today";
     else memStatus = days <= 3 ? "warn" : "ok";
@@ -258,8 +341,9 @@ export default function MembresiasPage() {
 
   const getPeriodProgress = () => {
     if (!membresia) return 0;
-    const inicio = new Date(membresia.fecha_activacion);
-    const fin = new Date(membresia.fecha_vencimiento);
+    const inicio = parseFechaLocal(membresia.fecha_activacion);
+    const fin = parseFechaLocal(membresia.fecha_vencimiento);
+    if (!inicio || !fin || fin <= inicio) return 0;
     const hoy = new Date();
     const total = fin - inicio;
     const elapsed = hoy - inicio;
@@ -267,9 +351,9 @@ export default function MembresiasPage() {
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return "—";
-    const [y, m, d] = dateStr.split("-").map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    const date = parseFechaLocal(dateStr);
+    if (!date) return "—";
+    return date.toLocaleDateString("es-CL", {
       day: "numeric", month: "short", year: "numeric",
     });
   };
@@ -285,19 +369,39 @@ export default function MembresiasPage() {
     );
   }
 
+  if (membershipError || !membresia) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center px-6 text-center">
+        <FiAlertCircle className="text-rose-500 mb-4" size={42} />
+        <p className="text-lg font-black text-slate-800 dark:text-white uppercase">No se pudo cargar la membresía</p>
+        <p className="text-xs text-slate-400 mt-2 max-w-sm">{membershipError || "La ruta no tiene una membresía configurada."}</p>
+        <button
+          onClick={fetchMembresia}
+          className="mt-6 px-5 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
+
   const { days: daysRemaining, graceDays, memStatus } = getMembresiaInfo();
   const periodProgress = getPeriodProgress();
   const statusCfg = STATUS_CONFIG[membresia?.estado] || STATUS_CONFIG["Activa"];
   const planNombre = membresia?.membresia?.nombre || "—";
+  const planMensual = planes.find((plan) => plan.nombre === "Mensual");
+  const planAnual = planes.find((plan) => plan.nombre === "Anual");
 
   const daysColor = memStatus === "ok"
     ? { bar: "bg-emerald-500", text: "text-emerald-600" }
-    : memStatus === "warn" || memStatus === "today"
+    : memStatus === "warn" || memStatus === "today" || memStatus === "preactive"
       ? { bar: "bg-amber-500", text: "text-amber-600" }
       : { bar: "bg-rose-500", text: "text-rose-600" };
 
   const daysLabel = memStatus === "expired"
     ? "Acceso bloqueado"
+    : memStatus === "preactive"
+      ? `Acceso temporal · confirma antes del ${formatDate(membresia.pre_activada_hasta)}`
     : memStatus === "grace"
       ? `Gracia · ${graceDays} día${graceDays !== 1 ? "s" : ""} para bloqueo`
       : memStatus === "today"
@@ -329,7 +433,8 @@ export default function MembresiasPage() {
           </div>
           <button
             onClick={fetchMembresia}
-            className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm"
+            disabled={isLoading}
+            className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FiRefreshCw size={18} />
           </button>
@@ -344,7 +449,7 @@ export default function MembresiasPage() {
                   <FiShield className="text-white" size={22} />
                 </div>
                 <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Plan Activo</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Plan actual</p>
                   <p className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">{planNombre}</p>
                 </div>
               </div>
@@ -425,10 +530,11 @@ export default function MembresiasPage() {
                 </div>
                 <button
                   onClick={cancelarSolicitud}
+                  disabled={canceling}
                   className="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/20"
                   title="Cancelar"
                 >
-                  <FiX size={16} />
+                  {canceling ? <FiLoader size={16} className="animate-spin" /> : <FiX size={16} />}
                 </button>
               </div>
 
@@ -590,6 +696,8 @@ export default function MembresiasPage() {
               <p className="text-[10px] font-black text-rose-700 dark:text-rose-400 uppercase tracking-tight">
                 {solicitud.estado === "expirada"
                   ? "El código expiró — genera uno nuevo."
+                  : solicitud.estado === "cancelada"
+                    ? "Solicitud cancelada. Puedes elegir otro plan."
                   : `Pago rechazado: ${solicitud.motivo_rechazo || "verifica el comprobante e intenta de nuevo."}`}
               </p>
             </div>
@@ -618,14 +726,13 @@ export default function MembresiasPage() {
                     </div>
                     <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">Plan Mensual</h3>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-5">Acceso completo por 30 días</p>
-                    {membresia?.membresia?.nombre === "Mensual" && (
-                      <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter mb-5">
-                        {formatMoney(membresia.membresia.precio)}<span className="text-[11px] font-black text-slate-400 ml-1">/ mes</span>
-                      </p>
-                    )}
+                    <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter mb-5">
+                      {planesLoading ? "Cargando..." : planMensual ? formatMoney(planMensual.precio) : "No disponible"}
+                      {!planesLoading && planMensual && <span className="text-[11px] font-black text-slate-400 ml-1">/ mes</span>}
+                    </p>
                     <button
                       onClick={() => solicitarPago("Mensual")}
-                      disabled={!!requesting}
+                      disabled={!!requesting || solicitudLoading || !planMensual}
                       className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {requesting === "Mensual" ? <FiLoader size={15} className="animate-spin" /> : <FiZap size={15} />}
@@ -647,14 +754,13 @@ export default function MembresiasPage() {
                     </div>
                     <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">Plan Anual</h3>
                     <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-5">Acceso completo por un año</p>
-                    {membresia?.membresia?.nombre === "Anual" && (
-                      <p className="text-2xl font-black text-white tracking-tighter mb-5">
-                        {formatMoney(membresia.membresia.precio)}<span className="text-[11px] font-black text-white/50 ml-1">/ año</span>
-                      </p>
-                    )}
+                    <p className="text-2xl font-black text-white tracking-tighter mb-5">
+                      {planesLoading ? "Cargando..." : planAnual ? formatMoney(planAnual.precio) : "No disponible"}
+                      {!planesLoading && planAnual && <span className="text-[11px] font-black text-white/50 ml-1">/ año</span>}
+                    </p>
                     <button
                       onClick={() => solicitarPago("Anual")}
-                      disabled={!!requesting}
+                      disabled={!!requesting || solicitudLoading || !planAnual}
                       className="w-full py-3.5 bg-white text-slate-900 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {requesting === "Anual" ? <FiLoader size={15} className="animate-spin" /> : <FiStar size={15} />}
