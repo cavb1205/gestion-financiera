@@ -17,7 +17,7 @@ import { formatMoney } from "../../utils/format";
 export default function ResumenDia({ tienda, loading = false }) {
   const [showTooltip, setShowTooltip] = useState(null);
 
-  // Calcular utilidad del día (20% de las ventas netas menos gastos)
+  // Es una estimación: las ventas del día pueden seguir pendientes de cobro.
   const utilidadDia = tienda
     ? tienda.tienda.utilidad_estimada_dia - tienda.tienda.gastos_dia
     : 0;
@@ -70,7 +70,7 @@ export default function ResumenDia({ tienda, loading = false }) {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Control de Caja</p>
         </div>
         <div className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tighter">
-          {new Date().toLocaleDateString("es-ES", { day: '2-digit', month: 'short' })}
+          {new Intl.DateTimeFormat("es-CL", { timeZone: "America/Santiago", day: "2-digit", month: "short" }).format(new Date())}
         </div>
       </div>
 
@@ -126,14 +126,15 @@ export default function ResumenDia({ tienda, loading = false }) {
         <div className="pt-8 border-t border-slate-200/50 dark:border-slate-800/50">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Spread Diario</h3>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Resultado estimado</h3>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">Interés estimado − gastos del día</p>
               <div className="flex items-baseline gap-2">
                 <p className={`text-3xl font-black ${utilidadDia >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"}`}>
                   {formatMoney(utilidadDia)}
                 </p>
                 {margenUtilidad !== 0 && (
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${margenUtilidad >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"}`}>
-                    {margenUtilidad >= 0 ? '+' : ''}{margenUtilidad.toFixed(1)}%
+                    {margenUtilidad >= 0 ? '+' : ''}{margenUtilidad.toFixed(1)}% sobre capital
                   </span>
                 )}
               </div>
@@ -153,7 +154,7 @@ export default function ResumenDia({ tienda, loading = false }) {
                   <div className="p-1.5 bg-purple-500/20 rounded-lg">
                     <FiUsers className="text-purple-600 dark:text-purple-400 text-sm" />
                   </div>
-                  <span className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest">Payout Socios</span>
+                  <span className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest">Retiros de socios</span>
                 </div>
                 <span className="text-sm font-black text-purple-600 dark:text-purple-300">-{formatMoney(gananciasRetiradas)}</span>
               </div>
@@ -164,7 +165,7 @@ export default function ResumenDia({ tienda, loading = false }) {
                   <div className="p-1.5 bg-indigo-500/20 rounded-lg">
                     <FiCreditCard className="text-indigo-600 dark:text-indigo-400 text-sm" />
                   </div>
-                  <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">Inyección K</span>
+                  <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">Aportes de capital</span>
                 </div>
                 <span className="text-sm font-black text-indigo-600 dark:text-indigo-300">+{formatMoney(tienda.tienda.aportes_dia)}</span>
               </div>

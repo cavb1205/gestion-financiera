@@ -63,7 +63,9 @@ export default function GraficoDona({ data }) {
 
     // Determinar la etiqueta de utilidad según la pestaña
     const utilidadLabel =
-      activeTab === "general" ? "Utilidad Real" : "Utilidad Estimada";
+      activeTab === "general" ? "Interés cobrado" : "Interés estimado";
+    const resultadoLabel =
+      activeTab === "general" ? "Resultado neto real" : "Resultado estimado";
 
     // Datos para el gráfico de dona
     const chartDataConfig = {
@@ -106,6 +108,7 @@ export default function GraficoDona({ data }) {
       ventasNetas,
       margen: utilidad > 0 ? (beneficioNeto / utilidad) * 100 : 0,
       utilidadLabel,
+      resultadoLabel,
     });
   }, [data, activeTab]);
 
@@ -162,6 +165,14 @@ export default function GraficoDona({ data }) {
     return "$" + numValue.toFixed(0);
   };
 
+  const caja = parseFloat(data.tienda.caja) || 0;
+  const dineroPorCobrar = parseFloat(data.tienda.dinero_x_cobrar) || 0;
+  const recursosCortoPlazo = Math.max(0, caja) + Math.max(0, dineroPorCobrar);
+  const porcentajeLiquidez = recursosCortoPlazo > 0
+    ? (Math.max(0, caja) / recursosCortoPlazo) * 100
+    : 0;
+  const cajaNegativa = caja < 0;
+
   return (
     <div className="lg:col-span-2 glass rounded-[2.5rem] p-8 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(79,70,229,0.1)] border-indigo-500/10 group">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
@@ -210,12 +221,12 @@ export default function GraficoDona({ data }) {
             />
             {/* Center Summary */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Utilidad</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{chartData.resultadoLabel}</span>
               <span className={`text-2xl font-black ${chartData.beneficioNeto >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
                 {formatCurrency(chartData.beneficioNeto)}
               </span>
               <span className="text-[9px] font-black px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500 mt-1">
-                {chartData.margen.toFixed(1)}% Margen
+                {chartData.margen.toFixed(1)}% sobre interés
               </span>
             </div>
           </div>
@@ -228,7 +239,7 @@ export default function GraficoDona({ data }) {
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
              <div className="p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50 hover:border-indigo-500/20 transition-colors">
                <div className="flex justify-between items-center mb-1">
-                 <span className="text-[10px] font-bold text-slate-500 uppercase">Input Total</span>
+                 <span className="text-[10px] font-bold text-slate-500 uppercase">Interés base</span>
                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                </div>
                <p className="text-xl font-black text-slate-800 dark:text-white">{formatCurrency(chartData.utilidad)}</p>
@@ -259,13 +270,13 @@ export default function GraficoDona({ data }) {
                  : 'bg-rose-50/30 dark:bg-rose-950/20 border-rose-500/20'
              }`}>
                <div className="flex justify-between items-center mb-1">
-                 <span className="text-[10px] font-bold text-slate-500 uppercase">Spread</span>
+                 <span className="text-[10px] font-bold text-slate-500 uppercase">Resultado</span>
                  <FiTrendingUp className={chartData.beneficioNeto >= 0 ? 'text-emerald-500' : 'text-rose-500'} />
                </div>
                <p className={`text-xl font-black ${chartData.beneficioNeto >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
                  {formatCurrency(chartData.beneficioNeto)}
                </p>
-               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Beneficio Neto Real</span>
+               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{chartData.resultadoLabel}</span>
              </div>
            </div>
 
@@ -285,16 +296,16 @@ export default function GraficoDona({ data }) {
         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 text-center sm:text-left">Gestión de Liquidez Instantánea</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="relative overflow-hidden p-6 rounded-[2rem] bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-800/20 group/card">
+          <div className={`relative overflow-hidden p-6 rounded-[2rem] border group/card ${cajaNegativa ? "bg-rose-50/50 dark:bg-rose-950/10 border-rose-100 dark:border-rose-800/20" : "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-800/20"}`}>
             <div className="absolute top-0 right-0 p-8 opacity-10 group-hover/card:scale-125 transition-transform duration-700">
-              <FiDollarSign className="text-8xl text-emerald-600" />
+              <FiDollarSign className={`text-8xl ${cajaNegativa ? "text-rose-600" : "text-emerald-600"}`} />
             </div>
             <div className="relative">
-              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block mb-2">Efectivo en Caja</span>
-              <p className="text-4xl font-black text-slate-800 dark:text-white mb-2">{formatMoney(data.tienda.caja)}</p>
+              <span className={`text-[10px] font-black uppercase tracking-widest block mb-2 ${cajaNegativa ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>Caja disponible</span>
+              <p className="text-4xl font-black text-slate-800 dark:text-white mb-2">{formatMoney(caja)}</p>
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[9px] font-black text-emerald-700 dark:text-emerald-300 uppercase">Status: Operativo</span>
-                <span className="text-[10px] font-bold text-slate-400 italic">Fondos disponibles</span>
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${cajaNegativa ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300" : "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"}`}>Status: {cajaNegativa ? "Revisar" : "Operativo"}</span>
+                <span className="text-[10px] font-bold text-slate-400 italic">{cajaNegativa ? "Saldo negativo" : "Fondos disponibles"}</span>
               </div>
             </div>
           </div>
@@ -305,7 +316,7 @@ export default function GraficoDona({ data }) {
             </div>
             <div className="relative">
               <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-2">Cartera x Cobrar</span>
-              <p className="text-4xl font-black text-slate-800 dark:text-white mb-2">{formatMoney(data.tienda.dinero_x_cobrar)}</p>
+              <p className="text-4xl font-black text-slate-800 dark:text-white mb-2">{formatMoney(dineroPorCobrar)}</p>
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-[9px] font-black text-indigo-700 dark:text-indigo-300 uppercase">Flujo Pendiente</span>
                 <span className="text-[10px] font-bold text-slate-400 italic">Créditos en curso</span>
@@ -323,14 +334,14 @@ export default function GraficoDona({ data }) {
             </div>
             <div className="text-right">
               <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
-                {((data.tienda.caja / (data.tienda.caja + data.tienda.dinero_x_cobrar)) * 100).toFixed(1)}%
+                {porcentajeLiquidez.toFixed(1)}%
               </span>
             </div>
           </div>
           <div className="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden p-1 border border-slate-300 dark:border-slate-700">
             <div 
               className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-1000" 
-              style={{ width: `${Math.min(100, (data.tienda.caja / (data.tienda.caja + data.tienda.dinero_x_cobrar)) * 100)}%` }}
+              style={{ width: `${Math.min(100, porcentajeLiquidez)}%` }}
             ></div>
           </div>
         </div>

@@ -14,7 +14,7 @@ import { formatMoney } from "../../utils/format";
 
 export default function ResumenGeneral({ tienda }) {
   const [showTooltip, setShowTooltip] = useState(null);
-  // Calcular porcentajes en relación a los ingresos por ventas
+  // Este indicador representa intereses cobrados, no el valor total de las ventas.
   const ingresosVentas = tienda.tienda.ingresos_ventas_finalizadas || 0;
 
   // Función para calcular porcentajes con manejo de ceros
@@ -27,9 +27,7 @@ export default function ResumenGeneral({ tienda }) {
   const porcentajeRetiros = calcularPorcentaje(tienda.tienda.utilidades);
   const porcentajeGastos = calcularPorcentaje(tienda.tienda.gastos);
   const porcentajeAportes = calcularPorcentaje(tienda.tienda.inversion);
-  const porcentajePorCobrar = calcularPorcentaje(tienda.tienda.dinero_x_cobrar);
-
-  // Cálculos financieros correctos
+  // Resultado histórico con intereses efectivamente cobrados.
   const utilidadNeta =
     ingresosVentas - tienda.tienda.gastos - tienda.tienda.perdidas;
   const balanceNeto = utilidadNeta - tienda.tienda.utilidades;
@@ -37,20 +35,6 @@ export default function ResumenGeneral({ tienda }) {
     ingresosVentas > 0 ? (utilidadNeta / ingresosVentas) * 100 : 0;
   const margenBalance =
     ingresosVentas > 0 ? (balanceNeto / ingresosVentas) * 100 : 0;
-
-  // Función para determinar si mostrar el porcentaje de cambio
-  const mostrarCambio = (valor) => {
-    return valor !== 0;
-  };
-
-  // Estos son valores de ejemplo - en una implementación real deberían calcularse
-  const cambioPerdidas = mostrarCambio(tienda.tienda.perdidas) ? -3.7 : null;
-  const cambioRetiros = mostrarCambio(tienda.tienda.utilidades) ? 4.2 : null;
-  const cambioGastos = mostrarCambio(tienda.tienda.gastos) ? -1.1 : null;
-  const cambioAportes = mostrarCambio(tienda.tienda.inversion) ? 2.3 : null;
-  const cambioPorCobrar = mostrarCambio(tienda.tienda.dinero_x_cobrar)
-    ? 3.7
-    : null;
 
   return (
     <div className="glass rounded-[2.5rem] p-8 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 border-indigo-500/10 group mb-8">
@@ -70,24 +54,24 @@ export default function ResumenGeneral({ tienda }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Ingresos por Ventas Finalizadas */}
+        {/* Intereses cobrados por ventas finalizadas */}
         <div className="relative overflow-hidden p-6 rounded-[2rem] bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-800/50 group/card">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
               <FiCheckCircle className="text-emerald-500 text-2xl" />
             </div>
             <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-100/50 dark:bg-emerald-900/40 px-3 py-1 rounded-full">
-              {ingresosVentas > 0 ? "Activo" : "N/A"}
+              {ingresosVentas > 0 ? "Cobrado" : "N/A"}
             </span>
           </div>
-          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ingresos x Ventas</h3>
+          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Intereses cobrados</h3>
           <p className="text-3xl font-black text-slate-800 dark:text-white mb-4">
             {formatMoney(ingresosVentas)}
           </p>
           <div className="h-1.5 w-full bg-emerald-100 dark:bg-emerald-900/30 rounded-full overflow-hidden">
             <div className="h-full bg-emerald-500 w-full"></div>
           </div>
-          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-2 uppercase">Referencia Base 100%</p>
+          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-2 uppercase">Base histórica de comparación</p>
         </div>
 
         {/* Pérdidas */}
@@ -97,7 +81,7 @@ export default function ResumenGeneral({ tienda }) {
               <FiTrendingDown className="text-rose-500 text-2xl" />
             </div>
             <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase bg-rose-100/50 dark:bg-rose-900/40 px-3 py-1 rounded-full">
-               Descuento
+               Capital perdido
             </span>
           </div>
           <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pérdidas Totales</h3>
@@ -107,7 +91,7 @@ export default function ResumenGeneral({ tienda }) {
           <div className="h-1.5 w-full bg-rose-100 dark:bg-rose-900/30 rounded-full overflow-hidden">
             <div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${Math.min(100, porcentajePerdidas)}%` }}></div>
           </div>
-          <p className="text-[10px] text-rose-600 dark:text-rose-400 font-bold mt-2 uppercase">{porcentajePerdidas.toFixed(1)}% del Ingreso</p>
+          <p className="text-[10px] text-rose-600 dark:text-rose-400 font-bold mt-2 uppercase">{porcentajePerdidas.toFixed(1)}% de los intereses cobrados</p>
         </div>
 
         {/* Retiros de Socios */}
@@ -127,7 +111,7 @@ export default function ResumenGeneral({ tienda }) {
           <div className="h-1.5 w-full bg-purple-100 dark:bg-purple-900/30 rounded-full overflow-hidden">
             <div className="h-full bg-purple-500 transition-all duration-1000" style={{ width: `${Math.min(100, porcentajeRetiros)}%` }}></div>
           </div>
-          <p className="text-[10px] text-purple-600 dark:text-purple-400 font-bold mt-2 uppercase">{porcentajeRetiros.toFixed(1)}% del Ingreso</p>
+          <p className="text-[10px] text-purple-600 dark:text-purple-400 font-bold mt-2 uppercase">{porcentajeRetiros.toFixed(1)}% de los intereses cobrados</p>
         </div>
 
         {/* Gastos */}
@@ -198,11 +182,11 @@ export default function ResumenGeneral({ tienda }) {
               <FiBarChart2 className="text-indigo-600 dark:text-indigo-400 text-2xl" />
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Utilidad Neta</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resultado neto real</p>
               <p className={`text-2xl font-black ${utilidadNeta >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"}`}>
                 {formatMoney(utilidadNeta)}
               </p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{margenNeto.toFixed(1)}% Margen Operativo</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{margenNeto.toFixed(1)}% sobre intereses cobrados</p>
             </div>
           </div>
 
@@ -224,11 +208,11 @@ export default function ResumenGeneral({ tienda }) {
               <FiPieChart className="text-slate-600 dark:text-slate-400 text-2xl" />
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Balance Neto</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Después de retiros</p>
               <p className={`text-2xl font-black ${balanceNeto >= 0 ? "text-slate-800 dark:text-white" : "text-rose-600"}`}>
                 {formatMoney(balanceNeto)}
               </p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{margenBalance.toFixed(1)}% Spread Final</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{margenBalance.toFixed(1)}% sobre intereses cobrados</p>
             </div>
           </div>
         </div>
