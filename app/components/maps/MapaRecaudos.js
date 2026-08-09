@@ -1,8 +1,10 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
+import { useEffect, useMemo } from "react";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { formatMoney } from "@/app/utils/format";
 
 // Fix default icon paths broken by webpack
 delete L.Icon.Default.prototype._getIconUrl;
@@ -28,16 +30,42 @@ const iconFalla = new L.DivIcon({
   popupAnchor: [0, -10],
 });
 
-function calcCenter(recaudos) {
-  const sum = recaudos.reduce(
-    (acc, r) => ({ lat: acc.lat + parseFloat(r.latitud), lng: acc.lng + parseFloat(r.longitud) }),
-    { lat: 0, lng: 0 }
-  );
-  return [sum.lat / recaudos.length, sum.lng / recaudos.length];
+function tieneCoordenadas(recaudo) {
+  const latitud = Number(recaudo?.latitud);
+  const longitud = Number(recaudo?.longitud);
+  return Number.isFinite(latitud) && Number.isFinite(longitud)
+    && latitud >= -90 && latitud <= 90
+    && longitud >= -180 && longitud <= 180;
+}
+
+function AjustarVista({ posiciones }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (posiciones.length === 0) return;
+    if (posiciones.length === 1) {
+      map.setView(posiciones[0], 16);
+      return;
+    }
+    map.fitBounds(L.latLngBounds(posiciones), { padding: [32, 32], maxZoom: 16 });
+  }, [map, posiciones]);
+
+  return null;
 }
 
 export default function MapaRecaudos({ recaudos }) {
-  const conGPS = recaudos.filter((r) => r.latitud && r.longitud);
+  const conGPS = useMemo(
+    () => recaudos
+      .filter(tieneCoordenadas)
+      .sort((a, b) => Number(a.id || 0) - Number(b.id || 0)),
+    [recaudos]
+  );
+
+  const polyline = useMemo(
+    () => conGPS.map((r) => [Number(r.latitud), Number(r.longitud)]),
+    [conGPS]
+  );
+  const center = polyline[0];
 
   if (conGPS.length === 0) {
     return (
@@ -48,9 +76,6 @@ export default function MapaRecaudos({ recaudos }) {
       </div>
     );
   }
-
-  const center = calcCenter(conGPS);
-  const polyline = conGPS.map((r) => [parseFloat(r.latitud), parseFloat(r.longitud)]);
 
   return (
     <MapContainer
@@ -64,6 +89,8 @@ export default function MapaRecaudos({ recaudos }) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
+      <AjustarVista posiciones={polyline} />
+
       {/* Ruta cronológica */}
       <Polyline positions={polyline} color="#6366f1" weight={2} opacity={0.5} dashArray="6 4" />
 
@@ -76,7 +103,7 @@ export default function MapaRecaudos({ recaudos }) {
         return (
           <Marker
             key={r.id}
-            position={[parseFloat(r.latitud), parseFloat(r.longitud)]}
+            position={[Number(r.latitud), Number(r.longitud)]}
             icon={esFalla ? iconFalla : iconAbono}
           >
             <Popup>
@@ -84,11 +111,14 @@ export default function MapaRecaudos({ recaudos }) {
                 <p style={{ fontWeight: 900, fontSize: "11px", textTransform: "uppercase", marginBottom: "6px" }}>
                   {nombre}
                 </p>
+                <p style={{ fontSize: "9px", color: "#64748b", fontWeight: 700, textTransform: "uppercase", marginBottom: "4px" }}>
+                  Venta #{r.venta?.id || "—"}
+                </p>
                 <p style={{ fontSize: "10px", color: esFalla ? "#f43f5e" : "#10b981", fontWeight: 700, textTransform: "uppercase", marginBottom: "4px" }}>
-                  {esFalla ? `Falla: ${r.visita_blanco?.tipo_falla || ""}` : `Abono: $${r.valor_recaudo}`}
+                  {esFalla ? `Falla: ${r.visita_blanco?.tipo_falla || ""}` : `Abono: ${formatMoney(r.valor_recaudo)}`}
                 </p>
                 <p style={{ fontSize: "9px", color: "#94a3b8", textTransform: "uppercase" }}>
-                  GPS ±{precision} · #{i + 1}
+                  GPS ±{precision} · Punto #{i + 1}
                 </p>
               </div>
             </Popup>
