@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FiDollarSign,
   FiTrendingUp,
@@ -19,7 +19,7 @@ import {
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
-import { apiFetch } from "../utils/api";
+import { apiFetch, getApiError } from "../utils/api";
 import ResumenDia from "../components/dashboard/ResumenDia";
 import PrimerosPasos from "../components/dashboard/PrimerosPasos";
 import ResumenMes from "../components/dashboard/ResumenMes";
@@ -29,32 +29,57 @@ import Grafico from "../components/dashboard/Grafico";
 import UltimosMovimientos from "../components/dashboard/UltimosMovimientos";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { SkeletonCard } from "../components/Skeleton";
-import { formatMoney } from "../utils/format";
+import { formatMoney, parseLocalDate } from "../utils/format";
 import { getRiesgoCartera } from "../utils/cartera";
 
+const CHILE_TIME_ZONE = "America/Santiago";
+
+const getChileDateParts = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: CHILE_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  return parts.reduce((values, part) => {
+    if (part.type !== "literal") values[part.type] = Number(part.value);
+    return values;
+  }, {});
+};
+
+const getChileToday = () => {
+  const { year, month, day } = getChileDateParts();
+  return new Date(year, month - 1, day);
+};
+
+const getChileDateString = () => {
+  const { year, month, day } = getChileDateParts();
+  return [year, String(month).padStart(2, "0"), String(day).padStart(2, "0")].join("-");
+};
+
 const formatDate = (s) => {
-  if (!s) return "";
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  const date = parseLocalDate(s);
+  return date
+    ? date.toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })
+    : "—";
 };
 
 const calcDiasRestantes = (s) => {
-  if (!s) return Number.MAX_SAFE_INTEGER;
-  const [y, m, d] = s.split("-").map(Number);
-  const vence = new Date(y, m - 1, d);
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  return Math.ceil((vence - hoy) / 86400000);
+  const vence = parseLocalDate(s);
+  if (!vence) return null;
+  const hoy = getChileToday();
+  const venceUtc = Date.UTC(vence.getFullYear(), vence.getMonth(), vence.getDate());
+  const hoyUtc = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  return Math.round((venceUtc - hoyUtc) / 86400000);
 };
 
 // Espejo del backend: Activa → Pendiente Pago (gracia 1d) → Vencida (bloqueo V+2)
 const calcEstadoMembresia = (s, estado, preActivadaHasta) => {
-  if (!s) return "ok";
-  const [y, m, d] = s.split("-").map(Number);
-  const vence = new Date(y, m - 1, d);
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const vence = parseLocalDate(s);
+  if (!vence) return "unknown";
+  const hoy = getChileToday();
   const preHasta = preActivadaHasta
-    ? new Date(`${preActivadaHasta}T00:00:00`)
+    ? parseLocalDate(preActivadaHasta)
     : null;
   if (estado === "Pre-activada" && preHasta && preHasta >= hoy) return "preactive";
   const pendientePago = new Date(vence); pendientePago.setDate(pendientePago.getDate() + 1);
@@ -71,46 +96,70 @@ export default function DashboardPage() {
   const [tienda, setTienda] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [movimientosRefreshKey, setMovimientosRefreshKey] = useState(0);
-  const [alertas, setAlertas] = useState({ vencidos: 0, moraGrave: 0, montoMora: 0, fallasHoy: 0, cajaNegativa: false, proximosVencer: 0, montoProximosVencer: 0, riesgoCritico: 0, montoRiesgoCritico: 0 });
+  const [dashboardError, setDashboardError] = useState("");
+  const [alertasError, setAlertasError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [alertas, setAlertas] = useState({ vencidos: 0, moraGrave: 0, montoMora: 0, montoMoraGrave: 0, fallasHoy: 0, proximosVencer: 0, montoProximosVencer: 0, riesgoCritico: 0, montoRiesgoCritico: 0 });
   const [ventasActivas, setVentasActivas] = useState([]);
+  const tiendaId = selectedStore?.tienda?.id;
+  const activeStoreIdRef = useRef(tiendaId);
+  const selectedStoreRef = useRef(selectedStore);
+  selectedStoreRef.current = selectedStore;
 
-  const fetchTienda = async () => {
-    if (!selectedStore) return null;
+  const fetchTienda = useCallback(async (id = tiendaId) => {
+    if (!id) return null;
     try {
       const res = await apiFetch(
-        `/tiendas/detail/admin/${selectedStore.tienda.id}/`
+        `/tiendas/detail/admin/${id}/`
       );
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        throw new Error(await getApiError(res, "No se pudo actualizar la ruta."));
+      }
       const data = await res.json();
+      if (activeStoreIdRef.current !== id) return null;
       setTienda(data);
       updateStoreData?.(data);
+      setDashboardError("");
+      setLastUpdated(new Date());
       return data;
-    } catch {
+    } catch (error) {
+      if (activeStoreIdRef.current === id) {
+        setDashboardError(error.message || "No se pudo actualizar la ruta.");
+      }
       return null;
+    }
+  }, [tiendaId, updateStoreData]);
+
+  const actualizarDashboard = async () => {
+    if (!tiendaId) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchTienda(tiendaId), fetchAlertas(tiendaId)]);
+      setMovimientosRefreshKey((key) => key + 1);
+    } finally {
+      setRefreshing(false);
     }
   };
 
-  const actualizarDashboard = async () => {
-    setRefreshing(true);
-    await fetchTienda();
-    setMovimientosRefreshKey((key) => key + 1);
-    setRefreshing(false);
-  };
-
-  const fetchAlertas = async () => {
-    if (!selectedStore) return;
+  const fetchAlertas = useCallback(async (id = tiendaId) => {
+    if (!id) return null;
     try {
-      const hoy = new Date();
-      const fechaHoy = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000).toISOString().split("T")[0];
-      const fetchJson = async (path) => {
-        const res = await apiFetch(path);
-        if (!res.ok) return null;
-        return res.json();
-      };
-      const [activosData, recaudosData] = await Promise.all([
-        fetchJson(`/ventas/activas/t/${selectedStore.tienda.id}/`),
-        fetchJson(`/recaudos/list/${fechaHoy}/t/${selectedStore.tienda.id}/?vista=lista`),
+      const fechaHoy = getChileDateString();
+      const [activosResponse, recaudosResponse] = await Promise.all([
+        apiFetch(`/ventas/activas/t/${id}/`),
+        apiFetch(`/recaudos/list/${fechaHoy}/t/${id}/?vista=lista`),
       ]);
+      if (!activosResponse.ok) {
+        throw new Error(await getApiError(activosResponse, "No se pudieron actualizar las ventas activas."));
+      }
+      if (!recaudosResponse.ok) {
+        throw new Error(await getApiError(recaudosResponse, "No se pudieron actualizar los recaudos de hoy."));
+      }
+      const [activosData, recaudosData] = await Promise.all([
+        activosResponse.json(),
+        recaudosResponse.json(),
+      ]);
+      if (activeStoreIdRef.current !== id) return null;
       const activos = Array.isArray(activosData) ? activosData : [];
       setVentasActivas(activos);
       const recaudosHoy = Array.isArray(recaudosData) ? recaudosData : [];
@@ -119,6 +168,7 @@ export default function DashboardPage() {
       const enMora = perfilesRiesgo.filter(({ riesgo }) => riesgo.enMora);
       const moraGrave = perfilesRiesgo.filter(({ riesgo }) => riesgo.prioridad.rank >= 2);
       const montoMora = enMora.reduce((acc, { credito }) => acc + Math.round(parseFloat(credito.saldo_actual) || 0), 0);
+      const montoMoraGrave = moraGrave.reduce((acc, { credito }) => acc + Math.round(parseFloat(credito.saldo_actual) || 0), 0);
       const riesgoCritico = perfilesRiesgo.filter(({ riesgo }) => riesgo.nivelDeterioro === 3);
       const montoRiesgoCritico = riesgoCritico.reduce((acc, { credito }) => acc + Math.round(parseFloat(credito.saldo_actual) || 0), 0);
       const fallasHoy = recaudosHoy.filter(r => r.visita_blanco).length;
@@ -136,29 +186,44 @@ export default function DashboardPage() {
         vencidos: vencidos.length,
         moraGrave: moraGrave.length,
         montoMora,
+        montoMoraGrave,
         fallasHoy,
-        cajaNegativa: (selectedStore.tienda.caja ?? 0) < 0,
         proximosVencer: proximosVencer.length,
         montoProximosVencer,
         riesgoCritico: riesgoCritico.length,
         montoRiesgoCritico,
       });
-    } catch (err) {
-      console.error("Error al cargar alertas:", err);
+      setAlertasError("");
+      setLastUpdated(new Date());
+      return true;
+    } catch (error) {
+      if (activeStoreIdRef.current === id) {
+        setAlertasError(error.message || "No se pudieron actualizar todas las alertas.");
+      }
+      return null;
     }
-  };
+  }, [tiendaId]);
 
   useEffect(() => {
+    activeStoreIdRef.current = tiendaId;
+    const currentStore = selectedStoreRef.current;
+    if (!tiendaId || !currentStore?.tienda) {
+      setTienda(null);
+      return undefined;
+    }
+    setDashboardError("");
+    setAlertasError("");
     setTienda({
-      tienda: selectedStore.tienda,
-      membresia: selectedStore.membresia,
-      fecha_vencimiento: selectedStore.fecha_vencimiento,
-      estado: selectedStore.estado,
-      pre_activada_hasta: selectedStore.pre_activada_hasta,
+      tienda: currentStore.tienda,
+      membresia: currentStore.membresia,
+      fecha_vencimiento: currentStore.fecha_vencimiento,
+      estado: currentStore.estado,
+      pre_activada_hasta: currentStore.pre_activada_hasta,
     });
-    fetchTienda();
-    fetchAlertas();
-  }, [selectedStore.tienda.id]);
+    void fetchTienda(tiendaId);
+    void fetchAlertas(tiendaId);
+    return undefined;
+  }, [tiendaId, fetchTienda, fetchAlertas]);
 
   if (authLoading || !tienda) {
     return (
@@ -181,7 +246,23 @@ export default function DashboardPage() {
     tienda.estado,
     tienda.pre_activada_hasta
   );
-  const cajaPositiva = (t.caja ?? 0) >= 0;
+  const cajaNegativa = Number(t.caja ?? 0) < 0;
+  const cajaPositiva = !cajaNegativa;
+  const requiereAtencion = cajaNegativa || alertas.vencidos > 0 || alertas.moraGrave > 0 || alertas.fallasHoy > 0 || alertas.proximosVencer > 0 || alertas.riesgoCritico > 0;
+  const estadoOperativo = dashboardError || alertasError
+    ? "Datos desactualizados"
+    : alertas.riesgoCritico > 0
+      ? "Riesgo crítico"
+      : requiereAtencion
+        ? "Requiere atención"
+        : "Operativo";
+  const estadoOperativoClasses = dashboardError || alertasError
+    ? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+    : alertas.riesgoCritico > 0 || cajaNegativa
+      ? "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400"
+      : requiereAtencion
+        ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+        : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400";
 
   // Ruta nueva: aún sin ventas (históricas ni activas) — se atenúa la "pared de ceros".
   // t.ventas_netas === undefined significa que el detalle completo aún no cargó.
@@ -252,7 +333,7 @@ export default function DashboardPage() {
     );
   }
 
-  const today = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+  const today = new Intl.DateTimeFormat("es-CL", { timeZone: CHILE_TIME_ZONE, weekday: "long", day: "numeric", month: "long" }).format(new Date());
 
   return (
     <div className="pb-16 space-y-8">
@@ -263,9 +344,9 @@ export default function DashboardPage() {
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest capitalize mb-1.5">{today}</p>
           <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-none">{t.nombre}</h1>
           <div className="flex items-center gap-2 mt-2.5">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Operativo
+            <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${estadoOperativoClasses}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${dashboardError || alertasError ? "bg-slate-500" : alertas.riesgoCritico > 0 || cajaNegativa ? "bg-rose-500" : requiereAtencion ? "bg-amber-500" : "bg-emerald-500 animate-pulse"}`} />
+              {estadoOperativo}
             </span>
             <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${
               memStatus === "ok"
@@ -280,19 +361,44 @@ export default function DashboardPage() {
                   ? "Pago en validación"
                   : memStatus === "grace"
                     ? "Período de gracia"
-                    : dias <= 0 ? "Vence hoy" : `${dias}d para vencer`}
+                    : memStatus === "unknown" || dias === null
+                      ? "Fecha de membresía pendiente"
+                      : dias <= 0 ? "Vence hoy" : `${dias}d para vencer`}
             </span>
           </div>
         </div>
-        <button
-          onClick={actualizarDashboard}
-          disabled={refreshing}
-          title="Sincronizar datos"
-          className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 rounded-2xl hover:text-indigo-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 shrink-0 mt-1"
-        >
-          <FiRefreshCw size={18} className={refreshing ? "animate-spin text-indigo-500" : ""} />
-        </button>
+        <div className="flex items-center gap-2 shrink-0 mt-1">
+          {lastUpdated && (
+            <span className="hidden sm:block text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+              Actualizado {lastUpdated.toLocaleTimeString("es-CL", { timeZone: CHILE_TIME_ZONE, hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
+          <button
+            onClick={actualizarDashboard}
+            disabled={refreshing}
+            title="Sincronizar datos"
+            className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 rounded-2xl hover:text-indigo-600 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+          >
+            <FiRefreshCw size={18} className={refreshing ? "animate-spin text-indigo-500" : ""} />
+          </button>
+        </div>
       </div>
+
+      {(dashboardError || alertasError) && (
+        <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl">
+          <FiAlertCircle className="text-amber-500 shrink-0" size={18} />
+          <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400 flex-1">
+            {dashboardError || alertasError} Los datos anteriores siguen visibles hasta lograr una nueva sincronización.
+          </p>
+          <button
+            onClick={actualizarDashboard}
+            disabled={refreshing}
+            className="shrink-0 px-4 py-2 bg-amber-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {/* ── Primeros pasos (rutas nuevas) ────────────────────────── */}
       <PrimerosPasos detail={tienda} activos={ventasActivas} />
@@ -330,7 +436,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── Alertas operativas ──────────────────────────────────── */}
-      {(alertas.vencidos > 0 || alertas.fallasHoy > 0 || alertas.cajaNegativa || alertas.proximosVencer > 0 || alertas.riesgoCritico > 0) && (
+      {(alertas.vencidos > 0 || alertas.moraGrave > 0 || alertas.fallasHoy > 0 || cajaNegativa || alertas.proximosVencer > 0 || alertas.riesgoCritico > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {alertas.proximosVencer > 0 && (
             <button
@@ -365,10 +471,30 @@ export default function DashboardPage() {
                   {alertas.vencidos} crédito{alertas.vencidos !== 1 ? "s" : ""} vencido{alertas.vencidos !== 1 ? "s" : ""}
                 </p>
                 <p className="text-[10px] font-bold text-rose-500/70 uppercase tracking-widest">
-                  {alertas.moraGrave > 0 && `${alertas.moraGrave} con riesgo urgente o peor · `}{formatMoney(alertas.montoMora)} en mora
+                  {formatMoney(alertas.montoMora)} en mora
                 </p>
               </div>
               <FiChevronRight className="text-rose-300 group-hover:translate-x-1 transition-transform shrink-0" size={16} />
+            </button>
+          )}
+
+          {alertas.moraGrave > 0 && (
+            <button
+              onClick={() => router.push("/dashboard/reportes/cartera")}
+              className="flex items-center gap-4 p-4 bg-orange-50 dark:bg-orange-900/15 border border-orange-200 dark:border-orange-800/40 rounded-2xl hover:border-orange-400 transition-all group text-left"
+            >
+              <div className="p-2.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
+                <FiAlertTriangle size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black text-orange-700 dark:text-orange-400 tracking-tight">
+                  {alertas.moraGrave} crédito{alertas.moraGrave !== 1 ? "s" : ""} requiere{alertas.moraGrave === 1 ? "" : "n"} gestión
+                </p>
+                <p className="text-[10px] font-bold text-orange-500/70 uppercase tracking-widest">
+                  Riesgo urgente · {formatMoney(alertas.montoMoraGrave)} comprometido
+                </p>
+              </div>
+              <FiChevronRight className="text-orange-300 group-hover:translate-x-1 transition-transform shrink-0" size={16} />
             </button>
           )}
 
@@ -412,7 +538,7 @@ export default function DashboardPage() {
             </button>
           )}
 
-          {alertas.cajaNegativa && (
+          {cajaNegativa && (
             <button
               onClick={() => router.push("/dashboard/cierre-caja")}
               className="flex items-center gap-4 p-4 bg-red-50 dark:bg-red-900/15 border border-red-200 dark:border-red-800/40 rounded-2xl hover:border-red-400 transition-all group text-left"

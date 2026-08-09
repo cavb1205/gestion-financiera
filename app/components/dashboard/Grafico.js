@@ -27,7 +27,7 @@ export default function GraficoDona({ data }) {
         aportes = data.tienda.aportes_mes || 0;
         gastos = data.tienda.gastos_mes || 0;
         retiros = data.tienda.utilidades_mes || 0;
-        perdidas = 0;
+        perdidas = data.tienda.perdidas_mes || 0;
         utilidad = data.tienda.utilidad_estimada_mes || 0;
         ventasNetas = data.tienda.ventas_netas_mes || 0;
         break;
