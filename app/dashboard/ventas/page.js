@@ -34,6 +34,7 @@ import Link from "next/link";
 import Pagination from "../../components/Pagination";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { SkeletonCard, SkeletonTableRows } from "../../components/Skeleton";
+import { normalizeSearchText } from "../../utils/text";
 
 function calcVisitasRestantes(venta) {
   const cuotas = parseFloat(venta.cuotas);
@@ -209,12 +210,13 @@ export default function VentasPage() {
     if (filters.montoMax && parseFloat(venta.saldo_actual) > parseFloat(filters.montoMax)) return false;
 
     if (debouncedSearch) {
-      const searchLower = debouncedSearch.toLowerCase();
-      const matchesCliente =
-        venta.cliente.nombres.toLowerCase().includes(searchLower) ||
-        venta.cliente.apellidos.toLowerCase().includes(searchLower) ||
-        venta.cliente.identificacion.toLowerCase().includes(searchLower);
-      const matchesVenta = venta.id.toString().includes(debouncedSearch);
+      const searchLower = normalizeSearchText(debouncedSearch);
+      const nombreCompleto = normalizeSearchText(
+        `${venta.cliente?.nombres || ""} ${venta.cliente?.apellidos || ""}`
+      );
+      const identificacion = normalizeSearchText(venta.cliente?.identificacion);
+      const matchesCliente = nombreCompleto.includes(searchLower) || identificacion.includes(searchLower);
+      const matchesVenta = String(venta.id).includes(searchLower);
       return matchesCliente || matchesVenta;
     }
     return true;

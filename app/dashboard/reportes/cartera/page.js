@@ -27,6 +27,7 @@ import {
 } from "../../../utils/cartera";
 import { toast } from "react-toastify";
 import { getAppDateString } from "../../../utils/datetime";
+import { normalizeSearchText } from "../../../utils/text";
 
 const numero = (value) => {
   const parsed = Number(value);
@@ -220,10 +221,10 @@ export default function CarteraReportPage() {
     }
   });
   const clientesRiesgoTodos = [...clientesRiesgoMap.values()];
-  const busquedaClienteNormalizada = busquedaCliente.trim().toLowerCase();
+  const busquedaClienteNormalizada = normalizeSearchText(busquedaCliente);
   const clientesRiesgoFiltrados = clientesRiesgoTodos.filter((cliente) => {
     if (busquedaClienteNormalizada) {
-      const textoCliente = `${cliente.nombre} ${cliente.identificacion}`.toLowerCase();
+      const textoCliente = normalizeSearchText(`${cliente.nombre} ${cliente.identificacion}`);
       if (!textoCliente.includes(busquedaClienteNormalizada)) return false;
     }
     if (filtroClientes === "hoy" && cliente.prioridad.rank < 1) return false;
