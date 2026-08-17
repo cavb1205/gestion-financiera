@@ -18,6 +18,9 @@ import {
   FiTrendingDown,
   FiCreditCard,
   FiPackage,
+  FiList,
+  FiArrowDownRight,
+  FiArrowUpRight,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -25,7 +28,7 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "../../utils/format";
-import { formatAppDate, getAppDateString } from "../../utils/datetime";
+import { formatAppDate, formatAppDateTime, getAppDateString } from "../../utils/datetime";
 import { apiFetch } from "../../utils/api";
 import Pagination from "../../components/Pagination";
 
@@ -53,6 +56,13 @@ export default function CierreCajaPage() {
   // Resumen del día
   const [resumenDia, setResumenDia] = useState(null);
   const [loadingResumen, setLoadingResumen] = useState(false);
+
+  // Historial auditable de movimientos de caja
+  const [movimientosCaja, setMovimientosCaja] = useState([]);
+  const [loadingMovimientos, setLoadingMovimientos] = useState(false);
+  const [tipoMovimiento, setTipoMovimiento] = useState("");
+  const [saldoActualHistorial, setSaldoActualHistorial] = useState(null);
+  const [historialDesde, setHistorialDesde] = useState(null);
 
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || !selectedStore)) {
@@ -82,6 +92,30 @@ export default function CierreCajaPage() {
     }
   };
 
+  const fetchMovimientosCaja = async () => {
+    if (!selectedStore) return;
+    setLoadingMovimientos(true);
+    try {
+      const params = new URLSearchParams({ limit: "100" });
+      if (tipoMovimiento) params.set("tipo", tipoMovimiento);
+      const response = await apiFetch(
+        `/tiendas/caja/movimientos/t/${selectedStore.tienda.id}/?${params.toString()}`
+      );
+      if (!response.ok) throw new Error("Error al obtener el historial de caja");
+      const data = await response.json();
+      setMovimientosCaja(Array.isArray(data) ? data : (data.results || []));
+      setSaldoActualHistorial(data.saldo_actual ?? null);
+      setHistorialDesde(data.historial_desde || null);
+    } catch (error) {
+      setMovimientosCaja([]);
+      setSaldoActualHistorial(null);
+      setHistorialDesde(null);
+      toast.error(error.message);
+    } finally {
+      setLoadingMovimientos(false);
+    }
+  };
+
   // Fetch caja anterior para la fecha seleccionada
   const fetchCajaAnterior = async () => {
     if (!selectedStore || !selectedDate) return;
@@ -106,6 +140,12 @@ export default function CierreCajaPage() {
       fetchCierres();
     }
   }, [selectedStore]);
+
+  useEffect(() => {
+    if (selectedStore) {
+      fetchMovimientosCaja();
+    }
+  }, [selectedStore, tipoMovimiento]);
 
   // Fetch resumen del día para la fecha seleccionada
   const fetchResumenDia = async () => {
@@ -334,7 +374,10 @@ export default function CierreCajaPage() {
         </div>
 
         <button
-          onClick={fetchCierres}
+          onClick={() => {
+            fetchCierres();
+            fetchMovimientosCaja();
+          }}
           className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
         >
           <FiRefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
@@ -588,6 +631,149 @@ export default function CierreCajaPage() {
           </div>
         </div>
       </div>
+
+      {/* Historial de movimientos */}
+      <section className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 mb-10">
+        <div className="px-6 md:px-8 py-6 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl shrink-0">
+                <FiList size={19} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">
+                    Movimientos de Caja
+                  </h3>
+                  <span className="px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                    Auditoría
+                  </span>
+                </div>
+                <p className="text-[10px] font-bold text-slate-400 mt-1 leading-relaxed">
+                  Cada alta, corrección y reversa queda con saldo antes y después.
+                  {historialDesde ? ` Disponible desde ${formatAppDate(historialDesde, { day: "numeric", month: "short", year: "numeric" })}.` : ""}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 shrink-0">
+              <label className="sr-only" htmlFor="tipo-movimiento-caja">Filtrar tipo de movimiento</label>
+              <select
+                id="tipo-movimiento-caja"
+                value={tipoMovimiento}
+                onChange={(event) => setTipoMovimiento(event.target.value)}
+                className="w-full sm:w-auto min-w-[180px] px-4 py-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700 rounded-xl text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider focus:ring-4 focus:ring-indigo-500/10"
+              >
+                <option value="">Todos los movimientos</option>
+                <option value="VENTA">Créditos nuevos</option>
+                <option value="RECAUDO">Abonos recibidos</option>
+                <option value="GASTO">Gastos</option>
+                <option value="UTILIDAD">Utilidades retiradas</option>
+                <option value="APORTE">Aportes de capital</option>
+              </select>
+              <div className="px-4 py-3 bg-slate-900 dark:bg-slate-800 rounded-xl text-right sm:min-w-[155px]">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Caja actual</p>
+                <p className="text-sm font-black text-white tracking-tight">
+                  {saldoActualHistorial === null ? "—" : formatMoney(saldoActualHistorial)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {loadingMovimientos ? (
+          <div className="p-12 flex justify-center"><LoadingSpinner /></div>
+        ) : movimientosCaja.length === 0 ? (
+          <div className="p-10 md:p-14 text-center">
+            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <FiList size={26} className="text-slate-300 dark:text-slate-600" />
+            </div>
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sin movimientos auditados</p>
+            <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 mt-2 max-w-md mx-auto leading-relaxed">
+              Los movimientos nuevos aparecerán aquí automáticamente. El saldo actual de la ruta no se modifica al consultar este historial.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full min-w-[720px]">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-slate-800">
+                    <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha y hora</th>
+                    <th className="px-5 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Movimiento</th>
+                    <th className="px-5 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Usuario</th>
+                    <th className="px-5 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Variación</th>
+                    <th className="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Saldo posterior</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {movimientosCaja.map((movimiento) => {
+                    const delta = Number(movimiento.delta || 0);
+                    const entraDinero = delta > 0;
+                    return (
+                      <tr key={movimiento.id} className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                        <td className="px-8 py-5 whitespace-nowrap">
+                          <p className="text-xs font-black text-slate-700 dark:text-slate-200">{formatAppDateTime(movimiento.creado_en, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                          <p className="text-[9px] font-bold text-slate-400 mt-1">Saldo anterior: {formatMoney(movimiento.saldo_anterior)}</p>
+                        </td>
+                        <td className="px-5 py-5">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`p-2 rounded-xl ${entraDinero ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600" : "bg-rose-50 dark:bg-rose-900/30 text-rose-600"}`}>
+                              {entraDinero ? <FiArrowDownRight size={15} /> : <FiArrowUpRight size={15} />}
+                            </div>
+                            <div>
+                              <p className="text-xs font-black text-slate-800 dark:text-white">{movimiento.tipo_label}</p>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{movimiento.accion_label}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-5 text-xs font-bold text-slate-500 dark:text-slate-400">{movimiento.usuario_nombre || "Sistema"}</td>
+                        <td className={`px-5 py-5 text-right text-sm font-black whitespace-nowrap ${entraDinero ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                          {entraDinero ? "+" : "-"}{formatMoney(Math.abs(delta))}
+                        </td>
+                        <td className="px-8 py-5 text-right text-sm font-black text-slate-800 dark:text-white whitespace-nowrap">{formatMoney(movimiento.saldo_posterior)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/50">
+              {movimientosCaja.map((movimiento) => {
+                const delta = Number(movimiento.delta || 0);
+                const entraDinero = delta > 0;
+                return (
+                  <div key={movimiento.id} className="p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className={`p-2.5 rounded-xl shrink-0 ${entraDinero ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600" : "bg-rose-50 dark:bg-rose-900/30 text-rose-600"}`}>
+                          {entraDinero ? <FiArrowDownRight size={16} /> : <FiArrowUpRight size={16} />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-slate-800 dark:text-white truncate">{movimiento.tipo_label}</p>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mt-1">{movimiento.accion_label} · {movimiento.usuario_nombre || "Sistema"}</p>
+                          <p className="text-[10px] font-bold text-slate-400 mt-2">{formatAppDateTime(movimiento.creado_en, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+                        </div>
+                      </div>
+                      <p className={`text-sm font-black whitespace-nowrap ${entraDinero ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                        {entraDinero ? "+" : "-"}{formatMoney(Math.abs(delta))}
+                      </p>
+                    </div>
+                    <div className="mt-4 ml-[2.75rem] flex items-center justify-between gap-3 text-[10px] font-bold text-slate-400">
+                      <span>Saldo anterior {formatMoney(movimiento.saldo_anterior)}</span>
+                      <span className="font-black text-slate-700 dark:text-slate-200">Saldo {formatMoney(movimiento.saldo_posterior)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="px-6 md:px-8 py-4 bg-slate-50/70 dark:bg-slate-900/30 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              Mostrando los últimos {movimientosCaja.length} movimientos de un máximo de 100.
+            </div>
+          </>
+        )}
+      </section>
 
       {/* Table */}
       <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800">
