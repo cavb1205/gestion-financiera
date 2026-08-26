@@ -89,7 +89,9 @@ export default function IngresosMembresiasPage() {
   const anioActual = Number(hoy.slice(0, 4));
   const mesActualNumero = Number(hoy.slice(5, 7));
   const esAnioActual = data?.year === anioActual;
-  const mesActual = data && esAnioActual ? data.por_mes[mesActualNumero - 1] : null;
+  const mesActual = data && esAnioActual
+    ? data.por_mes?.[mesActualNumero - 1] || { total: 0, cantidad: 0 }
+    : null;
 
   const variacion = useMemo(() => {
     if (!data || !data.total_anio_anterior) return null;
@@ -269,7 +271,7 @@ export default function IngresosMembresiasPage() {
               />
               <KpiCard
                 icon={FiCalendar}
-                label={esAnioActual ? MESES_LARGO[hoy.getMonth()] : "Mejor mes"}
+                label={esAnioActual ? MESES_LARGO[mesActualNumero - 1] : "Mejor mes"}
                 value={
                   esAnioActual
                     ? formatMoney(mesActual.total)
