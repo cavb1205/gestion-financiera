@@ -64,7 +64,11 @@ export default function PublicidadPage() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
-  const today = getAppDateString();
+  const today = getAppDateString(
+    0,
+    new Date(),
+    selectedStore?.tienda?.zona_horaria
+  );
 
   const fetchPuntos = useCallback(async () => {
     if (!selectedStore || !isAuthenticated) return;

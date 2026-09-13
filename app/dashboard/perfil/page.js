@@ -13,14 +13,16 @@ import {
   FiUser,
   FiPhone,
   FiDollarSign,
+  FiGlobe,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/app/utils/api";
+import { getDeviceTimeZone, normalizeTimeZone } from "@/app/utils/datetime";
 import { toast } from "react-toastify";
 
 export default function PerfilPage() {
   const router = useRouter();
-  const { user, profile, selectedStore } = useAuth();
+  const { user, profile, selectedStore, updateStoreData } = useAuth();
 
   const isAdmin = user?.is_staff || user?.is_superuser;
 
@@ -36,6 +38,18 @@ export default function PerfilPage() {
     selectedStore?.tienda?.cupo_minimo_nuevo ? String(parseInt(selectedStore.tienda.cupo_minimo_nuevo)) : "100000"
   );
   const [savingCupo, setSavingCupo] = useState(false);
+  const [zonaHoraria, setZonaHoraria] = useState(
+    selectedStore?.tienda?.zona_horaria || getDeviceTimeZone()
+  );
+  const [savingZona, setSavingZona] = useState(false);
+
+  const zonasHorarias = [
+    { value: "America/Bogota", label: "Colombia (Bogotá)" },
+    { value: "America/Guayaquil", label: "Ecuador (Guayaquil)" },
+    { value: "America/Santiago", label: "Chile (Santiago)" },
+    { value: "America/Lima", label: "Perú (Lima)" },
+    { value: "America/Mexico_City", label: "México (Ciudad de México)" },
+  ];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -104,6 +118,33 @@ export default function PerfilPage() {
       toast.error("Error al guardar el prefijo");
     } finally {
       setSavingPrefijo(false);
+    }
+  };
+
+  const handleSaveZona = async () => {
+    const valor = normalizeTimeZone(zonaHoraria);
+    if (!valor) {
+      toast.error("Selecciona una zona horaria válida");
+      return;
+    }
+    setSavingZona(true);
+    try {
+      const response = await apiFetch(`/tiendas/${selectedStore.tienda.id}/settings/`, {
+        method: "PATCH",
+        body: JSON.stringify({ zona_horaria: valor }),
+      });
+      if (!response.ok) throw new Error();
+      const data = await response.json();
+      const zonaGuardada = data.zona_horaria || valor;
+      setZonaHoraria(zonaGuardada);
+      updateStoreData?.({
+        tienda: { ...selectedStore.tienda, zona_horaria: zonaGuardada },
+      });
+      toast.success("Zona horaria de la ruta actualizada");
+    } catch {
+      toast.error("Error al guardar la zona horaria");
+    } finally {
+      setSavingZona(false);
     }
   };
 
@@ -303,6 +344,58 @@ export default function PerfilPage() {
                     <FiSave size={15} />
                     Guardar Cupo Mínimo
                   </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Operating timezone — admin only */}
+        {isAdmin && (
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 mt-6">
+            <div className="flex items-center gap-3 mb-7">
+              <div className="p-2.5 bg-sky-50 dark:bg-sky-900/20 text-sky-500 rounded-xl">
+                <FiGlobe size={18} />
+              </div>
+              <div>
+                <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Zona Horaria de la Ruta</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Para cierres, atrasos y reportes diarios</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="zona_horaria" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  País / ciudad donde opera la ruta
+                </label>
+                <select
+                  id="zona_horaria"
+                  value={zonaHoraria}
+                  onChange={(e) => setZonaHoraria(e.target.value)}
+                  className="block w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all outline-none"
+                >
+                  {!zonasHorarias.some((zona) => zona.value === zonaHoraria) && (
+                    <option value={zonaHoraria}>{zonaHoraria}</option>
+                  )}
+                  {zonasHorarias.map((zona) => (
+                    <option key={zona.value} value={zona.value}>{zona.label}</option>
+                  ))}
+                </select>
+                <p className="text-[9px] font-bold text-slate-400 ml-1">
+                  Se conserva la fecha del dispositivo para la experiencia local, pero la ruta define el día contable para todos.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSaveZona}
+                disabled={savingZona}
+                className="w-full py-4 bg-sky-600 hover:bg-sky-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-sky-100 dark:shadow-none active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                {savingZona ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <><FiSave size={15} /> Guardar Zona Horaria</>
                 )}
               </button>
             </div>

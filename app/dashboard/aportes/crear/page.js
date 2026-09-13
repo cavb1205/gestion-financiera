@@ -38,10 +38,19 @@ export default function NuevoAportePage() {
 
   const [formData, setFormData] = useState({
     trabajador: "",
-    fecha: getAppDateString(),
+    fecha: getAppDateString(0, new Date(), selectedStore?.tienda?.zona_horaria),
     valor: "",
     comentario: "",
   });
+
+  useEffect(() => {
+    const zona = selectedStore?.tienda?.zona_horaria;
+    if (!zona) return;
+    setFormData((prev) => ({
+      ...prev,
+      fecha: getAppDateString(0, new Date(), zona),
+    }));
+  }, [selectedStore?.tienda?.zona_horaria]);
 
   useEffect(() => {
     const fetchTrabajadores = async () => {

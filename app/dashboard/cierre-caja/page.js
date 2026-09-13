@@ -40,7 +40,15 @@ export default function CierreCajaPage() {
   const [cierres, setCierres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(() => getAppDateString());
+  const [selectedDate, setSelectedDate] = useState(() => (
+    getAppDateString(0, new Date(), selectedStore?.tienda?.zona_horaria)
+  ));
+
+  useEffect(() => {
+    const zona = selectedStore?.tienda?.zona_horaria;
+    if (!zona) return;
+    setSelectedDate(getAppDateString(0, new Date(), zona));
+  }, [selectedStore?.tienda?.zona_horaria]);
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -153,7 +161,11 @@ export default function CierreCajaPage() {
     setLoadingResumen(true);
     try {
       const id = selectedStore.tienda.id;
-      const hoyStr = getAppDateString();
+      const hoyStr = getAppDateString(
+        0,
+        new Date(),
+        selectedStore?.tienda?.zona_horaria
+      );
       const esHoy = selectedDate === hoyStr;
 
       let datosConsolidados;
@@ -320,8 +332,16 @@ export default function CierreCajaPage() {
 
   // Validación: se puede cerrar hoy (sin cierre previo)
   // o ayer (sin cierre previo y sin movimientos hoy — saldo actual = saldo al cierre de ayer)
-  const hoyStr = getAppDateString();
-  const ayerStr = getAppDateString(-1);
+  const hoyStr = getAppDateString(
+    0,
+    new Date(),
+    selectedStore?.tienda?.zona_horaria
+  );
+  const ayerStr = getAppDateString(
+    -1,
+    new Date(),
+    selectedStore?.tienda?.zona_horaria
+  );
   const yaTieneCierre = cierres.some(c => c.fecha_cierre === selectedDate);
   const esHoy = selectedDate === hoyStr;
   const esAyer = selectedDate === ayerStr;

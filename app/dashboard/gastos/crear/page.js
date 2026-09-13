@@ -27,7 +27,7 @@ export default function CrearGastoPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     tipo_gasto: "",
-    fecha: "",
+    fecha: getAppDateString(0, new Date(), selectedStore?.tienda?.zona_horaria),
     valor: "",
     comentario: "",
   });
@@ -48,8 +48,6 @@ export default function CrearGastoPage() {
         const data = await response.json();
         setTiposGasto(Array.isArray(data) ? data : []);
 
-        const formattedDate = getAppDateString();
-        setFormData((prev) => ({ ...prev, fecha: formattedDate }));
       } catch (error) {
         toast.error(error.message);
       } finally {
@@ -59,6 +57,15 @@ export default function CrearGastoPage() {
 
     if (isAuthenticated) fetchTiposGasto();
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    const zona = selectedStore?.tienda?.zona_horaria;
+    if (!zona) return;
+    setFormData((prev) => ({
+      ...prev,
+      fecha: getAppDateString(0, new Date(), zona),
+    }));
+  }, [selectedStore?.tienda?.zona_horaria]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

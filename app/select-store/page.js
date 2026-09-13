@@ -21,6 +21,7 @@ import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../utils/format";
 import { apiFetch, getApiError } from "../utils/api";
+import { getDeviceTimeZone } from "../utils/datetime";
 
 export default function SelectStorePage() {
   const { logout, selectStore, user } = useAuth();
@@ -35,14 +36,15 @@ export default function SelectStorePage() {
   const [removing, setRemoving] = useState(false);
   const [newPrefijo, setNewPrefijo] = useState("57");
   const [newCupo, setNewCupo] = useState("");
+  const [newZonaHoraria, setNewZonaHoraria] = useState(() => getDeviceTimeZone());
 
   const PAISES = [
-    { code: "CO", name: "Colombia",  prefijo: "57",  cupo: 100000, emoji: "🇨🇴" },
-    { code: "CL", name: "Chile",     prefijo: "56",  cupo: 50000,  emoji: "🇨🇱" },
-    { code: "MX", name: "México",    prefijo: "52",  cupo: 2000,   emoji: "🇲🇽" },
-    { code: "PE", name: "Perú",      prefijo: "51",  cupo: 300,    emoji: "🇵🇪" },
-    { code: "EC", name: "Ecuador",   prefijo: "593", cupo: 200,    emoji: "🇪🇨" },
-    { code: "OTHER", name: "Otro",   prefijo: "",    cupo: "",     emoji: "🌎" },
+    { code: "CO", name: "Colombia",  prefijo: "57",  zona: "America/Bogota",    cupo: 100000, emoji: "🇨🇴" },
+    { code: "CL", name: "Chile",     prefijo: "56",  zona: "America/Santiago",  cupo: 50000,  emoji: "🇨🇱" },
+    { code: "MX", name: "México",    prefijo: "52",  zona: "America/Mexico_City", cupo: 2000, emoji: "🇲🇽" },
+    { code: "PE", name: "Perú",      prefijo: "51",  zona: "America/Lima",      cupo: 300,    emoji: "🇵🇪" },
+    { code: "EC", name: "Ecuador",   prefijo: "593", zona: "America/Guayaquil", cupo: 200,    emoji: "🇪🇨" },
+    { code: "OTHER", name: "Otro",   prefijo: "",    zona: "",                    cupo: "",     emoji: "🌎" },
   ];
 
   const fetchStores = async () => {
@@ -133,7 +135,11 @@ export default function SelectStorePage() {
       const response = await apiFetch("/tiendas/create/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre: newNombre.trim(), administrador: user.id }),
+        body: JSON.stringify({
+          nombre: newNombre.trim(),
+          administrador: user.id,
+          zona_horaria: newZonaHoraria,
+        }),
       });
       if (!response.ok) {
         throw new Error(await getApiError(response, "Error al crear la ruta"));
@@ -160,6 +166,7 @@ export default function SelectStorePage() {
       setNewNombre("");
       setNewPrefijo("57");
       setNewCupo("");
+      setNewZonaHoraria(getDeviceTimeZone());
       setShowCreateModal(false);
       fetchStores();
     } catch (err) {
@@ -468,10 +475,11 @@ export default function SelectStorePage() {
                       type="button"
                       onClick={() => {
                         setNewPrefijo(p.prefijo);
+                        setNewZonaHoraria(p.zona || getDeviceTimeZone());
                         if (p.cupo) setNewCupo(String(p.cupo));
                       }}
                       className={`py-2.5 px-2 rounded-xl border text-[10px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5 ${
-                        newPrefijo === p.prefijo
+                        newZonaHoraria === (p.zona || getDeviceTimeZone())
                           ? "bg-indigo-600 border-indigo-500 text-white"
                           : "bg-slate-800/50 border-slate-700 text-slate-400 hover:border-indigo-500/50"
                       }`}
@@ -481,6 +489,9 @@ export default function SelectStorePage() {
                     </button>
                   ))}
                 </div>
+                <p className="text-[10px] text-slate-500 mt-2 pl-1">
+                  La fecha diaria de la ruta se calculará con esta zona horaria.
+                </p>
               </div>
 
               <div>

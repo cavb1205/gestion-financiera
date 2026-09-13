@@ -1,9 +1,28 @@
 export const APP_LOCALE = "es-CL";
-export const APP_TIME_ZONE = "America/Santiago";
+export const DEFAULT_TIME_ZONE = "America/Santiago";
 
-function getParts(value = new Date()) {
+export function getDeviceTimeZone() {
+  if (typeof Intl === "undefined") return DEFAULT_TIME_ZONE;
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIME_ZONE;
+  } catch {
+    return DEFAULT_TIME_ZONE;
+  }
+}
+
+export function normalizeTimeZone(value) {
+  const candidate = value || getDeviceTimeZone();
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone: candidate }).format();
+    return candidate;
+  } catch {
+    return DEFAULT_TIME_ZONE;
+  }
+}
+
+function getParts(value = new Date(), timeZone = getDeviceTimeZone()) {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: APP_TIME_ZONE,
+    timeZone: normalizeTimeZone(timeZone),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -31,8 +50,8 @@ export function parseAppDate(value) {
 }
 
 /** Returns the current calendar date in the application's business timezone. */
-export function getAppDateString(offset = 0, value = new Date()) {
-  const parts = getParts(value);
+export function getAppDateString(offset = 0, value = new Date(), timeZone = getDeviceTimeZone()) {
+  const parts = getParts(value, timeZone);
   const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + offset));
   return date.toISOString().slice(0, 10);
 }
@@ -44,10 +63,10 @@ export function shiftAppDate(dateString, offset = 0) {
   return date.toISOString().slice(0, 10);
 }
 
-export function getAppDateDifference(value, from = new Date()) {
+export function getAppDateDifference(value, from = new Date(), timeZone = getDeviceTimeZone()) {
   if (!value) return null;
-  const current = getParts(from);
-  const target = getParts(asDate(value));
+  const current = getParts(from, timeZone);
+  const target = getParts(asDate(value), timeZone);
   if (![current.year, current.month, current.day, target.year, target.month, target.day].every(Number.isFinite)) {
     return null;
   }
@@ -56,23 +75,23 @@ export function getAppDateDifference(value, from = new Date()) {
   return Math.round((currentUtc - targetUtc) / 86400000);
 }
 
-export function formatAppDate(value, options = { day: "numeric", month: "short", year: "numeric" }) {
+export function formatAppDate(value, options = { day: "numeric", month: "short", year: "numeric" }, timeZone = getDeviceTimeZone()) {
   if (!value) return "—";
   const date = asDate(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat(APP_LOCALE, { ...options, timeZone: APP_TIME_ZONE }).format(date);
+  return new Intl.DateTimeFormat(APP_LOCALE, { ...options, timeZone: normalizeTimeZone(timeZone) }).format(date);
 }
 
-export function formatAppTime(value, options = { hour: "2-digit", minute: "2-digit" }) {
+export function formatAppTime(value, options = { hour: "2-digit", minute: "2-digit" }, timeZone = getDeviceTimeZone()) {
   if (!value) return "—";
   const date = asDate(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat(APP_LOCALE, { ...options, timeZone: APP_TIME_ZONE }).format(date);
+  return new Intl.DateTimeFormat(APP_LOCALE, { ...options, timeZone: normalizeTimeZone(timeZone) }).format(date);
 }
 
-export function formatAppDateTime(value, options = { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) {
+export function formatAppDateTime(value, options = { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }, timeZone = getDeviceTimeZone()) {
   if (!value) return "—";
   const date = asDate(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat(APP_LOCALE, { ...options, timeZone: APP_TIME_ZONE }).format(date);
+  return new Intl.DateTimeFormat(APP_LOCALE, { ...options, timeZone: normalizeTimeZone(timeZone) }).format(date);
 }

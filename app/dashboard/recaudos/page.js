@@ -176,7 +176,11 @@ export default function RecaudosPage() {
   const [ventasActivas, setVentasActivas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState("");
-  const todayStr = getAppDateString();
+  const todayStr = getAppDateString(
+    0,
+    new Date(),
+    selectedStore?.tienda?.zona_horaria
+  );
   const canEditDelete = !isWorker || selectedDate === todayStr;
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -192,9 +196,13 @@ export default function RecaudosPage() {
     if (storedDate) {
       setSelectedDate(storedDate);
     } else {
-      setSelectedDate(getAppDateString());
+      setSelectedDate(getAppDateString(
+        0,
+        new Date(),
+        selectedStore?.tienda?.zona_horaria
+      ));
     }
-  }, []);
+  }, [selectedStore?.tienda?.zona_horaria]);
 
   // Obtener recaudos
   const fetchRecaudos = async () => {

@@ -52,7 +52,9 @@ function NuevaVentaContent() {
   };
 
   const [formData, setFormData] = useState({
-    fecha_venta: parseAppDate(getAppDateString()),
+    fecha_venta: parseAppDate(
+      getAppDateString(0, new Date(), selectedStore?.tienda?.zona_horaria)
+    ),
     valor_venta: "",
     interes: 20,
     cuotas: 20,
@@ -60,6 +62,18 @@ function NuevaVentaContent() {
     comentario: "",
     cliente: "",
   });
+
+  // AuthContext hidrata la ruta desde localStorage después del primer render.
+  // Cuando llega la zona configurada, alinea la fecha inicial del formulario
+  // sin depender de la zona del dispositivo.
+  useEffect(() => {
+    const zona = selectedStore?.tienda?.zona_horaria;
+    if (!zona) return;
+    setFormData((prev) => ({
+      ...prev,
+      fecha_venta: parseAppDate(getAppDateString(0, new Date(), zona)),
+    }));
+  }, [selectedStore?.tienda?.zona_horaria]);
 
   const [clientes, setClientes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

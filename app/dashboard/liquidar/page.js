@@ -73,7 +73,11 @@ export default function LiquidarCreditosPage() {
 
    // Establecer fecha actual por defecto (workers siempre ven solo hoy)
    useEffect(() => {
-      const formattedDate = getAppDateString();
+      const formattedDate = getAppDateString(
+         0,
+         new Date(),
+         selectedStore?.tienda?.zona_horaria
+      );
 
       if (isWorker) {
          setSelectedDate(formattedDate);
@@ -81,7 +85,7 @@ export default function LiquidarCreditosPage() {
          const storedDate = localStorage.getItem("liquidarFecha");
          setSelectedDate(storedDate || formattedDate);
       }
-   }, [isWorker]);
+   }, [isWorker, selectedStore?.tienda?.zona_horaria]);
 
    // Verificar/solicitar permiso GPS (solo workers)
    useEffect(() => {
@@ -311,7 +315,11 @@ export default function LiquidarCreditosPage() {
                   {!isWorker && (
                      <button
                         onClick={() => {
-                           const formattedDate = getAppDateString();
+                           const formattedDate = getAppDateString(
+                              0,
+                              new Date(),
+                              selectedStore?.tienda?.zona_horaria
+                           );
                            setSelectedDate(formattedDate);
                         }}
                         className="px-4 py-3 md:px-6 md:py-4 bg-white dark:bg-slate-900 text-slate-500 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-800 font-black text-[10px] uppercase tracking-widest hover:text-emerald-600 transition-all shadow-sm"
