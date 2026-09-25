@@ -23,6 +23,24 @@ import { formatMoney } from "../utils/format";
 import { apiFetch, getApiError } from "../utils/api";
 import { getDeviceTimeZone } from "../utils/datetime";
 
+function nombreRuta(store) {
+  return store?.tienda?.nombre || store?.nombre || "";
+}
+
+function ordenarRutas(items) {
+  return [...items].sort((a, b) => {
+    const comparacion = nombreRuta(a).localeCompare(nombreRuta(b), "es", {
+      sensitivity: "base",
+      numeric: true,
+    });
+    if (comparacion !== 0) return comparacion;
+
+    const idA = a?.tienda?.id ?? a?.id ?? "";
+    const idB = b?.tienda?.id ?? b?.id ?? "";
+    return String(idA).localeCompare(String(idB), "es", { numeric: true });
+  });
+}
+
 export default function SelectStorePage() {
   const { logout, selectStore, user } = useAuth();
   const router = useRouter();
@@ -54,7 +72,7 @@ export default function SelectStorePage() {
       if (!response.ok) throw new Error("Error al obtener las tiendas asociadas");
       const data = await response.json();
       const list = Array.isArray(data) ? data : [];
-      setStores(list);
+      setStores(ordenarRutas(list));
     } catch (err) {
       setError(err.message || "Error al cargar las tiendas");
       toast.error("Error al sincronizar sucursales");
@@ -267,8 +285,8 @@ export default function SelectStorePage() {
 
         ) : (
           /* ── Stores Grid ── */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
-            {stores.map((store) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
+            {ordenarRutas(stores).map((store) => (
               <div
                 key={store.id}
                 onClick={() => handleSelectStore(store)}
