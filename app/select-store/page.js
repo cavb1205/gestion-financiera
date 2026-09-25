@@ -42,7 +42,13 @@ function ordenarRutas(items) {
 }
 
 export default function SelectStorePage() {
-  const { logout, selectStore, user } = useAuth();
+  const {
+    logout,
+    selectStore,
+    user,
+    isAuthenticated,
+    loading: authLoading,
+  } = useAuth();
   const router = useRouter();
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +61,8 @@ export default function SelectStorePage() {
   const [newPrefijo, setNewPrefijo] = useState("57");
   const [newCupo, setNewCupo] = useState("");
   const [newZonaHoraria, setNewZonaHoraria] = useState(() => getDeviceTimeZone());
+  const [selectingStoreId, setSelectingStoreId] = useState(null);
+  const isWorker = Boolean(user && !(user.is_staff || user.is_superuser));
 
   const PAISES = [
     { code: "CO", name: "Colombia",  prefijo: "57",  zona: "America/Bogota",    cupo: 100000, emoji: "🇨🇴" },
@@ -101,19 +109,34 @@ export default function SelectStorePage() {
     const isWorker = !(parsedUser?.is_staff || parsedUser?.is_superuser);
 
     if (isWorker) {
-      const autoSelectWorkerStore = async () => {
+      const loadWorkerRoutes = async () => {
+        setLoading(true);
         try {
-          const res = await apiFetch(`/tiendas/detail/`);
-          if (res.ok) {
-            const storeData = await res.json();
-            selectStore(storeData);
+          const res = await apiFetch('/trabajadores/mis-rutas/');
+          if (!res.ok) {
+            throw new Error(await getApiError(res, 'No se pudieron cargar tus rutas asignadas.'));
+          }
+          const routes = await res.json();
+          const list = Array.isArray(routes) ? routes : [];
+          setStores(ordenarRutas(list));
+
+          if (list.length === 1) {
+            setSelectingStoreId(String(list[0].id));
+            const detail = await apiFetch(`/tiendas/detail/admin/${list[0].id}/`);
+            if (!detail.ok) {
+              throw new Error(await getApiError(detail, 'No se pudo abrir la ruta asignada.'));
+            }
+            selectStore(await detail.json());
+            router.push('/dashboard/liquidar');
           }
         } catch (err) {
-          console.error("Error auto-selecting worker store:", err);
+          setError(err.message || 'Error al cargar las rutas asignadas.');
+          toast.error(err.message || 'Error al cargar tus rutas');
+        } finally {
+          setLoading(false);
         }
-        router.push("/dashboard/liquidar");
       };
-      autoSelectWorkerStore();
+      loadWorkerRoutes();
       return;
     }
 
@@ -121,8 +144,25 @@ export default function SelectStorePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSelectStore = (store) => {
+  const handleSelectStore = async (store) => {
     if (!store) return;
+    if (isWorker) {
+      setSelectingStoreId(String(store.id));
+      try {
+        const response = await apiFetch(`/tiendas/detail/admin/${store.id}/`);
+        if (!response.ok) {
+          throw new Error(await getApiError(response, 'No se pudo abrir esta ruta.'));
+        }
+        selectStore(await response.json());
+        toast.success(`Accediendo a ${store.nombre}`, { autoClose: 1500 });
+        router.push('/dashboard/liquidar');
+      } catch (err) {
+        setError(err.message || 'No se pudo abrir esta ruta.');
+      } finally {
+        setSelectingStoreId(null);
+      }
+      return;
+    }
     selectStore(store);
     toast.success(`Accediendo a ${store.tienda.nombre}`, { autoClose: 1500 });
     router.push("/dashboard");
@@ -194,12 +234,93 @@ export default function SelectStorePage() {
     }
   };
 
-  if (loading) return (
+  // logout limpia usuario y token antes de terminar la navegación a /login.
+  // No debemos renderizar el panel de administrador con la lista de rutas del trabajador.
+  if (authLoading || loading || !isAuthenticated || !user) return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
       <LoadingSpinner />
-      <p className="mt-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] animate-pulse">Sincronizando Sucursales</p>
+      <p className="mt-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] animate-pulse">
+        {authLoading || !isAuthenticated || !user ? "Cargando sesión" : "Sincronizando Sucursales"}
+      </p>
     </div>
   );
+
+  if (isWorker) {
+    return (
+      <div className="min-h-screen bg-slate-950 px-4 py-10 text-white">
+        <div className="mx-auto max-w-2xl">
+          <div className="mb-8 flex items-start justify-between gap-4">
+            <div>
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-indigo-400">
+                Espacio de trabajo
+              </p>
+              <h1 className="text-3xl font-black tracking-tight">Elige tu ruta</h1>
+              <p className="mt-2 text-sm text-slate-400">
+                Trabajarás únicamente con los clientes y movimientos de la ruta seleccionada.
+              </p>
+            </div>
+            <button
+              onClick={logout}
+              className="flex shrink-0 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-bold text-slate-300 hover:bg-rose-500/10 hover:text-rose-300"
+            >
+              <FiLogOut size={15} />
+              Salir
+            </button>
+          </div>
+
+          {error && (
+            <div className="mb-5 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center">
+              <div className="flex justify-center"><LoadingSpinner /></div>
+              <p className="mt-3 text-sm text-slate-400">Cargando tus rutas asignadas…</p>
+            </div>
+          ) : stores.length ? (
+            <div className="space-y-3">
+              {ordenarRutas(stores).map((store) => (
+                <button
+                  key={store.id}
+                  type="button"
+                  disabled={Boolean(selectingStoreId)}
+                  onClick={() => handleSelectStore(store)}
+                  className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-left transition hover:border-indigo-400/40 hover:bg-indigo-500/10 disabled:opacity-60"
+                >
+                  <span className="flex min-w-0 items-center gap-4">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/15 text-indigo-300">
+                      <FiShoppingBag size={20} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-base font-black">{store.nombre}</span>
+                      <span className="mt-1 block text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                        Ruta asignada
+                      </span>
+                    </span>
+                  </span>
+                  {String(selectingStoreId) === String(store.id) ? (
+                    <LoadingSpinner />
+                  ) : (
+                    <FiChevronRight className="shrink-0 text-slate-500 transition group-hover:translate-x-1 group-hover:text-indigo-300" />
+                  )}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center">
+              <FiActivity className="mx-auto mb-4 text-amber-400" size={28} />
+              <h2 className="font-black">No tienes rutas disponibles</h2>
+              <p className="mt-2 text-sm text-slate-400">
+                Pide al administrador que te asigne a una ruta activa.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-start px-4 py-6 md:p-6 relative overflow-hidden font-sans">

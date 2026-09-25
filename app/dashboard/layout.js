@@ -230,8 +230,10 @@ export default function DashboardLayout({ children }) {
   }, [isAuthenticated, selectedStore, isAdmin]);
 
   useEffect(() => {
-    if (!loading && (!isAuthenticated || (!selectedStore && user?.username !== 'root'))) {
+    if (!loading && !isAuthenticated) {
       router.push("/login");
+    } else if (!loading && !selectedStore && user?.username !== 'root') {
+      router.push(isWorker ? "/select-store" : "/login");
     } else if (selectedStore) {
       if (!selectedStore.tienda?.id) {
         router.push("/select-store");
@@ -242,7 +244,7 @@ export default function DashboardLayout({ children }) {
         id: selectedStore.tienda.id,
       });
     }
-  }, [loading, isAuthenticated, selectedStore, user, router]);
+  }, [loading, isAuthenticated, selectedStore, user, router, isWorker]);
 
   // Route guard: redirect workers away from admin-only pages
   useEffect(() => {

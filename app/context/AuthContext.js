@@ -159,6 +159,26 @@ export const AuthProvider = ({ children }) => {
   }, [logout]);
 
   const selectStore = useCallback((store) => {
+    const previousRaw = localStorage.getItem('selectedStore');
+    let previousId = null;
+    try {
+      previousId = previousRaw ? JSON.parse(previousRaw)?.tienda?.id : null;
+    } catch {}
+    const nextId = store?.tienda?.id;
+    if (previousId && nextId && String(previousId) !== String(nextId)) {
+      [
+        'noPago',
+        'liquidarFecha',
+        'cliente',
+        'abono',
+        'aporteEditar',
+        'utilidadEditar',
+        'gastoEditar',
+        'ventaEditar',
+        'recaudoEditar',
+        'recaudo',
+      ].forEach((key) => localStorage.removeItem(key));
+    }
     localStorage.setItem('selectedStore', JSON.stringify(store));
     setSelectedStore(store);
   }, []);
@@ -213,9 +233,16 @@ export const AuthProvider = ({ children }) => {
         if (nowId !== tiendaId) return;
         setSelectedStore(fresh);
         localStorage.setItem('selectedStore', JSON.stringify(fresh));
+      } else if (res.status === 403 || res.status === 404) {
+        const nowStored = localStorage.getItem('selectedStore');
+        const nowId = nowStored ? JSON.parse(nowStored)?.tienda?.id : null;
+        if (String(nowId) !== String(tiendaId)) return;
+        localStorage.removeItem('selectedStore');
+        setSelectedStore(null);
+        router.push('/select-store');
       }
     } catch (_) {}
-  }, []);
+  }, [router]);
 
   return (
     <AuthContext.Provider

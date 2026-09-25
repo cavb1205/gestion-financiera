@@ -34,7 +34,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, logout, selectStore } = useAuth();
+  const { login } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
 
@@ -71,22 +71,10 @@ export default function LoginPage() {
         return;
       }
 
-      // Workers: auto-select their store and go to liquidar
+      // Workers choose an active route before entering the operational area.
       const isWorker = !(data.user.is_staff || data.user.is_superuser);
       if (isWorker) {
-        let storeData = null;
-        try {
-          const storeRes = await apiFetch("/tiendas/detail/");
-          if (storeRes.ok) storeData = await storeRes.json();
-        } catch {}
-        // Sin tienda válida el guard del dashboard rebotaría a /login sin
-        // explicación; mejor cortar aquí con mensaje y dejar reintentar.
-        if (!storeData?.tienda?.id) {
-          logout();
-          throw new Error("No se pudo cargar la información de tu ruta. Verifica tu conexión e intenta de nuevo.");
-        }
-        selectStore(storeData);
-        router.push("/dashboard/liquidar");
+        router.push("/select-store");
         return;
       }
 

@@ -147,7 +147,7 @@ export default function LiquidarCreditosPage() {
             fetchJson(`/ventas/activas/liquidar/${selectedDate}/t/${selectedStore.tienda.id}/`),
             fetchJson(`/ventas/activas/t/${selectedStore.tienda.id}/`),
             fetchJson(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/?vista=lista`),
-            fetchJson(`/tiendas/detail/`),
+            fetchJson(`/tiendas/detail/admin/${selectedStore.tienda.id}/`),
          ]);
 
          setCreditos(Array.isArray(creditosData) ? creditosData : []);
