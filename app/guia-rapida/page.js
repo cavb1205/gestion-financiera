@@ -19,7 +19,6 @@ import {
   FiMapPin,
   FiMessageCircle,
   FiPrinter,
-  FiRefreshCw,
   FiSearch,
   FiShield,
   FiShoppingCart,
@@ -28,7 +27,8 @@ import {
   FiUsers,
 } from "react-icons/fi";
 
-const MIGRATION_DATE = "24 de agosto de 2026";
+const GUIDE_VERSION = "v2.2";
+const GUIDE_UPDATED = "septiembre de 2026";
 
 const ROLES = {
   ambos: { label: "Todos", className: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300" },
@@ -69,15 +69,15 @@ const GUIDE_SECTIONS = [
     icon: FiHome,
     eyebrow: "Primeros pasos",
     title: "Entrar y elegir la ruta correcta",
-    description: "El sistema nuevo conserva tus credenciales, pero debes confirmar que estás trabajando en la ruta correcta antes de registrar cualquier movimiento.",
+    description: "El sistema conserva tus credenciales. Antes de registrar movimientos, confirma que estás en la ruta correcta; si tienes varias asignadas, elige en cuál trabajar.",
     href: "/select-store",
     action: "Seleccionar ruta",
     tone: "indigo",
     steps: [
       "Abre app.carterafinanciera.com en tu celular o computador. No uses el dominio antiguo www.carterafinanciera.com.",
       "Ingresa tu usuario y contraseña de siempre.",
-      "El trabajador entra directamente a Liquidación y el administrador selecciona una ruta antes de llegar al panel.",
-      "Confirma el nombre de la ruta que aparece en la parte superior. Si necesitas cambiarla, usa el botón «Ruta».",
+      "Si eres trabajador y tienes una sola ruta activa, entrarás directamente a Liquidación. Si tienes varias, elige una en «Elige tu ruta». El administrador selecciona una ruta antes de abrir el panel.",
+      "Confirma el nombre de la ruta que aparece en la parte superior antes de registrar movimientos. Para cambiarla, usa el botón «Ruta» del menú.",
     ],
     note: "Puedes agregar la aplicación a la pantalla de inicio desde las opciones del navegador para abrirla como una app.",
   },
@@ -102,8 +102,29 @@ const GUIDE_SECTIONS = [
     note: "El GPS ayuda a comprobar dónde ocurrió el cobro, pero el cobro puede registrarse sin GPS. Si está bloqueado, quedará sin ubicación.",
   },
   {
-    id: "nueva-venta",
+    id: "asignar-rutas",
     number: "03",
+    role: "administrador",
+    icon: FiUsers,
+    eyebrow: "Administración de personal",
+    title: "Dar acceso a un trabajador a varias rutas",
+    description: "Un trabajador puede usar la misma cuenta en varias rutas del mismo administrador. No hace falta crearle un usuario y una contraseña distintos para cada ruta.",
+    href: "/dashboard/trabajadores",
+    action: "Administrar trabajadores",
+    tone: "indigo",
+    steps: [
+      "Entra a la ruta de destino y abre «Trabajadores».",
+      "Pulsa «Asignar trabajador existente». Solo aparecen trabajadores de otras rutas del mismo administrador que todavía no tengan acceso a esta ruta.",
+      "Pulsa «Asignar» junto al trabajador. Se conserva su cuenta y contraseña; no crees un usuario duplicado. Cada pago o visita sigue asociado a la ruta seleccionada.",
+      "Al iniciar sesión, si tiene una sola ruta activa, entrará directamente a Liquidación. Si tiene varias, verá «Elige tu ruta» y deberá escoger dónde va a trabajar.",
+      "Para cambiar de ruta durante la jornada, usa «Ruta» en el menú, selecciona la siguiente y confirma su nombre antes de registrar pagos o visitas.",
+      "Para quitarle acceso únicamente a esta ruta, usa «Quitar ruta» en su ficha de la lista y confirma. La cuenta y las asignaciones a otras rutas se conservan.",
+    ],
+    note: "La ruta de destino debe estar activa y el trabajador debe pertenecer al mismo administrador propietario. La asignación no cambia su rol ni sus permisos y no permite compartir cuentas entre administradores distintos.",
+  },
+  {
+    id: "nueva-venta",
+    number: "04",
     role: "ambos",
     icon: FiShoppingCart,
     eyebrow: "Otorgar un crédito",
@@ -128,7 +149,7 @@ const GUIDE_SECTIONS = [
   },
   {
     id: "seguimiento",
-    number: "04",
+    number: "05",
     role: "administrador",
     icon: FiBell,
     eyebrow: "Control preventivo",
@@ -148,26 +169,31 @@ const GUIDE_SECTIONS = [
   },
   {
     id: "telegram",
-    number: "05",
-    role: "administrador",
+    number: "06",
+    role: "ambos",
     icon: FiMessageCircle,
-    eyebrow: "Notificaciones sin ruido",
-    title: "Qué esperar de Telegram",
-    description: "Telegram está pensado para avisar lo importante, no para convertir cada visita fallida en una notificación inmediata.",
-    href: "/dashboard/alertas",
-    action: "Ver señales",
+    eyebrow: "Avisos de cara al cliente",
+    title: "Activar y administrar los avisos por Telegram",
+    description: "La suscripción es voluntaria y se activa desde la ficha de cada cliente. Una vez vinculada, esa persona puede recibir movimientos de sus créditos y consultar la información disponible en el bot.",
+    href: "/dashboard/clientes",
+    action: "Buscar clientes",
     tone: "sky",
     steps: [
-      "Las alertas importantes se generan cuando una venta cruza un umbral de gestión o riesgo.",
-      "Las fallas de no pago y los movimientos del día se revisan principalmente en el panel y en el reporte nocturno.",
-      "El reporte diario resume las rutas administradas por el usuario autorizado y lo ocurrido durante la jornada cerrada.",
-      "Si revisas una alerta, conserva el contexto: ruta, cliente, venta, saldo, días sin abono y cuotas atrasadas.",
+      "Entra a la ruta correcta, abre «Clientes», busca a la persona y entra a su perfil. Administradores y trabajadores asignados pueden gestionar Telegram dentro de sus rutas autorizadas.",
+      "Pregunta si desea recibir avisos. Pulsa «Enviar por WhatsApp», revisa que el destinatario sea correcto y envía el mensaje preparado. Incluye enlaces oficiales para Android y iPhone; WhatsApp no lo envía hasta que pulses «Enviar».",
+      "Cuando el cliente confirme que instaló Telegram y creó su cuenta, pulsa «Generar enlace». Cópialo y envíaselo directamente al cliente. El enlace es personal, de un solo uso y vence a los 15 minutos; si vence, genera otro.",
+      "El cliente abre el enlace en la conversación privada con el bot y acepta vincular ese chat. Aceptar solo crea una solicitud: todavía no se muestran datos ni se activan avisos financieros.",
+      "Cuando la ficha indique «Pendiente de confirmación», verifica que el cliente aceptó la invitación que tú le enviaste y confirma el chat ID en su perfil. Los avisos comienzan cuando el estado muestre «Activo».",
+      "Desde entonces se avisa cuando se registra un crédito nuevo (monto solicitado, total a pagar y plazo), un abono, una visita sin pago, una corrección/anulación, un ajuste de fecha o cuotas, o una renovación. Cada mensaje muestra la fecha, estado, avance —por ejemplo, «1 de 20»—, total abonado y saldo. Una visita sin pago solo se notifica si el trabajador la registra; no hay recordatorios automáticos por proximidad de una cuota.",
+      "El cliente puede abrir el menú del bot con «/menu» y consultar «/creditos» o «/movimientos». Son consultas de solo lectura y muestran los créditos activos y movimientos disponibles.",
+      "La vinculación pertenece a esa ficha de cliente y continúa para sus futuros créditos. Si la misma persona tiene otra ficha en una ruta distinta, repite allí la invitación y confirmación; puedes vincular ambas fichas al mismo chat, pero el sistema nunca las une por teléfono o nombre.",
+      "Para dejar de enviar avisos, pulsa «Revocar» en la ficha. El bot intenta borrar los mensajes registrados después de unas 24 horas; esto no revoca la vinculación ni detiene los avisos futuros. Para detenerlos, debes revocar el vínculo.",
     ],
-    note: "Si Telegram muestra una ruta que no corresponde, primero verifica la ruta seleccionada y el usuario administrador que recibe el reporte.",
+    note: "El cliente debe aceptar la invitación; no se vincula por número telefónico. Los mensajes del cliente no muestran nombres de ruta, URL del sistema ni comentarios internos. Los avisos de Telegram son informativos: si un cliente dice que un movimiento no corresponde, verifica siempre el registro en la aplicación.",
   },
   {
     id: "caja",
-    number: "06",
+    number: "07",
     role: "ambos",
     icon: FiCreditCard,
     eyebrow: "Control del efectivo",
@@ -187,7 +213,7 @@ const GUIDE_SECTIONS = [
   },
   {
     id: "reportes",
-    number: "07",
+    number: "08",
     role: "administrador",
     icon: FiBarChart2,
     eyebrow: "Análisis del negocio",
@@ -208,7 +234,7 @@ const GUIDE_SECTIONS = [
   },
   {
     id: "cliente-riesgo",
-    number: "08",
+    number: "09",
     role: "administrador",
     icon: FiStar,
     eyebrow: "Decisiones de crédito",
@@ -228,7 +254,7 @@ const GUIDE_SECTIONS = [
   },
   {
     id: "publicidad",
-    number: "09",
+    number: "10",
     role: "ambos",
     icon: FiMapPin,
     eyebrow: "Trabajo en terreno",
@@ -248,10 +274,20 @@ const GUIDE_SECTIONS = [
 ];
 
 const FAQS = [
+  ["¿Debo crear otro usuario para cada ruta?", "No. Desde la ruta de destino, un administrador puede asignar a un trabajador existente de otra ruta propia. Se conserva su cuenta y contraseña; al entrar, el trabajador elige qué ruta operar cuando tiene más de una asignada."],
+  ["El trabajador no ve una ruta que debería tener", "Confirma que la ruta de destino esté activa y que el trabajador pertenezca a una ruta del mismo administrador. En la ruta de destino, abre «Trabajadores» y asígnalo con «Asignar trabajador existente». Si ya aparece en la lista, ya tiene acceso."],
+  ["¿El botón «Salir» quita las rutas asignadas?", "No. «Salir» cierra la sesión del trabajador. Para retirar su acceso a una ruta, el administrador debe usar «Quitar ruta» desde «Trabajadores» en esa ruta; sus otras asignaciones permanecen."],
   ["No veo al cliente en Liquidación", "Confirma que estás en la ruta correcta, actualiza la lista y revisa si ya abonó durante el día. Los clientes pagados desaparecen de los pendientes."],
   ["El mapa no muestra un cobro", "El registro puede existir sin coordenadas. Revisa la lista de operaciones sin GPS y verifica que el navegador tenga permiso de ubicación."],
   ["La alerta dice Ayer, ¿está atrasado?", "No necesariamente. Ayer solo identifica el día del último abono. El atraso se interpreta con cuotas atrasadas y con la frecuencia del crédito."],
   ["La caja no coincide", "Revisa primero Movimientos de Caja: tipo, usuario, saldo anterior y posterior. Luego compara el cierre con los recaudos, gastos, aportes y utilidades del día."],
+  ["El cliente aceptó Telegram, pero sigue Pendiente", "La aceptación del cliente no activa por sí sola los avisos. Abre su ficha, confirma el chat ID asociado a la invitación que le enviaste y verifica que el estado cambie a Activo."],
+  ["¿Son los avisos del cliente los mismos informes internos?", "No. Esta sección explica los movimientos que un cliente puede recibir en su chat privado después de vincularse. Los reportes y alertas operativas de los administradores son independientes."],
+  ["El enlace de invitación venció", "Los enlaces duran 15 minutos y son de un solo uso. Genera uno nuevo desde la ficha del cliente y envíalo directamente a esa persona."],
+  ["Un cliente tiene créditos en dos rutas", "Cada ficha de cliente se vincula por separado. Si la persona quiere recibir avisos de ambas, envía y confirma una invitación desde cada ficha; ambas pueden llegar al mismo chat de Telegram."],
+  ["¿Telegram avisa automáticamente que una cuota está próxima?", "No. El bot notifica los movimientos y las visitas sin abono que el trabajador registra en el sistema; no sustituye el seguimiento de cobro ni envía recordatorios automáticos por vencimiento."],
+  ["El cliente no recibió un aviso", "Confirma que la ficha esté Activa, que no haya bloqueado el bot y que el abono o la visita sin pago se haya guardado correctamente. Si todo está bien, informa al administrador para revisar la entrega; no registres de nuevo un movimiento solo para repetir el mensaje."],
+  ["¿Borrar mensajes desactiva Telegram?", "No. La limpieza automática intenta retirar los mensajes registrados luego de unas 24 horas, pero el vínculo sigue activo y los próximos avisos continúan. Usa «Revocar» en la ficha si el cliente ya no desea recibirlos."],
 ];
 
 function RoleBadge({ role }) {
@@ -406,8 +442,8 @@ export default function GuiaRapidaPage() {
             <div className="pointer-events-none absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
             <div className="relative max-w-3xl">
               <div className="mb-5 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">
-                <span className="rounded-full border border-indigo-400/30 bg-indigo-400/10 px-3 py-1.5">Guía v2.0</span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">Actualizada agosto 2026</span>
+                <span className="rounded-full border border-indigo-400/30 bg-indigo-400/10 px-3 py-1.5">Guía {GUIDE_VERSION}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">Actualizada {GUIDE_UPDATED}</span>
               </div>
               <h1 className="max-w-2xl text-3xl font-black leading-[0.98] tracking-[-0.04em] sm:text-5xl">Trabaja con claridad. Controla la cartera a tiempo.</h1>
               <p className="mt-5 max-w-2xl text-sm font-medium leading-relaxed text-slate-300 sm:text-base">Una referencia práctica para cobrar, registrar créditos, revisar riesgos y mantener la caja bajo control desde el sistema nuevo.</p>
@@ -418,16 +454,16 @@ export default function GuiaRapidaPage() {
             </div>
           </section>
 
-          <section className="no-print mt-5 flex flex-col gap-4 rounded-[2rem] border border-amber-200 bg-amber-50/90 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-amber-900/40 dark:bg-amber-950/20">
+          <section className="no-print mt-5 flex flex-col gap-4 rounded-[2rem] border border-indigo-200 bg-indigo-50/90 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-indigo-900/40 dark:bg-indigo-950/20">
             <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-amber-500 p-3 text-white"><FiRefreshCw size={17} /></div>
+              <div className="rounded-2xl bg-indigo-600 p-3 text-white"><FiShield size={17} /></div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">Transición en curso</p>
-                <h2 className="mt-1 text-base font-black text-amber-950 dark:text-amber-100">El sistema antiguo se descontinúa el {MIGRATION_DATE}.</h2>
-                <p className="mt-1 text-xs font-medium leading-relaxed text-amber-800/80 dark:text-amber-200/70">Desde ahora usa <strong>app.carterafinanciera.com</strong> para acostumbrarte al flujo nuevo y evitar registros en la plataforma anterior.</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-700 dark:text-indigo-300">Plataforma oficial</p>
+                <h2 className="mt-1 text-base font-black text-indigo-950 dark:text-indigo-100">Registra todos los movimientos en el sistema vigente.</h2>
+                <p className="mt-1 text-xs font-medium leading-relaxed text-indigo-800/80 dark:text-indigo-200/70">Usa <strong>app.carterafinanciera.com</strong> para que créditos, pagos, visitas y reportes queden en un solo lugar.</p>
               </div>
             </div>
-            <a href="https://app.carterafinanciera.com" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white transition hover:bg-amber-700">Abrir sistema nuevo <FiExternalLink size={13} /></a>
+            <a href="https://app.carterafinanciera.com" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white transition hover:bg-indigo-700">Abrir sistema <FiExternalLink size={13} /></a>
           </section>
 
           <section className="no-print mt-8">
@@ -501,7 +537,7 @@ export default function GuiaRapidaPage() {
             <FiMessageCircle className="mx-auto text-indigo-500" size={22} />
             <p className="mt-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">¿Necesitas ayuda?</p>
             <p className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">Contacta a tu administrador o usa el soporte por WhatsApp desde el menú «?».</p>
-            <p className="mt-3 text-[10px] font-black uppercase tracking-widest text-slate-400">app.carterafinanciera.com · Guía v2.0 · Actualizada agosto 2026</p>
+            <p className="mt-3 text-[10px] font-black uppercase tracking-widest text-slate-400">app.carterafinanciera.com · Guía {GUIDE_VERSION} · Actualizada {GUIDE_UPDATED}</p>
           </footer>
         </div>
       </main>
