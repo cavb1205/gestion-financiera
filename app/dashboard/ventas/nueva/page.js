@@ -117,10 +117,13 @@ function NuevaVentaContent() {
       if (!response.ok) throw new Error("No se pudieron cargar los clientes");
 
       const data = await response.json();
-      setClientes(data);
+      // La API devuelve un objeto { message } cuando la ruta aún no tiene
+      // clientes activos. En el formulario se representa como una lista vacía.
+      const listaClientes = Array.isArray(data) ? data : [];
+      setClientes(listaClientes);
       
       if (clienteIdParam) {
-        const found = data.find(c => c.id.toString() === clienteIdParam);
+        const found = listaClientes.find(c => c.id.toString() === clienteIdParam);
         if (found) {
           setFormData(prev => ({ ...prev, cliente: found.id }));
           setClienteSeleccionado(found);
@@ -142,7 +145,7 @@ function NuevaVentaContent() {
       return;
     }
 
-    const filtrados = clientes.filter(
+    const filtrados = (Array.isArray(clientes) ? clientes : []).filter(
       (cliente) =>
         `${cliente.nombres} ${cliente.apellidos}`.toLowerCase().includes(busqueda.toLowerCase()) ||
         cliente.identificacion.toLowerCase().includes(busqueda.toLowerCase())
@@ -161,7 +164,7 @@ function NuevaVentaContent() {
   };
 
   const seleccionarCliente = async (cliente) => {
-    setFormData({ ...formData, cliente: cliente.id });
+    setFormData((prev) => ({ ...prev, cliente: cliente.id }));
     setClienteSeleccionado(cliente);
     setBusquedaCliente("");
     setClientesFiltrados([]);
@@ -198,15 +201,23 @@ function NuevaVentaContent() {
         return;
       }
       const creado = await res.json();
+      if (!creado?.id) {
+        throw new Error("El cliente se guardó, pero el servidor no devolvió su identificador. Actualiza la pantalla antes de reintentar.");
+      }
       invalidateClientesTienda(selectedStore.tienda.id);
-      setClientes((prev) => [...prev, creado]);
+      setClientes((prev) => {
+        const lista = Array.isArray(prev) ? prev : [];
+        return lista.some((cliente) => String(cliente.id) === String(creado.id))
+          ? lista
+          : [...lista, creado];
+      });
       seleccionarCliente(creado);
       setShowCrearCliente(false);
       setNuevoCliente({ identificacion: "", nombres: "", apellidos: "", nombre_local: "", telefono_principal: "", direccion: "" });
       setErroresCliente({});
       toast.success("Cliente creado y seleccionado");
-    } catch {
-      toast.error("Error al crear el cliente");
+    } catch (err) {
+      toast.error(err?.message || "Error al crear el cliente");
     } finally {
       setCreandoCliente(false);
     }
