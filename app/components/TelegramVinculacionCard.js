@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   FiCheck,
   FiClipboard,
+  FiExternalLink,
   FiLink,
   FiLock,
   FiMessageCircle,
@@ -16,6 +17,8 @@ import { toast } from "react-toastify";
 import { apiFetch } from "../utils/api";
 
 const EMPTY = { estado: "sin_vincular", habilitado: true };
+const TELEGRAM_ANDROID_URL = "https://play.google.com/store/apps/details?id=org.telegram.messenger";
+const TELEGRAM_IOS_URL = "https://apps.apple.com/app/telegram-messenger/id686449807";
 
 function statusCopy(estado) {
   if (estado === "activo") return { label: "Activo", tone: "emerald" };
@@ -42,7 +45,7 @@ function buildWhatsAppUrl({ phone, countryPrefix, firstName }) {
   if (digits.length < 8 || digits.length > 15) return null;
 
   const greeting = firstName?.trim() ? `Hola ${firstName.trim()}` : "Hola";
-  const message = `${greeting} 👋\n\nSi deseas, puedes recibir por Telegram avisos cuando registremos un crédito, un abono o una novedad de pago, junto con el progreso y el saldo de tus créditos.\n\n📲 Para instalar Telegram, toca el enlace que corresponda a tu celular:\n🤖 Android (Google Play): https://play.google.com/store/apps/details?id=org.telegram.messenger\n🍎 iPhone (App Store): https://apps.apple.com/app/telegram-messenger/id686449807\n\nEn la tienda, pulsa “Instalar” o “Obtener”. Después abre Telegram y sigue los pasos para crear tu cuenta. Si el enlace no abre, busca “Telegram Messenger” directamente en la tienda de aplicaciones de tu celular.\n\nCuando esté lista, respóndenos por aquí y te enviaremos una invitación personal para activar los avisos. Es opcional. 🙂`;
+  const message = `${greeting} 👋\n\nSi deseas, puedes recibir por Telegram avisos cuando registremos un crédito, un abono o una novedad de pago, junto con el progreso y el saldo de tus créditos.\n\n📲 Para instalar Telegram, toca el enlace que corresponda a tu celular:\n🤖 Android (Google Play): ${TELEGRAM_ANDROID_URL}\n🍎 iPhone (App Store): ${TELEGRAM_IOS_URL}\n\nEn la tienda, pulsa “Instalar” o “Obtener”. Después abre Telegram y sigue los pasos para crear tu cuenta. Si el enlace no abre, busca “Telegram Messenger” directamente en la tienda de aplicaciones de tu celular.\n\nCuando esté lista, respóndenos por aquí y te enviaremos una invitación personal para activar los avisos. Es opcional. 🙂`;
 
   return `https://api.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(message)}`;
 }
@@ -210,6 +213,28 @@ export default function TelegramVinculacionCard({
                   </p>
                 )}
               </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 px-1">
+              <span className="w-full text-[10px] font-black uppercase tracking-widest text-slate-400 sm:w-auto sm:mr-1">
+                Instalar Telegram:
+              </span>
+              <a
+                href={TELEGRAM_ANDROID_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 text-[10px] font-black text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:flex-none dark:border-indigo-900/60 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+              >
+                <FiExternalLink size={14} /> Android · Google Play
+              </a>
+              <a
+                href={TELEGRAM_IOS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 text-[10px] font-black text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:flex-none dark:border-indigo-900/60 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+              >
+                <FiExternalLink size={14} /> iPhone · App Store
+              </a>
             </div>
 
             <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-indigo-100 bg-white/80 p-4 dark:border-indigo-900/60 dark:bg-slate-950/30 sm:flex-row sm:items-center sm:justify-between">
