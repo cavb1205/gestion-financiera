@@ -152,24 +152,12 @@ export default function TelegramVinculacionCard({
     }
   }
 
-  if (loading) {
-    return <div className="h-36 animate-pulse rounded-[2rem] border border-slate-200/70 bg-white/60 dark:border-slate-800 dark:bg-slate-900/50" />;
-  }
-
-  if (!data?.habilitado) {
-    return (
-      <section className="rounded-[2rem] border border-slate-200/70 bg-slate-50/80 p-5 dark:border-slate-800 dark:bg-slate-900/50">
-        <div className="flex items-center gap-3">
-          <div className="rounded-2xl bg-slate-200 p-3 text-slate-500 dark:bg-slate-800 dark:text-slate-400"><FiSend size={19} /></div>
-          <div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Avisos por Telegram</p><p className="mt-1 text-xs font-bold text-slate-400">Bot de clientes aún no configurado.</p></div>
-        </div>
-      </section>
-    );
-  }
-
-  const status = statusCopy(data.estado);
-  const active = data.estado === "activo";
-  const pending = data.estado === "pendiente_confirmacion";
+  const status = loading
+    ? { label: "Consultando…", tone: "amber" }
+    : statusCopy(data?.estado || "sin_vincular");
+  const active = data?.estado === "activo";
+  const pending = data?.estado === "pendiente_confirmacion";
+  const telegramDisponible = data?.habilitado !== false;
   const whatsappUrl = buildWhatsAppUrl({ phone, countryPrefix, firstName });
 
   return (
@@ -186,6 +174,12 @@ export default function TelegramVinculacionCard({
           </div>
           <FiShield className="hidden shrink-0 text-indigo-400 sm:block" size={20} />
         </div>
+
+        {!telegramDisponible && (
+          <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200" role="status">
+            El bot de avisos no está disponible ahora. Puedes compartir cómo instalar Telegram, pero no generar una invitación hasta que el bot esté habilitado.
+          </p>
+        )}
 
         {!active && !pending && (
           <>
@@ -215,33 +209,42 @@ export default function TelegramVinculacionCard({
               </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2 px-1">
-              <span className="w-full text-[10px] font-black uppercase tracking-widest text-slate-400 sm:w-auto sm:mr-1">
-                Instalar Telegram:
-              </span>
-              <a
-                href={TELEGRAM_ANDROID_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 text-[10px] font-black text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:flex-none dark:border-indigo-900/60 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
-              >
-                <FiExternalLink size={14} /> Android · Google Play
-              </a>
-              <a
-                href={TELEGRAM_IOS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 text-[10px] font-black text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:flex-none dark:border-indigo-900/60 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
-              >
-                <FiExternalLink size={14} /> iPhone · App Store
-              </a>
-            </div>
+          </>
+        )}
 
+        <div className="mt-4 rounded-2xl border border-indigo-100 bg-white/80 p-4 dark:border-indigo-900/60 dark:bg-slate-950/30">
+          <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Telegram para el cliente</p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <a
+              href={TELEGRAM_ANDROID_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 text-[10px] font-black text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-indigo-900/60 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+            >
+              <FiExternalLink size={14} /> Android · Google Play
+            </a>
+            <a
+              href={TELEGRAM_IOS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 text-[10px] font-black text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-indigo-900/60 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+            >
+              <FiExternalLink size={14} /> iPhone · App Store
+            </a>
+          </div>
+        </div>
+
+        {!active && !pending && (
+          telegramDisponible ? (
             <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-indigo-100 bg-white/80 p-4 dark:border-indigo-900/60 dark:bg-slate-950/30 sm:flex-row sm:items-center sm:justify-between">
               <div><p className="text-xs font-black text-slate-700 dark:text-slate-200">Genera una invitación temporal</p><p className="mt-1 text-[11px] font-medium text-slate-400">Cuando el cliente confirme que ya tiene Telegram. La invitación caduca en 15 minutos.</p></div>
-              <button type="button" onClick={generarInvitacion} disabled={busy === "generar"} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60"><FiLink size={15} />{busy === "generar" ? "Generando..." : "Generar enlace"}</button>
+              <button type="button" onClick={generarInvitacion} disabled={loading || busy === "generar"} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60"><FiLink size={15} />{loading ? "Consultando..." : busy === "generar" ? "Generando..." : "Generar enlace"}</button>
             </div>
-          </>
+          ) : (
+            <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400" role="status">
+              La invitación personal aparecerá aquí cuando el bot vuelva a estar disponible.
+            </p>
+          )
         )}
 
         {enlace && (
