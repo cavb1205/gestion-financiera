@@ -36,6 +36,7 @@ import { apiFetch } from "../../../utils/api";
 import LoadingSpinner from "../../../components/LoadingSpinner";
 import ErrorMessage from "../../../components/ErrorMessage";
 import { formatMoney, formatDate } from "../../../utils/format";
+import TelegramVinculacionCard from "../../../components/TelegramVinculacionCard";
 
 export default function DetalleCliente({ params }) {
   const router = useRouter();
@@ -432,6 +433,17 @@ export default function DetalleCliente({ params }) {
               <FiTrash2 size={18} />
             </button>
           )}
+        </div>
+
+        <div className="mb-8">
+          <TelegramVinculacionCard
+            clienteId={clienteId}
+            phone={cliente.telefono_principal}
+            firstName={cliente.nombres?.trim().split(/\s+/)[0]}
+            countryPrefix={String(cliente.tienda) === String(selectedStore?.tienda?.id)
+              ? selectedStore?.tienda?.prefijo_telefono
+              : ""}
+          />
         </div>
 
         {/* Malla de Indicadores Financieros */}
