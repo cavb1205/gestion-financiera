@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   FiCheck,
   FiClipboard,
-  FiExternalLink,
   FiLink,
   FiLock,
   FiMessageCircle,
@@ -211,28 +210,6 @@ export default function TelegramVinculacionCard({
 
           </>
         )}
-
-        <div className="mt-4 rounded-2xl border border-indigo-100 bg-white/80 p-4 dark:border-indigo-900/60 dark:bg-slate-950/30">
-          <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Telegram para el cliente</p>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <a
-              href={TELEGRAM_ANDROID_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 text-[10px] font-black text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-indigo-900/60 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
-            >
-              <FiExternalLink size={14} /> Android · Google Play
-            </a>
-            <a
-              href={TELEGRAM_IOS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 text-[10px] font-black text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-indigo-900/60 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
-            >
-              <FiExternalLink size={14} /> iPhone · App Store
-            </a>
-          </div>
-        </div>
 
         {!active && !pending && (
           telegramDisponible ? (
