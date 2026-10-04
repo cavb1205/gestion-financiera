@@ -437,9 +437,11 @@ export default function DetalleCliente({ params }) {
 
         <div className="mb-8">
           <TelegramVinculacionCard
+            key={clienteId}
             clienteId={clienteId}
             phone={cliente.telefono_principal}
             firstName={cliente.nombres?.trim().split(/\s+/)[0]}
+            timeZone={selectedStore?.tienda?.zona_horaria}
             countryPrefix={String(cliente.tienda) === String(selectedStore?.tienda?.id)
               ? selectedStore?.tienda?.prefijo_telefono
               : ""}
