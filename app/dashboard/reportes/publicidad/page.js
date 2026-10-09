@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/app/context/AuthContext";
-import { apiFetch } from "@/app/utils/api";
+import { apiFetch, getApiError } from "@/app/utils/api";
 import {
   FiActivity,
   FiAlertTriangle,
@@ -20,10 +20,8 @@ import {
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatAppTime, getAppDateString, shiftAppDate } from "@/app/utils/datetime";
+import { claveAutor, nombreAutor, tieneCoordenadas } from "@/app/utils/publicidad";
 
-function fechaLocal(desplazamiento = 0) {
-  return getAppDateString(desplazamiento);
-}
 
 function formatearFecha(valor) {
   if (!valor) return "—";
@@ -36,17 +34,6 @@ function obtenerOrden(punto) {
   return Number.isFinite(timestamp) ? timestamp : Number(punto?.id) || 0;
 }
 
-function tieneCoordenadas(punto) {
-  const latitud = Number(punto?.latitud);
-  const longitud = Number(punto?.longitud);
-  return Number.isFinite(latitud) && Number.isFinite(longitud)
-    && latitud >= -90 && latitud <= 90
-    && longitud >= -180 && longitud <= 180;
-}
-
-function formatHora(horaStr) {
-  return formatAppTime(horaStr);
-}
 
 const MapaPublicidad = dynamic(() => import("@/app/components/maps/MapaPublicidad"), {
   ssr: false,
@@ -60,48 +47,41 @@ const MapaPublicidad = dynamic(() => import("@/app/components/maps/MapaPublicida
 export default function PublicidadReportePage() {
   const { selectedStore, user, isAuthenticated, loading: authLoading } = useAuth();
   const isAdmin = user?.is_staff || user?.is_superuser;
+  const zona = selectedStore?.tienda?.zona_horaria;
+  const tiendaId = selectedStore?.tienda?.id;
+  const fechaLocal = (offset = 0) => getAppDateString(offset, new Date(), zona);
+  const formatHora = hora => formatAppTime(hora, undefined, zona);
 
   const [puntos, setPuntos] = useState([]);
-  const [trabajadores, setTrabajadores] = useState([]);
+  const [secuencia, setSecuencia] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => fechaLocal(-1));
   const requestRef = useRef(0);
 
-  const fetchTrabajadores = useCallback(async () => {
-    if (!selectedStore) return;
-
-    try {
-      const response = await apiFetch(`/trabajadores/t/${selectedStore.tienda.id}/`);
-      if (!response.ok) throw new Error("No se pudieron cargar los trabajadores");
-      const data = await response.json();
-      setTrabajadores(Array.isArray(data) ? data : []);
-    } catch (requestError) {
-      console.error("Error al cargar trabajadores:", requestError);
-      toast.error("Error al cargar trabajadores");
-      setTrabajadores([]);
-    }
-  }, [selectedStore]);
-
   useEffect(() => {
-    if (selectedStore) fetchTrabajadores();
-  }, [fetchTrabajadores, selectedStore]);
+    setSelectedDate(getAppDateString(-1, new Date(), zona));
+    setSelectedWorker(""); setPuntos([]);
+    return () => { requestRef.current += 1; };
+  }, [tiendaId, zona]);
 
   const fetchPuntos = useCallback(async () => {
-    if (!selectedStore || !selectedDate) return;
+    if (!isAdmin || !isAuthenticated || !selectedStore || !selectedDate) return;
 
     const requestId = ++requestRef.current;
     setLoading(true);
+    setPuntos([]);
     setError("");
 
     try {
       const response = await apiFetch(
         `/publicidad/list/${selectedDate}/t/${selectedStore.tienda.id}/`
       );
-      if (!response.ok) throw new Error("No se pudieron consultar los puntos de publicidad");
+      if (!response.ok) throw new Error(await getApiError(response, "No se pudieron consultar los puntos de publicidad"));
 
       const data = await response.json();
+      if (!Array.isArray(data)) throw new Error("El servidor devolvió una lista inválida.");
       if (requestId === requestRef.current) {
         setPuntos(Array.isArray(data) ? data : []);
       }
@@ -116,11 +96,12 @@ export default function PublicidadReportePage() {
     } finally {
       if (requestId === requestRef.current) setLoading(false);
     }
-  }, [selectedDate, selectedStore]);
+  }, [selectedDate, selectedStore, isAdmin, isAuthenticated]);
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated && selectedStore) fetchPuntos();
-  }, [authLoading, isAuthenticated, selectedStore, fetchPuntos]);
+    if (!authLoading && isAuthenticated && selectedStore && isAdmin) fetchPuntos();
+    return () => { requestRef.current += 1; };
+  }, [authLoading, isAuthenticated, selectedStore, isAdmin, fetchPuntos]);
 
   const navigateDate = (offset) => {
     setSelectedDate(shiftAppDate(selectedDate, offset));
@@ -133,7 +114,7 @@ export default function PublicidadReportePage() {
 
   const puntosFiltrados = useMemo(
     () => selectedWorker
-      ? puntosOrdenados.filter((punto) => String(punto.trabajador) === selectedWorker)
+      ? puntosOrdenados.filter((punto) => claveAutor(punto) === selectedWorker)
       : puntosOrdenados,
     [puntosOrdenados, selectedWorker]
   );
@@ -148,15 +129,8 @@ export default function PublicidadReportePage() {
     [puntosFiltrados]
   );
 
-  const trabajadoresActivos = useMemo(
-    () => new Set(
-      puntosFiltrados
-        .map((punto) => punto.trabajador)
-        .filter((trabajador) => trabajador !== null && trabajador !== undefined)
-        .map(String)
-    ).size,
-    [puntosFiltrados]
-  );
+  const autores = useMemo(() => [...new Map(puntos.map(p => [claveAutor(p), nombreAutor(p)])).entries()], [puntos]);
+  const trabajadoresActivos = new Set(puntosFiltrados.map(claveAutor)).size;
 
   const puntosSinNota = useMemo(
     () => puntosFiltrados.filter((punto) => !String(punto.nota || "").trim()).length,
@@ -186,7 +160,7 @@ export default function PublicidadReportePage() {
                 Mapa de Publicidad
               </h1>
               <p className="text-[10px] md:text-sm font-bold text-slate-400 uppercase tracking-widest mt-1 truncate">
-                Jornada cerrada · {formatearFecha(selectedDate)} · <span className="text-indigo-500">{selectedStore.tienda.nombre}</span>
+                Fecha consultada · {formatearFecha(selectedDate)} · <span className="text-indigo-500">{selectedStore.tienda.nombre}</span>
               </p>
             </div>
           </div>
@@ -211,13 +185,14 @@ export default function PublicidadReportePage() {
                     id="fecha-publicidad"
                     type="date"
                     value={selectedDate}
+                    max={fechaLocal()}
                     onChange={(event) => setSelectedDate(event.target.value)}
                     className="w-full pl-12 pr-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                   />
                 </div>
               </div>
               <div className="flex-1 space-y-2">
-                <label htmlFor="trabajador-publicidad" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Trabajador</label>
+                <label htmlFor="trabajador-publicidad" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Responsable</label>
                 <div className="relative">
                   <FiUser className="absolute left-5 top-1/2 -translate-y-1/2 text-indigo-500 pointer-events-none" size={15} />
                   <select
@@ -226,12 +201,9 @@ export default function PublicidadReportePage() {
                     onChange={(event) => setSelectedWorker(event.target.value)}
                     className="w-full pl-12 pr-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none appearance-none"
                   >
-                    <option value="">Todos los trabajadores</option>
-                    {trabajadores.map((trabajador) => (
-                      <option key={trabajador.id} value={String(trabajador.id)}>
-                        {trabajador.trabajador}
-                      </option>
-                    ))}
+                    <option value="">Todo el equipo</option>
+                    {selectedWorker && !autores.some(([id]) => id === selectedWorker) && <option value={selectedWorker}>Responsable sin registros en esta fecha</option>}
+                    {autores.map(([id, nombre]) => <option key={id} value={id}>{nombre}</option>)}
                   </select>
                 </div>
               </div>
@@ -263,6 +235,7 @@ export default function PublicidadReportePage() {
               <button
                 type="button"
                 onClick={() => navigateDate(1)}
+                disabled={selectedDate >= fechaLocal()}
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-600 hover:border-indigo-200 dark:hover:border-indigo-900 transition-all"
               >
                 Siguiente
@@ -302,7 +275,7 @@ export default function PublicidadReportePage() {
               <div className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-xl"><FiUsers size={14} /></div>
             </div>
             <p className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter">{trabajadoresActivos}</p>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Trabajadores</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Responsables</p>
           </div>
 
           <div className="glass p-5 rounded-[1.5rem] border-white/60 dark:border-slate-800 shadow-lg">
@@ -310,7 +283,7 @@ export default function PublicidadReportePage() {
               <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl"><FiMapPin size={14} /></div>
             </div>
             <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">{conGPS.length}</p>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Con GPS · {coberturaGPS}%</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">GPS válido · {coberturaGPS}% de registros</p>
           </div>
 
           <div className="glass p-5 rounded-[1.5rem] border-white/60 dark:border-slate-800 shadow-lg">
@@ -336,9 +309,9 @@ export default function PublicidadReportePage() {
             <span className="flex items-center gap-1.5 text-[9px] font-black text-indigo-500 uppercase tracking-widest">
               <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" /> Punto
             </span>
-            <span className="flex items-center gap-1.5 text-[9px] font-black text-indigo-400 uppercase tracking-widest">
-              <span className="w-8 border-t-2 border-dashed border-indigo-400 inline-block" /> Secuencia
-            </span>
+            <label className="flex items-center gap-2 text-xs text-slate-500">
+              <input type="checkbox" checked={secuencia} onChange={e => setSecuencia(e.target.checked)} />Ver secuencias por responsable
+            </label>
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-auto">
               {conGPS.length} ubicable{conGPS.length !== 1 ? "s" : ""}
             </span>
@@ -349,10 +322,12 @@ export default function PublicidadReportePage() {
                 <div className="w-6 h-6 border-2 border-slate-300 border-t-indigo-500 rounded-full animate-spin" />
               </div>
             ) : (
-              <MapaPublicidad puntos={puntosFiltrados} />
+              <MapaPublicidad puntos={puntosFiltrados} mostrarSecuencia={secuencia} zonaHoraria={zona} />
             )}
           </div>
         </div>
+
+        <p className="text-xs text-slate-500">Las líneas unen registros del mismo responsable y día, no un recorrido GPS real. El porcentaje GPS mide registros válidos, no cobertura del territorio.</p>
 
         {puntosFiltrados.length > 0 && (
           <div className="glass p-6 rounded-[2rem] border-white/60 dark:border-slate-800 shadow-xl">
@@ -372,9 +347,9 @@ export default function PublicidadReportePage() {
                         {punto.nota || "Sin nota"}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        {punto.trabajador_nombre && (
+                        {nombreAutor(punto) && (
                           <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest truncate">
-                            {punto.trabajador_nombre}
+                            {nombreAutor(punto)}
                           </p>
                         )}
                         <p className={`text-[9px] font-black uppercase tracking-widest ${tieneCoordenadas(punto) ? "text-emerald-500" : "text-amber-500"}`}>
@@ -406,7 +381,7 @@ export default function PublicidadReportePage() {
                 <div key={punto.id} className="flex items-center justify-between gap-3 px-4 py-3 bg-amber-50/60 dark:bg-amber-900/10 rounded-2xl">
                   <p className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase truncate">{punto.nota || "Sin nota"}</p>
                   <div className="flex items-center gap-2 shrink-0">
-                    {punto.trabajador_nombre && <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest hidden sm:inline">{punto.trabajador_nombre}</span>}
+                    {nombreAutor(punto) && <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest hidden sm:inline">{nombreAutor(punto)}</span>}
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{formatHora(punto.hora)}</span>
                   </div>
                 </div>

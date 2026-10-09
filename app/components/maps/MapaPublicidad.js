@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { MapContainer, Marker, Popup, Polyline, TileLayer, useMap } from "react-leaflet";
+import { Circle, MapContainer, Marker, Popup, Polyline, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { colorAutor, nombreAutor, secuenciasPublicidad, tieneCoordenadas } from "@/app/utils/publicidad";
+import { formatAppTime } from "@/app/utils/datetime";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -12,9 +14,9 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-const iconPunto = new L.DivIcon({
+const iconPunto = (color) => new L.DivIcon({
   className: "",
-  html: `<div style="width:14px;height:14px;border-radius:50%;background:#4f46e5;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.35)"></div>`,
+  html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.35)"></div>`,
   iconSize: [14, 14],
   iconAnchor: [7, 7],
   popupAnchor: [0, -10],
@@ -23,21 +25,6 @@ const iconPunto = new L.DivIcon({
 function obtenerOrden(punto) {
   const timestamp = Date.parse(punto?.hora || "");
   return Number.isFinite(timestamp) ? timestamp : Number(punto?.id) || 0;
-}
-
-function tieneCoordenadas(punto) {
-  const latitud = Number(punto?.latitud);
-  const longitud = Number(punto?.longitud);
-  return Number.isFinite(latitud) && Number.isFinite(longitud)
-    && latitud >= -90 && latitud <= 90
-    && longitud >= -180 && longitud <= 180;
-}
-
-function formatHora(horaStr) {
-  if (!horaStr) return "—";
-  const date = new Date(horaStr);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
 }
 
 function AjustarVista({ posiciones }) {
@@ -54,7 +41,7 @@ function AjustarVista({ posiciones }) {
   return null;
 }
 
-export default function MapaPublicidad({ puntos = [] }) {
+export default function MapaPublicidad({ puntos = [], ubicacion = null, mostrarSecuencia = false, zonaHoraria }) {
   const conGPS = useMemo(
     () => puntos
       .filter(tieneCoordenadas)
@@ -63,11 +50,13 @@ export default function MapaPublicidad({ puntos = [] }) {
   );
 
   const posiciones = useMemo(
-    () => conGPS.map((punto) => [Number(punto.latitud), Number(punto.longitud)]),
-    [conGPS]
+    () => [...conGPS.map((punto) => [Number(punto.latitud), Number(punto.longitud)]),
+      ...(ubicacion ? [[ubicacion.latitud, ubicacion.longitud]] : [])],
+    [conGPS, ubicacion]
   );
+  const secuencias = useMemo(() => mostrarSecuencia ? secuenciasPublicidad(conGPS) : [], [conGPS, mostrarSecuencia]);
 
-  if (conGPS.length === 0) {
+  if (posiciones.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[300px] gap-3 text-slate-400">
         <div className="text-4xl">📍</div>
@@ -91,14 +80,17 @@ export default function MapaPublicidad({ puntos = [] }) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <AjustarVista posiciones={posiciones} />
-      {posiciones.length > 1 && (
-        <Polyline positions={posiciones} color="#4f46e5" weight={2} opacity={0.5} dashArray="6 4" />
-      )}
+      {secuencias.filter(grupo => grupo.length > 1).map(grupo => (
+        <Polyline key={`${grupo[0].id}:${grupo[0].fecha}`} positions={grupo.map(p => [Number(p.latitud), Number(p.longitud)])}
+          color={colorAutor(grupo[0])} weight={2} opacity={0.5} dashArray="6 4" />
+      ))}
+      {ubicacion && <Circle center={[ubicacion.latitud, ubicacion.longitud]} radius={Math.max(5, ubicacion.precision_gps || 5)}
+        pathOptions={{ color: '#0284c7', fillOpacity: 0.15 }}><Popup>Tu ubicación actual · ±{Math.round(ubicacion.precision_gps)} m</Popup></Circle>}
       {conGPS.map((punto, index) => (
         <Marker
           key={punto.id}
           position={posiciones[index]}
-          icon={iconPunto}
+          icon={iconPunto(colorAutor(punto))}
         >
           <Popup>
             <div style={{ fontFamily: "sans-serif", minWidth: "180px" }}>
@@ -106,11 +98,11 @@ export default function MapaPublicidad({ puntos = [] }) {
                 {punto.nota || "Sin nota"}
               </p>
               <p style={{ fontSize: "10px", color: "#4f46e5", fontWeight: 700, textTransform: "uppercase", marginBottom: "4px" }}>
-                {formatHora(punto.hora)} · Punto #{index + 1}
+                {punto.fecha} · {formatAppTime(punto.hora, { hour: '2-digit', minute: '2-digit' }, zonaHoraria)} · Punto #{index + 1}
               </p>
-              {punto.trabajador_nombre && (
+              {nombreAutor(punto) && (
                 <p style={{ fontSize: "9px", color: "#64748b", textTransform: "uppercase", marginBottom: "4px" }}>
-                  {punto.trabajador_nombre}
+                  {nombreAutor(punto)} · {punto.autor_rol || 'Histórico'}
                 </p>
               )}
               <p style={{ fontSize: "9px", color: "#94a3b8", textTransform: "uppercase" }}>

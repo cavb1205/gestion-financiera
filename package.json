@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:telegram": "node --experimental-default-type=module --test tests/telegramInvitacion.test.js"
+    "test:telegram": "node --experimental-default-type=module --test tests/telegramInvitacion.test.js",
+    "test:utilidad": "node --experimental-default-type=module --test app/dashboard/reportes/utilidad/report-model.test.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",

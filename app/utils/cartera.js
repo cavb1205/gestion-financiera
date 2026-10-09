@@ -9,7 +9,7 @@
 // Los umbrales de deterioro respetan la frecuencia del crédito. Así no se
 // juzga igual un crédito diario que uno semanal o mensual.
 
-import { parseLocalDate } from "./format";
+import { parseLocalDate } from "./format.js";
 
 export const INTERVALOS_COBRO = {
   Diario: 1,
@@ -147,6 +147,7 @@ export function formatDiasSinAbono(venta) {
  * `dias_atrasados` es un cálculo de cuotas equivalentes, no días calendario.
  */
 export function getCuotasAtrasadas(venta) {
+  if (venta?.calendario_pago) return Math.max(0, Number(venta.calendario_pago.cuotas_atrasadas) || 0);
   const atraso = Number(venta?.dias_atrasados);
   const atrasoRegistrado = Number.isFinite(atraso) ? Math.max(0, atraso) : 0;
   const sinPrimerAbono = getTotalAbonado(venta) <= 0;
@@ -158,6 +159,7 @@ export function getCuotasAtrasadas(venta) {
 }
 
 export function getMontoParaPonerseAlDia(venta) {
+  if (venta?.calendario_pago) return Math.max(0, Number(venta.calendario_pago.importe_vencido) || 0);
   const cuota = Number(venta?.valor_cuota);
   if (!Number.isFinite(cuota)) return 0;
   const montoCalculado = Math.round(getCuotasAtrasadas(venta) * cuota);
@@ -205,7 +207,34 @@ export function getRiesgoCartera(venta) {
   // El backend es la fuente de verdad cuando ya expone el perfil calculado.
   // El cálculo local queda como respaldo para un despliegue gradual o si una
   // respuesta antigua todavía no trae este campo.
-  const riesgoApi = venta?.riesgo_cartera;
+  let riesgoApi = venta?.riesgo_cartera;
+  const calendario = venta?.calendario_pago;
+  if (!riesgoApi && calendario) {
+    // El detalle puede traer calendario sin perfil de riesgo. Nunca volver a
+    // inferir mora a partir de visitas o días sin abonar en ese caso.
+    const mora = Number(calendario.importe_vencido) > 0;
+    const diasMora = Number(calendario.dias_mora) || 0;
+    const cuotas = Number(calendario.cuotas_atrasadas) || 0;
+    const umbrales = getUmbralesRiesgo(venta);
+    const cerrado = ['Pagado', 'Perdida'].includes(calendario.estado);
+    const critico = !cerrado && (calendario.estado === 'Vencido'
+      || (mora && (cuotas >= 5 || diasMora >= umbrales.critico)));
+    const nivel = cerrado ? 0 : critico ? 3 : mora && cuotas >= 2 ? 2
+      : mora || Number(calendario.importe_pendiente_hoy) > 0 ? 1 : 0;
+    riesgoApi = {
+      nivel_cobranza: nivel,
+      clave_cobranza: ['al_dia', 'hoy', 'urgente', 'critico'][nivel],
+      motivo: cerrado ? 'Crédito cerrado' : critico ? 'Atraso crítico'
+        : mora ? 'Cuotas vencidas pendientes'
+          : nivel === 1 ? 'Cuota correspondiente hoy' : 'Sin cuota exigible hoy',
+      nivel_deterioro: !mora ? 0 : diasMora >= umbrales.critico ? 3
+        : diasMora >= umbrales.alto ? 2 : diasMora >= umbrales.atencion ? 1 : 0,
+      en_mora: mora,
+      dias_sin_abono: getDiasSinAbono(venta),
+      cuotas_atrasadas: cuotas,
+      candidato_castigo: mora && diasMora >= DIAS_CANDIDATO_CASTIGO,
+    };
+  }
   if (riesgoApi && Number.isFinite(Number(riesgoApi.nivel_cobranza))) {
     const nivelCobranza = Math.max(0, Math.min(3, Number(riesgoApi.nivel_cobranza)));
     const clave = riesgoApi.clave_cobranza || "al_dia";

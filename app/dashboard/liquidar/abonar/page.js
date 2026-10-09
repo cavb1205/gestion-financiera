@@ -120,9 +120,10 @@ export default function PagarAbonoPage() {
   const totalCuotas = parseInt(abono?.cuotas) || 0;
   // Usar el mismo redondeo que la lista de liquidar (Math.round, no parseInt/truncado)
   // para que "pagos realizados" sea consistente entre pantallas y la cuota a abonar arranque correcta.
-  const pagosRealizados = Math.round(parseFloat(abono?.pagos_realizados)) || 0;
+  const pagosRealizados = Math.floor(parseFloat(abono?.pagos_realizados)) || 0;
   const cuotaActual = Math.min(pagosRealizados + 1, totalCuotas || pagosRealizados + 1);
-  const diasAtrasados = parseInt(abono?.dias_atrasados) || 0;
+  const diasAtrasados = parseFloat(abono?.dias_atrasados) || 0;
+  const equivalenciaAbono = valorCuota > 0 ? (parseFloat(valorAbono) || 0) / valorCuota : 0;
 
   // Cuántas cuotas cubre el valorAbono actual (mínimo 1, redondeo al entero más cercano)
   const cuotasQueAbona = valorCuota > 0
@@ -183,10 +184,9 @@ export default function PagarAbonoPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
                       {totalCuotas > 0 && (
                         <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{cuotasQueAbona > 1 ? "Cuotas" : "Cuota"}</p>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{abono?.calendario_pago ? "Este abono equivale a" : cuotasQueAbona > 1 ? "Cuotas" : "Cuota"}</p>
                           <p className="text-sm font-black text-slate-800 dark:text-white tracking-tight">
-                            {cuotasQueAbona > 1 ? `${cuotaActual}-${cuotaFin}` : cuotaActual}
-                            <span className="text-slate-400 font-bold text-xs"> de {totalCuotas}</span>
+                            {abono?.calendario_pago ? `${equivalenciaAbono.toLocaleString('es-CL', {maximumFractionDigits:2})} cuotas` : <>{cuotasQueAbona > 1 ? `${cuotaActual}-${cuotaFin}` : cuotaActual}<span className="text-slate-400 font-bold text-xs"> de {totalCuotas}</span></>}
                           </p>
                         </div>
                       )}

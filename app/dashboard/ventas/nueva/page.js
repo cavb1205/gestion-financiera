@@ -37,6 +37,8 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-toastify";
 import { getAppDateString, parseAppDate } from "../../../utils/datetime";
+import { CUOTAS_PREDETERMINADAS } from "../../../utils/calendario";
+import PlanPagosPreview from "./PlanPagosPreview";
 
 function NuevaVentaContent() {
   const router = useRouter();
@@ -48,7 +50,7 @@ function NuevaVentaContent() {
   const frecuenciaDetalle = {
     Diario: "1 cuota cada día",
     Semanal: "1 cuota cada 7 días",
-    Mensual: "1 cuota cada 30 días",
+    Mensual: "1 cuota cada mes calendario",
   };
 
   const [formData, setFormData] = useState({
@@ -500,6 +502,7 @@ function NuevaVentaContent() {
                   <div className="relative group">
                     <FiDollarSign className="absolute left-5 md:left-6 top-1/2 -translate-y-1/2 text-emerald-500 pointer-events-none" size={22} />
                     <input
+                      aria-label="Capital del crédito"
                       type="number"
                       inputMode="decimal"
                       value={formData.valor_venta}
@@ -573,6 +576,9 @@ function NuevaVentaContent() {
                     <input
                       type="number"
                       inputMode="numeric"
+                      aria-label="Número de cuotas"
+                      min="1"
+                      max="120"
                       value={formData.cuotas}
                       onChange={(e) => setFormData({ ...formData, cuotas: e.target.value })}
                       onWheel={(e) => e.target.blur()}
@@ -591,8 +597,12 @@ function NuevaVentaContent() {
                       </div>
                     ) : (
                       <select
+                        aria-label="Frecuencia de pago"
                         value={formData.plazo}
-                        onChange={(e) => setFormData({ ...formData, plazo: e.target.value })}
+                        onChange={(e) => {
+                          const plazo = e.target.value;
+                          setFormData(prev => ({ ...prev, plazo, cuotas: CUOTAS_PREDETERMINADAS[plazo] }));
+                        }}
                         className="w-full px-4 md:px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                       >
                         <option value="Diario">Diario</option>
@@ -603,8 +613,11 @@ function NuevaVentaContent() {
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
                       {isWorker ? "Fijado para trabajadores" : frecuenciaDetalle[formData.plazo]}
                     </p>
+                    {!isWorker && <p className="text-xs leading-relaxed text-slate-500">Cambiar frecuencia propone 20 cuotas diarias, 4 semanales o 1 mensual. Puedes ajustar el número antes de guardar.</p>}
                   </div>
                 </div>
+
+                <PlanPagosPreview fecha={formData.fecha_venta ? formatDateToLocalISO(formData.fecha_venta) : ""} plazo={formData.plazo} cuotas={formData.cuotas} total={calcularTotalAPagar()} cuota={calcularValorCuota()} />
 
                 {/* Interés */}
                 <div className="space-y-3">

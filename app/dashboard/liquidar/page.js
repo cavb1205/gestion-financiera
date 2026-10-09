@@ -3,9 +3,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/app/context/AuthContext";
-import { apiFetch } from "@/app/utils/api";
+import { apiFetch, getApiError } from "@/app/utils/api";
 import {
-   FiCalendar,
    FiRefreshCw,
    FiCheck,
    FiX,
@@ -37,6 +36,10 @@ import {
 } from "../../utils/cartera";
 import Pagination from "../../components/Pagination";
 import { getAppDateString } from "../../utils/datetime";
+import { permiteFalla, resumirLiquidacion } from "../../utils/calendario";
+import CalendarioCobro from "./CalendarioCobro";
+import FechaLiquidacion from "./FechaLiquidacion";
+import { buildWhatsAppEstadoCuenta } from "../../utils/whatsapp";
 
 function formatDiasSinAbono(credito) {
    return formatDiasSinAbonoBase(credito);
@@ -58,21 +61,24 @@ export default function LiquidarCreditosPage() {
    const [gpsBannerDismissed, setGpsBannerDismissed] = useState(false);
    const [creditos, setCreditos] = useState([]);
    const [recaudos, setRecaudos] = useState([]);
-   const [creditosActivos, setCreditosActivos] = useState([]);
-   const [filteredCreditos, setFilteredCreditos] = useState([]);
    const [caja, setCaja] = useState(null);
    const [loading, setLoading] = useState(true);
-   const [fetchError, setFetchError] = useState(false);
-   const loadedOnce = useRef(false);
+   const [fetchError, setFetchError] = useState(null);
+   const solicitudRef = useRef(0);
+   const claveCargadaRef = useRef(null);
+   const tiendaId = selectedStore?.tienda?.id;
    const [selectedDate, setSelectedDate] = useState("");
    const [currentPage, setCurrentPage] = useState(1);
    const [itemsPerPage] = useState(10);
    const [searchTerm, setSearchTerm] = useState("");
    const router = useRouter();
-   const dateInputRef = useRef(null);
+   const hoy = getAppDateString(0, new Date(), selectedStore?.tienda?.zona_horaria);
+   const vistaPrevia = selectedDate > hoy;
+   const puedeRegistrar = !vistaPrevia && !loading && !fetchError && claveCargadaRef.current === `${tiendaId}:${selectedDate}`;
 
    // Establecer fecha actual por defecto (workers siempre ven solo hoy)
    useEffect(() => {
+      if (!tiendaId) return;
       const formattedDate = getAppDateString(
          0,
          new Date(),
@@ -83,9 +89,11 @@ export default function LiquidarCreditosPage() {
          setSelectedDate(formattedDate);
       } else {
          const storedDate = localStorage.getItem("liquidarFecha");
-         setSelectedDate(storedDate || formattedDate);
+         const valida = /^\d{4}-\d{2}-\d{2}$/.test(storedDate || '') &&
+            !Number.isNaN(Date.parse(storedDate)) && new Date(storedDate).toISOString().slice(0, 10) === storedDate;
+         setSelectedDate(valida ? storedDate : formattedDate);
       }
-   }, [isWorker, selectedStore?.tienda?.zona_horaria]);
+   }, [isWorker, tiendaId, selectedStore?.tienda?.zona_horaria]);
 
    // Verificar/solicitar permiso GPS (solo workers)
    useEffect(() => {
@@ -129,48 +137,67 @@ export default function LiquidarCreditosPage() {
       return () => document.removeEventListener("visibilitychange", handleVisibility);
    }, [isWorker]);
 
-   // Obtener datos. Un fallo de red/servidor NUNCA se muestra como lista vacía:
-   // el cobrador creería que terminó la ruta. Sin datos previos → panel de error
-   // con Reintentar; con datos previos → se conservan y se avisa con un toast.
+   // Un fallo nunca se presenta como una ruta vacía ni permite registrar
+   // operaciones con datos incompletos. La fecha sigue accesible para recuperar.
    const fetchData = useCallback(async () => {
-      if (!selectedStore || !selectedDate) return;
+      if (!tiendaId || !selectedDate) return;
+      const solicitud = ++solicitudRef.current;
+      const clave = `${tiendaId}:${selectedDate}`;
+      if (claveCargadaRef.current !== clave) {
+         setCreditos([]);
+         setRecaudos([]);
+         setCaja(null);
+      }
 
       setLoading(true);
+      setFetchError(null);
       try {
          const fetchJson = async (path) => {
             const res = await apiFetch(path);
-            if (!res.ok) throw new Error("Respuesta inválida del servidor");
-            return res.json();
+            if (!res.ok) {
+               const error = new Error(await getApiError(res, "El servidor no pudo cargar esta consulta. Intenta de nuevo."));
+               error.status = res.status;
+               throw error;
+            }
+            try {
+               return await res.json();
+            } catch {
+               const error = new Error("El servidor devolvió una respuesta inválida. Intenta de nuevo.");
+               error.status = 502;
+               throw error;
+            }
          };
 
-         const [creditosData, activosData, recaudosData, tiendaData] = await Promise.all([
-            fetchJson(`/ventas/activas/liquidar/${selectedDate}/t/${selectedStore.tienda.id}/`),
-            fetchJson(`/ventas/activas/t/${selectedStore.tienda.id}/`),
-            fetchJson(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/?vista=lista`),
-            fetchJson(`/tiendas/detail/admin/${selectedStore.tienda.id}/`),
+         const [creditosData, recaudosData, tiendaData] = await Promise.all([
+            fetchJson(`/ventas/activas/liquidar/${selectedDate}/t/${tiendaId}/${vistaPrevia ? '?vista=previa' : ''}`),
+            vistaPrevia ? Promise.resolve([]) : fetchJson(`/recaudos/list/${selectedDate}/t/${tiendaId}/?vista=lista`),
+            vistaPrevia ? Promise.resolve(null) : fetchJson(`/tiendas/detail/admin/${tiendaId}/`),
          ]);
 
-         setCreditos(Array.isArray(creditosData) ? creditosData : []);
-         setCreditosActivos(Array.isArray(activosData) ? activosData : []);
+         if (solicitud !== solicitudRef.current) return;
+         if (vistaPrevia && (creditosData?.vista_previa !== true || creditosData.fecha_consulta !== selectedDate || !Array.isArray(creditosData.creditos))) {
+            const error = new Error("El servidor no devolvió una vista previa válida. Cambia la fecha a hoy o intenta de nuevo.");
+            error.status = 502;
+            throw error;
+         }
+         claveCargadaRef.current = clave;
+
+         setCreditos(vistaPrevia ? creditosData.creditos : Array.isArray(creditosData) ? creditosData : []);
          setRecaudos(Array.isArray(recaudosData) ? recaudosData : []);
          if (tiendaData?.tienda?.caja !== undefined) setCaja(tiendaData.tienda.caja);
-         setFilteredCreditos(Array.isArray(creditosData) ? creditosData : []);
-         setFetchError(false);
-         loadedOnce.current = true;
+         setFetchError(null);
       } catch (error) {
+         if (solicitud !== solicitudRef.current) return;
          console.error("Error:", error);
-         if (loadedOnce.current) {
-            toast.error("Sin conexión — mostrando los últimos datos cargados.");
-         } else {
-            setFetchError(true);
-         }
+         setFetchError({ status: error.status, message: error.message || "No se pudieron cargar los créditos. Intenta de nuevo." });
       } finally {
-         setLoading(false);
+         if (solicitud === solicitudRef.current) setLoading(false);
       }
-   }, [selectedStore, selectedDate]);
+   }, [tiendaId, selectedDate, vistaPrevia]);
 
    useEffect(() => {
       fetchData();
+      return () => { solicitudRef.current += 1; };
    }, [fetchData]);
 
    useEffect(() => {
@@ -179,15 +206,15 @@ export default function LiquidarCreditosPage() {
       }
    }, [selectedDate]);
 
-   // Filtrado de búsqueda
-   useEffect(() => {
-      const filtered = creditos.filter(c => {
+   const creditosVigentes = claveCargadaRef.current === `${tiendaId}:${selectedDate}` ? creditos : [];
+   const filtroCliente = searchTerm.trim().toLowerCase();
+   const filteredCreditos = creditosVigentes.filter(c => {
          const fullName = `${c.cliente?.nombres ?? ''} ${c.cliente?.apellidos ?? ''}`.toLowerCase();
-         return fullName.includes(searchTerm.toLowerCase());
-      });
-      setFilteredCreditos(filtered);
+         return fullName.includes(filtroCliente);
+   });
+   useEffect(() => {
       setCurrentPage(1);
-   }, [searchTerm, creditos]);
+   }, [searchTerm, tiendaId, selectedDate]);
 
    // Paginación
    const indexOfLastItem = currentPage * itemsPerPage;
@@ -229,31 +256,11 @@ export default function LiquidarCreditosPage() {
    };
 
    const buildWhatsAppUrl = (credito) => {
-      const raw = (credito.cliente.telefono_principal || "").replace(/[^0-9]/g, "");
-      const nombre = credito.cliente.nombres;
-      const saldo = formatMoney(credito.saldo_actual);
-      const cuota = formatMoney(credito.valor_cuota);
-      const abonado = formatMoney(credito.total_abonado);
-      const mora = Math.round(credito.dias_atrasados || 0);
-      const diasSinAbono = getDiasSinAbono(credito);
-      const montoParaPonerseAlDia = getMontoParaPonerseAlDia(credito);
-      const pagosRealizados = Math.round(credito.pagos_realizados || 0);
-      const totalCuotas = Math.round(credito.cuotas || 0);
-      const estadoTexto = credito.estado_venta === "Vencido"
-         ? `vencido con *${mora} cuotas* de atraso`
-         : `con saldo pendiente`;
-      const msg =
-         `Hola ${nombre}, le recordamos que tiene un crédito ${estadoTexto}.\n\n` +
-         `💰 Saldo pendiente: *${saldo}*\n` +
-         `✅ Total abonado: *${abonado}*\n` +
-         (diasSinAbono > 0 ? `📆 Sin abono: *${diasSinAbono} días*\n` : "") +
-         (montoParaPonerseAlDia > 0 ? `⚠️ Para ponerse al día: *${formatMoney(montoParaPonerseAlDia)}*\n` : "") +
-         `📅 Progreso: *${pagosRealizados}/${totalCuotas} cuotas*\n` +
-         `📋 Valor cuota: *${cuota}*\n\n` ;
-      return `https://api.whatsapp.com/send?phone=${raw}&text=${encodeURIComponent(msg)}`;
+      return buildWhatsAppEstadoCuenta(credito, { fechaConsulta: selectedDate, fechaOperativa: hoy });
    };
 
    const handleAbonar = (credito) => {
+      if (!puedeRegistrar) return;
       const valorAbono = Math.min(parseMoney(credito.saldo_actual), parseMoney(credito.valor_cuota));
       const abono = {
          fecha_recaudo: selectedDate,
@@ -263,6 +270,7 @@ export default function LiquidarCreditosPage() {
          cuotas: credito.cuotas,
          pagos_realizados: credito.pagos_realizados,
          total_abonado: credito.total_abonado,
+         calendario_pago: credito.calendario_pago,
          dias_atrasados: getCuotasAtrasadas(credito),
          venta: credito.id,
          tienda: selectedStore.tienda.id,
@@ -273,6 +281,11 @@ export default function LiquidarCreditosPage() {
    };
 
    const handleReportarFalla = (credito) => {
+      if (!puedeRegistrar) return;
+      if (!permiteFalla(credito)) {
+         toast.info("No hay una cuota exigible pendiente: este cobro es voluntario.");
+         return;
+      }
       const noPago = {
          fecha_recaudo: selectedDate,
          valor_recaudo: 0,
@@ -288,9 +301,13 @@ export default function LiquidarCreditosPage() {
    if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 
    // Totales
-   const totalRecaudar = creditosActivos.reduce((acc, c) => acc + parseMoney(c.valor_cuota), 0);
-   const totalPendientes = filteredCreditos.reduce((acc, c) => acc + parseMoney(c.valor_cuota), 0);
-   const totalRealizados = recaudos.reduce((acc, r) => acc + parseMoney(r.valor_recaudo), 0);
+   const resumen = resumirLiquidacion(creditosVigentes);
+   // Solo esta tarjeta responde al filtro; incluye todas las coincidencias,
+   // no únicamente la página visible. Los otros indicadores son de la ruta.
+   const totalPendientes = resumirLiquidacion(filteredCreditos).importePendiente;
+   // Base descriptiva del día; no una meta obligatoria para los anticipos.
+   const totalRealizados = recaudos.filter(r => !r.es_renovacion).reduce((acc, r) => acc + parseMoney(r.valor_recaudo), 0);
+   const totalRecaudar = resumen.importePendiente + totalRealizados;
    const porcentajeAvance = totalRecaudar > 0 ? Math.round((totalRealizados / totalRecaudar) * 100) : 0;
 
    return (
@@ -372,20 +389,29 @@ export default function LiquidarCreditosPage() {
                </div>
             )}
 
-            {/* Error de conexión sin datos previos: panel claro con Reintentar.
-                Nunca mostrar "Sin Registros" por un fallo de red. */}
+            {vistaPrevia && (
+               <section aria-label="Vista previa de cobranza" className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                  <p className="font-black">Vista previa · {selectedDate} · Solo lectura</p>
+                  <p className="mt-2 leading-relaxed">Proyección de los créditos que correspondería cobrar, incluidos saldos atrasados. Supone que no hay nuevos pagos desde hoy; los anticipos ya registrados se tienen en cuenta.</p>
+                  <p className="mt-2 font-semibold">Los estados mostrados son proyectados. No se registran abonos ni fallas, no se modifica la caja ni la calificación del cliente.</p>
+               </section>
+            )}
+
+            {/* Distinguir rechazo HTTP de fallos de conexión; permitir cambiar fecha. */}
             {fetchError && !loading ? (
                <div className="glass rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 shadow-2xl p-10 md:p-16 text-center">
                   <div className="w-20 h-20 bg-rose-50 dark:bg-rose-900/20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                     <FiWifiOff size={36} className="text-rose-500" />
+                     {fetchError.status ? <FiInfo size={36} className="text-rose-500" /> : <FiWifiOff size={36} className="text-rose-500" />}
                   </div>
                   <h3 className="text-lg md:text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">
-                     Sin conexión con el servidor
+                     {fetchError.status ? "No se pudo cargar la consulta" : "Problema de conexión"}
                   </h3>
                   <p className="text-xs font-bold text-slate-400 max-w-sm mx-auto mb-6 leading-relaxed">
-                     No se pudieron cargar los créditos del día. Tus cobros registrados no se pierden —
-                     revisa tu señal e intenta de nuevo.
+                     {fetchError.message} Tus cobros registrados no se pierden.
                   </p>
+                  <div className="max-w-sm mx-auto mb-6 text-left">
+                     <FechaLiquidacion isWorker={isWorker} selectedDate={selectedDate} onChange={setSelectedDate} />
+                  </div>
                   <button
                      onClick={fetchData}
                      className="inline-flex items-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-emerald-200 dark:shadow-none active:scale-95 transition-all"
@@ -396,23 +422,28 @@ export default function LiquidarCreditosPage() {
             ) : (
             <>
             {/* Global Metrics Area */}
+            <div className="mb-5 rounded-2xl border border-slate-200 bg-white/70 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
+               <p className="font-bold text-slate-900 dark:text-white">{vistaPrevia ? `${resumen.obligatorios} gestiones proyectadas · ${resumen.voluntarios} cobros voluntarios` : `${resumen.obligatorios} gestiones obligatorias pendientes · ${resumen.voluntarios} cobros voluntarios`}</p>
+               <p className="mt-1 leading-relaxed">{vistaPrevia ? "Importe proyectado hasta la fecha seleccionada, no una meta garantizada de recaudo. Los cobros voluntarios no son obligaciones." : "Los anticipos siguen visibles, pero no exigen otro abono ni una falla para completar la ruta. El importe pendiente incluye deuda exigible; registrar una visita no elimina esa deuda."}</p>
+            </div>
             <div className="grid grid-cols-3 gap-3 md:gap-6 mb-8">
-               <div className="glass p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-xl">
+               <div role="region" aria-label={vistaPrevia ? "Total proyectado" : "Total a cobrar del día"} className="glass p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-xl">
                   <div className="relative z-10">
                      <div className="flex items-center justify-between mb-2 md:mb-4">
                         <div className="p-2 md:p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl md:rounded-2xl">
                            <FiTarget size={16} className="md:w-6 md:h-6" />
                         </div>
-                        <span className="hidden md:block text-[10px] font-black text-indigo-400 uppercase tracking-widest">Meta</span>
+                        <span className="hidden md:block text-[10px] font-black text-indigo-400 uppercase tracking-widest">Importe</span>
                      </div>
                      <p className="text-base md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-0.5 md:mb-1">
                         {formatMoney(totalRecaudar)}
                      </p>
-                     <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Meta Total</p>
+                     <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">{vistaPrevia ? "Total proyectado" : "Total a cobrar del día"}</p>
+                     <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400">{vistaPrevia ? "Toda la ruta" : "Toda la ruta · cobrado + pendiente"}</p>
                   </div>
                </div>
 
-               <div className="glass p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-xl">
+               <div role="region" aria-label={vistaPrevia ? "Pendiente proyectado" : "Pendiente por cobrar"} className="glass p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-xl">
                   <div className="relative z-10">
                      <div className="flex items-center justify-between mb-2 md:mb-4">
                         <div className="p-2 md:p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-xl md:rounded-2xl">
@@ -423,23 +454,26 @@ export default function LiquidarCreditosPage() {
                      <p className="text-base md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-0.5 md:mb-1">
                         {formatMoney(totalPendientes)}
                      </p>
-                     <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Falta Cobrar</p>
+                     <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">{vistaPrevia ? "Pendiente proyectado" : "Pendiente por cobrar"}</p>
+                     <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400">{filtroCliente ? "Solo clientes del filtro" : "Toda la ruta"}</p>
                   </div>
                </div>
 
-               <div className="bg-emerald-600 p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-emerald-500 relative overflow-hidden group shadow-xl shadow-emerald-200 dark:shadow-none">
+               <div role="region" aria-label={vistaPrevia ? "Recaudo de vista previa" : "Total cobrado del día"} className="bg-emerald-600 p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-emerald-500 relative overflow-hidden group shadow-xl shadow-emerald-200 dark:shadow-none">
                   <div className="relative z-10 text-white">
                      <div className="flex items-center justify-between mb-2 md:mb-4">
                         <div className="p-2 md:p-3 bg-white/20 rounded-xl md:rounded-2xl">
                            <FiCheck size={16} className="md:w-6 md:h-6" />
                         </div>
-                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{porcentajeAvance}%</span>
+                        <span title="Porcentaje del importe cobrado, no de visitas completadas" className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{vistaPrevia ? "Solo lectura" : `${porcentajeAvance}%`}</span>
                      </div>
                      <p className="text-base md:text-3xl font-black tracking-tighter mb-0.5 md:mb-1">
-                        {formatMoney(totalRealizados)}
+                        {vistaPrevia ? "Sin recaudo real" : formatMoney(totalRealizados)}
                      </p>
+                     <p className="text-[9px] md:text-[10px] font-black text-white/80 uppercase tracking-widest leading-relaxed">{vistaPrevia ? "Solo lectura" : "Total cobrado del día"}</p>
+                     {!vistaPrevia && <p className="mt-2 text-[10px] text-white/80">Toda la ruta</p>}
                      <div className="w-full h-1.5 bg-white/20 rounded-full mt-2 overflow-hidden">
-                        <div className="h-full bg-white/60 rounded-full transition-all duration-700" style={{ width: `${Math.min(porcentajeAvance, 100)}%` }} />
+                        <div className="h-full bg-white/60 rounded-full transition-all duration-700" style={{ width: `${Math.max(0, Math.min(porcentajeAvance, 100))}%` }} />
                      </div>
                   </div>
                </div>
@@ -449,38 +483,7 @@ export default function LiquidarCreditosPage() {
             <div className="glass rounded-[2.5rem] border-white/60 dark:border-slate-800 overflow-hidden shadow-2xl mb-10">
                <div className="p-6 md:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 flex flex-col lg:flex-row items-center gap-6 md:gap-8">
                   <div className="w-full lg:w-1/3 space-y-2">
-                     <label htmlFor="periodo-contable" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Periodo Contable</label>
-                     {isWorker ? (
-                        <div className="flex items-center gap-3 px-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-3xl">
-                           <FiCalendar className="text-emerald-500" />
-                           <span className="text-[13px] font-black text-slate-800 dark:text-white">{selectedDate}</span>
-                           <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest ml-auto">Hoy</span>
-                        </div>
-                     ) : (
-                        <div
-                           className="relative group cursor-pointer"
-                           onClick={() => {
-                              try {
-                                 if (dateInputRef.current) dateInputRef.current.showPicker();
-                              } catch (err) {
-                                 dateInputRef.current?.focus();
-                              }
-                           }}
-                        >
-                           <FiCalendar className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 transition-all pointer-events-none z-10" />
-                           <input
-                              id="periodo-contable"
-                              ref={dateInputRef}
-                              type="date"
-                              value={selectedDate}
-                              onChange={(e) => setSelectedDate(e.target.value)}
-                              onClick={(e) => {
-                                 try { e.target.showPicker(); } catch (err) { /* noop */ }
-                              }}
-                              className="w-full pl-14 pr-6 py-4.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-3xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-inner outline-none relative z-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                           />
-                        </div>
-                     )}
+                     <FechaLiquidacion isWorker={isWorker} selectedDate={selectedDate} onChange={setSelectedDate} />
                   </div>
 
                   <div className="flex-1 w-full space-y-2">
@@ -574,6 +577,7 @@ export default function LiquidarCreditosPage() {
                                                 {credito.plazo || "Diario"}
                                              </p>
                                           </Link>
+                                          <CalendarioCobro credito={credito} vistaPrevia={vistaPrevia} />
                                        </div>
                                     </td>
                                     <td className="px-2 py-5">
@@ -590,6 +594,7 @@ export default function LiquidarCreditosPage() {
                                                 </a>
                                                 <a
                                                    href={buildWhatsAppUrl(credito)}
+                                                   aria-label="WhatsApp: estado de cuenta"
                                                    target="_blank"
                                                    rel="noopener noreferrer"
                                                    className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all"
@@ -610,12 +615,12 @@ export default function LiquidarCreditosPage() {
                                     <td className="px-2 py-5 text-center">
                                        <div className="flex flex-col items-center">
                                           <span className="text-xs font-black text-slate-800 dark:text-white tracking-tighter mb-1">
-                                             {Math.round(credito.pagos_realizados)}/{credito.cuotas}
+                                             {Number(credito.pagos_realizados).toLocaleString('es-CL', { maximumFractionDigits: 2 })}/{credito.cuotas}
                                           </span>
                                           <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                              <div
                                                 className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
-                                                style={{ width: `${(Math.round(credito.pagos_realizados) / credito.cuotas) * 100}%` }}
+                                                style={{ width: `${Math.min(100, Math.max(0, (Number(credito.pagos_realizados) / credito.cuotas) * 100))}%` }}
                                              />
                                           </div>
                                        </div>
@@ -658,6 +663,8 @@ export default function LiquidarCreditosPage() {
                                        <div className="flex items-center justify-end gap-1.5">
                                           <button
                                              onClick={() => handleReportarFalla(credito)}
+                                             disabled={!puedeRegistrar || !permiteFalla(credito)}
+                                             aria-label={vistaPrevia ? "Vista previa: falla no permitida" : permiteFalla(credito) ? "Reportar falla" : "Sin cuota exigible: falla no permitida"}
                                              className="p-2.5 bg-white dark:bg-slate-800 text-slate-400 rounded-lg hover:text-rose-600 hover:shadow-lg transition-all border border-slate-100 dark:border-slate-700"
                                              title="Reportar Falla"
                                           >
@@ -665,7 +672,8 @@ export default function LiquidarCreditosPage() {
                                           </button>
                                           <button
                                              onClick={() => handleAbonar(credito)}
-                                             className="px-3 py-2 bg-emerald-600 text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all shadow-lg flex items-center gap-1"
+                                             disabled={!puedeRegistrar}
+                                             className="px-3 py-2 bg-emerald-600 text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all shadow-lg flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
                                           >
                                              Abonar <FiArrowRight size={12} />
                                           </button>
@@ -737,6 +745,7 @@ export default function LiquidarCreditosPage() {
                                  </div>
                               </div>
 
+                              <CalendarioCobro credito={credito} vistaPrevia={vistaPrevia} />
                               {/* Contact row */}
                               <div className="flex items-center gap-2 flex-wrap">
                                  {phone ? (
@@ -749,6 +758,7 @@ export default function LiquidarCreditosPage() {
                                        </a>
                                        <a
                                           href={buildWhatsAppUrl(credito)}
+                                          aria-label="WhatsApp: estado de cuenta"
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl text-[10px] font-black active:scale-95 transition-all"
@@ -784,7 +794,7 @@ export default function LiquidarCreditosPage() {
                                  </div>
                                  <div className="text-right space-y-0.5">
                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Progreso</p>
-                                    <p className="text-sm font-black text-slate-800 dark:text-white">{Math.round(credito.pagos_realizados)}/{credito.cuotas}</p>
+                                    <p className="text-sm font-black text-slate-800 dark:text-white">{Number(credito.pagos_realizados).toLocaleString('es-CL', { maximumFractionDigits: 2 })}/{credito.cuotas}</p>
                                  </div>
                               </div>
 
@@ -809,6 +819,8 @@ export default function LiquidarCreditosPage() {
                               <div className="flex items-center gap-3">
                                  <button
                                     onClick={() => handleReportarFalla(credito)}
+                                    disabled={!puedeRegistrar || !permiteFalla(credito)}
+                                    aria-label={vistaPrevia ? "Vista previa: falla no permitida" : permiteFalla(credito) ? "Reportar falla" : "Sin cuota exigible: falla no permitida"}
                                     className="p-4 bg-white dark:bg-slate-900 text-slate-400 rounded-xl border border-slate-200 dark:border-slate-800 active:scale-90 transition-all shadow-sm"
                                     title="Reportar Falla"
                                  >
@@ -816,9 +828,10 @@ export default function LiquidarCreditosPage() {
                                  </button>
                                  <button
                                     onClick={() => handleAbonar(credito)}
-                                    className="flex-1 py-4 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase tracking-[0.15em] shadow-xl shadow-emerald-200 dark:shadow-none active:scale-95 transition-all flex items-center justify-center gap-2"
+                                    disabled={!puedeRegistrar}
+                                    className="flex-1 py-4 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase tracking-[0.15em] shadow-xl shadow-emerald-200 dark:shadow-none active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                                  >
-                                    Abonar Cuota <FiArrowRight />
+                                    {credito.calendario_pago?.cobro_voluntario ? "Abono voluntario" : "Abonar cuota"} <FiArrowRight />
                                  </button>
                               </div>
                            </div>

@@ -272,7 +272,9 @@ export default function VentaDetailPage() {
         throw new Error(await getApiError(response, "Error al marcar como pérdida"));
       }
 
-      toast.success("Venta marcada como pérdida");
+      const declaracion = await response.json().catch(() => null);
+      if (declaracion?.advertencia) toast.warning(declaracion.advertencia);
+      else toast.success(declaracion?.declaracion_creada ? "Pérdida declarada y registrada en el historial" : "Venta marcada como pérdida");
       setVenta(prev => prev ? {
         ...prev,
         estado_venta: "Perdida",
@@ -519,7 +521,7 @@ export default function VentaDetailPage() {
               </div>
               <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight mb-4 uppercase">¿Activar Proceso de Pérdida?</h3>
               <p className="text-sm font-bold text-slate-400 leading-relaxed mb-8">
-                Esta acción cerrará el crédito permanentemente sin posibilidad de recupero. El saldo se registrará como pérdida neta del ejercicio.
+                El crédito quedará marcado como pérdida y el cliente será bloqueado. Las nuevas declaraciones guardan la fecha de la ruta y los montos de ese momento. Esto no borra el saldo ni impide registrar una recuperación posterior; tampoco equivale a una pérdida definitiva neta del mes.
               </p>
             </div>
 
@@ -609,7 +611,7 @@ export default function VentaDetailPage() {
                 <FiRefreshCw size={15} /> Renovar
               </button>
             )}
-            {!isWorker && (
+            {!isWorker && !["Pagado", "Perdida"].includes(venta.estado_venta) && (
               <button onClick={() => setShowLossModal(true)} className="px-4 py-3 md:py-3.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-2xl font-black text-[11px] md:text-xs uppercase tracking-widest border border-rose-100 dark:border-rose-900/30 active:scale-95 transition-all flex items-center justify-center gap-2">
                 <FiAlertTriangle size={15} /> Pérdida
               </button>

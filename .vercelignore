@@ -1,0 +1,13 @@
+.agent/
+.agents/
+.claude/
+.trae/
+.windsurf/
+outputs/
+docs/
+tests/
+**/*.test.*
+AGENTS.md
+CLAUDE.md
+skills-lock.json
+.env*
