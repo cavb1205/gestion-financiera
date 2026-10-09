@@ -32,7 +32,6 @@ const PAGES = [
   { label: "Reporte de Visitas", path: "/dashboard/reportes/visitas", icon: FiBarChart2, adminOnly: true },
   { label: "Reporte Comparativo", path: "/dashboard/reportes/comparativo", icon: FiBarChart2, adminOnly: true },
   { label: "Mapa de Cobros", path: "/dashboard/reportes/ubicaciones", icon: FiMapPin, adminOnly: true },
-  { label: "Mapa de Publicidad", path: "/dashboard/reportes/publicidad", icon: FiMapPin, adminOnly: true },
   { label: "Trabajadores", path: "/dashboard/trabajadores", icon: FiUsers, adminOnly: true },
   { label: "Cálculo de Sueldo", path: "/dashboard/sueldos", icon: FiCreditCard, adminOnly: true },
   { label: "Administración", path: "/dashboard/admin", icon: FiHome, rootOnly: true },

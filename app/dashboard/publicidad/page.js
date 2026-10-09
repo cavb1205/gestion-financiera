@@ -9,7 +9,6 @@ import { capturarUbicacionPublicidad, claveAutor, esPropio, nombreAutor, tieneCo
 import { FiAlertCircle, FiCrosshair, FiMapPin, FiPlus, FiRefreshCw, FiTrash2, FiUsers, FiX } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const MapaPublicidad = dynamic(() => import("@/app/components/maps/MapaPublicidad"), {
@@ -57,7 +56,6 @@ export default function PublicidadPage() {
   const tiendaId = selectedStore?.tienda?.id;
   const zona = selectedStore?.tienda?.zona_horaria;
   const hoy = getAppDateString(0, new Date(), zona);
-  const isAdmin = Boolean(user?.is_staff || user?.is_superuser);
   const [rango, setRango] = useState({ tiendaId: null, desde: "", hasta: "" });
   const [puntos, setPuntos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -285,7 +283,6 @@ export default function PublicidadPage() {
               </div>
             </article>)}
           </div>
-          {isAdmin && <Link href="/dashboard/reportes/publicidad" className="inline-flex mt-4 text-sm font-bold text-indigo-600 dark:text-indigo-400">Abrir reporte de publicidad →</Link>}
         </section>
       </div>
 

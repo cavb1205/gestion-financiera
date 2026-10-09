@@ -67,7 +67,6 @@ const PAGE_TITLES = [
   ["/dashboard/reportes/visitas", "Reporte de visitas"],
   ["/dashboard/reportes/comparativo", "Reporte comparativo"],
   ["/dashboard/reportes/ubicaciones", "Mapa de cobros"],
-  ["/dashboard/reportes/publicidad", "Mapa de publicidad"],
   ["/dashboard/reportes", "Reportes"],
   ["/dashboard/ventas/perdidas", "Ventas en pérdida"],
   ["/dashboard/ventas/nueva", "Nueva venta"],
@@ -119,7 +118,6 @@ const allMenuItems = [
       { path: '/dashboard/reportes/visitas', label: 'Visitas', icon: FiEye },
       { path: '/dashboard/reportes/comparativo', label: 'Comparativo', icon: FiBarChart2 },
       { path: '/dashboard/reportes/ubicaciones', label: 'Mapa de Cobros', icon: FiMapPin },
-      { path: '/dashboard/reportes/publicidad', label: 'Mapa de Publicidad', icon: FiMapPin },
     ]
   },
   { path: '/dashboard/membresias', label: 'Membresía', icon: FiShield },
