@@ -40,6 +40,8 @@ import { permiteFalla, resumirLiquidacion } from "../../utils/calendario";
 import CalendarioCobro from "./CalendarioCobro";
 import FechaLiquidacion from "./FechaLiquidacion";
 import { buildWhatsAppEstadoCuenta } from "../../utils/whatsapp";
+import OrganizadorRecorrido from "./OrganizadorRecorrido";
+import { ordenarCreditosRecorrido } from "../../utils/recorrido";
 
 function formatDiasSinAbono(credito) {
    return formatDiasSinAbonoBase(credito);
@@ -356,6 +358,12 @@ export default function LiquidarCreditosPage() {
             </div>
 
             {/* Banner GPS — solo workers cuando el permiso no está concedido */}
+            <OrganizadorRecorrido key={`${tiendaId}:${selectedDate}`} tiendaId={tiendaId}
+               tiendaNombre={selectedStore.tienda.nombre} zonaHoraria={selectedStore.tienda.zona_horaria}
+               vistaPrevia={vistaPrevia} onSaved={(recorrido) => {
+                  setCreditos(actuales => ordenarCreditosRecorrido(actuales, recorrido));
+                  setCurrentPage(1);
+               }} />
             {isWorker && !gpsBannerDismissed && gpsPermission === "denied" && (
                <div className="flex items-start gap-4 px-5 py-4 mb-6 bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-[1.5rem]">
                   <FiMapPin className="text-rose-500 shrink-0 mt-0.5" size={16} />
