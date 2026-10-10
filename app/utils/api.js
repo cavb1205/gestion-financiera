@@ -7,6 +7,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 // para evitar que dos refreshes simultáneos invaliden el token del otro.
 let refreshPromise = null;
 
+async function isManualMembershipBlock(response) {
+  if (response.status !== 401 && response.status !== 403) return false;
+  const data = await response.clone().json().catch(() => null);
+  return data?.code === 'membresia_vencida_manual';
+}
+
 /**
  * Intenta renovar el access token usando el refresh token.
  * Retorna el nuevo token o null si falla.
@@ -89,6 +95,12 @@ export async function apiFetch(path, options = {}) {
   try {
     let response = await fetch(url, { ...options, headers, signal: controller.signal });
 
+    // A route suspension is not an account/session failure. Keep other routes accessible.
+    if (await isManualMembershipBlock(response)) {
+      window.dispatchEvent(new CustomEvent('cartera:membership-blocked'));
+      return response;
+    }
+
     // Si es 401, intentar refresh y reintentar una vez
     if (response.status === 401 && token) {
       const newToken = await tryRefreshToken();
@@ -99,6 +111,10 @@ export async function apiFetch(path, options = {}) {
         forceLogout();
         throw new Error('Sesión expirada');
       }
+    }
+
+    if (await isManualMembershipBlock(response)) {
+      window.dispatchEvent(new CustomEvent('cartera:membership-blocked'));
     }
 
     return response;

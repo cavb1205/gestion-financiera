@@ -137,7 +137,8 @@ export default function DashboardLayout({ children }) {
   const { theme, toggleTheme } = useTheme();
   const isAdmin = user?.is_staff || user?.is_superuser;
   const isWorker = !isAdmin;
-  const isRoot = user?.username === 'root';
+  const isRoot = user?.is_superuser === true;
+  const manuallyExpired = selectedStore?.vencida_manualmente === true;
   const isRootImpersonating = isRoot && !!selectedStore;
   // Modo administración: el root sin entrar a una ruta gestiona el negocio (no opera una sucursal)
   const rootAdminMode = isRoot && !selectedStore;
@@ -230,7 +231,7 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push("/login");
-    } else if (!loading && !selectedStore && user?.username !== 'root') {
+    } else if (!loading && !selectedStore && !user?.is_superuser) {
       router.push(isWorker ? "/select-store" : "/login");
     } else if (selectedStore) {
       if (!selectedStore.tienda?.id) {
@@ -267,6 +268,13 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     if (selectedStore) {
+      if (selectedStore.vencida_manualmente) {
+        setIsExpired(true);
+        setIsGrace(false);
+        setDaysRemaining(0);
+        setGraceDaysRemaining(0);
+        return;
+      }
       // Parsear fecha_vencimiento como medianoche local (sin distorsión de zona horaria)
       const fechaBase = new Date(selectedStore.fecha_vencimiento);
       const vencimiento = new Date(
@@ -317,6 +325,11 @@ export default function DashboardLayout({ children }) {
         const adminOk = pathname === '/dashboard' || pathname.includes('/select-store') || pathname.includes('/membresias') || pathname.includes('/admin/rutas');
         if (!adminOk) router.push('/dashboard');
       }
+    } else {
+      setIsExpired(false);
+      setIsGrace(false);
+      setDaysRemaining(null);
+      setGraceDaysRemaining(null);
     }
   }, [selectedStore, pathname, router, isWorker, isRoot]);
 
@@ -328,7 +341,7 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  if (!isAuthenticated || (!selectedStore && user?.username !== 'root')) {
+  if (!isAuthenticated || (!selectedStore && !isRoot)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <LoadingSpinner />
@@ -336,7 +349,7 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  if (isExpired && isWorker && pathname !== '/dashboard/membresias') {
+  if (!isRoot && (manuallyExpired || (isExpired && isWorker)) && pathname !== '/dashboard/membresias') {
     const waMensaje = [
       'Hola, necesito ayuda con el pago del plan.',
       selectedStore?.tienda ? `Ruta: ${selectedStore.tienda.nombre} (ID ${selectedStore.tienda.id}).` : '',
@@ -355,7 +368,7 @@ export default function DashboardLayout({ children }) {
             Acceso Suspendido
           </h1>
           <p className="text-sm font-bold text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
-            La suscripción de <span className="text-slate-700 dark:text-slate-200">{selectedStore?.tienda?.nombre}</span> ha vencido. Activa un plan para reactivar el acceso.
+            La suscripción de <span className="text-slate-700 dark:text-slate-200">{selectedStore?.tienda?.nombre}</span> {manuallyExpired ? 'fue vencida manualmente. El bloqueo es inmediato, sin período de gracia. Tus clientes, créditos y recaudos se conservan.' : 'ha vencido.'} Activa un plan para reactivar el acceso.
           </p>
           <button
             onClick={() => router.push('/dashboard/membresias')}
@@ -373,6 +386,12 @@ export default function DashboardLayout({ children }) {
               <FiMessageCircle size={14} /> ¿Necesitas ayuda? Escríbenos
             </a>
           )}
+          <button
+            onClick={() => router.push('/select-store')}
+            className="w-full px-8 py-3 mb-3 text-indigo-600 dark:text-indigo-300 rounded-2xl font-bold text-xs"
+          >
+            Cambiar de ruta
+          </button>
           <button
             onClick={() => { logout(); router.push('/login'); }}
             className="w-full px-8 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"

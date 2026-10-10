@@ -126,8 +126,9 @@ export default function SelectStorePage() {
             if (!detail.ok) {
               throw new Error(await getApiError(detail, 'No se pudo abrir la ruta asignada.'));
             }
-            selectStore(await detail.json());
-            router.push('/dashboard/liquidar');
+            const fresh = await detail.json();
+            selectStore(fresh);
+            router.push(fresh.vencida_manualmente ? '/dashboard/membresias' : '/dashboard/liquidar');
           }
         } catch (err) {
           setError(err.message || 'Error al cargar las rutas asignadas.');
@@ -145,7 +146,7 @@ export default function SelectStorePage() {
   }, []);
 
   const handleSelectStore = async (store) => {
-    if (!store) return;
+    if (!store || selectingStoreId) return;
     if (isWorker) {
       setSelectingStoreId(String(store.id));
       try {
@@ -153,9 +154,10 @@ export default function SelectStorePage() {
         if (!response.ok) {
           throw new Error(await getApiError(response, 'No se pudo abrir esta ruta.'));
         }
-        selectStore(await response.json());
+        const fresh = await response.json();
+        selectStore(fresh);
         toast.success(`Accediendo a ${store.nombre}`, { autoClose: 1500 });
-        router.push('/dashboard/liquidar');
+        router.push(fresh.vencida_manualmente ? '/dashboard/membresias' : '/dashboard/liquidar');
       } catch (err) {
         setError(err.message || 'No se pudo abrir esta ruta.');
       } finally {
@@ -163,9 +165,20 @@ export default function SelectStorePage() {
       }
       return;
     }
-    selectStore(store);
-    toast.success(`Accediendo a ${store.tienda.nombre}`, { autoClose: 1500 });
-    router.push("/dashboard");
+    setSelectingStoreId(String(store.tienda.id));
+    try {
+      const response = await apiFetch(`/tiendas/detail/admin/${store.tienda.id}/`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(await getApiError(response, 'No se pudo abrir esta ruta.'));
+      const fresh = await response.json();
+      selectStore(fresh);
+      toast.success(`Accediendo a ${store.tienda.nombre}`, { autoClose: 1500 });
+      router.push(fresh.vencida_manualmente && !user?.is_superuser ? '/dashboard/membresias' : '/dashboard');
+    } catch (err) {
+      setError(err.message || 'No se pudo abrir esta ruta.');
+      toast.error(err.message || 'No se pudo abrir esta ruta.');
+    } finally {
+      setSelectingStoreId(null);
+    }
   };
 
   const handleRemove = async () => {
@@ -433,7 +446,7 @@ export default function SelectStorePage() {
                 <div className="p-5 md:p-10">
                   {/* Store name */}
                   <div className="mb-4 md:mb-8 pl-7 md:pl-0">
-                    <p className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-1">Sucursal Activa</p>
+                    <p className={`text-[9px] font-black uppercase tracking-[0.3em] mb-1 ${store.vencida_manualmente ? 'text-rose-400' : 'text-emerald-500'}`}>{store.vencida_manualmente ? 'Membresía vencida manualmente' : 'Sucursal Activa'}</p>
                     <h3 className="text-xl md:text-3xl font-black text-white tracking-tighter uppercase truncate group-hover:text-emerald-400 transition-colors">
                       {store.tienda.nombre}
                     </h3>

@@ -1,10 +1,10 @@
 // app/dashboard/admin/rutas/page.js
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
-import { apiFetch } from "@/app/utils/api";
+import { apiFetch, getApiError } from "@/app/utils/api";
 import {
   FiShield,
   FiRefreshCw,
@@ -35,8 +35,9 @@ import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import Pagination from "@/app/components/Pagination";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import ManualMembershipExpiryModal from "@/app/components/ManualMembershipExpiryModal";
 import { formatMoney } from "@/app/utils/format";
-import { formatAppDate, formatAppDateTime, getAppDateDifference, shiftAppDate } from "@/app/utils/datetime";
+import { formatAppDate, formatAppDateTime, getAppDateDifference, getAppDateString, shiftAppDate } from "@/app/utils/datetime";
 
 // Badge por origen del pago (mismo criterio que /dashboard/admin/ingresos)
 const ORIGEN_BADGE = {
@@ -70,7 +71,8 @@ const STATUS_CONFIG = {
 };
 
 // Semántica de vencimiento/gracia/bloqueo (misma que el backend: gracia 1d, bloqueo V+2)
-const getMembresiaInfo = (fechaVencimiento) => {
+const getMembresiaInfo = (fechaVencimiento, vencidaManualmente = false) => {
+  if (vencidaManualmente) return { days: 0, graceDays: 0, status: "expired", label: "Vencida manualmente" };
   if (!fechaVencimiento) return { days: 0, graceDays: 0, status: "expired", label: "—" };
   const vencimientoDiff = getAppDateDifference(fechaVencimiento);
   if (vencimientoDiff === null) return { days: 0, graceDays: 0, status: "expired", label: "—" };
@@ -88,9 +90,16 @@ const getMembresiaInfo = (fechaVencimiento) => {
 
 // Activa y venciendo dentro de los próximos 3 días (incluido hoy)
 const esPorVencer = (tm) => {
+  if (tm.vencida_manualmente) return false;
   if (tm.estado !== "Activa") return false;
   const s = getMembresiaInfo(tm.fecha_vencimiento).status;
   return s === "warn" || s === "today";
+};
+
+const renewalExpiry = (tm, tipo) => {
+  const today = getAppDateString(0, new Date(), tm?.tienda?.zona_horaria);
+  const start = !tm?.vencida_manualmente && tm?.fecha_vencimiento > today ? tm.fecha_vencimiento : today;
+  return shiftAppDate(start, tipo === "anual" ? 365 : 30);
 };
 
 export default function AdminRutasPage() {
@@ -110,6 +119,16 @@ export default function AdminRutasPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [entering, setEntering] = useState(null); // tm.id en proceso de "entrar"
+  const [expiryDetail, setExpiryDetail] = useState(null);
+  const [activationStale, setActivationStale] = useState(false);
+  const [activationRecorded, setActivationRecorded] = useState(false);
+  const activationInFlightRef = useRef(false);
+  const detailRequestRef = useRef(0);
+
+  const closeDetail = () => {
+    detailRequestRef.current += 1;
+    setDetalle(null);
+  };
 
   const entrarRuta = async (tm) => {
     setEntering(tm.id);
@@ -125,33 +144,70 @@ export default function AdminRutasPage() {
     }
   };
 
-  const fetchTiendas = async (incluirArchivadas = verArchivadas) => {
+  const fetchTiendas = useCallback(async (incluirArchivadas = verArchivadas) => {
     setLoading(true);
     try {
       const response = await apiFetch(
-        `/tiendas/list/?vista=lista${incluirArchivadas ? "&archivadas=1" : ""}`
+        `/tiendas/list/?vista=lista${incluirArchivadas ? "&archivadas=1" : ""}`, { cache: "no-store" }
       );
       if (!response.ok) throw new Error("Error al obtener las rutas");
       const data = await response.json();
       setTiendas(Array.isArray(data) ? data : []);
+      return true;
     } catch (error) {
       toast.error(error.message);
+      return false;
     } finally {
       setLoading(false);
     }
-  };
+  }, [verArchivadas]);
 
   // Drill-down: contacto del admin, actividad e historial de pagos de la ruta
   const abrirDetalle = async (tm) => {
+    const request = ++detailRequestRef.current;
     setDetalle({ tm, loading: true, data: null });
     try {
-      const res = await apiFetch(`/tiendas/${tm.tienda.id}/admin/detalle/`);
+      const res = await apiFetch(`/tiendas/${tm.tienda.id}/admin/detalle/`, { cache: "no-store" });
       if (!res.ok) throw new Error("No se pudo cargar el detalle de la ruta.");
       const data = await res.json();
-      setDetalle({ tm, loading: false, data });
+      if (request !== detailRequestRef.current) return;
+      setDetalle({ tm: { ...tm, ...data.membresia, tienda: tm.tienda }, loading: false, data });
     } catch (error) {
+      if (request !== detailRequestRef.current) return;
       toast.error(error.message);
       setDetalle(null);
+    }
+  };
+
+  const reloadExpiryDetail = async (tiendaId) => {
+    const response = await apiFetch(`/tiendas/${tiendaId}/admin/detalle/`, { cache: "no-store" });
+    if (!response.ok) throw new Error(await getApiError(response, "No se pudo recargar la ruta."));
+    const fresh = await response.json();
+    setDetalle((previous) => previous?.tm.tienda.id === tiendaId
+      ? { ...previous, tm: { ...previous.tm, ...fresh.membresia, tienda: previous.tm.tienda }, data: fresh, loading: false }
+      : previous);
+    if (!await fetchTiendas()) throw new Error("No se pudo actualizar la lista de rutas.");
+    return fresh;
+  };
+
+  const prepararActivacion = async (tm, tipo) => {
+    if (activationInFlightRef.current) return;
+    activationInFlightRef.current = true;
+    setActivating(`preparar-${tm.id}`);
+    try {
+      // Fetch a version even when the lightweight list doesn't serialize it.
+      const response = await apiFetch(`/tiendas/${tm.tienda.id}/admin/detalle/`, { cache: "no-store" });
+      if (!response.ok) throw new Error(await getApiError(response, "No se pudo cargar la membresía."));
+      const data = await response.json();
+      if (!Number.isInteger(data.membresia?.version)) throw new Error("Falta la versión de la membresía. Actualiza la ruta.");
+      setActivationStale(false);
+      setActivationRecorded(false);
+      setConfirmActivar({ tm: { ...tm, ...data.membresia, tienda: tm.tienda }, tipo });
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      activationInFlightRef.current = false;
+      setActivating(null);
     }
   };
 
@@ -174,12 +230,12 @@ export default function AdminRutasPage() {
 
   useEffect(() => {
     if (user?.is_superuser) fetchTiendas();
-  }, [user]);
+  }, [user, fetchTiendas]);
 
   // Si root llega aquí impersonando una ruta, sale de ella.
   // Solo al montar — así no interfiere cuando se selecciona "Entrar".
   useEffect(() => {
-    if (user?.username === 'root') clearStore();
+    if (user?.is_superuser) clearStore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -273,7 +329,7 @@ export default function AdminRutasPage() {
     if (!digits) return null;
     const prefijo = data.tienda.prefijo_telefono || "56";
     const raw = digits.startsWith(prefijo) ? digits : prefijo + digits;
-    const { status: st } = getMembresiaInfo(data.membresia.fecha_vencimiento);
+    const { status: st } = getMembresiaInfo(data.membresia.fecha_vencimiento, data.membresia.vencida_manualmente);
     const nombre = data.admin.nombre;
     const venc = formatDate(data.membresia.fecha_vencimiento);
     let msg;
@@ -304,10 +360,11 @@ export default function AdminRutasPage() {
     }
   };
 
-  // La activación recalcula el vencimiento desde hoy y registra un pago manual
-  // en el ledger de ingresos — por eso siempre pasa por el modal de confirmación.
+  // La renovación extiende desde max(hoy, vencimiento), salvo vencimiento manual.
+  // Registra un pago manual en ingresos y requiere confirmación.
   const handleActivar = async () => {
-    if (!confirmActivar) return;
+    if (!confirmActivar || activationInFlightRef.current || activationStale || activationRecorded) return;
+    activationInFlightRef.current = true;
     const { tm, tipo } = confirmActivar;
     const key = `${tipo}-${tm.id}`;
     setActivating(key);
@@ -317,17 +374,25 @@ export default function AdminRutasPage() {
           ? `/tiendas/activate/mounth/${tm.id}/`
           : `/tiendas/activate/year/${tm.id}/`;
 
-      const response = await apiFetch(endpoint, { method: "POST" });
-      if (!response.ok) throw new Error("Error al activar el plan.");
+      const response = await apiFetch(endpoint, { method: "POST", body: JSON.stringify({ version: tm.version }) });
+      if (response.status === 409) {
+        setActivationStale(true);
+        throw new Error("La membresía cambió. Cierra esta confirmación y vuelve a abrirla para recargar y revisar las fechas.");
+      }
+      if (!response.ok) throw new Error(await getApiError(response, "Error al activar el plan."));
+      setActivationRecorded(true);
+      if (detalle) await reloadExpiryDetail(tm.tienda.id);
+      else if (!await fetchTiendas()) throw new Error("El plan fue activado, pero no se pudo actualizar la lista. Actualiza antes de continuar.");
       toast.success(
         `Plan ${tipo === "mensual" ? "mensual (30d)" : "anual (365d)"} activado`
       );
       setConfirmActivar(null);
-      fetchTiendas();
-      if (detalle) abrirDetalle(detalle.tm); // refrescar el drill-down abierto
     } catch (error) {
       toast.error(error.message);
+      // A lost response can hide a successful payment; never resend blindly.
+      setActivationStale(true);
     } finally {
+      activationInFlightRef.current = false;
       setActivating(null);
     }
   };
@@ -371,7 +436,7 @@ export default function AdminRutasPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { const v = !verArchivadas; setVerArchivadas(v); fetchTiendas(v); }}
+              onClick={() => setVerArchivadas((previous) => !previous)}
               className={`px-4 py-4 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-2 ${
                 verArchivadas
                   ? "bg-violet-600 text-white border-violet-600"
@@ -531,7 +596,7 @@ export default function AdminRutasPage() {
                     </tr>
                   ) : (
                     currentItems.map((tm) => {
-                      const { days, status: memStatus, label: daysLabel } = getMembresiaInfo(tm.fecha_vencimiento);
+                      const { days, status: memStatus, label: daysLabel } = getMembresiaInfo(tm.fecha_vencimiento, tm.vencida_manualmente);
                       const cfg = STATUS_CONFIG[tm.estado] || STATUS_CONFIG.Activa;
                       const daysColor =
                         memStatus === "ok"
@@ -675,8 +740,8 @@ export default function AdminRutasPage() {
                                 )}
                               </button>
                               <button
-                                onClick={() => setConfirmActivar({ tm, tipo: "mensual" })}
-                                disabled={activating === `mensual-${tm.id}`}
+                                onClick={() => prepararActivacion(tm, "mensual")}
+                                disabled={!!activating}
                                 className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-50 flex items-center gap-1.5"
                                 title="Activar plan mensual (30 días)"
                               >
@@ -687,8 +752,8 @@ export default function AdminRutasPage() {
                                 )}
                               </button>
                               <button
-                                onClick={() => setConfirmActivar({ tm, tipo: "anual" })}
-                                disabled={activating === `anual-${tm.id}`}
+                                onClick={() => prepararActivacion(tm, "anual")}
+                                disabled={!!activating}
                                 className="px-3 py-2 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-1.5"
                                 title="Activar plan anual (365 días)"
                               >
@@ -741,7 +806,7 @@ export default function AdminRutasPage() {
                 </div>
               ) : (
                 currentItems.map((tm) => {
-                  const { status: memStatus, label: daysLabel } = getMembresiaInfo(tm.fecha_vencimiento);
+                  const { status: memStatus, label: daysLabel } = getMembresiaInfo(tm.fecha_vencimiento, tm.vencida_manualmente);
                   const cfg = STATUS_CONFIG[tm.estado] || STATUS_CONFIG.Activa;
                   const daysColor =
                     memStatus === "ok"
@@ -841,8 +906,8 @@ export default function AdminRutasPage() {
                       </button>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => setConfirmActivar({ tm, tipo: "mensual" })}
-                          disabled={activating === `mensual-${tm.id}`}
+                          onClick={() => prepararActivacion(tm, "mensual")}
+                          disabled={!!activating}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-50"
                         >
                           {activating === `mensual-${tm.id}` ? (
@@ -850,8 +915,8 @@ export default function AdminRutasPage() {
                           ) : <><FiZap size={11} /> Mensual</>}
                         </button>
                         <button
-                          onClick={() => setConfirmActivar({ tm, tipo: "anual" })}
-                          disabled={activating === `anual-${tm.id}`}
+                          onClick={() => prepararActivacion(tm, "anual")}
+                          disabled={!!activating}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50"
                         >
                           {activating === `anual-${tm.id}` ? (
@@ -902,7 +967,7 @@ export default function AdminRutasPage() {
         <div className="mt-8 flex items-start gap-4 px-5 py-4 bg-white/40 dark:bg-slate-900/40 rounded-2xl border border-white/60 dark:border-slate-800/50">
           <FiActivity className="text-slate-300 dark:text-slate-600 shrink-0 mt-0.5" size={16} />
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-            Al activar un plan, la fecha de vencimiento se recalcula desde hoy.
+            Al renovar un plan, se conserva el tiempo vigente. Si venció manualmente, el nuevo período empieza hoy.
             Solo se pueden eliminar rutas con 0 clientes y 0 ventas.
           </p>
         </div>
@@ -913,15 +978,15 @@ export default function AdminRutasPage() {
         <div className="fixed inset-0 z-40">
           <div
             className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
-            onClick={() => setDetalle(null)}
+            onClick={closeDetail}
           />
           <div className="absolute right-0 top-0 h-full w-full sm:max-w-md bg-white dark:bg-slate-900 shadow-2xl overflow-y-auto">
             {detalle.loading || !detalle.data ? (
               <div className="h-full flex items-center justify-center"><LoadingSpinner /></div>
             ) : (() => {
               const d = detalle.data;
-              const cfg = STATUS_CONFIG[d.membresia.estado] || STATUS_CONFIG.Activa;
-              const { status: memStatus, label: daysLabel } = getMembresiaInfo(d.membresia.fecha_vencimiento);
+              const cfg = STATUS_CONFIG[d.membresia.vencida_manualmente ? "Vencida" : d.membresia.estado] || STATUS_CONFIG.Activa;
+              const { status: memStatus, label: daysLabel } = getMembresiaInfo(d.membresia.fecha_vencimiento, d.membresia.vencida_manualmente);
               const daysColor =
                 memStatus === "ok" ? "text-emerald-600"
                 : memStatus === "warn" || memStatus === "today" ? "text-amber-600"
@@ -950,7 +1015,7 @@ export default function AdminRutasPage() {
                       </div>
                     </div>
                     <button
-                      onClick={() => setDetalle(null)}
+                      onClick={closeDetail}
                       className="p-2 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
                       aria-label="Cerrar detalle"
                     >
@@ -973,6 +1038,14 @@ export default function AdminRutasPage() {
                       <p className={`text-[11px] font-black ${daysColor}`}>{daysLabel}</p>
                     </div>
                   </div>
+
+                  {d.membresia.vencida_manualmente && (
+                    <div className="rounded-2xl p-4 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs space-y-1">
+                      <p className="font-black">Vencida manualmente · sin gracia</p>
+                      <p>{formatDateTime(d.membresia.vencimiento_manual_fecha)}</p>
+                      <p className="break-words">{d.membresia.vencimiento_manual_motivo || d.membresia.motivo}</p>
+                    </div>
+                  )}
 
                   {/* Contacto del administrador */}
                   <div className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-4">
@@ -1048,7 +1121,7 @@ export default function AdminRutasPage() {
                         Pagos ({d.pagos.length})
                       </p>
                       <span className="ml-auto text-[11px] font-black text-emerald-600">
-                        {formatMoney(d.total_pagado)}
+                        <span className="text-[9px] text-slate-400 mr-1">Total vigente</span>{formatMoney(d.total_pagado)}
                       </span>
                     </div>
                     {d.pagos.length === 0 ? (
@@ -1061,8 +1134,9 @@ export default function AdminRutasPage() {
                       <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                         {d.pagos.map((p, i) => {
                           const ob = ORIGEN_BADGE[p.origen] || ORIGEN_BADGE.manual;
+                          const anulado = p.estado === "anulado";
                           return (
-                            <div key={i} className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl px-3 py-2.5">
+                            <div key={p.id ?? i} className="flex items-start gap-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl px-3 py-2.5">
                               <div className="flex-1 min-w-0">
                                 <p className="text-[11px] font-black text-slate-700 dark:text-slate-200">
                                   {formatDate(p.fecha)}
@@ -1071,11 +1145,12 @@ export default function AdminRutasPage() {
                                 {p.codigo && (
                                   <p className="text-[9px] font-bold text-slate-400 font-mono">{p.codigo}</p>
                                 )}
+                                {anulado && <p className="mt-1 text-[10px] text-rose-600 dark:text-rose-400 break-words"><span className="font-black">Anulado</span> · {p.anulado_motivo || "Corrección manual"}</p>}
                               </div>
                               <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest shrink-0 ${ob.cls}`}>
                                 {ob.label}
                               </span>
-                              <span className="text-[11px] font-black text-slate-800 dark:text-white shrink-0">
+                              <span className={`text-[11px] font-black shrink-0 ${anulado ? "line-through text-slate-400" : "text-slate-800 dark:text-white"}`}>
                                 {formatMoney(p.monto)}
                               </span>
                             </div>
@@ -1084,6 +1159,22 @@ export default function AdminRutasPage() {
                       </div>
                     )}
                   </div>
+
+                  {(d.historial_suscripcion || []).length > 0 && (
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Historial de suscripción</p>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {d.historial_suscripcion.map((entry, index) => (
+                          <div key={entry.id ?? index} className="rounded-xl bg-slate-50 dark:bg-slate-800/40 p-3 text-xs space-y-1">
+                            <p className="font-bold break-words">{entry.accion} · {typeof entry.usuario === "object" ? entry.usuario?.username : entry.usuario}</p>
+                            <p className="text-slate-500">{formatDateTime(entry.fecha)}{entry.pago_id ? ` · Pago #${entry.pago_id}` : ""}</p>
+                            {entry.motivo && <p className="break-words text-slate-600 dark:text-slate-300">{entry.motivo}</p>}
+                            {(entry.anterior?.fecha_vencimiento || entry.nuevo?.fecha_vencimiento) && <p className="text-slate-500">Vencimiento: {formatDate(entry.anterior?.fecha_vencimiento)} → {formatDate(entry.nuevo?.fecha_vencimiento)}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Acciones */}
                   <div className="flex items-center gap-2 pt-1 pb-4">
@@ -1095,18 +1186,28 @@ export default function AdminRutasPage() {
                       <FiLogIn size={12} /> Entrar
                     </button>
                     <button
-                      onClick={() => setConfirmActivar({ tm: detalle.tm, tipo: "mensual" })}
+                      onClick={() => prepararActivacion(detalle.tm, "mensual")}
+                      disabled={!!activating}
                       className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all"
                     >
                       <FiZap size={12} /> Mensual
                     </button>
                     <button
-                      onClick={() => setConfirmActivar({ tm: detalle.tm, tipo: "anual" })}
+                      onClick={() => prepararActivacion(detalle.tm, "anual")}
+                      disabled={!!activating}
                       className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all"
                     >
                       <FiStar size={12} /> Anual
                     </button>
                   </div>
+                  {user?.is_superuser && <button
+                    type="button"
+                    onClick={() => setExpiryDetail(d)}
+                    disabled={!!activating || !Number.isInteger(d.membresia.version) || (d.membresia.vencida_manualmente && !d.pagos.some(p => p.estado === "vigente" && p.origen === "manual" && !p.codigo))}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/30 py-3 text-xs font-black text-rose-600 dark:text-rose-300 hover:bg-rose-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FiXCircle size={14} />{d.membresia.vencida_manualmente ? "Revisar vencimiento / corregir ingreso" : "Vencer membresía manualmente"}
+                  </button>}
                 </div>
               );
             })()}
@@ -1118,13 +1219,19 @@ export default function AdminRutasPage() {
       <ConfirmModal
         isOpen={!!confirmActivar}
         onClose={() => !activating && setConfirmActivar(null)}
-        onConfirm={handleActivar}
+        onConfirm={activationStale || activationRecorded ? () => setConfirmActivar(null) : handleActivar}
         isLoading={!!activating}
         title={`¿Activar plan ${confirmActivar?.tipo === "anual" ? "anual (365 días)" : "mensual (30 días)"}?`}
-        message={`Ruta: ${confirmActivar?.tm?.tienda?.nombre || ""} #${confirmActivar?.tm?.tienda?.id || ""}. El vencimiento se recalculará desde hoy y se registrará un pago manual en el informe de ingresos.`}
-        confirmText="Sí, activar"
+        message={activationRecorded
+          ? "El plan fue activado. Cierra y actualiza el detalle para verificar el resultado antes de hacer otra operación."
+          : activationStale
+            ? "Recarga la membresía cerrando esta confirmación y volviendo a elegir el plan. Revisa el historial antes de reintentar."
+            : `Ruta: ${confirmActivar?.tm?.tienda?.nombre || ""} #${confirmActivar?.tm?.tienda?.id || ""}. ${confirmActivar?.tm?.vencida_manualmente ? "Se reactivará desde hoy" : "Se extenderá desde la fecha mayor entre hoy y el vencimiento actual"}. Vencimiento previsto: ${formatDate(renewalExpiry(confirmActivar?.tm, confirmActivar?.tipo))}. Se registrará un pago manual en ingresos.`}
+        confirmText={activationStale || activationRecorded ? "Cerrar y revisar" : "Sí, activar"}
         cancelText="Cancelar"
       />
+
+      {expiryDetail && <ManualMembershipExpiryModal detail={expiryDetail} onClose={() => setExpiryDetail(null)} onReload={reloadExpiryDetail} />}
 
       {/* Modal eliminar ruta vacía */}
       {deleteTarget && (

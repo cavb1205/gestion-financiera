@@ -124,6 +124,7 @@ export default function MembresiasPage() {
   const [uploading, setUploading] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const pollingRef = useRef(null);
+  const manuallyExpired = selectedStore?.vencida_manualmente || membresia?.vencida_manualmente;
 
   const fetchMembresia = useCallback(async () => {
     if (!selectedStore) return;
@@ -134,10 +135,12 @@ export default function MembresiasPage() {
       const data = await response.json();
       setMembresia(data);
       setMembershipError("");
+      return data;
     } catch (error) {
       setMembresia(null);
       setMembershipError(error.message || "No se pudo cargar la membresía.");
       toast.error(error.message);
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -180,9 +183,11 @@ export default function MembresiasPage() {
 
       if (data.estado === "confirmada" || data.estado === "aprobada") {
         stopPolling();
-        toast.success("✅ Pago confirmado. Tu membresía está activa.");
-        await refreshSelectedStore?.();
-        await fetchMembresia();
+        const fresh = await refreshSelectedStore?.();
+        const membership = await fetchMembresia();
+        if (fresh && membership && !fresh.vencida_manualmente && !membership.vencida_manualmente) {
+          toast.success("✅ Pago confirmado. Tu membresía está activa.");
+        }
       } else if (data.estado === "rechazada") {
         stopPolling();
         toast.error(`❌ Pago rechazado: ${data.motivo_rechazo || "verifica el comprobante."}`);
@@ -319,6 +324,7 @@ export default function MembresiasPage() {
   };
 
   const getMembresiaInfo = () => {
+    if (manuallyExpired) return { days: 0, graceDays: 0, memStatus: "expired" };
     if (!membresia) return { days: 0, graceDays: 0, memStatus: "expired" };
     const vencimiento = membresia.fecha_vencimiento;
     const vencimientoDiff = getAppDateDifference(vencimiento);
@@ -382,7 +388,7 @@ export default function MembresiasPage() {
 
   const { days: daysRemaining, graceDays, memStatus } = getMembresiaInfo();
   const periodProgress = getPeriodProgress();
-  const statusCfg = STATUS_CONFIG[membresia?.estado] || STATUS_CONFIG["Activa"];
+  const statusCfg = STATUS_CONFIG[manuallyExpired ? "Vencida" : membresia?.estado] || STATUS_CONFIG["Activa"];
   const planNombre = membresia?.membresia?.nombre || "—";
   const planMensual = planes.find((plan) => plan.nombre === "Mensual");
   const planAnual = planes.find((plan) => plan.nombre === "Anual");
@@ -487,7 +493,7 @@ export default function MembresiasPage() {
             </div>
           </div>
 
-          {membresia?.estado === "Pendiente Pago" && (
+          {!manuallyExpired && membresia?.estado === "Pendiente Pago" && (
             <div className="mx-6 mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-2xl flex items-start gap-3">
               <FiAlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={16} />
               <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-tight leading-relaxed">
@@ -495,15 +501,15 @@ export default function MembresiasPage() {
               </p>
             </div>
           )}
-          {membresia?.estado === "Vencida" && (
+          {(manuallyExpired || membresia?.estado === "Vencida") && (
             <div className="mx-6 mb-6 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl flex items-start gap-3">
               <FiAlertCircle className="text-rose-500 shrink-0 mt-0.5" size={16} />
               <p className="text-[10px] font-black text-rose-700 dark:text-rose-400 uppercase tracking-tight leading-relaxed">
-                Tu membresía ha vencido. El acceso al sistema está restringido hasta que actives un nuevo plan.
+                {manuallyExpired ? "Tu membresía fue vencida manualmente. El bloqueo es inmediato, sin gracia ni preactivación. Tus clientes, créditos y recaudos se conservan. Renueva o contacta a soporte para reactivar el acceso." : "Tu membresía ha vencido. El acceso al sistema está restringido hasta que actives un nuevo plan."}
               </p>
             </div>
           )}
-          {membresia?.estado === "Pre-activada" && (
+          {!manuallyExpired && membresia?.estado === "Pre-activada" && (
             <div className="mx-6 mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-2xl flex items-start gap-3">
               <FiClock className="text-amber-500 shrink-0 mt-0.5" size={16} />
               <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-tight leading-relaxed">
@@ -617,7 +623,7 @@ export default function MembresiasPage() {
                   "Transfiere el monto exacto a la cuenta indicada.",
                   "Escribe el código de pago en el concepto de la transferencia.",
                   "Toma una foto del comprobante y súbela aquí.",
-                  "Toca \"Ya pagué\" — tu acceso se activa al instante.",
+                  manuallyExpired ? "Toca \"Ya pagué\" — el acceso se restablece cuando se apruebe tu pago." : "Toca \"Ya pagué\" — tu acceso se activa al instante.",
                 ].map((step, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <span className="w-5 h-5 rounded-md bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 text-[9px] font-black flex items-center justify-center shrink-0">{i + 1}</span>
@@ -635,23 +641,24 @@ export default function MembresiasPage() {
           <div className="mb-6 glass rounded-[2rem] border-emerald-200 dark:border-emerald-800/40 shadow-2xl overflow-hidden">
             <div className="p-8 md:p-10 text-center">
               <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                <FiCheckCircle className="text-emerald-500" size={38} />
+                {manuallyExpired ? <FiClock className="text-amber-500" size={38} /> : <FiCheckCircle className="text-emerald-500" size={38} />}
               </div>
               <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight mb-2">
-                ¡Tu acceso ya está activo!
+                {manuallyExpired ? "Comprobante en revisión" : "¡Tu acceso ya está activo!"}
               </h2>
               <p className="text-sm font-medium text-slate-500 leading-relaxed mb-6">
-                Recibimos tu comprobante. Confirmaremos tu pago en las próximas horas — mientras tanto puedes seguir trabajando con normalidad.
+                {manuallyExpired ? "Recibimos tu comprobante. La membresía continúa vencida manualmente hasta que se apruebe el pago. Esta solicitud no concede acceso temporal." : "Recibimos tu comprobante. Confirmaremos tu pago en las próximas horas — mientras tanto puedes seguir trabajando con normalidad."}
               </p>
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-2xl mb-6">
                 <FiClock className="text-amber-500" size={13} />
                 <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">
-                  Pre-activada · confirmando pago
+                  {manuallyExpired ? "Acceso bloqueado · confirmando pago" : "Pre-activada · confirmando pago"}
                 </span>
               </div>
               <button
                 onClick={() => router.push("/dashboard")}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[12px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all mb-3"
+                disabled={manuallyExpired}
+                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[12px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Ir al inicio
               </button>
@@ -671,7 +678,7 @@ export default function MembresiasPage() {
                 Pago confirmado
               </h2>
               <p className="text-sm font-medium text-slate-500 leading-relaxed mb-6">
-                Tu membresía <b>{solicitud.plan}</b> quedó activa. ¡Gracias!
+                {manuallyExpired ? "Este pago figura confirmado, pero tu membresía fue vencida manualmente. Revisa el estado actual o contacta a soporte." : <>Tu membresía <b>{solicitud.plan}</b> quedó activa. ¡Gracias!</>}
               </p>
               <button
                 onClick={cancelarSolicitud}
@@ -774,7 +781,7 @@ export default function MembresiasPage() {
                   "Elige tu plan y se genera un código de pago único.",
                   "Transfiere el monto y escribe el código en el concepto.",
                   "Sube la foto del comprobante y toca \"Ya pagué\".",
-                  "Tu acceso se activa al instante mientras confirmamos.",
+                  manuallyExpired ? "Tu acceso se restablece cuando se apruebe el pago." : "Tu acceso se activa al instante mientras confirmamos.",
                 ].map((step, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <span className="w-6 h-6 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-black flex items-center justify-center shrink-0">{i + 1}</span>

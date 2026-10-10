@@ -74,7 +74,8 @@ const calcDiasRestantes = (s) => {
 };
 
 // Espejo del backend: Activa → Pendiente Pago (gracia 1d) → Vencida (bloqueo V+2)
-const calcEstadoMembresia = (s, estado, preActivadaHasta) => {
+const calcEstadoMembresia = (s, estado, preActivadaHasta, vencidaManualmente) => {
+  if (vencidaManualmente) return "expired";
   const vence = parseLocalDate(s);
   if (!vence) return "unknown";
   const hoy = getChileToday();
@@ -219,6 +220,7 @@ export default function DashboardPage() {
       fecha_vencimiento: currentStore.fecha_vencimiento,
       estado: currentStore.estado,
       pre_activada_hasta: currentStore.pre_activada_hasta,
+      vencida_manualmente: currentStore.vencida_manualmente,
     });
     void fetchTienda(tiendaId);
     void fetchAlertas(tiendaId);
@@ -244,7 +246,8 @@ export default function DashboardPage() {
   const memStatus = calcEstadoMembresia(
     tienda.fecha_vencimiento,
     tienda.estado,
-    tienda.pre_activada_hasta
+    tienda.pre_activada_hasta,
+    selectedStore?.vencida_manualmente || tienda.vencida_manualmente
   );
   const cajaNegativa = Number(t.caja ?? 0) < 0;
   const cajaPositiva = !cajaNegativa;

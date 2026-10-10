@@ -2,7 +2,7 @@
 'use client';
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { tryRefreshToken } from '../utils/api';
+import { apiFetch, tryRefreshToken } from '../utils/api';
 
 const AuthContext = createContext({
   user: null,
@@ -28,6 +28,7 @@ export const AuthProvider = ({ children }) => {
   const [selectedStore, setSelectedStore] = useState(null);
   const [loading, setLoading] = useState(true);
   const tokenTimeoutRef = useRef(null);
+  const storeRefreshRef = useRef(null);
 
   // Función para limpiar la autenticación
   const clearAuth = useCallback(() => {
@@ -205,6 +206,7 @@ export const AuthProvider = ({ children }) => {
   const updateStoreData = useCallback((newData) => {
     setSelectedStore(prev => {
         if (!prev) return null;
+        if (Number.isInteger(newData.version) && Number.isInteger(prev.version) && newData.version < prev.version) return prev;
         // Fusionar datos nuevos (ej: fecha_vencimiento actualizada) preservando la estructura
         const updated = { ...prev, ...newData };
         localStorage.setItem('selectedStore', JSON.stringify(updated));
@@ -212,37 +214,83 @@ export const AuthProvider = ({ children }) => {
     });
   }, []);
 
-  const refreshSelectedStore = useCallback(async () => {
+  const refreshSelectedStore = useCallback(async ({ membershipOnly = false } = {}) => {
     const storedToken = localStorage.getItem('authToken');
     const storedStore = localStorage.getItem('selectedStore');
-    if (!storedToken || !storedStore) return;
-    const current = JSON.parse(storedStore);
-    const tiendaId = current?.tienda?.id;
-    if (!tiendaId) return;
+    if (!storedToken || !storedStore) return null;
+    let tiendaId;
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tiendas/detail/admin/${tiendaId}/`,
-        { headers: { Authorization: `Bearer ${storedToken}` } }
-      );
-      if (res.ok) {
-        const fresh = await res.json();
-        // Si la selección cambió mientras respondía (p. ej. root cambiando
-        // de ruta), descartar la respuesta para no pisar la tienda nueva.
+      tiendaId = JSON.parse(storedStore)?.tienda?.id;
+    } catch { return null; }
+    if (!tiendaId) return null;
+    if (storeRefreshRef.current?.id === tiendaId) return storeRefreshRef.current.promise;
+
+    const requestUser = localStorage.getItem('userData');
+    const operation = { id: tiendaId, promise: null };
+    operation.promise = (async () => {
+      try {
+        const res = await apiFetch(`/tiendas/detail/admin/${tiendaId}/${membershipOnly ? '?vista=membresia' : ''}`, { cache: 'no-store' });
         const nowStored = localStorage.getItem('selectedStore');
-        const nowId = nowStored ? JSON.parse(nowStored)?.tienda?.id : null;
-        if (nowId !== tiendaId) return;
-        setSelectedStore(fresh);
-        localStorage.setItem('selectedStore', JSON.stringify(fresh));
-      } else if (res.status === 403 || res.status === 404) {
-        const nowStored = localStorage.getItem('selectedStore');
-        const nowId = nowStored ? JSON.parse(nowStored)?.tienda?.id : null;
-        if (String(nowId) !== String(tiendaId)) return;
-        localStorage.removeItem('selectedStore');
-        setSelectedStore(null);
-        router.push('/select-store');
+        const current = nowStored ? JSON.parse(nowStored) : null;
+        // Never overwrite a different route or restore a cleared session.
+        if (String(current?.tienda?.id) !== String(tiendaId)
+          || localStorage.getItem('userData') !== requestUser) return null;
+        if (res.ok) {
+          const received = await res.json();
+          const latestRaw = localStorage.getItem('selectedStore');
+          const latest = latestRaw ? JSON.parse(latestRaw) : null;
+          if (String(latest?.tienda?.id) !== String(tiendaId)
+            || localStorage.getItem('userData') !== requestUser) return null;
+          const fresh = membershipOnly ? { ...latest, ...received } : received;
+          if (Number.isInteger(fresh.version) && Number.isInteger(latest.version) && fresh.version < latest.version) return latest;
+          // Keep component effects quiet when nothing has changed.
+          if (JSON.stringify(latest) !== JSON.stringify(fresh)) {
+            setSelectedStore(fresh);
+            localStorage.setItem('selectedStore', JSON.stringify(fresh));
+          }
+          return fresh;
+        }
+        if (res.status === 401 || res.status === 403) {
+          const body = await res.clone().json().catch(() => null);
+          if (body?.code === 'membresia_vencida_manual') {
+            const blocked = { ...current, vencida_manualmente: true, estado: 'Vencida' };
+            localStorage.setItem('selectedStore', JSON.stringify(blocked));
+            setSelectedStore(blocked);
+            return blocked;
+          }
+        }
+        if (res.status === 403 || res.status === 404) {
+          localStorage.removeItem('selectedStore');
+          setSelectedStore(null);
+          router.push('/select-store');
+        }
+        return null;
+      } catch { return null; }
+      finally {
+        if (storeRefreshRef.current === operation) storeRefreshRef.current = null;
       }
-    } catch (_) {}
+    })();
+    storeRefreshRef.current = operation;
+    return operation.promise;
   }, [router]);
+
+  useEffect(() => {
+    if (!token || !selectedStore?.tienda?.id) return;
+    const refreshVisibleStore = () => {
+      if (document.visibilityState === 'visible') void refreshSelectedStore({ membershipOnly: true });
+    };
+    refreshVisibleStore();
+    window.addEventListener('focus', refreshVisibleStore);
+    document.addEventListener('visibilitychange', refreshVisibleStore);
+    window.addEventListener('cartera:membership-blocked', refreshVisibleStore);
+    const interval = setInterval(refreshVisibleStore, 60000);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', refreshVisibleStore);
+      document.removeEventListener('visibilitychange', refreshVisibleStore);
+      window.removeEventListener('cartera:membership-blocked', refreshVisibleStore);
+    };
+  }, [token, selectedStore?.tienda?.id, refreshSelectedStore]);
 
   return (
     <AuthContext.Provider
