@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FiArrowUp, FiArrowDown, FiList, FiSearch, FiX, FiCheck } from 'react-icons/fi';
+import { FiArrowUp, FiArrowDown, FiList, FiSearch, FiX, FiCheck, FiMove } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { apiFetch, getApiError } from '@/app/utils/api';
 import { mismoOrden, moverCliente, textoRecorrido, validarRecorrido } from '@/app/utils/recorrido';
+import useArrastreRecorrido from './useArrastreRecorrido';
 
 const boton = 'min-h-11 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed dark:border-slate-700 dark:text-slate-200';
 const campo = 'min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:text-white';
@@ -34,6 +35,14 @@ export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHorar
   const busquedaRef = useRef(null);
   const abrirRef = useRef(null);
   const movimientoRef = useRef(null);
+  const scrollRef = useRef(null);
+  const listaRef = useRef(null);
+  const enfoqueArrastreRef = useRef(null);
+  const { arrastre, iniciar, actualizar, soltar, cancelar, interrumpir } = useArrastreRecorrido({
+    habilitado: open && listo && !loading && !saving && !conflicto && !vistaPrevia,
+    scrollRef, listaRef, onDrop: (id, accion, destinoId) => { enfoqueArrastreRef.current = id; mover(id, accion, destinoId); },
+    onCancel: () => setAnuncio('Movimiento cancelado. El orden no cambió.'),
+  });
 
   const cargar = useCallback(async () => {
     const solicitud = ++secuencia.current;
@@ -76,8 +85,16 @@ export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHorar
     }
   }, [seleccionado]);
 
+  useEffect(() => {
+    const id = enfoqueArrastreRef.current;
+    if (id === null) return;
+    listaRef.current?.querySelector(`[data-recorrido-cliente="${id}"] button[data-recorrido-asa]`)?.focus({ preventScroll: true });
+    enfoqueArrastreRef.current = null;
+  }, [draft]);
+
   const cerrar = () => {
     if (guardando.current) return;
+    cancelar();
     secuencia.current += 1;
     setLoading(false);
     setDraft(recorrido?.clientes || []);
@@ -87,14 +104,14 @@ export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHorar
     setOpen(true); setBusqueda(''); setLimite(25);
     cargar(); // Tomar la versión más reciente antes de editar.
   };
-  const mover = (id, accion, destinoId) => {
+  function mover(id, accion, destinoId) {
     const siguiente = moverCliente(draft, id, accion, destinoId);
     setDraft(siguiente);
     const indice = siguiente.findIndex(c => c.id === id);
     if (siguiente !== draft) setAnuncio(`${nombre(siguiente[indice])}: posición ${indice + 1} de ${siguiente.length}. Cambio sin guardar.`);
-  };
+  }
   const guardar = async () => {
-    if (guardando.current || loading || !listo || conflicto || !recorrido) return;
+    if (guardando.current || loading || !listo || conflicto || !recorrido || arrastre) return;
     guardando.current = true; setSaving(true); setError('');
     try {
       const res = await apiFetch(`/tiendas/recorrido/t/${tiendaId}/`, {
@@ -119,6 +136,8 @@ export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHorar
   const cambios = listo && recorrido && (!recorrido.configurado || !mismoOrden(draft, recorrido.clientes));
   const filtrados = draft.map((cliente, indice) => ({ cliente, indice })).filter(({ cliente }) => coincide(cliente, busqueda));
   const clienteSeleccionado = draft.find(c => c.id === seleccionado);
+  const clienteArrastrado = arrastre && draft.find(c => c.id === arrastre.id);
+  const referenciaArrastre = arrastre && draft.find(c => c.id === arrastre.destinoId);
   const destinos = draft.filter(c => c.id !== seleccionado && coincide(c, busquedaDestino));
   const fecha = recorrido?.actualizado_en ? new Date(recorrido.actualizado_en).toLocaleString('es-CL', {
     timeZone: zonaHoraria || 'America/Santiago', dateStyle: 'short', timeStyle: 'short',
@@ -157,7 +176,7 @@ export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHorar
           <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Aquí aparecen todos los clientes con crédito activo, aunque hoy no les corresponda pagar. Liquidar conserva las reglas de cobro del día.</p>
         </header>
 
-        <div className="overflow-y-auto p-4 sm:p-5">
+        <div ref={scrollRef} data-recorrido-scroll className={'min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5' + (arrastre ? ' select-none' : '')}>
           {loading ? <p role="status" className="py-8 text-center text-sm">Cargando clientes de la ruta…</p> : <>
             {error && <div role="alert" className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950 dark:text-rose-200">
               <p>{error}</p>
@@ -167,11 +186,12 @@ export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHorar
             {recorrido && listo && <fieldset disabled={saving || conflicto} className="min-w-0 space-y-4">
               <div><label htmlFor="recorrido-buscar" className="mb-2 block text-sm font-semibold">Buscar cliente o dirección</label>
                 <div className="relative"><FiSearch aria-hidden="true" className="absolute left-3 top-3.5 text-slate-400" />
-                  <input ref={busquedaRef} id="recorrido-buscar" value={busqueda} onChange={e => { setBusqueda(e.target.value); setLimite(25); }} className={campo + ' pl-9'} placeholder="Nombre, apellido o sector" /></div>
+                  <input ref={busquedaRef} id="recorrido-buscar" disabled={Boolean(arrastre)} value={busqueda} onChange={e => { setBusqueda(e.target.value); setLimite(25); }} className={campo + ' pl-9'} placeholder="Nombre, apellido o sector" /></div>
                 <p className="mt-2 text-xs text-slate-500">{draft.length} clientes en el recorrido{busqueda ? ` · ${filtrados.length} coincidencias` : ''}. Buscar no cambia las posiciones.</p>
               </div>
+              <p id="recorrido-arrastrar-ayuda" className="rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-600 dark:bg-slate-800 dark:text-slate-300">Arrastra desde el asa para cambiar el orden. En celular, desliza sobre el texto para recorrer la lista.<span className="sr-only"> También puedes usar los botones o las flechas arriba y abajo del teclado sobre el asa. Escape cancela el arrastre.</span></p>
 
-              {clienteSeleccionado && <div ref={movimientoRef} className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 dark:border-indigo-800 dark:bg-indigo-950/40">
+              {clienteSeleccionado && <fieldset disabled={Boolean(arrastre)} ref={movimientoRef} className="min-w-0 rounded-xl border border-indigo-200 bg-indigo-50 p-3 dark:border-indigo-800 dark:bg-indigo-950/40">
                 <p className="text-sm font-bold">Ubicar a {nombre(clienteSeleccionado)}</p>
                 <label htmlFor="recorrido-destino-buscar" className="mt-3 mb-1 block text-xs font-semibold">Buscar el cliente de referencia</label>
                 <input id="recorrido-destino-buscar" value={busquedaDestino} onChange={e => { setBusquedaDestino(e.target.value); setDestino(''); }} className={campo} placeholder="Nombre o dirección" />
@@ -188,36 +208,55 @@ export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHorar
                   <button type="button" disabled={!destino} onClick={() => { mover(seleccionado, ubicacion, Number(destino)); setSeleccionado(null); }} className={boton}>Aplicar movimiento</button>
                   <button type="button" onClick={() => setSeleccionado(null)} className={boton}>Cerrar movimiento</button>
                 </div>
-              </div>}
+              </fieldset>}
 
-              <ol aria-label="Clientes del recorrido" className="divide-y divide-slate-200 dark:divide-slate-800">
-                {filtrados.slice(0, limite).map(({ cliente: c, indice }) => <li key={c.id} data-recorrido-cliente={c.id} className="py-3">
+              <ol ref={listaRef} aria-label="Clientes del recorrido" className="divide-y divide-slate-200 dark:divide-slate-800">
+                {filtrados.slice(0, limite).map(({ cliente: c, indice }) => <li key={c.id} data-recorrido-cliente={c.id}
+                  data-arrastre-destino={arrastre?.destinoId === c.id ? arrastre.ubicacion : undefined}
+                  className={'relative py-3' + (arrastre?.id === c.id ? ' rounded-xl bg-indigo-50 ring-2 ring-inset ring-indigo-400 dark:bg-indigo-950/40' : '')}>
+                  {arrastre?.destinoId === c.id && <span aria-hidden="true" className={'pointer-events-none absolute inset-x-0 z-10 h-1 rounded-full bg-indigo-600 dark:bg-indigo-400 ' + (arrastre.ubicacion === 'antes' ? 'top-0' : 'bottom-0')} />}
                   <div className="flex items-start gap-3">
-                    <span className="flex h-9 min-w-9 items-center justify-center rounded-lg bg-slate-100 px-1 font-bold tabular-nums text-slate-600 dark:bg-slate-800 dark:text-slate-300">{indice + 1}</span>
+                    <div className="flex shrink-0 flex-col items-center gap-1">
+                      <span className="flex h-9 min-w-9 items-center justify-center rounded-lg bg-slate-100 px-1 font-bold tabular-nums text-slate-600 dark:bg-slate-800 dark:text-slate-300">{indice + 1}</span>
+                      <button type="button" data-recorrido-asa aria-label={`Arrastrar a ${nombre(c)}`} aria-describedby="recorrido-arrastrar-ayuda" title="Arrastrar, o mover con las flechas del teclado"
+                        className={boton + ' inline-flex min-w-11 touch-none select-none items-center justify-center px-2 focus-visible:outline-2 focus-visible:outline-indigo-600 ' + (arrastre?.id === c.id ? 'cursor-grabbing text-indigo-600' : 'cursor-grab')}
+                        onPointerDown={e => iniciar(e, c.id)} onPointerMove={actualizar} onPointerUp={soltar}
+                        onPointerCancel={interrumpir} onLostPointerCapture={interrumpir}
+                        onKeyDown={e => {
+                          if (!arrastre && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                            e.preventDefault(); enfoqueArrastreRef.current = c.id; mover(c.id, e.key === 'ArrowUp' ? 'subir' : 'bajar');
+                          }
+                        }}><FiMove aria-hidden="true" size={18} /></button>
+                    </div>
                     <div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold">{nombre(c)}</p><p className="mt-1 break-words text-xs text-slate-500 dark:text-slate-400">{c.direccion || 'Sin dirección registrada'}</p>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <button type="button" className={boton} disabled={indice === 0} onClick={() => mover(c.id, 'inicio')} aria-label={`Mover al inicio a ${nombre(c)}`}>Al inicio</button>
-                        <button type="button" className={boton} onClick={() => { setSeleccionado(c.id); setDestino(''); setBusquedaDestino(''); }} aria-label={`Ubicar a ${nombre(c)}`}>Antes / después</button>
+                        <button type="button" className={boton} disabled={Boolean(arrastre) || indice === 0} onClick={() => mover(c.id, 'inicio')} aria-label={`Mover al inicio a ${nombre(c)}`}>Al inicio</button>
+                        <button type="button" disabled={Boolean(arrastre)} className={boton} onClick={() => { setSeleccionado(c.id); setDestino(''); setBusquedaDestino(''); }} aria-label={`Ubicar a ${nombre(c)}`}>Antes / después</button>
                       </div>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <button type="button" className={boton} disabled={indice === 0} onClick={() => mover(c.id, 'subir')} aria-label={`Subir a ${nombre(c)}`}><FiArrowUp aria-hidden="true" /></button>
-                      <button type="button" className={boton} disabled={indice === draft.length - 1} onClick={() => mover(c.id, 'bajar')} aria-label={`Bajar a ${nombre(c)}`}><FiArrowDown aria-hidden="true" /></button>
+                      <button type="button" className={boton} disabled={Boolean(arrastre) || indice === 0} onClick={() => mover(c.id, 'subir')} aria-label={`Subir a ${nombre(c)}`}><FiArrowUp aria-hidden="true" /></button>
+                      <button type="button" className={boton} disabled={Boolean(arrastre) || indice === draft.length - 1} onClick={() => mover(c.id, 'bajar')} aria-label={`Bajar a ${nombre(c)}`}><FiArrowDown aria-hidden="true" /></button>
                     </div>
                   </div>
                 </li>)}
               </ol>
               {!filtrados.length && <p className="py-4 text-center text-sm text-slate-500">{draft.length ? 'No hay clientes que coincidan con la búsqueda.' : 'Esta ruta no tiene clientes con créditos activos.'}</p>}
-              {filtrados.length > limite && <button type="button" onClick={() => setLimite(n => n + 25)} className={boton + ' w-full'}>Mostrar 25 más ({filtrados.length - limite} restantes)</button>}
+              {filtrados.length > limite && <button type="button" disabled={Boolean(arrastre)} onClick={() => setLimite(n => n + 25)} className={boton + ' w-full'}>Mostrar 25 más ({filtrados.length - limite} restantes)</button>}
             </fieldset>}
           </>}
-          <p role="status" aria-live="polite" className="mt-3 text-xs text-indigo-700 dark:text-indigo-300">{anuncio}</p>
+          <p role="status" aria-live="polite" className="mt-3 text-xs text-indigo-700 dark:text-indigo-300">{arrastre && referenciaArrastre ? `Suelta para ubicar a ${nombre(clienteArrastrado)} ${arrastre.ubicacion === 'antes' ? 'antes' : 'después'} de ${nombre(referenciaArrastre)}.` : anuncio}</p>
         </div>
+
+        {clienteArrastrado && <div aria-hidden="true" className="pointer-events-none fixed z-20 w-52 truncate rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-lg"
+          style={{ left: Math.max(8, Math.min(arrastre.x + 12, typeof window === 'undefined' ? 8 : window.innerWidth - 216)), top: Math.max(8, arrastre.y - 40) }}>
+          {nombre(clienteArrastrado)}
+        </div>}
 
         <footer className="shrink-0 border-t border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
           <p className="mb-3 text-xs text-slate-500">{saving ? 'Guardando recorrido…' : cambios ? 'El nuevo orden se aplicará a toda esta ruta cuando guardes.' : 'No hay cambios pendientes.'}</p>
           <div className="flex justify-end gap-2"><button type="button" disabled={saving} onClick={cerrar} className={boton}>Cancelar</button>
-            <button type="button" disabled={saving || loading || conflicto || !cambios || !draft.length} onClick={guardar} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"><FiCheck aria-hidden="true" />{saving ? 'Guardando…' : 'Guardar cambios'}</button></div>
+            <button type="button" disabled={saving || loading || conflicto || Boolean(arrastre) || !cambios || !draft.length} onClick={guardar} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"><FiCheck aria-hidden="true" />{saving ? 'Guardando…' : 'Guardar cambios'}</button></div>
         </footer>
       </div>
     </dialog>

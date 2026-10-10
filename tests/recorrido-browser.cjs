@@ -1,6 +1,7 @@
 // Navegador → vistas Django reales → SQLite en memoria. No usa producción.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
+const { probarArrastre } = require('./arrastre-recorrido-browser.cjs');
 const base = 'http://127.0.0.1:3039';
 const api = 'http://127.0.0.1:3040';
 const store = { tienda:{id:901,nombre:'Ruta de prueba',zona_horaria:'America/Santiago'},fecha_vencimiento:'2099-12-31',estado:'Activa' };
@@ -10,7 +11,7 @@ const store = { tienda:{id:901,nombre:'Ruta de prueba',zona_horaria:'America/San
   const errores = [], operaciones = [];
   async function abrir(role,mobile=false) {
     const fallos = {guardar:false,cargar:false};
-    const context = await browser.newContext({viewport:mobile ? {width:390,height:844} : {width:1440,height:1000},timezoneId:'America/Santiago',serviceWorkers:'block'});
+    const context = await browser.newContext({viewport:mobile ? {width:390,height:844} : {width:1440,height:1000},hasTouch:mobile,timezoneId:'America/Santiago',serviceWorkers:'block'});
     await context.addInitScript(({role,store}) => {
       localStorage.setItem('authToken','solo-prueba-local');
       localStorage.setItem('tokenTimestamp',String(Date.now()));
@@ -52,6 +53,7 @@ const store = { tienda:{id:901,nombre:'Ruta de prueba',zona_horaria:'America/San
   try {
     const {page:admin,context:ca,fallos:fallosAdmin}=await abrir('admin');
     const antes=await metricas(admin);
+    await probarArrastre(admin,false);
     assert.deepEqual(await estado(),{configuraciones:0,cambios:0});
     await admin.getByRole('button',{name:'Organizar recorrido',exact:true}).click();
     const d=dialogo(admin);
@@ -86,6 +88,7 @@ const store = { tienda:{id:901,nombre:'Ruta de prueba',zona_horaria:'America/San
     assert(nombres.indexOf('Cliente 70 Prueba')<nombres.indexOf('Cliente 08 Prueba'));
 
     const {page:worker,context:cw,fallos}=await abrir('worker',true);
+    await probarArrastre(worker,true);
     await worker.getByRole('button',{name:'Organizar recorrido',exact:true}).click();
     const dw=dialogo(worker);
     await dw.getByLabel('Buscar cliente o dirección').fill('Cliente 75');
@@ -131,12 +134,15 @@ const store = { tienda:{id:901,nombre:'Ruta de prueba',zona_horaria:'America/San
     assert.deepEqual(await estado(),{configuraciones:1,cambios:4});
     for (const [rol,movil] of [['admin',true],['worker',false]]) {
       const {page,context}=await abrir(rol,movil);
+      await probarArrastre(page,movil);
       await page.getByRole('button',{name:'Organizar recorrido',exact:true}).click();
       await dialogo(page).getByLabel('Buscar cliente o dirección').fill('Cliente 67');
       assert((await dialogo(page).locator('[data-recorrido-cliente="67"]').innerText()).startsWith('1\n'));
       await dialogo(page).getByRole('button',{name:'Cancelar',exact:true}).click();
       await context.close();
     }
+    await probarArrastre(worker,true,{guardar:true});
+    assert.deepEqual(await estado(),{configuraciones:1,cambios:5},'Un arrastre solo escribe al guardar');
     assert.equal(await worker.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'Sin desborde horizontal móvil');
     assert.equal(errores.length,0,errores.join('\n'));
     assert(operaciones.filter(r=>r.method!=='GET').every(r=>r.method==='PUT'&&r.path==='/tiendas/recorrido/t/901/'));
