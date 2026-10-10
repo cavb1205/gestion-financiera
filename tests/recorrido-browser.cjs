@@ -9,7 +9,7 @@ const store = { tienda:{id:901,nombre:'Ruta de prueba',zona_horaria:'America/San
   const browser = await chromium.launch({headless:true,...(process.env.CHROME_PATH ? {executablePath:process.env.CHROME_PATH} : {})});
   const errores = [], operaciones = [];
   async function abrir(role,mobile=false) {
-    const fallos = {guardar:false};
+    const fallos = {guardar:false,cargar:false};
     const context = await browser.newContext({viewport:mobile ? {width:390,height:844} : {width:1440,height:1000},timezoneId:'America/Santiago',serviceWorkers:'block'});
     await context.addInitScript(({role,store}) => {
       localStorage.setItem('authToken','solo-prueba-local');
@@ -27,6 +27,7 @@ const store = { tienda:{id:901,nombre:'Ruta de prueba',zona_horaria:'America/San
       if (url.hostname==='api.carterafinanciera.com') {
         if (url.pathname.startsWith('/tiendas/recorrido/') || url.pathname.startsWith('/ventas/activas/liquidar/')) {
           operaciones.push({role,method:req.method(),path:url.pathname,body:req.postData()});
+          if (fallos.cargar && req.method()==='GET' && url.pathname.startsWith('/tiendas/recorrido/')) { fallos.cargar=false; return route.fulfill({status:503,json:{error:'Fallo de carga de prueba.'}}); }
           if (fallos.guardar && req.method()==='PUT') { fallos.guardar=false; return route.fulfill({status:500,json:{error:'Fallo de prueba: reintenta guardar.'}}); }
           const response=await route.fetch({url:api+url.pathname+url.search,headers:{'X-Local-Role':role,'Content-Type':'application/json'},maxRetries:0});
           return route.fulfill({response});
@@ -49,7 +50,7 @@ const store = { tienda:{id:901,nombre:'Ruta de prueba',zona_horaria:'America/San
   const estado = async () => (await fetch(api+'/__estado')).json();
   const metricas = async page => Promise.all(['Total a cobrar del día','Pendiente por cobrar','Total cobrado del día'].map(label=>page.getByRole('region',{name:label,exact:true}).innerText()));
   try {
-    const {page:admin,context:ca}=await abrir('admin');
+    const {page:admin,context:ca,fallos:fallosAdmin}=await abrir('admin');
     const antes=await metricas(admin);
     assert.deepEqual(await estado(),{configuraciones:0,cambios:0});
     await admin.getByRole('button',{name:'Organizar recorrido',exact:true}).click();
@@ -59,6 +60,15 @@ const store = { tienda:{id:901,nombre:'Ruta de prueba',zona_horaria:'America/San
     await d.getByRole('button',{name:'Mover al inicio a Cliente 70 Prueba',exact:true}).click();
     await d.getByRole('button',{name:'Cancelar',exact:true}).click();
     assert.deepEqual(await estado(),{configuraciones:0,cambios:0});
+    fallosAdmin.cargar=true;
+    await admin.getByRole('button',{name:'Organizar recorrido',exact:true}).click();
+    await d.getByText('Fallo de carga de prueba.',{exact:true}).waitFor();
+    assert(await d.getByRole('button',{name:'Guardar cambios',exact:true}).isDisabled());
+    assert.equal(await d.locator('[data-recorrido-cliente]').count(),0,'No recupera cambios cancelados ni deja guardar datos obsoletos');
+    await d.getByRole('button',{name:'Reintentar carga',exact:true}).click();
+    await d.getByLabel('Buscar cliente o dirección').fill('Cliente 70');
+    assert((await d.locator('[data-recorrido-cliente="70"]').innerText()).startsWith('70\n'));
+    await d.getByRole('button',{name:'Cancelar',exact:true}).click();
     await admin.getByRole('button',{name:'Organizar recorrido',exact:true}).click();
     await d.getByLabel('Buscar cliente o dirección').fill('Cliente 70');
     await d.getByRole('button',{name:'Ubicar a Cliente 70 Prueba',exact:true}).click();

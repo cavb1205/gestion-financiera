@@ -16,6 +16,7 @@ export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHorar
   const [draft, setDraft] = useState([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [listo, setListo] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [conflicto, setConflicto] = useState(false);
@@ -36,13 +37,14 @@ export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHorar
 
   const cargar = useCallback(async () => {
     const solicitud = ++secuencia.current;
-    setLoading(true); setError(''); setConflicto(false);
+    setLoading(true); setListo(false); setError(''); setConflicto(false);
     try {
       const res = await apiFetch(`/tiendas/recorrido/t/${tiendaId}/`, { cache: 'no-store' });
       if (!res.ok) throw new Error(await getApiError(res, 'No se pudo cargar el recorrido.'));
       const data = validarRecorrido(await res.json(), tiendaId);
       if (!activo.current || solicitud !== secuencia.current) return;
       setRecorrido(data); setDraft(data.clientes); setSeleccionado(null);
+      setListo(true);
       setDestino(''); setBusquedaDestino(''); setAnuncio('');
     } catch (err) {
       if (activo.current && solicitud === secuencia.current) setError(err.message);
@@ -77,6 +79,8 @@ export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHorar
   const cerrar = () => {
     if (guardando.current) return;
     secuencia.current += 1;
+    setLoading(false);
+    setDraft(recorrido?.clientes || []);
     setOpen(false);
   };
   const abrir = () => {
@@ -90,7 +94,7 @@ export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHorar
     if (siguiente !== draft) setAnuncio(`${nombre(siguiente[indice])}: posición ${indice + 1} de ${siguiente.length}. Cambio sin guardar.`);
   };
   const guardar = async () => {
-    if (guardando.current || loading || conflicto || !recorrido) return;
+    if (guardando.current || loading || !listo || conflicto || !recorrido) return;
     guardando.current = true; setSaving(true); setError('');
     try {
       const res = await apiFetch(`/tiendas/recorrido/t/${tiendaId}/`, {
@@ -112,7 +116,7 @@ export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHorar
     }
   };
 
-  const cambios = recorrido && (!recorrido.configurado || !mismoOrden(draft, recorrido.clientes));
+  const cambios = listo && recorrido && (!recorrido.configurado || !mismoOrden(draft, recorrido.clientes));
   const filtrados = draft.map((cliente, indice) => ({ cliente, indice })).filter(({ cliente }) => coincide(cliente, busqueda));
   const clienteSeleccionado = draft.find(c => c.id === seleccionado);
   const destinos = draft.filter(c => c.id !== seleccionado && coincide(c, busquedaDestino));
@@ -160,7 +164,7 @@ export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHorar
               {conflicto && <p className="mt-1">Recargar descartará los cambios sin guardar y traerá el recorrido actual.</p>}
               <button type="button" disabled={saving} onClick={cargar} className={boton + ' mt-3'}>{conflicto ? 'Recargar orden actual' : 'Reintentar carga'}</button>
             </div>}
-            {recorrido && <fieldset disabled={saving || conflicto} className="min-w-0 space-y-4">
+            {recorrido && listo && <fieldset disabled={saving || conflicto} className="min-w-0 space-y-4">
               <div><label htmlFor="recorrido-buscar" className="mb-2 block text-sm font-semibold">Buscar cliente o dirección</label>
                 <div className="relative"><FiSearch aria-hidden="true" className="absolute left-3 top-3.5 text-slate-400" />
                   <input ref={busquedaRef} id="recorrido-buscar" value={busqueda} onChange={e => { setBusqueda(e.target.value); setLimite(25); }} className={campo + ' pl-9'} placeholder="Nombre, apellido o sector" /></div>
