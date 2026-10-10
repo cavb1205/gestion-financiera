@@ -430,10 +430,6 @@ export default function LiquidarCreditosPage() {
             ) : (
             <>
             {/* Global Metrics Area */}
-            <div className="mb-5 rounded-2xl border border-slate-200 bg-white/70 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
-               <p className="font-bold text-slate-900 dark:text-white">{vistaPrevia ? `${resumen.obligatorios} gestiones proyectadas · ${resumen.voluntarios} cobros voluntarios` : `${resumen.obligatorios} gestiones obligatorias pendientes · ${resumen.voluntarios} cobros voluntarios`}</p>
-               <p className="mt-1 leading-relaxed">{vistaPrevia ? "Importe proyectado hasta la fecha seleccionada, no una meta garantizada de recaudo. Los cobros voluntarios no son obligaciones." : "Los anticipos siguen visibles, pero no exigen otro abono ni una falla para completar la ruta. El importe pendiente incluye deuda exigible; registrar una visita no elimina esa deuda."}</p>
-            </div>
             <div className="grid grid-cols-3 gap-3 md:gap-6 mb-8">
                <div role="region" aria-label={vistaPrevia ? "Total proyectado" : "Total a cobrar del día"} className="glass p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 relative overflow-hidden group shadow-xl">
                   <div className="relative z-10">
