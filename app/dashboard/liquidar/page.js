@@ -42,6 +42,7 @@ import FechaLiquidacion from "./FechaLiquidacion";
 import { buildWhatsAppEstadoCuenta } from "../../utils/whatsapp";
 import OrganizadorRecorrido from "./OrganizadorRecorrido";
 import { ordenarCreditosRecorrido } from "../../utils/recorrido";
+import { leerLiquidacion } from "../../utils/liquidacion";
 
 function formatDiasSinAbono(credito) {
    return formatDiasSinAbonoBase(credito);
@@ -63,6 +64,7 @@ export default function LiquidarCreditosPage() {
    const [gpsBannerDismissed, setGpsBannerDismissed] = useState(false);
    const [creditos, setCreditos] = useState([]);
    const [recaudos, setRecaudos] = useState([]);
+   const [baseCuotasDia, setBaseCuotasDia] = useState(0);
    const [caja, setCaja] = useState(null);
    const [loading, setLoading] = useState(true);
    const [fetchError, setFetchError] = useState(null);
@@ -148,6 +150,7 @@ export default function LiquidarCreditosPage() {
       if (claveCargadaRef.current !== clave) {
          setCreditos([]);
          setRecaudos([]);
+         setBaseCuotasDia(0);
          setCaja(null);
       }
 
@@ -171,20 +174,23 @@ export default function LiquidarCreditosPage() {
          };
 
          const [creditosData, recaudosData, tiendaData] = await Promise.all([
-            fetchJson(`/ventas/activas/liquidar/${selectedDate}/t/${tiendaId}/${vistaPrevia ? '?vista=previa' : ''}`),
+            fetchJson(`/ventas/activas/liquidar/${selectedDate}/t/${tiendaId}/?resumen=1${vistaPrevia ? '&vista=previa' : ''}`),
             vistaPrevia ? Promise.resolve([]) : fetchJson(`/recaudos/list/${selectedDate}/t/${tiendaId}/?vista=lista`),
             vistaPrevia ? Promise.resolve(null) : fetchJson(`/tiendas/detail/admin/${tiendaId}/`),
          ]);
 
          if (solicitud !== solicitudRef.current) return;
-         if (vistaPrevia && (creditosData?.vista_previa !== true || creditosData.fecha_consulta !== selectedDate || !Array.isArray(creditosData.creditos))) {
-            const error = new Error("El servidor no devolvió una vista previa válida. Cambia la fecha a hoy o intenta de nuevo.");
+         let liquidacion;
+         try {
+            liquidacion = leerLiquidacion(creditosData, selectedDate, vistaPrevia);
+         } catch (error) {
             error.status = 502;
             throw error;
          }
          claveCargadaRef.current = clave;
 
-         setCreditos(vistaPrevia ? creditosData.creditos : Array.isArray(creditosData) ? creditosData : []);
+         setCreditos(liquidacion.creditos);
+         setBaseCuotasDia(liquidacion.totalACobrar);
          setRecaudos(Array.isArray(recaudosData) ? recaudosData : []);
          if (tiendaData?.tienda?.caja !== undefined) setCaja(tiendaData.tienda.caja);
          setFetchError(null);
@@ -303,13 +309,12 @@ export default function LiquidarCreditosPage() {
    if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
 
    // Totales
-   const resumen = resumirLiquidacion(creditosVigentes);
    // Solo esta tarjeta responde al filtro; incluye todas las coincidencias,
    // no únicamente la página visible. Los otros indicadores son de la ruta.
    const totalPendientes = resumirLiquidacion(filteredCreditos).importePendiente;
-   // Base descriptiva del día; no una meta obligatoria para los anticipos.
+   // Los cobros extra no modifican la base de cuotas de la fecha seleccionada.
    const totalRealizados = recaudos.filter(r => !r.es_renovacion).reduce((acc, r) => acc + parseMoney(r.valor_recaudo), 0);
-   const totalRecaudar = resumen.importePendiente + totalRealizados;
+   const totalRecaudar = claveCargadaRef.current === `${tiendaId}:${selectedDate}` ? baseCuotasDia : 0;
    const porcentajeAvance = totalRecaudar > 0 ? Math.round((totalRealizados / totalRecaudar) * 100) : 0;
 
    return (
@@ -397,13 +402,13 @@ export default function LiquidarCreditosPage() {
                </div>
             )}
 
-            {vistaPrevia && (
+            {/* {vistaPrevia && (
                <section aria-label="Vista previa de cobranza" className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
                   <p className="font-black">Vista previa · {selectedDate} · Solo lectura</p>
                   <p className="mt-2 leading-relaxed">Proyección de los créditos que correspondería cobrar, incluidos saldos atrasados. Supone que no hay nuevos pagos desde hoy; los anticipos ya registrados se tienen en cuenta.</p>
                   <p className="mt-2 font-semibold">Los estados mostrados son proyectados. No se registran abonos ni fallas, no se modifica la caja ni la calificación del cliente.</p>
                </section>
-            )}
+            )} */}
 
             {/* Distinguir rechazo HTTP de fallos de conexión; permitir cambiar fecha. */}
             {fetchError && !loading ? (
@@ -437,13 +442,13 @@ export default function LiquidarCreditosPage() {
                         <div className="p-2 md:p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl md:rounded-2xl">
                            <FiTarget size={16} className="md:w-6 md:h-6" />
                         </div>
-                        <span className="hidden md:block text-[10px] font-black text-indigo-400 uppercase tracking-widest">Importe</span>
+                        <span className="hidden md:block text-[10px] font-black text-indigo-400 uppercase tracking-widest">Cuotas del día</span>
                      </div>
                      <p className="text-base md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-0.5 md:mb-1">
                         {formatMoney(totalRecaudar)}
                      </p>
                      <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">{vistaPrevia ? "Total proyectado" : "Total a cobrar del día"}</p>
-                     <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400">{vistaPrevia ? "Toda la ruta" : "Toda la ruta · cobrado + pendiente"}</p>
+                     <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400" title="Cuotas correspondientes a esta fecha, antes de sus abonos. No incluye deuda de otras fechas ni cobros voluntarios. Los anticipos anteriores que cubren la cuota se descuentan. Pagos, fallas y filtros no modifican esta base; las correcciones del contrato o de pagos anteriores sí pueden modificarla.">{vistaPrevia ? "Toda la ruta · cuotas de la fecha" : "Toda la ruta · base antes de los abonos"}</p>
                   </div>
                </div>
 
@@ -459,7 +464,7 @@ export default function LiquidarCreditosPage() {
                         {formatMoney(totalPendientes)}
                      </p>
                      <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">{vistaPrevia ? "Pendiente proyectado" : "Pendiente por cobrar"}</p>
-                     <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400">{filtroCliente ? "Solo clientes del filtro" : "Toda la ruta"}</p>
+                     <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400" title="Deuda exigible de los clientes de la consulta; en semanal y mensual incluye atrasos anteriores. Puede diferir de las cuotas correspondientes a esta fecha. El filtro solo modifica este indicador.">{filtroCliente ? "Solo clientes del filtro" : "Toda la ruta"}</p>
                   </div>
                </div>
 
@@ -469,7 +474,7 @@ export default function LiquidarCreditosPage() {
                         <div className="p-2 md:p-3 bg-white/20 rounded-xl md:rounded-2xl">
                            <FiCheck size={16} className="md:w-6 md:h-6" />
                         </div>
-                        <span title="Porcentaje del importe cobrado, no de visitas completadas" className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{vistaPrevia ? "Solo lectura" : `${porcentajeAvance}%`}</span>
+                        <span title="Recaudo real respecto a las cuotas del día; incluye pagos extra y recuperación de atrasos, por lo que puede superar el 100%. No mide visitas completadas ni garantiza que todas las cuotas se pagaron." className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{vistaPrevia ? "Solo lectura" : `${porcentajeAvance}%`}</span>
                      </div>
                      <p className="text-base md:text-3xl font-black tracking-tighter mb-0.5 md:mb-1">
                         {vistaPrevia ? "Sin recaudo real" : formatMoney(totalRealizados)}

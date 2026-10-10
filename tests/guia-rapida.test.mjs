@@ -38,8 +38,10 @@ test('no confunde anticipos, deuda exigible, totales y consulta futura', () => {
   assert.match(text(byId('jornada')), /Agregar pago/);
   assert.doesNotMatch(text(byId('jornada')), /desaparece de la lista/);
   const indicators = text(byId('indicadores-liquidar'));
-  assert.match(indicators, /pendiente exigible.*abonos reales del día/);
-  assert.match(indicators, /no representa una base fija de cuotas/);
+  assert.match(indicators, /solo las cuotas correspondientes a la fecha seleccionada/);
+  assert.match(indicators, /pagos del día, las fallas y los filtros no cambian esta base/);
+  assert.match(indicators, /anticipos anteriores/);
+  assert.doesNotMatch(indicators, /total descriptivo|pendiente exigible de la lista completa más/);
   assert.match(indicators, /todas las páginas/);
   assert.match(indicators, /no abonar, registrar fallas ni editar el recorrido/);
 });

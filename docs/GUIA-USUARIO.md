@@ -1,12 +1,12 @@
 # Guía de usuario — revisión v2.3
 
-Referencia para usuarios en `/guia-rapida`, actualizada en octubre de 2026. Se conservó la presentación por tarjetas, filtros de lectura y versión imprimible. Este cambio es editorial y de navegación; no modifica permisos, operaciones ni fórmulas financieras.
+Referencia para usuarios en `/guia-rapida`, actualizada en octubre de 2026. Se conservó la presentación por tarjetas, filtros de lectura y versión imprimible. La aclaración de Liquidar acompaña la restauración de la base de cuotas del día calculada en el backend; no modifica permisos ni registros financieros.
 
 ## Correcciones importantes
 
 - Los créditos mensuales nuevos usan mes calendario, no un intervalo fijo de 30 días. Las propuestas son 20 cuotas diarias, 4 semanales o 1 mensual; el número puede ajustarse antes de guardar. Los históricos no se convierten.
 - Liquidación no es solo una lista de clientes que desaparecen al pagar: semanales/mensuales pueden conservar cobros voluntarios y anticipos sin exigir fallas.
-- Se explica el cálculo vigente de «Total a cobrar del día»: pendiente exigible de la lista completa más abonos reales. No se presenta como base fija de cuotas ni como caja. Se documenta qué tarjeta responde a la búsqueda.
+- «Total a cobrar del día» suma solo las cuotas correspondientes a la fecha de toda la ruta, antes de sus cobros; descuenta anticipos anteriores que cubren la cuota. No suma atrasos de otras fechas ni cobros voluntarios. Pagos del día, fallas, filtros y cancelaciones completas no alteran esta base. Corregir un contrato o un pago anterior puede cambiarla. El pendiente responde a la búsqueda; el cobrado real permanece separado y puede superar la base.
 - Declarar pérdida conserva evidencia y saldo; no implica que una recuperación posterior sea imposible ni representa una pérdida neta definitiva del período.
 
 ## Contenido añadido
@@ -41,6 +41,6 @@ Esta revisión no prueba nuevamente las operaciones financieras descritas ni equ
 
 ## Publicación
 
-Preparada para publicar junto con la retirada del bloque informativo de Liquidar, sobre el commit de producción `17d4121`. La base fija de cuotas del día existe en cambios locales pendientes, pero no en ese commit ni en el backend publicado; no se incorpora silenciosamente en este despliegue editorial. La guía describe el cálculo realmente desplegado. Publicar la base fija exige un cambio separado y compatible de ambos repositorios.
+La restauración de la base de cuotas parte del frontend `f049104` y backend `ef4b2c1`, conservando la retirada del bloque informativo, la guía y las suscripciones manuales. Primero se publica el backend compatible: `?resumen=1` entrega créditos y `resumen_cobranza` con criterio `cuotas_del_dia`; sin ese parámetro conserva el contrato anterior. Después se publica el frontend que consume y valida esa base, sin reconstruirla con pendiente + cobrado.
 
-El resultado y los commits definitivos del despliegue se registran fuera del código en `outputs/GUIA-LIQUIDAR-DESPLIEGUE.json`. La publicación debe conservar las mejoras de producción y los cambios locales ajenos.
+El despliegue editorial anterior se registra en `outputs/GUIA-LIQUIDAR-DESPLIEGUE.json`; la corrección de cuotas en `outputs/LIQUIDAR-CUOTAS-DIA-DESPLIEGUE.json`. Se añaden pruebas numéricas, de contrato y navegador para impedir que una publicación vuelva a la fórmula pendiente + cobrado. La publicación debe conservar las mejoras de producción y los cambios locales ajenos.
