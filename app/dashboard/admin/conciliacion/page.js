@@ -1,7 +1,7 @@
 // app/dashboard/admin/conciliacion/page.js
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/app/utils/api";
 import {
@@ -17,6 +17,7 @@ import {
   FiRotateCcw,
   FiUser,
   FiCalendar,
+  FiDownload,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -24,6 +25,7 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 import RootReadError, { useRootRead } from "../_components/RootReadState";
 import { formatMoney } from "@/app/utils/format";
 import { formatAppDateTime } from "@/app/utils/datetime";
+import { matchesRootSearch, downloadCsv } from "@/app/utils/rootReports.mjs";
 
 function formatFecha(iso) {
   if (!iso) return "—";
@@ -53,6 +55,7 @@ function SolicitudCard({ solicitud, onVerComprobante, onAccion, actioning, modo 
         </span>
       </div>
 
+      <p className="text-xs text-slate-500 mb-3 break-words">Administrador: {solicitud.administrador || "Sin administrador"}{solicitud.administrador_usuario ? ` · @${solicitud.administrador_usuario}` : ""}</p>
       <p className="text-xs mb-3 break-words">Referencia bancaria: {solicitud.referencia_bancaria || "No informada"}</p>
       <p className="text-xs mb-3 break-words">Cuenta informada: {solicitud.cuenta_historica_verificable
         ? `${solicitud.cuenta_acordada.banco} · ${solicitud.cuenta_acordada.numero}` : "Sin registro de la cuenta original"}</p>
@@ -150,9 +153,17 @@ export default function ConciliacionPage() {
   const [bankVerified, setBankVerified] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [dias, setDias] = useState(30);
+  const [searchTerm, setSearchTerm] = useState("");
   const actionRef = useRef(false);
   const imageRequestRef = useRef(0);
   const imageUrlRef = useRef(null);
+  const visible = useMemo(() => Object.fromEntries(Object.entries(data).map(([key, rows]) => [key,
+    rows.filter(s => matchesRootSearch(searchTerm, [s.codigo, s.tienda_nombre, s.tienda_id,
+      s.administrador, s.administrador_usuario, s.administrador_id, s.referencia_bancaria]))])), [data, searchTerm]);
+  const exportarCSV = () => downloadCsv("conciliacion_filtrada.csv",
+    ["Estado", "Código", "Ruta", "ID Ruta", "Administrador", "Usuario", "Plan", "Monto acordado", "Referencia bancaria", "Solicitada", "Motivo"],
+    Object.values(visible).flat().map(s => [s.estado, s.codigo, s.tienda_nombre, s.tienda_id,
+      s.administrador, s.administrador_usuario, s.plan, s.monto_plan, s.referencia_bancaria, s.creada, s.motivo_revision]));
 
   const fetchData = useCallback(async () => {
     return read(`/tiendas/solicitudes/revision/?dias=${dias}`, (json) => {
@@ -278,6 +289,13 @@ export default function ConciliacionPage() {
           disabled={!!actioning} className="mb-4 rounded-lg border p-2 dark:bg-slate-800">
           {[30, 90, 365].map(value => <option key={value} value={value}>Últimos {value} días</option>)}
         </select></label>
+        <div className="flex gap-2 mb-2">
+          <input type="search" aria-label="Buscar solicitudes" value={searchTerm} onChange={event => setSearchTerm(event.target.value)}
+            placeholder="Código, ruta, administrador, usuario o ID" className="min-w-0 flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm" />
+          <button type="button" aria-label="Exportar conciliación a CSV" onClick={exportarCSV}
+            disabled={loading || !Object.values(visible).some(rows => rows.length)} className="rounded-xl border border-slate-200 px-3 text-sm disabled:opacity-40"><FiDownload className="inline" /> CSV</button>
+        </div>
+        <p className="text-xs text-slate-500 mb-5">La búsqueda filtra todas las secciones; los contadores muestran visibles de totales. El CSV contiene solo las coincidencias del período cargado.</p>
 
         {loading ? (
           <div className="min-h-[300px] flex items-center justify-center"><LoadingSpinner /></div>
@@ -291,17 +309,17 @@ export default function ConciliacionPage() {
                   Esperando confirmación
                 </p>
                 <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-600 rounded-md text-[10px] font-black">
-                  {data.pendientes.length}
+                  {visible.pendientes.length} de {data.pendientes.length}
                 </span>
               </div>
-              {data.pendientes.length === 0 ? (
+              {visible.pendientes.length === 0 ? (
                 <div className="glass rounded-[1.5rem] border-white/60 dark:border-slate-800 p-8 text-center">
-                  <FiCheckCircle className="text-emerald-400 mx-auto mb-2" size={28} />
-                  <p className="text-[11px] font-bold text-slate-400">No hay solicitudes pendientes.</p>
+                  {!searchTerm && <FiCheckCircle className="text-emerald-400 mx-auto mb-2" size={28} />}
+                  <p className="text-[11px] font-bold text-slate-400">{searchTerm ? "Sin solicitudes pendientes que coincidan con la búsqueda." : "No hay solicitudes pendientes."}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {data.pendientes.map((s) => (
+                  {visible.pendientes.map((s) => (
                     <SolicitudCard
                       key={s.codigo}
                       solicitud={s}
@@ -323,19 +341,19 @@ export default function ConciliacionPage() {
                   Confirmadas (últimos {dias} días)
                 </p>
                 <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 rounded-md text-[10px] font-black">
-                  {data.confirmadas.length}
+                  {visible.confirmadas.length} de {data.confirmadas.length}
                 </span>
               </div>
               <p className="text-[10px] font-semibold text-slate-400 mb-4 px-1 leading-relaxed">
                 Cruza cada código con el concepto de tu extracto bancario. Si un pago no aparece, usa <b>Revertir</b>.
               </p>
-              {data.confirmadas.length === 0 ? (
+              {visible.confirmadas.length === 0 ? (
                 <div className="glass rounded-[1.5rem] border-white/60 dark:border-slate-800 p-8 text-center">
-                  <p className="text-[11px] font-bold text-slate-400">Sin pagos confirmados en el período.</p>
+                  <p className="text-[11px] font-bold text-slate-400">{searchTerm ? "Sin confirmadas que coincidan con la búsqueda." : "Sin pagos confirmados en el período."}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {data.confirmadas.map((s) => (
+                  {visible.confirmadas.map((s) => (
                     <SolicitudCard
                       key={s.codigo}
                       solicitud={s}
@@ -349,11 +367,11 @@ export default function ConciliacionPage() {
               )}
             </div>
             {[
-              ["Comprobantes fuera de plazo", data.vencidas, "expirada"],
-              ["Rechazadas o revertidas", data.revisadas, "historico"],
-            ].map(([title, solicitudes, modo]) => <section key={modo} className="mt-8">
-              <h2 className="font-bold mb-3">{title} · {solicitudes.length}</h2>
-              {solicitudes.length === 0 ? <p className="text-sm">Sin registros en este período.</p> : <div className="space-y-3">
+              ["Comprobantes fuera de plazo", visible.vencidas, "expirada", data.vencidas.length],
+              ["Rechazadas o revertidas", visible.revisadas, "historico", data.revisadas.length],
+            ].map(([title, solicitudes, modo, total]) => <section key={modo} className="mt-8">
+              <h2 className="font-bold mb-3">{title} · {solicitudes.length} de {total}</h2>
+              {solicitudes.length === 0 ? <p className="text-sm">{searchTerm ? "Sin coincidencias con la búsqueda." : "Sin registros en este período."}</p> : <div className="space-y-3">
                 {solicitudes.map(solicitud => <SolicitudCard key={solicitud.codigo} solicitud={solicitud} modo={modo}
                   onVerComprobante={verComprobante} onAccion={solicitarAccion} actioning={actioning} />)}
               </div>}

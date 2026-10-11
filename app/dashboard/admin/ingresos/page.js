@@ -19,6 +19,7 @@ import LoadingSpinner from "@/app/components/LoadingSpinner";
 import RootReadError, { useRootRead } from "../_components/RootReadState";
 import { formatMoney } from "@/app/utils/format";
 import { formatAppDate, getAppDateString } from "@/app/utils/datetime";
+import { matchesRootSearch, downloadCsv } from "@/app/utils/rootReports.mjs";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -44,11 +45,13 @@ const ORIGEN_BADGE = {
 };
 
 function KpiCard({ icon: Icon, label, value, sub, accent = "indigo" }) {
+  const colors = { indigo: ["bg-indigo-500/10", "text-indigo-500"], emerald: ["bg-emerald-500/10", "text-emerald-500"], rose: ["bg-rose-500/10", "text-rose-500"] };
+  const [box, color] = colors[accent] || colors.indigo;
   return (
     <div className="glass rounded-[1.5rem] border-white/60 dark:border-slate-800 shadow-lg p-5">
       <div className="flex items-center gap-2 mb-2">
-        <div className={`p-2 bg-${accent}-500/10 rounded-xl`}>
-          <Icon className={`text-${accent}-500`} size={14} />
+        <div className={`p-2 ${box} rounded-xl`}>
+          <Icon className={color} size={14} />
         </div>
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
       </div>
@@ -64,6 +67,8 @@ export default function IngresosMembresiasPage() {
   const { read, loading, loadError, hasLoaded } = useRootRead();
   const [year, setYear] = useState(Number(getAppDateString().slice(0, 4)));
   const [mesFiltro, setMesFiltro] = useState(null); // 1-12 o null
+  const [searchTerm, setSearchTerm] = useState("");
+  const [incluirAnulados, setIncluirAnulados] = useState(false);
 
   const fetchData = useCallback(async (y) => {
     return read(`/tiendas/ingresos/?year=${y}`, (json) => {
@@ -77,7 +82,7 @@ export default function IngresosMembresiasPage() {
     if (isAuthenticated && user?.is_superuser) fetchData(year);
   }, [isAuthenticated, user, year, fetchData]);
 
-  const hoy = getAppDateString();
+  const hoy = data?.fecha_corte || getAppDateString();
   const anioActual = Number(hoy.slice(0, 4));
   const mesActualNumero = Number(hoy.slice(5, 7));
   const esAnioActual = data?.year === anioActual;
@@ -85,10 +90,7 @@ export default function IngresosMembresiasPage() {
     ? data.por_mes?.[mesActualNumero - 1] || { total: 0, cantidad: 0 }
     : null;
 
-  const variacion = useMemo(() => {
-    if (!data || !data.total_anio_anterior) return null;
-    return ((data.total_anual - data.total_anio_anterior) / data.total_anio_anterior) * 100;
-  }, [data]);
+  const variacion = data?.comparacion_anual?.variacion_pct ?? null;
 
   const totalRenovaciones = useMemo(() => {
     if (!data) return { cantidad: 0, mensuales: 0, anuales: 0 };
@@ -104,35 +106,18 @@ export default function IngresosMembresiasPage() {
 
   const pagosVisibles = useMemo(() => {
     if (!data) return [];
-    if (!mesFiltro) return data.pagos;
-    return data.pagos.filter((p) => new Date(p.fecha + "T12:00:00").getMonth() + 1 === mesFiltro);
-  }, [data, mesFiltro]);
+    const pagos = [...(data.pagos || []), ...(incluirAnulados ? data.pagos_anulados || [] : [])];
+    return pagos.filter(p => (!mesFiltro || Number(p.fecha.slice(5, 7)) === mesFiltro) && matchesRootSearch(searchTerm,
+      [p.tienda, p.tienda_id, p.administrador, p.administrador_usuario, p.administrador_id, p.codigo]));
+  }, [data, mesFiltro, searchTerm, incluirAnulados]);
 
   // Exportar CSV de lo visible (respeta el filtro de mes) — mismo patrón que recaudos
   const exportarCSV = () => {
     if (!pagosVisibles.length) return;
-    const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const rows = [
-      "Fecha,Ruta,ID Ruta,Plan,Origen,Codigo,Monto",
-      ...pagosVisibles.map((p) =>
-        [
-          p.fecha,
-          q(p.tienda),
-          p.tienda_id ?? "",
-          q(p.plan),
-          ORIGEN_BADGE[p.origen]?.label || p.origen,
-          p.codigo || "",
-          Math.round(p.monto),
-        ].join(",")
-      ),
-    ].join("\n");
-    const blob = new Blob([rows], { type: "text/csv;charset=utf-8;" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ingresos_membresias_${data.year}${mesFiltro ? `_${String(mesFiltro).padStart(2, "0")}` : ""}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+    downloadCsv(`ingresos_membresias_${data.year}${mesFiltro ? `_${String(mesFiltro).padStart(2, "0")}` : ""}.csv`,
+      ["Fecha", "Ruta", "ID Ruta", "Administrador", "Usuario", "Plan", "Origen", "Codigo", "Estado", "Monto", "Motivo anulación"],
+      pagosVisibles.map(p => [p.fecha, p.tienda, p.tienda_id, p.administrador, p.administrador_usuario, p.plan,
+        ORIGEN_BADGE[p.origen]?.label || p.origen, p.codigo, p.estado || "vigente", p.monto, p.motivo_anulacion]));
   };
 
   const chartData = useMemo(() => {
@@ -223,10 +208,11 @@ export default function IngresosMembresiasPage() {
               Ingresos por Membresías
             </h1>
             <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none mt-1">
-              Renovaciones de suscripción
+              Pagos de suscripción registrados
             </p>
           </div>
           <select
+            aria-label="Año del informe"
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
             className="px-4 py-3 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-black shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -255,14 +241,14 @@ export default function IngresosMembresiasPage() {
                 icon={FiDollarSign}
                 label={`Total ${data.year}`}
                 value={formatMoney(data.total_anual)}
-                sub={`${totalRenovaciones.cantidad} renovaciones`}
+                sub={`${totalRenovaciones.cantidad} pagos vigentes registrados`}
                 accent="indigo"
               />
               <KpiCard
                 icon={variacion === null || variacion >= 0 ? FiTrendingUp : FiTrendingDown}
                 label={`Vs ${data.year - 1}`}
                 value={variacion === null ? "—" : `${variacion >= 0 ? "+" : ""}${variacion.toFixed(1)}%`}
-                sub={`Año anterior: ${formatMoney(data.total_anio_anterior)}`}
+                sub={variacion === null ? "Sin base positiva de comparación" : "Períodos equivalentes, no años parciales vs completos"}
                 accent={variacion === null || variacion >= 0 ? "emerald" : "rose"}
               />
               <KpiCard
@@ -273,7 +259,7 @@ export default function IngresosMembresiasPage() {
                     ? formatMoney(mesActual.total)
                     : formatMoney(Math.max(...data.por_mes.map((m) => m.total)))
                 }
-                sub={esAnioActual ? `${mesActual.cantidad} renovaciones este mes` : "Mayor recaudo del año"}
+                sub={esAnioActual ? `${mesActual.cantidad} pagos este mes` : "Mayor importe registrado del año"}
                 accent="indigo"
               />
               <KpiCard
@@ -283,6 +269,15 @@ export default function IngresosMembresiasPage() {
                 sub="Mensuales / Anuales"
                 accent="emerald"
               />
+            </div>
+
+            <div className="mb-6 rounded-2xl border border-indigo-200 dark:border-indigo-900 p-4 text-xs text-slate-600 dark:text-slate-300">
+              <p>Los totales incluyen solo pagos vigentes hasta el corte {formatAppDate(hoy)}; no acreditan por sí solos el ingreso bancario ni son utilidad.</p>
+              {data.comparacion_anual && <div className="mt-2" aria-label="Comparación anual equivalente">
+                <p>{formatAppDate(data.comparacion_anual.inicio)} – {formatAppDate(data.comparacion_anual.fin)}: {formatMoney(data.comparacion_anual.actual)}</p>
+                <p>{formatAppDate(data.comparacion_anual.inicio_anterior)} – {formatAppDate(data.comparacion_anual.fin_anterior)}: {formatMoney(data.comparacion_anual.anterior)}</p>
+                <p>En el año actual se comparan las mismas fechas transcurridas; años terminados se comparan completos.</p>
+              </div>}
             </div>
 
             {/* Gráfico */}
@@ -302,6 +297,16 @@ export default function IngresosMembresiasPage() {
             </div>
 
             {/* Detalle de pagos */}
+            <div className="flex flex-wrap gap-3 mb-3">
+              <input aria-label="Buscar pagos" type="search" value={searchTerm} onChange={event => setSearchTerm(event.target.value)}
+                placeholder="Ruta, administrador, usuario, ID o código" className="flex-1 min-w-0 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+              <select aria-label="Mes del detalle" value={mesFiltro || ""} onChange={event => setMesFiltro(event.target.value ? Number(event.target.value) : null)}
+                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
+                <option value="">Todos los meses</option>{MESES_LARGO.map((mes, index) => <option key={mes} value={index + 1}>{mes}</option>)}
+              </select>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={incluirAnulados} onChange={event => setIncluirAnulados(event.target.checked)} /> Mostrar anulados</label>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">Los filtros y el CSV afectan solo el detalle, no los totales ni el gráfico. Los anulados son historial y nunca se suman como ingresos.</p>
             <div className="flex items-center gap-2 mb-4 px-1">
               <FiDollarSign className="text-emerald-500" size={15} />
               <p className="text-[11px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest">
@@ -332,7 +337,7 @@ export default function IngresosMembresiasPage() {
             {pagosVisibles.length === 0 ? (
               <div className="glass rounded-[1.5rem] border-white/60 dark:border-slate-800 p-8 text-center">
                 <p className="text-[11px] font-bold text-slate-400">
-                  Sin pagos registrados en el período.
+                  {searchTerm || mesFiltro ? "Sin pagos que coincidan con los filtros." : "Sin pagos registrados en el período."}
                 </p>
               </div>
             ) : (
@@ -360,6 +365,7 @@ export default function IngresosMembresiasPage() {
                             <td className="px-5 py-3 text-[12px] font-black text-slate-700 dark:text-white">
                               {p.tienda}
                               <span className="ml-1 text-[9px] font-black text-slate-400">#{p.tienda_id}</span>
+                              <p className="text-xs font-normal text-slate-500 mt-1 break-words">{p.administrador || "Sin administrador"}{p.administrador_usuario ? ` · @${p.administrador_usuario}` : ""}</p>
                             </td>
                             <td className="px-5 py-3 text-[11px] font-bold text-slate-500 dark:text-slate-400">{p.plan}</td>
                             <td className="px-5 py-3">
@@ -367,8 +373,10 @@ export default function IngresosMembresiasPage() {
                                 {badge.label}
                               </span>
                             </td>
-                            <td className="px-5 py-3 text-[10px] font-black font-mono text-slate-400">{p.codigo || "—"}</td>
-                            <td className="px-5 py-3 text-[12px] font-black text-emerald-600 dark:text-emerald-400 text-right whitespace-nowrap">
+                            <td className="px-5 py-3 text-[10px] font-black font-mono text-slate-400">{p.codigo || "—"}
+                              {p.estado === "anulado" && <div className="mt-1 text-rose-600 font-sans"><span>Anulado · no suma</span><p className="font-normal">{p.motivo_anulacion || "Sin motivo histórico"}</p></div>}
+                            </td>
+                            <td className={`px-5 py-3 text-[12px] font-black text-right whitespace-nowrap ${p.estado === "anulado" ? "text-slate-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                               {formatMoney(p.monto)}
                             </td>
                           </tr>

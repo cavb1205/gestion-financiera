@@ -25,6 +25,7 @@ import {
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import RootReadError, { useRootRead } from "./_components/RootReadState";
 import { formatMoney } from "@/app/utils/format";
+import { formatAppDate } from "@/app/utils/datetime";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -44,7 +45,7 @@ const ACCESOS = [
   { path: "/dashboard/admin/cuenta-bancaria", label: "Cuenta Bancaria", desc: "Datos para pagos", icon: FiDollarSign },
 ];
 
-function KpiCard({ icon: Icon, label, value, sub, box, color, onClick }) {
+function KpiCard({ icon: Icon, label, value, sub, help, box, color, onClick }) {
   const Comp = onClick ? "button" : "div";
   return (
     <Comp
@@ -61,6 +62,7 @@ function KpiCard({ icon: Icon, label, value, sub, box, color, onClick }) {
       </div>
       <p className="text-2xl font-black text-slate-800 dark:text-white">{value}</p>
       {sub && <p className="text-[10px] font-bold text-slate-400 mt-1">{sub}</p>}
+      {help && <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">{help}</p>}
     </Comp>
   );
 }
@@ -105,16 +107,13 @@ export default function AdminPanelPage() {
     if (isAuthenticated && user?.is_superuser) fetchResumen();
   }, [isAuthenticated, user, fetchResumen]);
 
-  const crecimiento = useMemo(() => {
-    if (!data || !data.ingresos_mes_anterior) return null;
-    return ((data.ingresos_mes - data.ingresos_mes_anterior) / data.ingresos_mes_anterior) * 100;
-  }, [data]);
+  const crecimiento = data?.comparacion_mes?.variacion_pct ?? null;
 
   const chart = useMemo(() => {
     if (!data?.ingresos_6m) return null;
     return {
       data: {
-        labels: data.ingresos_6m.map((m) => m.label),
+        labels: data.ingresos_6m.map((m) => `${m.label}${m.parcial ? " (parcial)" : ""}`),
         datasets: [
           {
             data: data.ingresos_6m.map((m) => m.total),
@@ -202,22 +201,24 @@ export default function AdminPanelPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <KpiCard
                 icon={FiDollarSign}
-                label="Ingresos del mes"
+                label="Registrado este mes"
                 value={formatMoney(data.ingresos_mes)}
                 sub={
                   crecimiento === null
-                    ? `${data.renovaciones_mes} renovaciones`
-                    : `${crecimiento >= 0 ? "▲" : "▼"} ${Math.abs(crecimiento).toFixed(0)}% vs mes anterior`
+                    ? `${data.renovaciones_mes} pagos · sin base de comparación`
+                    : `${crecimiento >= 0 ? "▲" : "▼"} ${Math.abs(crecimiento).toFixed(1)}% en períodos equivalentes`
                 }
+                help="Pagos vigentes registrados hasta la fecha de corte. No incluye anulados ni acredita por sí solo el ingreso bancario."
                 box="bg-emerald-500/10"
                 color="text-emerald-500"
                 onClick={() => router.push("/dashboard/admin/ingresos")}
               />
               <KpiCard
                 icon={FiTrendingUp}
-                label="MRR estimado"
+                label="Proyección mensual"
                 value={formatMoney(data.mrr_estimado)}
-                sub="Recurrente mensual"
+                sub="No es dinero disponible ni utilidad"
+                help="Tarifas actuales de rutas activas de pago; plan anual dividido por 12. No es ingreso cobrado."
                 box="bg-indigo-500/10"
                 color="text-indigo-500"
                 onClick={() => router.push("/dashboard/admin/planes")}
@@ -242,6 +243,13 @@ export default function AdminPanelPage() {
               />
             </div>
 
+            {data.comparacion_mes && <div className="mb-6 rounded-2xl border border-indigo-200 dark:border-indigo-900 p-4 text-xs text-slate-600 dark:text-slate-300" aria-label="Comparación mensual equivalente">
+              <p className="font-bold">Corte: {formatAppDate(data.fecha_corte)} · comparación de períodos equivalentes</p>
+              <p className="mt-1">{formatAppDate(data.comparacion_mes.inicio)} – {formatAppDate(data.comparacion_mes.fin)}: {formatMoney(data.comparacion_mes.actual)}</p>
+              <p>{formatAppDate(data.comparacion_mes.inicio_anterior)} – {formatAppDate(data.comparacion_mes.fin_anterior)}: {formatMoney(data.comparacion_mes.anterior)}</p>
+              <p className="mt-1">Se comparan los mismos días transcurridos, limitados al mes más corto. El total del mes conserva todos los pagos hasta el corte.</p>
+            </div>}
+
             {/* Tendencia de ingresos + composición */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
               {/* Tendencia 6m */}
@@ -265,6 +273,7 @@ export default function AdminPanelPage() {
                 <div className="h-[180px]">
                   {chart && <Bar data={chart.data} options={chart.options} />}
                 </div>
+                <p className="text-xs text-slate-500 mt-3">Meses anteriores completos; mes actual parcial. El porcentaje corresponde a la comparación equivalente indicada arriba.</p>
               </div>
 
               {/* Composición por plan */}
@@ -339,39 +348,51 @@ export default function AdminPanelPage() {
                   <div className="flex items-center gap-2 mt-5 mb-3">
                     <FiTrendingUp className="text-violet-500" size={14} />
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      Retención y conversión
+                      Seguimiento de suscripciones
                     </p>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <EstadoChip
                       icon={FiTrendingDown}
-                      label="Bloqueadas este mes"
-                      value={data.retencion.bloqueadas_mes}
-                      color={data.retencion.bloqueadas_mes > 0 ? "text-rose-500" : "text-slate-400"}
-                      onClick={() => router.push("/dashboard/admin/rutas?estado=Vencida")}
+                      label="Suspensiones manuales del mes"
+                      value={data.retencion.suspensiones_manuales_mes ?? "—"}
+                      color="text-rose-500"
                     />
                     <EstadoChip
                       icon={FiTrendingUp}
-                      label="Conversión trial"
-                      value={data.retencion.conversion_trial != null ? `${data.retencion.conversion_trial}%` : "—"}
-                      color="text-emerald-500"
+                      label="Rutas suspendidas manualmente"
+                      value={data.retencion.rutas_suspendidas_mes ?? "—"}
+                      color="text-violet-500"
                     />
                     <EstadoChip
                       icon={FiClock}
-                      label="Trials en curso"
+                      label="Pruebas activas"
                       value={data.retencion.trials_en_curso}
                       color="text-amber-500"
                     />
                     <EstadoChip
                       icon={FiXCircle}
-                      label="Trials perdidos"
-                      value={data.retencion.trials_perdidos}
+                      label="Vencidas sin primer pago"
+                      value={data.retencion.sin_primer_pago_vencidas ?? "—"}
                       color="text-slate-400"
                     />
                   </div>
+                  <p className="text-xs text-slate-500 mt-3">Las suspensiones cuentan eventos manuales guardados, no bloqueos automáticos estimados. Una ruta puede tener varios eventos. Vencidas sin primer pago es el estado actual, no una pérdida definitiva.</p>
                 </>
               )}
             </div>
+
+            {Array.isArray(data.cohortes_registro) && <section className="glass rounded-3xl p-5 mb-6" aria-label="Primer pago por mes de registro">
+              <h2 className="text-sm font-bold text-slate-800 dark:text-white">Primer pago por mes de registro</h2>
+              <p className="text-xs text-slate-500 mt-2 mb-4">De las rutas registradas en cada mes, ¿cuántas tuvieron un primer pago positivo vigente dentro de sus primeros 30 días? Solo se evalúan las que ya cumplieron 30 días; las nuevas siguen en observación. No es conversión de prueba gratuita ni verificación bancaria. Incluye rutas archivadas aún existentes; no reconstruye rutas eliminadas.</p>
+              <div className="overflow-x-auto"><table className="w-full text-xs text-left">
+                <thead><tr>{["Registro", "Registradas", "Evaluadas", "Con pago en 30 días", "% de evaluadas", "En observación"].map(label => <th key={label} className="p-2 whitespace-nowrap" scope="col">{label}</th>)}</tr></thead>
+                <tbody>{data.cohortes_registro.map(cohorte => <tr key={cohorte.mes} className="border-t border-slate-200 dark:border-slate-800">
+                  <td className="p-2 whitespace-nowrap">{cohorte.mes}</td>
+                  {[cohorte.registradas, cohorte.evaluadas, cohorte.con_pago_30d, cohorte.conversion_pct == null ? "—" : `${cohorte.conversion_pct}%`, cohorte.en_observacion].map((value, index) => <td key={index} className="p-2">{value}</td>)}
+                </tr>)}</tbody>
+              </table></div>
+            </section>}
 
             {/* Accesos directos */}
             <div className="flex items-center gap-2 mb-4 px-1">

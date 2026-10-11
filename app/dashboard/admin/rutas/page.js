@@ -9,6 +9,7 @@ import {
   FiShield,
   FiRefreshCw,
   FiSearch,
+  FiDownload,
   FiCheckCircle,
   FiAlertTriangle,
   FiXCircle,
@@ -40,6 +41,7 @@ import ManualMembershipExpiryModal from "@/app/components/ManualMembershipExpiry
 import { formatMoney } from "@/app/utils/format";
 import { formatAppDate, formatAppDateTime, getAppDateDifference, getAppDateString, shiftAppDate } from "@/app/utils/datetime";
 import { getMembershipInfo, membershipDeadline, boundedPage } from "@/app/utils/rootSubscriptions.mjs";
+import { matchesRootSearch, downloadCsv } from "@/app/utils/rootReports.mjs";
 
 // Badge por origen del pago (mismo criterio que /dashboard/admin/ingresos)
 const ORIGEN_BADGE = {
@@ -246,12 +248,8 @@ export default function AdminRutasPage() {
   const filteredTiendas = useMemo(() => {
     let result = [...tiendas];
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(
-        (t) =>
-          t.tienda?.nombre?.toLowerCase().includes(term) ||
-          t.tienda?.administrador?.toLowerCase().includes(term)
-      );
+      result = result.filter(t => matchesRootSearch(searchTerm, [t.tienda?.nombre, t.tienda?.id,
+        t.tienda?.administrador, t.tienda?.administrador_usuario, t.tienda?.administrador_id]));
     }
     if (filterEstado === "Duplicadas") {
       result = result.filter((t) =>
@@ -498,7 +496,8 @@ export default function AdminRutasPage() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar por nombre de ruta o administrador..."
+                aria-label="Buscar rutas"
+                placeholder="Ruta, administrador, usuario o ID..."
                 className="block w-full pl-14 pr-6 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-medium text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
               />
             </div>
@@ -535,6 +534,14 @@ export default function AdminRutasPage() {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="flex flex-wrap gap-3 justify-between items-center mt-4 text-xs text-slate-500">
+            <p>{filteredTiendas.length} rutas coinciden. El CSV exporta todas las coincidencias, no solo esta página.</p>
+            <button type="button" aria-label="Exportar rutas a CSV" disabled={loading || !filteredTiendas.length}
+              className="flex gap-2 items-center rounded-xl border border-slate-200 px-3 py-2 disabled:opacity-40"
+              onClick={() => downloadCsv("rutas_filtradas.csv", ["ID Ruta", "Ruta", "Administrador", "Usuario", "Estado", "Plan", "Vencimiento"],
+                filteredTiendas.map(tm => [tm.tienda?.id, tm.tienda?.nombre, tm.tienda?.administrador, tm.tienda?.administrador_usuario,
+                  tm.estado, tm.membresia?.nombre, membershipDeadline(tm)]))}><FiDownload /> CSV</button>
           </div>
         </div>
 
@@ -654,6 +661,7 @@ export default function AdminRutasPage() {
                                   <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
                                     <FiUser size={10} className="text-indigo-400" />
                                     {tm.tienda?.administrador || "Sin admin"}
+                                    {tm.tienda?.administrador_usuario && <span className="block text-[10px] font-normal">@{tm.tienda.administrador_usuario}</span>}
                                   </p>
                                   <p className="text-[9px] font-bold text-slate-400 flex items-center gap-2">
                                     <span className="flex items-center gap-1"><FiUsers size={9} />{clientes}</span>
@@ -855,6 +863,7 @@ export default function AdminRutasPage() {
                             <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
                               <FiUser size={10} className="text-indigo-400" />
                               {tm.tienda?.administrador || "Sin admin"}
+                              {tm.tienda?.administrador_usuario && <span className="block text-[10px] font-normal">@{tm.tienda.administrador_usuario}</span>}
                             </p>
                             <p className="text-[9px] font-bold text-slate-400 flex items-center gap-1.5">
                               <span className="flex items-center gap-0.5"><FiUsers size={9} />{clientes}</span>

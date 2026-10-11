@@ -38,6 +38,7 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../utils/api";
+import { isRootNavigationActive } from "../utils/rootReports.mjs";
 import { formatMoney } from "../utils/format";
 import { useTheme } from "../context/ThemeContext";
 import Link from "next/link";
@@ -162,6 +163,12 @@ export default function DashboardLayout({ children }) {
   const [storeInfo, setStoreInfo] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const closeOnEscape = event => { if (event.key === 'Escape') setIsMobileMenuOpen(false); };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [isMobileMenuOpen]);
   const [reportesOpen, setReportesOpen] = useState(() => false);
   const [showTour, setShowTour] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
@@ -417,6 +424,7 @@ export default function DashboardLayout({ children }) {
         : `Plan vence en ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''}`;
 
   const isActive = (path) => {
+    if (path.startsWith('/dashboard/admin')) return isRootNavigationActive(pathname, path);
     if (path === '/dashboard/ventas') {
       return pathname === '/dashboard/ventas' || (pathname.startsWith('/dashboard/ventas/') && !pathname.startsWith('/dashboard/ventas/perdidas'));
     }
@@ -490,13 +498,15 @@ export default function DashboardLayout({ children }) {
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
           <div className="absolute left-0 top-0 w-80 h-full bg-white dark:bg-slate-900 shadow-2xl flex flex-col p-6 slide-in-from-left duration-300">
             <div className="flex items-center gap-3 mb-10">
-              <div className="bg-indigo-600 p-2.5 rounded-2xl">
+              <div className="bg-indigo-600 p-2.5 rounded-2xl shrink-0">
                 <FiShoppingBag className="text-white text-xl" />
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <h1 className="text-xl font-black tracking-tight">Cartera</h1>
                 <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Gestión de cartera</p>
               </div>
+              <button type="button" aria-label="Cerrar navegación" onClick={() => setIsMobileMenuOpen(false)}
+                className="shrink-0 p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><FiX size={20} /></button>
             </div>
 
             <nav className="flex-1 space-y-1.5 overflow-y-auto pr-2 custom-scrollbar">
@@ -544,6 +554,7 @@ export default function DashboardLayout({ children }) {
                 <Link
                   key={item.path}
                   href={item.path}
+                  aria-current={isActive(item.path) && (item.path !== '/dashboard' || pathname === '/dashboard') ? 'page' : undefined}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center justify-between gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${isActive(item.path) && (item.path !== '/dashboard' || (pathname === '/dashboard'))
                     ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none translate-x-1"
@@ -686,6 +697,7 @@ export default function DashboardLayout({ children }) {
             <Link
               key={item.path}
               href={item.path}
+              aria-current={isActive(item.path) && (item.path !== '/dashboard' || pathname === '/dashboard') ? 'page' : undefined}
               className={`flex items-center justify-between group px-5 py-3.5 rounded-[1.25rem] text-[13px] font-bold transition-all relative overflow-hidden ${isActive(item.path) && (item.path !== '/dashboard' || (pathname === '/dashboard'))
                 ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-2xl shadow-slate-400/20 dark:shadow-none"
                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600"
