@@ -92,9 +92,8 @@ export default function AdminPanelPage() {
 
   // Al entrar al panel, el root sale de cualquier ruta que estuviera viendo (modo administración)
   useEffect(() => {
-    if (user?.username === "root") clearStore();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (user?.is_superuser) clearStore();
+  }, [user?.is_superuser, clearStore]);
 
   const fetchResumen = useCallback(async () => {
     try {

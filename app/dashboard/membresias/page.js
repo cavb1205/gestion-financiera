@@ -557,9 +557,9 @@ export default function MembresiasPage() {
               <div className="mb-5 flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 rounded-2xl">
                 <div>
                   <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Monto a Transferir</p>
-                  <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 tracking-tight">{formatMoney(solicitud.monto)}</p>
+                  <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 tracking-tight">{solicitud.monto == null ? "Monto por verificar" : formatMoney(solicitud.monto)}</p>
                 </div>
-                <CopyButton value={solicitud.monto} />
+                {solicitud.monto != null && <CopyButton value={solicitud.monto} />}
               </div>
 
               {/* Datos de la cuenta */}
@@ -620,7 +620,7 @@ export default function MembresiasPage() {
               {/* Pasos */}
               <div className="mt-6 space-y-2.5">
                 {[
-                  "Transfiere el monto exacto a la cuenta indicada.",
+                  solicitud.monto == null ? "Esta solicitud es anterior al registro de precios. Confirma el importe con soporte antes de transferir; si ya pagaste, envía tu comprobante." : "Transfiere el monto exacto a la cuenta indicada.",
                   "Escribe el código de pago en el concepto de la transferencia.",
                   "Toma una foto del comprobante y súbela aquí.",
                   manuallyExpired ? "Toca \"Ya pagué\" — el acceso se restablece cuando se apruebe tu pago." : "Toca \"Ya pagué\" — tu acceso se activa al instante.",

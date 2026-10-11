@@ -123,6 +123,7 @@ export default function AdminRutasPage() {
   const [activationStale, setActivationStale] = useState(false);
   const [activationRecorded, setActivationRecorded] = useState(false);
   const activationInFlightRef = useRef(false);
+  const archiveInFlightRef = useRef(false);
   const detailRequestRef = useRef(0);
 
   const closeDetail = () => {
@@ -212,18 +213,26 @@ export default function AdminRutasPage() {
   };
 
   const handleArchivar = async (tm, archivar) => {
+    if (archiveInFlightRef.current) return;
+    if (!Number.isInteger(tm.version)) {
+      toast.error("Recarga la ruta antes de archivar o restaurar.");
+      return;
+    }
+    archiveInFlightRef.current = true;
     setArchiving(tm.id);
     try {
       const res = await apiFetch(`/tiendas/${tm.id}/archivar/`, {
         method: "POST",
-        body: JSON.stringify({ archivar }),
+        body: JSON.stringify({ archivar, version: tm.version }),
       });
-      if (!res.ok) throw new Error("No se pudo actualizar el archivado.");
+      if (!res.ok) throw new Error(await getApiError(res, "No se pudo actualizar el archivado."));
       toast.success(archivar ? "Ruta archivada." : "Ruta restaurada.");
-      fetchTiendas();
+      await fetchTiendas();
     } catch (error) {
       toast.error(error.message);
+      await fetchTiendas(); // Revisar el resultado; no reenviar una escritura a ciegas.
     } finally {
+      archiveInFlightRef.current = false;
       setArchiving(null);
     }
   };
@@ -646,7 +655,7 @@ export default function AdminRutasPage() {
                                   </span>
                                   {esVacia && (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg text-[8px] font-black uppercase tracking-widest shrink-0">
-                                      <FiTrash2 size={8} /> Vacía
+                                      <FiTrash2 size={8} /> Sin cartera
                                     </span>
                                   )}
                                   {esHomonima && (
@@ -763,11 +772,11 @@ export default function AdminRutasPage() {
                                   <><FiStar size={12} /> Anual</>
                                 )}
                               </button>
-                              {esVacia && (
+                              {tm.puede_eliminar === true && (
                                 <button
                                   onClick={() => setDeleteTarget(tm)}
                                   className="p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl hover:bg-rose-500 hover:text-white transition-all"
-                                  title="Eliminar ruta vacía"
+                                  title="Eliminar ruta sin historial"
                                 >
                                   <FiTrash2 size={12} />
                                 </button>
@@ -828,7 +837,7 @@ export default function AdminRutasPage() {
                       <div className="flex items-center gap-2 mb-2 px-1 flex-wrap">
                         {esVacia && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-md text-[9px] font-black uppercase tracking-widest">
-                            <FiTrash2 size={9} /> Vacía · Sin actividad
+                            <FiTrash2 size={9} /> Sin cartera
                           </span>
                         )}
                         {esHomonima && (
@@ -923,11 +932,11 @@ export default function AdminRutasPage() {
                             <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           ) : <><FiStar size={11} /> Anual</>}
                         </button>
-                        {esVacia && (
+                        {tm.puede_eliminar === true && (
                           <button
                             onClick={() => setDeleteTarget(tm)}
                             className="px-3 py-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl hover:bg-rose-500 hover:text-white transition-all"
-                            title="Eliminar ruta vacía"
+                            title="Eliminar ruta sin historial"
                           >
                             <FiTrash2 size={12} />
                           </button>
@@ -968,7 +977,7 @@ export default function AdminRutasPage() {
           <FiActivity className="text-slate-300 dark:text-slate-600 shrink-0 mt-0.5" size={16} />
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
             Al renovar un plan, se conserva el tiempo vigente. Si venció manualmente, el nuevo período empieza hoy.
-            Solo se pueden eliminar rutas con 0 clientes y 0 ventas.
+            Solo se pueden eliminar rutas sin saldo ni historial protegido; las demás se archivan.
           </p>
         </div>
       </div>
@@ -1255,7 +1264,7 @@ export default function AdminRutasPage() {
               </p>
             </div>
             <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-              Esta ruta no tiene clientes ni ventas. Se eliminará permanentemente junto con su membresía. Esta acción no se puede deshacer.
+              Esta ruta no tiene saldo ni historial protegido. Se eliminará permanentemente junto con su membresía. El servidor volverá a comprobarlo antes de borrar. Esta acción no se puede deshacer.
             </p>
             <div className="flex gap-3">
               <button

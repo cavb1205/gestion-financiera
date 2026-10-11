@@ -1,7 +1,7 @@
 // app/dashboard/admin/planes/page.js
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/app/utils/api";
 import {
@@ -33,6 +33,8 @@ export default function PlanesPage() {
   const [precios, setPrecios] = useState({}); // { [id]: "12000" }
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [stale, setStale] = useState(false);
+  const savingRef = useRef(false);
 
   const fetchPlanes = useCallback(async () => {
     try {
@@ -42,6 +44,7 @@ export default function PlanesPage() {
       const data = await res.json();
       setPlanes(data);
       setPrecios(Object.fromEntries(data.map((p) => [p.id, String(p.precio)])));
+      setStale(false);
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -59,9 +62,13 @@ export default function PlanesPage() {
   };
 
   const hasChanges = planes.some((p) => String(p.precio) !== (precios[p.id] ?? ""));
+  const invalidPrices = planes.some((p) => !/^[0-9]{1,10}$/.test(precios[p.id] ?? ""));
 
   const handleSave = async () => {
-    const payload = planes.map((p) => ({ id: p.id, precio: Number(precios[p.id] || 0) }));
+    if (savingRef.current || invalidPrices || stale || !hasChanges) return;
+    const payload = planes.filter((p) => String(p.precio) !== precios[p.id])
+      .map((p) => ({ id: p.id, precio: Number(precios[p.id]), version: p.version }));
+    savingRef.current = true;
     setSaving(true);
     try {
       const res = await apiFetch("/tiendas/planes/", {
@@ -69,6 +76,7 @@ export default function PlanesPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
+        if (res.status === 409) setStale(true);
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "No se pudieron guardar los precios.");
       }
@@ -78,7 +86,9 @@ export default function PlanesPage() {
       toast.success("Precios actualizados.");
     } catch (error) {
       toast.error(error.message);
+      setStale(true); // Una respuesta perdida puede ocultar un guardado exitoso.
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -111,6 +121,8 @@ export default function PlanesPage() {
           </div>
           <button
             onClick={fetchPlanes}
+            disabled={saving}
+            aria-label="Recargar planes"
             className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm"
           >
             <FiRefreshCw size={18} />
@@ -125,12 +137,14 @@ export default function PlanesPage() {
             <div className="flex items-start gap-3 mb-6 p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-800/40">
               <FiInfo className="text-indigo-500 shrink-0 mt-0.5" size={15} />
               <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
-                Cambiar un precio afecta solo los <b>cobros futuros</b>. Los ingresos ya
-                registrados conservan el precio con el que se cobraron.
+                Cambiar un precio afecta a las <b>nuevas solicitudes y activaciones manuales</b>.
+                Las solicitudes existentes y los ingresos registrados conservan su importe.
               </p>
             </div>
 
             {/* Tarjetas de plan */}
+            {stale && <p role="alert" className="mb-4 text-sm text-amber-600">Recarga los planes y revisa los precios antes de guardar otra vez.</p>}
+            {invalidPrices && <p role="alert" className="mb-4 text-sm text-rose-600">Escribe todos los precios. Un campo vacío no equivale a cero; para un plan gratuito escribe 0 explícitamente.</p>}
             <div className="space-y-4 mb-7">
               {planes.map((plan) => {
                 const meta = PLAN_META[plan.nombre] || PLAN_META_DEFAULT;
@@ -163,6 +177,9 @@ export default function PlanesPage() {
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-[15px]">$</span>
                       <input
+                        aria-label={`Precio ${plan.nombre}`}
+                        disabled={saving}
+                        maxLength={10}
                         type="text"
                         inputMode="numeric"
                         value={precios[plan.id] ?? ""}
@@ -178,7 +195,7 @@ export default function PlanesPage() {
 
             <button
               onClick={handleSave}
-              disabled={saving || !hasChanges}
+              disabled={saving || !hasChanges || invalidPrices || stale}
               className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[12px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? <FiLoader size={16} className="animate-spin" /> : <FiSave size={16} />}

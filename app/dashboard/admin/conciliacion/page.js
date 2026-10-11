@@ -31,6 +31,9 @@ function formatFecha(iso) {
 
 function SolicitudCard({ solicitud, onVerComprobante, onAccion, actioning, modo }) {
   const esPendiente = modo === "pendiente";
+  const [montoVerificado, setMontoVerificado] = useState("");
+  const requiereMonto = esPendiente && solicitud.requiere_revision_monto;
+  const importeValido = /^[0-9]{1,10}$/.test(montoVerificado);
   return (
     <div className="glass rounded-[1.5rem] border-white/60 dark:border-slate-800 shadow-lg p-5">
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -40,7 +43,7 @@ function SolicitudCard({ solicitud, onVerComprobante, onAccion, actioning, modo 
             <span className="ml-1.5 text-[10px] font-black text-slate-400">#{solicitud.tienda_id}</span>
           </p>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-            {solicitud.plan} · {formatMoney(solicitud.monto_plan)}
+            {solicitud.plan} · {solicitud.monto_plan == null ? "Monto por verificar" : formatMoney(solicitud.monto_plan)}
           </p>
         </div>
         <span className="shrink-0 px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-[11px] font-black font-mono tracking-wider">
@@ -69,7 +72,14 @@ function SolicitudCard({ solicitud, onVerComprobante, onAccion, actioning, modo 
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      {requiereMonto && <div className="mb-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 p-3 text-xs text-amber-700 dark:text-amber-300">
+        <p className="mb-2">Solicitud anterior sin precio original guardado. Revisa el comprobante y el ingreso bancario; no se usará la tarifa actual automáticamente.</p>
+        <label htmlFor={`monto-${solicitud.codigo}`}>Importe verificado en el comprobante</label>
+        <input id={`monto-${solicitud.codigo}`} inputMode="numeric" maxLength={10} value={montoVerificado}
+          disabled={!!actioning} onChange={(event) => setMontoVerificado(event.target.value.replace(/[^\d]/g, ""))}
+          className="mt-1 w-full rounded-lg border border-amber-200 bg-white p-2 text-slate-800" />
+      </div>}
+      <div className="flex flex-wrap items-center gap-2">
         {solicitud.tiene_comprobante ? (
           <button
             onClick={() => onVerComprobante(solicitud.codigo)}
@@ -83,7 +93,7 @@ function SolicitudCard({ solicitud, onVerComprobante, onAccion, actioning, modo 
           </span>
         )}
 
-        <div className="flex-1" />
+        <div className="hidden sm:block flex-1" />
 
         {esPendiente ? (
           <>
@@ -95,8 +105,8 @@ function SolicitudCard({ solicitud, onVerComprobante, onAccion, actioning, modo 
               <FiX size={12} /> Rechazar
             </button>
             <button
-              onClick={() => onAccion(solicitud.codigo, "confirmar")}
-              disabled={actioning === solicitud.codigo}
+              onClick={() => onAccion(solicitud.codigo, "confirmar", requiereMonto ? Number(montoVerificado) : undefined)}
+              disabled={!!actioning || (requiereMonto && !importeValido)}
               className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all disabled:opacity-50 active:scale-95"
             >
               {actioning === solicitud.codigo ? <FiLoader size={12} className="animate-spin" /> : <FiCheck size={12} />}
@@ -168,20 +178,20 @@ export default function ConciliacionPage() {
 
   // El rechazo/reversión es destructivo: pide confirmación con ConfirmModal.
   // La confirmación de un pago es directa.
-  const solicitarAccion = (codigo, resultado) => {
+  const solicitarAccion = (codigo, resultado, montoConfirmado) => {
     if (resultado === "rechazar") {
       setConfirmReject(codigo);
     } else {
-      ejecutarAccion(codigo, resultado);
+      ejecutarAccion(codigo, resultado, montoConfirmado);
     }
   };
 
-  const ejecutarAccion = async (codigo, resultado) => {
+  const ejecutarAccion = async (codigo, resultado, montoConfirmado) => {
     setActioning(codigo);
     try {
       const res = await apiFetch(`/tiendas/solicitud/${codigo}/revisar/`, {
         method: "POST",
-        body: JSON.stringify({ resultado }),
+        body: JSON.stringify({ resultado, ...(montoConfirmado !== undefined ? { monto_confirmado: montoConfirmado } : {}) }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
