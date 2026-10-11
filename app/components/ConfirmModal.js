@@ -12,10 +12,16 @@ export default function ConfirmModal({
   confirmText = "Confirmar",
   cancelText = "Cancelar",
   isLoading = false,
+  confirmDisabled = false,
   children,
 }) {
   const dialogRef = useRef(null);
   const confirmButtonRef = useRef(null);
+  const actionsRef = useRef({ onClose, isLoading });
+
+  useEffect(() => {
+    actionsRef.current = { onClose, isLoading };
+  }, [onClose, isLoading]);
 
   // Cerrar con Escape (no mientras procesa, para no interrumpir la operación)
   useEffect(() => {
@@ -23,16 +29,25 @@ export default function ConfirmModal({
     const previousFocus = document.activeElement;
     const focusableSelector =
       'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])';
-    requestAnimationFrame(() => confirmButtonRef.current?.focus());
+    const frame = requestAnimationFrame(() => {
+      const confirm = confirmButtonRef.current;
+      const target = confirm && !confirm.disabled
+        ? confirm
+        : dialogRef.current?.querySelector(focusableSelector);
+      target?.focus();
+    });
 
     const onKey = (e) => {
-      if (e.key === "Escape" && !isLoading) onClose?.();
+      if (e.key === "Escape" && !actionsRef.current.isLoading) actionsRef.current.onClose?.();
       if (e.key !== "Tab") return;
       const focusable = dialogRef.current?.querySelectorAll(focusableSelector);
       if (!focusable?.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
+      if (!dialogRef.current?.contains(document.activeElement)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      } else if (e.shiftKey && document.activeElement === first) {
         e.preventDefault();
         last.focus();
       } else if (!e.shiftKey && document.activeElement === last) {
@@ -42,10 +57,11 @@ export default function ConfirmModal({
     };
     window.addEventListener("keydown", onKey);
     return () => {
+      cancelAnimationFrame(frame);
       window.removeEventListener("keydown", onKey);
       previousFocus?.focus?.();
     };
-  }, [isOpen, isLoading, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -57,7 +73,7 @@ export default function ConfirmModal({
       aria-labelledby="confirm-modal-title"
       aria-describedby={message ? "confirm-modal-message" : undefined}
     >
-      <div ref={dialogRef} className="glass max-w-md w-full rounded-[2.5rem] border-white/20 p-10 shadow-2xl relative overflow-hidden">
+      <div ref={dialogRef} className="glass max-w-md w-full rounded-[2.5rem] border-white/20 p-10 shadow-2xl relative max-h-[90vh] overflow-y-auto">
         {/* Decorative bg */}
         <div className="absolute -right-10 -top-10 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl"></div>
         <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
@@ -98,7 +114,7 @@ export default function ConfirmModal({
               ref={confirmButtonRef}
               type="button"
               onClick={onConfirm}
-              disabled={isLoading}
+              disabled={isLoading || confirmDisabled}
               aria-busy={isLoading}
               className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-rose-700 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-3"
             >

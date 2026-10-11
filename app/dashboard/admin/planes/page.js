@@ -16,6 +16,9 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import RootReadError, { useRootRead } from "../_components/RootReadState";
+import RootConfigurationHistory from "../_components/RootConfigurationHistory";
+import ConfirmModal from "@/app/components/ConfirmModal";
 import { formatMoney } from "@/app/utils/format";
 
 // Metadatos visuales por plan (el backend define los planes; esto solo decora).
@@ -31,26 +34,23 @@ export default function PlanesPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [planes, setPlanes] = useState([]);
   const [precios, setPrecios] = useState({}); // { [id]: "12000" }
-  const [loading, setLoading] = useState(true);
+  const { read, loading, loadError, hasLoaded } = useRootRead();
   const [saving, setSaving] = useState(false);
   const [stale, setStale] = useState(false);
   const savingRef = useRef(false);
+  const [confirming, setConfirming] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [historyRevision, setHistoryRevision] = useState(0);
 
   const fetchPlanes = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await apiFetch("/tiendas/planes/");
-      if (!res.ok) throw new Error("No se pudieron cargar los planes.");
-      const data = await res.json();
+    return read("/tiendas/planes/", (data) => {
+      if (!Array.isArray(data)) throw new Error("Respuesta de planes inválida.");
       setPlanes(data);
       setPrecios(Object.fromEntries(data.map((p) => [p.id, String(p.precio)])));
       setStale(false);
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      setConfirming(false);
+    }, "No se pudieron cargar los planes.");
+  }, [read]);
 
   useEffect(() => {
     if (isAuthenticated && user?.is_superuser) fetchPlanes();
@@ -65,7 +65,7 @@ export default function PlanesPage() {
   const invalidPrices = planes.some((p) => !/^[0-9]{1,10}$/.test(precios[p.id] ?? ""));
 
   const handleSave = async () => {
-    if (savingRef.current || invalidPrices || stale || !hasChanges) return;
+    if (savingRef.current || invalidPrices || stale || !hasChanges || motivo.trim().length < 5) return;
     const payload = planes.filter((p) => String(p.precio) !== precios[p.id])
       .map((p) => ({ id: p.id, precio: Number(precios[p.id]), version: p.version }));
     savingRef.current = true;
@@ -73,7 +73,7 @@ export default function PlanesPage() {
     try {
       const res = await apiFetch("/tiendas/planes/", {
         method: "PUT",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ planes: payload, motivo: motivo.trim() }),
       });
       if (!res.ok) {
         if (res.status === 409) setStale(true);
@@ -83,10 +83,14 @@ export default function PlanesPage() {
       const data = await res.json();
       setPlanes(data);
       setPrecios(Object.fromEntries(data.map((p) => [p.id, String(p.precio)])));
+      setConfirming(false);
+      setMotivo("");
+      setHistoryRevision((previous) => previous + 1);
       toast.success("Precios actualizados.");
     } catch (error) {
       toast.error(error.message);
       setStale(true); // Una respuesta perdida puede ocultar un guardado exitoso.
+      setConfirming(false);
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -104,6 +108,8 @@ export default function PlanesPage() {
       </div>
     );
   }
+
+  if (loadError && !loading) return <RootReadError message={loadError} onRetry={fetchPlanes} hasLoaded={hasLoaded} />;
 
   return (
     <div className="min-h-screen bg-transparent pb-12">
@@ -194,13 +200,24 @@ export default function PlanesPage() {
             </div>
 
             <button
-              onClick={handleSave}
+              onClick={() => { setMotivo(""); setConfirming(true); }}
               disabled={saving || !hasChanges || invalidPrices || stale}
               className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[12px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? <FiLoader size={16} className="animate-spin" /> : <FiSave size={16} />}
               {saving ? "Guardando..." : "Guardar precios"}
             </button>
+            <RootConfigurationHistory tipo="planes" key={historyRevision} />
+            <ConfirmModal isOpen={confirming} onClose={() => { if (!saving) setConfirming(false); }} onConfirm={handleSave}
+              isLoading={saving} confirmDisabled={motivo.trim().length < 5 || stale} title="Confirmar tarifas"
+              message="Los cambios se guardarán juntos. No se modificarán las solicitudes ya creadas ni los ingresos anteriores."
+              confirmText="Confirmar tarifas">
+              <div className="text-sm space-y-2 mb-4">{planes.filter(plan => String(plan.precio) !== precios[plan.id]).map(plan =>
+                <p key={plan.id}>{plan.nombre}: {formatMoney(plan.precio)} → {formatMoney(precios[plan.id])}</p>)}</div>
+              <label htmlFor="motivo-tarifas">Motivo del cambio</label>
+              <textarea id="motivo-tarifas" value={motivo} onChange={event => setMotivo(event.target.value)} maxLength={500}
+                disabled={saving} className="w-full border rounded-lg p-2 mt-1 dark:bg-slate-800" />
+            </ConfirmModal>
           </>
         )}
       </div>

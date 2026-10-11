@@ -33,11 +33,13 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import RootReadError, { useRootRead } from "../_components/RootReadState";
 import Pagination from "@/app/components/Pagination";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import ManualMembershipExpiryModal from "@/app/components/ManualMembershipExpiryModal";
 import { formatMoney } from "@/app/utils/format";
 import { formatAppDate, formatAppDateTime, getAppDateDifference, getAppDateString, shiftAppDate } from "@/app/utils/datetime";
+import { getMembershipInfo, membershipDeadline, boundedPage } from "@/app/utils/rootSubscriptions.mjs";
 
 // Badge por origen del pago (mismo criterio que /dashboard/admin/ingresos)
 const ORIGEN_BADGE = {
@@ -47,6 +49,10 @@ const ORIGEN_BADGE = {
 };
 
 const STATUS_CONFIG = {
+  "Pre-activada": {
+    label: "Preactivada", icon: FiClock,
+    bg: "bg-indigo-50 dark:bg-indigo-900/20", text: "text-indigo-600", dot: "bg-indigo-500",
+  },
   Activa: {
     label: "Activa",
     icon: FiCheckCircle,
@@ -69,30 +75,14 @@ const STATUS_CONFIG = {
     dot: "bg-rose-500",
   },
 };
+const UNKNOWN_STATUS = { label: "Estado por revisar", icon: FiAlertTriangle, bg: "bg-slate-100", text: "text-slate-500", dot: "bg-slate-400" };
 
 // Semántica de vencimiento/gracia/bloqueo (misma que el backend: gracia 1d, bloqueo V+2)
-const getMembresiaInfo = (fechaVencimiento, vencidaManualmente = false) => {
-  if (vencidaManualmente) return { days: 0, graceDays: 0, status: "expired", label: "Vencida manualmente" };
-  if (!fechaVencimiento) return { days: 0, graceDays: 0, status: "expired", label: "—" };
-  const vencimientoDiff = getAppDateDifference(fechaVencimiento);
-  if (vencimientoDiff === null) return { days: 0, graceDays: 0, status: "expired", label: "—" };
-  const days = -vencimientoDiff;
-  const graceDays = -getAppDateDifference(shiftAppDate(fechaVencimiento, 2));
-
-  let status, label;
-  if (days <= -2) { status = "expired"; label = "Bloqueada"; }
-  else if (days <= -1) { status = "grace"; label = `Gracia · ${graceDays}d`; }
-  else if (days === 0) { status = "today"; label = `Vence hoy · ${graceDays}d p/bloqueo`; }
-  else { status = days <= 3 ? "warn" : "ok"; label = `${days}d`; }
-
-  return { days, graceDays, status, label };
-};
-
 // Activa y venciendo dentro de los próximos 3 días (incluido hoy)
 const esPorVencer = (tm) => {
   if (tm.vencida_manualmente) return false;
   if (tm.estado !== "Activa") return false;
-  const s = getMembresiaInfo(tm.fecha_vencimiento).status;
+  const s = getMembershipInfo(tm).status;
   return s === "warn" || s === "today";
 };
 
@@ -106,7 +96,7 @@ export default function AdminRutasPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading: authLoading, selectStore, clearStore } = useAuth();
   const [tiendas, setTiendas] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { read, loading, loadError, hasLoaded } = useRootRead();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEstado, setFilterEstado] = useState("Todos");
   const [activating, setActivating] = useState(null); // "mensual-<id>" | "anual-<id>"
@@ -146,22 +136,11 @@ export default function AdminRutasPage() {
   };
 
   const fetchTiendas = useCallback(async (incluirArchivadas = verArchivadas) => {
-    setLoading(true);
-    try {
-      const response = await apiFetch(
-        `/tiendas/list/?vista=lista${incluirArchivadas ? "&archivadas=1" : ""}`, { cache: "no-store" }
-      );
-      if (!response.ok) throw new Error("Error al obtener las rutas");
-      const data = await response.json();
+    return read(`/tiendas/list/?vista=lista${incluirArchivadas ? "&archivadas=1" : ""}`, (data) => {
+      if (!Array.isArray(data) && data?.message !== 'No se han creado tiendas') throw new Error("Respuesta de rutas inválida.");
       setTiendas(Array.isArray(data) ? data : []);
-      return true;
-    } catch (error) {
-      toast.error(error.message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [verArchivadas]);
+    }, "No se pudieron cargar las rutas.");
+  }, [verArchivadas, read]);
 
   // Drill-down: contacto del admin, actividad e historial de pagos de la ruta
   const abrirDetalle = async (tm) => {
@@ -251,7 +230,7 @@ export default function AdminRutasPage() {
   // Filtro pre-aplicado vía query (?estado=Vencida) — p.ej. desde el panel admin.
   useEffect(() => {
     const e = new URLSearchParams(window.location.search).get('estado');
-    if (["Activa", "Por vencer", "Pendiente Pago", "Vencida"].includes(e)) setFilterEstado(e);
+    if (["Activa", "Por vencer", "Pendiente Pago", "Vencida", "Pre-activada"].includes(e)) setFilterEstado(e);
   }, []);
 
   // Nombres que aparecen en ≥2 rutas distintas (distintos admins o mismos)
@@ -291,9 +270,11 @@ export default function AdminRutasPage() {
   }, [searchTerm, filterEstado]);
 
   const totalPages = Math.ceil(filteredTiendas.length / itemsPerPage);
+  const visiblePage = boundedPage(currentPage, filteredTiendas.length, itemsPerPage);
+  useEffect(() => { setCurrentPage((previous) => boundedPage(previous, filteredTiendas.length, itemsPerPage)); }, [filteredTiendas.length, itemsPerPage]);
   const currentItems = filteredTiendas.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    (visiblePage - 1) * itemsPerPage,
+    visiblePage * itemsPerPage
   );
 
   const metrics = useMemo(() => {
@@ -304,7 +285,8 @@ export default function AdminRutasPage() {
       nombresDuplicados.has(t.tienda?.nombre?.toLowerCase().trim())
     ).length;
     const porVencer = tiendas.filter(esPorVencer).length;
-    return { total: tiendas.length, activas, pendientes, vencidas, duplicadas, porVencer };
+    const preactivadas = tiendas.filter((t) => t.estado === "Pre-activada").length;
+    return { total: tiendas.length, activas, pendientes, vencidas, preactivadas, duplicadas, porVencer };
   }, [tiendas, nombresDuplicados]);
 
   const formatDate = (dateStr) => {
@@ -338,7 +320,7 @@ export default function AdminRutasPage() {
     if (!digits) return null;
     const prefijo = data.tienda.prefijo_telefono || "56";
     const raw = digits.startsWith(prefijo) ? digits : prefijo + digits;
-    const { status: st } = getMembresiaInfo(data.membresia.fecha_vencimiento, data.membresia.vencida_manualmente);
+    const { status: st } = getMembershipInfo({ ...data.membresia, tienda: data.tienda });
     const nombre = data.admin.nombre;
     const venc = formatDate(data.membresia.fecha_vencimiento);
     let msg;
@@ -422,6 +404,8 @@ export default function AdminRutasPage() {
     );
   }
 
+  if (loadError && !loading) return <RootReadError message={loadError} onRetry={() => fetchTiendas()} hasLoaded={hasLoaded} />;
+
   return (
     <div className="min-h-screen bg-transparent pb-12">
       <div className="w-full">
@@ -454,10 +438,12 @@ export default function AdminRutasPage() {
               title="Mostrar también las rutas archivadas"
             >
               <FiArchive size={16} />
-              <span className="hidden sm:inline">{verArchivadas ? "Viendo archivadas" : "Archivadas"}</span>
+              <span className="hidden sm:inline">{verArchivadas ? "Incluye archivadas" : "Incluir archivadas"}</span>
             </button>
             <button
               onClick={() => fetchTiendas()}
+              aria-label="Recargar rutas"
+              disabled={loading}
               className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
             >
               <FiRefreshCw
@@ -517,7 +503,7 @@ export default function AdminRutasPage() {
               />
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {["Todos", "Activa", "Por vencer", "Pendiente Pago", "Vencida", "Duplicadas"].map((estado) => (
+              {["Todos", "Activa", "Pre-activada", "Por vencer", "Pendiente Pago", "Vencida", "Duplicadas"].map((estado) => (
                 <button
                   key={estado}
                   onClick={() => setFilterEstado(estado)}
@@ -535,7 +521,7 @@ export default function AdminRutasPage() {
                           : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-indigo-300"
                   }`}
                 >
-                  {estado === "Pendiente Pago" ? "Pendiente" : estado}
+                  {estado === "Pendiente Pago" ? "Pendiente" : estado === "Pre-activada" ? `Preactivadas (${metrics.preactivadas})` : estado}
                   {estado === "Duplicadas" && metrics.duplicadas > 0 && (
                     <span className="ml-1.5 px-1.5 py-0.5 bg-violet-500 text-white rounded-md text-[8px]">
                       {metrics.duplicadas}
@@ -605,10 +591,10 @@ export default function AdminRutasPage() {
                     </tr>
                   ) : (
                     currentItems.map((tm) => {
-                      const { days, status: memStatus, label: daysLabel } = getMembresiaInfo(tm.fecha_vencimiento, tm.vencida_manualmente);
-                      const cfg = STATUS_CONFIG[tm.estado] || STATUS_CONFIG.Activa;
+                      const { days, status: memStatus, label: daysLabel } = getMembershipInfo(tm);
+                      const cfg = STATUS_CONFIG[tm.estado] || UNKNOWN_STATUS;
                       const daysColor =
-                        memStatus === "ok"
+                        memStatus === "temporary" ? "text-indigo-600" : memStatus === "ok"
                           ? "text-emerald-600"
                           : memStatus === "warn" || memStatus === "today"
                           ? "text-amber-600"
@@ -708,7 +694,7 @@ export default function AdminRutasPage() {
                           {/* Vencimiento */}
                           <td className="px-4 py-5 text-center">
                             <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                              {formatDate(tm.fecha_vencimiento)}
+                              {formatDate(membershipDeadline(tm))}
                             </p>
                           </td>
 
@@ -815,10 +801,10 @@ export default function AdminRutasPage() {
                 </div>
               ) : (
                 currentItems.map((tm) => {
-                  const { status: memStatus, label: daysLabel } = getMembresiaInfo(tm.fecha_vencimiento, tm.vencida_manualmente);
-                  const cfg = STATUS_CONFIG[tm.estado] || STATUS_CONFIG.Activa;
+                  const { status: memStatus, label: daysLabel } = getMembershipInfo(tm);
+                  const cfg = STATUS_CONFIG[tm.estado] || UNKNOWN_STATUS;
                   const daysColor =
-                    memStatus === "ok"
+                    memStatus === "temporary" ? "text-indigo-600" : memStatus === "ok"
                       ? "text-emerald-600"
                       : memStatus === "warn" || memStatus === "today"
                       ? "text-amber-600"
@@ -888,7 +874,7 @@ export default function AdminRutasPage() {
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-center">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Vence</p>
-                          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{formatDate(tm.fecha_vencimiento)}</p>
+                          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{formatDate(membershipDeadline(tm))}</p>
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-center">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Días</p>
@@ -963,7 +949,7 @@ export default function AdminRutasPage() {
             </div>
 
             <Pagination
-              currentPage={currentPage}
+              currentPage={visiblePage}
               totalPages={totalPages}
               onPageChange={setCurrentPage}
               totalItems={filteredTiendas.length}
@@ -994,10 +980,10 @@ export default function AdminRutasPage() {
               <div className="h-full flex items-center justify-center"><LoadingSpinner /></div>
             ) : (() => {
               const d = detalle.data;
-              const cfg = STATUS_CONFIG[d.membresia.vencida_manualmente ? "Vencida" : d.membresia.estado] || STATUS_CONFIG.Activa;
-              const { status: memStatus, label: daysLabel } = getMembresiaInfo(d.membresia.fecha_vencimiento, d.membresia.vencida_manualmente);
+              const cfg = STATUS_CONFIG[d.membresia.vencida_manualmente ? "Vencida" : d.membresia.estado] || UNKNOWN_STATUS;
+              const { status: memStatus, label: daysLabel } = getMembershipInfo({ ...d.membresia, tienda: d.tienda });
               const daysColor =
-                memStatus === "ok" ? "text-emerald-600"
+                memStatus === "temporary" ? "text-indigo-600" : memStatus === "ok" ? "text-emerald-600"
                 : memStatus === "warn" || memStatus === "today" ? "text-amber-600"
                 : "text-rose-600";
               const wa = waCobroUrl(d);
@@ -1040,7 +1026,7 @@ export default function AdminRutasPage() {
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Vence</p>
-                      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{formatDate(d.membresia.fecha_vencimiento)}</p>
+                      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{formatDate(membershipDeadline(d.membresia))}</p>
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Días</p>

@@ -1,7 +1,7 @@
 // app/dashboard/admin/cuenta-bancaria/page.js
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/app/utils/api";
 import {
@@ -13,6 +13,9 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import ConfirmModal from "@/app/components/ConfirmModal";
+import RootReadError, { useRootRead } from "../_components/RootReadState";
+import RootConfigurationHistory from "../_components/RootConfigurationHistory";
 import { formatAppDateTime } from "@/app/utils/datetime";
 
 const CAMPOS = [
@@ -26,16 +29,20 @@ export default function CuentaBancariaPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [form, setForm] = useState({ banco: "", numero: "", titular: "", tipo: "" });
   const [actualizada, setActualizada] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { read, loading, loadError, hasLoaded } = useRootRead();
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [original, setOriginal] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [motivo, setMotivo] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [stale, setStale] = useState(false);
+  const savingRef = useRef(false);
+  const valid = CAMPOS.every(({ key }) => form[key].trim().length > 0 && form[key].trim().length <= 100);
 
   const fetchCuenta = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await apiFetch("/tiendas/cuenta-destino/");
-      if (!res.ok) throw new Error("No se pudo cargar la cuenta bancaria.");
-      const data = await res.json();
+    return read("/tiendas/cuenta-destino/", (data) => {
+      if (!Number.isInteger(data?.version) || !CAMPOS.every(({key}) => typeof data[key] === 'string')) throw new Error("La cuenta no tiene datos o versión válidos. Actualiza el sistema.");
       setForm({
         banco: data.banco || "",
         numero: data.numero || "",
@@ -44,12 +51,12 @@ export default function CuentaBancariaPage() {
       });
       setActualizada(data.actualizada || null);
       setHasChanges(false);
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      setOriginal(data);
+      setHistory(data.historial || []);
+      setStale(false);
+      setConfirming(false);
+    }, "No se pudo cargar la cuenta bancaria.");
+  }, [read]);
 
   useEffect(() => {
     if (isAuthenticated && user?.is_superuser) fetchCuenta();
@@ -61,23 +68,33 @@ export default function CuentaBancariaPage() {
   };
 
   const handleSave = async () => {
+    if (savingRef.current || !hasLoaded || !valid || stale || !original || motivo.trim().length < 5) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const res = await apiFetch("/tiendas/cuenta-destino/", {
         method: "PUT",
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, version: original.version, motivo: motivo.trim() }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "No se pudo guardar la cuenta.");
       }
       const data = await res.json();
+      setOriginal(data);
+      setForm(Object.fromEntries(CAMPOS.map(({key}) => [key, data[key]])));
+      setHistory(data.historial || []);
       setActualizada(data.actualizada || null);
       setHasChanges(false);
+      setConfirming(false);
+      setMotivo("");
       toast.success("Datos bancarios actualizados.");
     } catch (error) {
       toast.error(error.message);
+      setStale(true);
+      setConfirming(false);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -93,6 +110,8 @@ export default function CuentaBancariaPage() {
       </div>
     );
   }
+
+  if (loadError && !loading) return <RootReadError message={loadError} onRetry={fetchCuenta} hasLoaded={hasLoaded} />;
 
   return (
     <div className="min-h-screen bg-transparent pb-12">
@@ -110,6 +129,8 @@ export default function CuentaBancariaPage() {
           </div>
           <button
             onClick={fetchCuenta}
+            aria-label="Recargar cuenta"
+            disabled={saving}
             className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm"
           >
             <FiRefreshCw size={18} />
@@ -135,10 +156,13 @@ export default function CuentaBancariaPage() {
             <div className="space-y-4 mb-7">
               {CAMPOS.map(({ key, label, placeholder }) => (
                 <div key={key}>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                  <label htmlFor={`cuenta-${key}`} className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
                     {label}
                   </label>
                   <input
+                    id={`cuenta-${key}`}
+                    maxLength={100}
+                    disabled={saving || stale}
                     type="text"
                     value={form[key]}
                     onChange={(e) => handleChange(key, e.target.value)}
@@ -148,6 +172,8 @@ export default function CuentaBancariaPage() {
                 </div>
               ))}
             </div>
+            {!original?.configurada && <p className="text-sm mb-4">Cuenta sin configurar: completa los cuatro datos antes de solicitar transferencias.</p>}
+            {stale && <p role="alert" className="text-amber-600 mb-4">Recarga la cuenta y revisa los datos antes de volver a guardar.</p>}
 
             {actualizada && (
               <p className="text-[10px] font-bold text-slate-400 mb-5">
@@ -159,15 +185,27 @@ export default function CuentaBancariaPage() {
             )}
 
             <button
-              onClick={handleSave}
-              disabled={saving || !hasChanges}
+              onClick={() => { setMotivo(""); setConfirming(true); }}
+              disabled={saving || !hasChanges || !valid || stale || !hasLoaded}
               className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[12px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? <FiLoader size={16} className="animate-spin" /> : <FiSave size={16} />}
-              {saving ? "Guardando..." : "Guardar cambios"}
+              {saving ? "Guardando..." : "Revisar cambios"}
             </button>
           </div>
         )}
+        {!loading && <RootConfigurationHistory tipo="cuenta" rows={history} />}
+        <ConfirmModal isOpen={confirming} onClose={() => { if (!saving) setConfirming(false); }} onConfirm={handleSave}
+          isLoading={saving} confirmDisabled={motivo.trim().length < 5 || stale} title="Confirmar cuenta bancaria"
+          message="Las nuevas solicitudes utilizarán esta cuenta. Las solicitudes existentes conservarán los datos que recibieron."
+          confirmText="Confirmar cuenta">
+          <div className="text-xs space-y-2 break-words mb-4">{CAMPOS.map(({key,label}) => <p key={key}>
+            <b>{label}:</b> {original?.[key] || 'Sin configurar'} → {form[key]}
+          </p>)}</div>
+          <label htmlFor="motivo-cuenta">Motivo del cambio</label>
+          <textarea id="motivo-cuenta" value={motivo} onChange={event => setMotivo(event.target.value)} maxLength={500}
+            disabled={saving} className="w-full border rounded-lg p-2 mt-1 dark:bg-slate-800" />
+        </ConfirmModal>
       </div>
     </div>
   );

@@ -33,7 +33,9 @@ const read=async path=>(await fetch(api+path)).json();
  const goto=async(p,path)=>{await p.goto(base+path);await p.waitForLoadState('networkidle');};
  const save=async(p,value)=>{
   await p.getByLabel('Precio Mensual',{exact:true}).fill(value);
-  await Promise.all([p.waitForResponse(r=>r.request().method()==='PUT'),p.getByRole('button',{name:'Guardar precios',exact:true}).click()]);
+  await p.getByRole('button',{name:'Guardar precios',exact:true}).click();
+  await p.getByLabel('Motivo del cambio').fill('Tarifa ficticia verificada');
+  await Promise.all([p.waitForResponse(r=>r.request().method()==='PUT'),p.getByRole('button',{name:'Confirmar tarifas',exact:true}).click()]);
  };
  try{
   const desktop=await open();const p=desktop.page;
@@ -74,7 +76,9 @@ const read=async path=>(await fetch(api+path)).json();
   await goto(p,'/dashboard/admin/conciliacion');
   assert(await p.getByRole('button',{name:'Confirmar',exact:true}).isDisabled());
   await p.getByLabel('Importe verificado en el comprobante').fill('11000');
-  await Promise.all([p.waitForResponse(r=>r.url().endsWith('/revisar/')),p.getByRole('button',{name:'Confirmar',exact:true}).click()]);
+  await p.getByRole('button',{name:'Confirmar',exact:true}).click();
+  await p.getByLabel('Verifiqué el ingreso bancario y el importe').check();
+  await Promise.all([p.waitForResponse(r=>r.url().endsWith('/revisar/')),p.getByRole('button',{name:'Registrar confirmación',exact:true}).click()]);
   await p.getByRole('button',{name:'Revertir',exact:true}).waitFor();
   assert.equal((await read('/__estado')).pagos.filter(x=>x.solicitud_id!==null)[0].monto,'11000');
 
@@ -91,6 +95,8 @@ const read=async path=>(await fetch(api+path)).json();
   await p.getByRole('button',{name:'Recargar planes'}).click();await p.getByLabel('Precio Mensual',{exact:true}).waitFor();
   await p.getByLabel('Precio Mensual',{exact:true}).fill('17000');desktop.fault.lost=true;
   await p.getByRole('button',{name:'Guardar precios',exact:true}).click();
+  await p.getByLabel('Motivo del cambio').fill('Tarifa ficticia verificada');
+  await p.getByRole('button',{name:'Confirmar tarifas',exact:true}).click();
   await p.getByRole('alert').filter({hasText:'Recarga los planes'}).waitFor();
   assert(await p.getByRole('button',{name:'Guardar precios',exact:true}).isDisabled());
   assert.equal((await read('/__estado')).planes[0].precio,'17000');

@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
-import { apiFetch } from "@/app/utils/api";
 import {
   FiShield,
   FiRefreshCw,
@@ -23,8 +22,8 @@ import {
   FiUserPlus,
   FiXCircle,
 } from "react-icons/fi";
-import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import RootReadError, { useRootRead } from "./_components/RootReadState";
 import { formatMoney } from "@/app/utils/format";
 import { Bar } from "react-chartjs-2";
 import {
@@ -88,7 +87,7 @@ export default function AdminPanelPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading: authLoading, clearStore } = useAuth();
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { read, loading, loadError, hasLoaded } = useRootRead();
 
   // Al entrar al panel, el root sale de cualquier ruta que estuviera viendo (modo administración)
   useEffect(() => {
@@ -96,17 +95,11 @@ export default function AdminPanelPage() {
   }, [user?.is_superuser, clearStore]);
 
   const fetchResumen = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await apiFetch("/tiendas/admin/resumen/");
-      if (!res.ok) throw new Error("No se pudo cargar el panel de administración.");
-      setData(await res.json());
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return read("/tiendas/admin/resumen/", (json) => {
+      if (!json?.rutas || !Array.isArray(json.ingresos_6m)) throw new Error("Respuesta del panel incompleta.");
+      setData(json);
+    }, "No se pudo cargar el panel de administración.");
+  }, [read]);
 
   useEffect(() => {
     if (isAuthenticated && user?.is_superuser) fetchResumen();
@@ -175,6 +168,8 @@ export default function AdminPanelPage() {
     Prueba: "bg-amber-500",
   };
 
+  if (loadError && !loading) return <RootReadError message={loadError} onRetry={fetchResumen} hasLoaded={hasLoaded} />;
+
   return (
     <div className="min-h-screen bg-transparent pb-12">
       <div className="max-w-4xl mx-auto px-4 md:px-0">
@@ -191,6 +186,8 @@ export default function AdminPanelPage() {
           </div>
           <button
             onClick={fetchResumen}
+            aria-label="Recargar panel"
+            disabled={loading}
             className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm"
           >
             <FiRefreshCw size={18} />

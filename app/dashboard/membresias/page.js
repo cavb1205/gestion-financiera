@@ -563,6 +563,9 @@ export default function MembresiasPage() {
               </div>
 
               {/* Datos de la cuenta */}
+              {solicitud.cuenta_historica_verificable === false && <p className="text-sm text-amber-600 mb-4">
+                Esta solicitud anterior no conserva la cuenta original. Consulta con soporte antes de transferir; si ya pagaste, envía tu comprobante.
+              </p>}
               <div className="mb-6 space-y-3">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Datos de la Cuenta</p>
                 {[

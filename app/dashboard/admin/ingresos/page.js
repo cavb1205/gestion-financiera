@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/app/context/AuthContext";
-import { apiFetch } from "@/app/utils/api";
 import {
   FiShield,
   FiRefreshCw,
@@ -16,8 +15,8 @@ import {
   FiX,
   FiDownload,
 } from "react-icons/fi";
-import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import RootReadError, { useRootRead } from "../_components/RootReadState";
 import { formatMoney } from "@/app/utils/format";
 import { formatAppDate, getAppDateString } from "@/app/utils/datetime";
 import { Bar } from "react-chartjs-2";
@@ -62,24 +61,17 @@ function KpiCard({ icon: Icon, label, value, sub, accent = "indigo" }) {
 export default function IngresosMembresiasPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { read, loading, loadError, hasLoaded } = useRootRead();
   const [year, setYear] = useState(Number(getAppDateString().slice(0, 4)));
   const [mesFiltro, setMesFiltro] = useState(null); // 1-12 o null
 
   const fetchData = useCallback(async (y) => {
-    try {
-      setLoading(true);
-      const res = await apiFetch(`/tiendas/ingresos/?year=${y}`);
-      if (!res.ok) throw new Error("No se pudo cargar el informe de ingresos.");
-      const json = await res.json();
+    return read(`/tiendas/ingresos/?year=${y}`, (json) => {
+      if (!Array.isArray(json?.por_mes)) throw new Error("Respuesta del informe incompleta.");
       setData(json);
       setMesFiltro(null);
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    }, "No se pudo cargar el informe de ingresos.");
+  }, [read]);
 
   useEffect(() => {
     if (isAuthenticated && user?.is_superuser) fetchData(year);
@@ -218,6 +210,8 @@ export default function IngresosMembresiasPage() {
     );
   }
 
+  if (loadError && !loading) return <RootReadError message={loadError} onRetry={() => fetchData(year)} hasLoaded={hasLoaded} />;
+
   return (
     <div className="min-h-screen bg-transparent pb-12">
       <div className="max-w-5xl mx-auto px-4 md:px-0">
@@ -243,6 +237,8 @@ export default function IngresosMembresiasPage() {
           </select>
           <button
             onClick={() => fetchData(year)}
+            aria-label="Recargar ingresos"
+            disabled={loading}
             className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm"
           >
             <FiRefreshCw size={18} />
