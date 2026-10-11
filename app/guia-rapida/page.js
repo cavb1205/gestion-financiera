@@ -27,14 +27,13 @@ import {
   FiUsers,
 } from "react-icons/fi";
 
-const GUIDE_VERSION = "v2.3";
+const GUIDE_VERSION = "v2.4";
 const GUIDE_UPDATED = "octubre de 2026";
 
 const ROLES = {
   ambos: { label: "Todos", className: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300" },
   trabajador: { label: "Trabajador", className: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" },
   administrador: { label: "Administrador", className: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300" },
-  root: { label: "Root", className: "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300" },
 };
 
 const QUICK_STARTS = [
@@ -356,35 +355,14 @@ const GUIDE_SECTIONS = [
     steps: [
       "Confirma la ruta y revisa el estado, plan y vencimiento en «Membresías». Si aparece «Acceso Suspendido», puedes abrir «Activar / Renovar Plan» para consultar las opciones disponibles.",
       "Tramita la renovación siguiendo las instrucciones y guarda el comprobante cuando corresponda. Verifica que la solicitud esté confirmada y el estado permita operar antes de retomar los cobros.",
-      "Si la ruta fue vencida manualmente por root, el bloqueo operativo es inmediato, aunque antes tuviera una fecha futura, gracia o preactivación. Los clientes, créditos, pagos y caja se conservan.",
-      "En un vencimiento manual, subir un comprobante no devuelve acceso temporal: la renovación requiere aprobación. Si tienes otra ruta autorizada, puedes cambiar de ruta sin perder la cuenta.",
+      "Si el acceso sigue suspendido después de tramitar la renovación, revisa el estado de la solicitud y contacta al soporte de la plataforma. Subir un comprobante no equivale a una renovación confirmada.",
+      "Si tienes otra ruta autorizada, puedes cambiar de ruta sin perder la cuenta. Los clientes, créditos, pagos y caja de la ruta suspendida se conservan.",
     ],
-    note: "Administradores y trabajadores no pueden quitar un vencimiento manual por su cuenta. Si el estado no coincide con una renovación confirmada, actualiza la pantalla y contacta a quien administra la suscripción; no registres movimientos duplicados.",
-  },
-  {
-    id: "membresias-root",
-    number: "15",
-    role: "root",
-    icon: FiShield,
-    eyebrow: "Solo superusuario",
-    title: "Corregir una activación de membresía equivocada",
-    description: "Vencer la suscripción y corregir un ingreso son decisiones separadas. Esta función solo está disponible para root, no para el administrador de la ruta.",
-    href: "/dashboard/admin/rutas",
-    action: "Administrar rutas como root",
-    tone: "rose",
-    steps: [
-      "Abre «Administrar rutas», entra al detalle y pulsa «Vencer membresía manualmente». Comprueba nombre, identificador, administrador, plan y vencimiento para no corregir otra ruta.",
-      "Escribe el motivo obligatorio. La confirmación bloquea la operación de esa ruta sin gracia; root conserva acceso y el cambio queda en el historial con usuario, fecha y estados anterior y nuevo.",
-      "Solo si también registraste un ingreso manual por error, marca «Anular también un pago manual registrado por error» y selecciona el pago correcto. La opción está desmarcada inicialmente y solo admite pagos manuales vigentes de esa ruta, sin solicitud asociada.",
-      "Anular conserva el pago en el historial y lo excluye de los ingresos vigentes. No borra recaudos de los clientes ni hace una devolución de dinero. Si hay solicitudes pendientes, confirma que las revisaste; no se anulan con este paso.",
-      "Una ruta ya vencida permite «Revisar vencimiento / corregir ingreso» si tiene un pago manual elegible, sin renovar antes. Si el estado cambió o el resultado es incierto, usa «Recargar detalle» y verifica antes de volver a enviar.",
-      "Para devolver el acceso, realiza una renovación válida. Cancelar el diálogo no cambia la suscripción ni los pagos.",
-    ],
-    note: "No uses esta corrección para simular ingresos, ocultar pagos reales o modificar la cartera. Revisa el historial y el total vigente después de confirmar.",
+    note: "Si el estado no coincide con una renovación confirmada, actualiza la pantalla y contacta al soporte de la plataforma; no registres movimientos duplicados.",
   },
   {
     id: "movimientos-negocio",
-    number: "16",
+    number: "15",
     role: "administrador",
     icon: FiCreditCard,
     eyebrow: "Clasificar entradas y salidas",
@@ -404,7 +382,7 @@ const GUIDE_SECTIONS = [
   },
   {
     id: "registrar-cliente",
-    number: "17",
+    number: "16",
     role: "ambos",
     icon: FiUsers,
     eyebrow: "Datos antes de prestar",
@@ -429,13 +407,13 @@ const FAQS = [
   ["¿El botón «Salir» quita las rutas asignadas?", "No. «Salir» cierra la sesión del trabajador. Para retirar su acceso a una ruta, el administrador debe usar «Quitar ruta» desde «Trabajadores» en esa ruta; sus otras asignaciones permanecen."],
   ["No veo al cliente en Liquidación", "Confirma ruta, fecha y búsqueda. Un semanal o mensual sin cuota exigible ni anticipos no tiene que aparecer antes de su fecha; un crédito totalmente pagado o en pérdida tampoco aparece. Consulta el detalle del crédito para comprobar calendario y saldo."],
   ["El cliente adelantó pagos, ¿debo ponerle falla?", "No, si no tiene una obligación exigible pendiente. La etiqueta «Adelantado · cobro voluntario» permite recibir otro abono, pero no exige pago ni falla para completar la gestión del día."],
-  ["Busco un cliente y el total del día no cambia", "Es correcto. «Total a cobrar del día» y «Total cobrado del día» no responden a la búsqueda; «Pendiente por cobrar» sí suma únicamente los clientes del filtro, incluso si ocupan varias páginas. El total actual es cobrado más pendiente, no una base fija de cuotas."],
+  ["Busco un cliente y el total del día no cambia", "Es correcto. «Total a cobrar del día» y «Total cobrado del día» no responden a la búsqueda; «Pendiente por cobrar» sí suma únicamente los clientes del filtro, incluso si ocupan varias páginas. El total a cobrar es la base de cuotas de la fecha, antes de sus abonos; no se calcula sumando cobrado y pendiente."],
   ["Mañana no me deja abonar, ¿es un error?", "No. Para administradores, una fecha futura es una proyección de solo lectura. Puedes preparar el estado de cuenta por WhatsApp, pero pagos, fallas y edición del recorrido requieren una fecha de operación permitida."],
   ["Moví los clientes, pero el orden no cambió", "Arrastrar solo modifica el borrador. Pulsa «Guardar cambios» y espera la confirmación. El recorrido guardado es compartido por la ruta; si alguien lo cambió mientras editabas, recarga antes de volver a guardar."],
   ["¿El mensual nuevo siempre vence a los 30 días?", "No. Usa un mes calendario: el mismo día del mes siguiente o el último día si no existe. Los contratos antiguos conservan su calendario; revisa la proyección y las fechas de ese crédito."],
   ["El pago dio error y no sé si quedó guardado", "Antes de registrarlo otra vez, revisa Recaudos y el detalle del crédito. No confundas una respuesta de conexión fallida con la certeza de que no se guardó. Si no puedes comprobarlo, consulta al administrador."],
   ["¿El resultado del reporte es lo que puedo retirar?", "No. El resultado cobrado, el resultado menos retiros y la caja son conceptos distintos. El reporte no aprueba retiros ni reparte utilidades entre socios; revisa las ayudas, las pérdidas y las obligaciones de la ruta."],
-  ["Subí el comprobante y la ruta sigue vencida manualmente", "En una suspensión manual el comprobante espera aprobación y no habilita acceso temporal. Revisa la solicitud en Membresías y contacta a quien administra la suscripción. Los registros de la ruta no se borran."],
+  ["Subí el comprobante y la ruta sigue suspendida", "Revisa el estado de la solicitud en Membresías. El comprobante no equivale a una renovación confirmada; si el acceso continúa suspendido, contacta al soporte de la plataforma. Los registros de la ruta no se borran."],
   ["El mapa no muestra un cobro", "El registro puede existir sin coordenadas. Revisa la lista de operaciones sin GPS y verifica que el navegador tenga permiso de ubicación."],
   ["La alerta dice Ayer, ¿está atrasado?", "No necesariamente. Ayer solo identifica el día del último abono. El atraso se interpreta con cuotas atrasadas y con la frecuencia del crédito."],
   ["La caja no coincide", "Revisa primero Movimientos de Caja: tipo, usuario, saldo anterior y posterior. Luego compara el cierre con los recaudos, gastos, aportes y utilidades del día."],
@@ -452,7 +430,7 @@ function RoleBadge({ role }) {
   const config = ROLES[role] || ROLES.ambos;
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] ${config.className}`}>
-      {role === "trabajador" ? <FiUsers size={11} /> : role === "administrador" || role === "root" ? <FiShield size={11} /> : <FiCheckCircle size={11} />}
+      {role === "trabajador" ? <FiUsers size={11} /> : role === "administrador" ? <FiShield size={11} /> : <FiCheckCircle size={11} />}
       {config.label}
     </span>
   );
@@ -564,7 +542,7 @@ export default function GuiaRapidaPage() {
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .no-print { display: none !important; }
           html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
-          .print-root { background: white !important; padding: 0 !important; }
+          .print-page { background: white !important; padding: 0 !important; }
           .print-content { max-width: 100% !important; padding: 12px !important; }
           .print-cover { background: white !important; color: #0f172a !important; border: 2px solid #4f46e5 !important; box-shadow: none !important; page-break-after: avoid; }
           .print-cover * { color: #0f172a !important; }
@@ -593,7 +571,7 @@ export default function GuiaRapidaPage() {
         </div>
       </header>
 
-      <main id="arriba" className="print-root">
+      <main id="arriba" className="print-page">
         <div className="print-content mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
           <section className="print-cover relative overflow-hidden rounded-[2.5rem] bg-slate-950 px-6 py-8 text-white shadow-2xl shadow-indigo-200/40 sm:px-10 sm:py-12 dark:shadow-none">
             <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-indigo-500/30 blur-3xl" />
@@ -606,7 +584,7 @@ export default function GuiaRapidaPage() {
               <h1 className="max-w-2xl text-3xl font-black leading-[0.98] tracking-[-0.04em] sm:text-5xl">Trabaja con claridad. Controla la cartera a tiempo.</h1>
               <p className="mt-5 max-w-2xl text-sm font-medium leading-relaxed text-slate-300 sm:text-base">Una referencia práctica para cobrar, registrar créditos, revisar riesgos y mantener la caja bajo control desde el sistema nuevo.</p>
               <div className="mt-7 flex flex-wrap items-center gap-3 text-[11px] font-bold text-slate-300">
-                <span className="inline-flex items-center gap-2"><FiCheckCircle className="text-emerald-400" /> Trabajador, administrador y root</span>
+                <span className="inline-flex items-center gap-2"><FiCheckCircle className="text-emerald-400" /> Trabajadores y administradores</span>
                 <span className="inline-flex items-center gap-2"><FiHome className="text-cyan-300" /> Celular o computador</span>
               </div>
             </div>
@@ -663,7 +641,7 @@ export default function GuiaRapidaPage() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                {["todos", "trabajador", "administrador", "root"].map((role) => (
+                {["todos", "trabajador", "administrador"].map((role) => (
                   <button key={role} type="button" aria-pressed={roleFilter === role} onClick={() => setRoleFilter(role)} className={`rounded-xl px-3.5 py-2.5 text-[10px] font-black uppercase tracking-widest transition ${roleFilter === role ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900" : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"}`}>
                     {role === "todos" ? "Toda la guía" : ROLES[role].label}
                   </button>

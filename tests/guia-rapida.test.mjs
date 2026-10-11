@@ -14,7 +14,8 @@ const byId = id => sections.find(section => section.id === id);
 const text = section => JSON.stringify(section);
 
 test('secciones únicas, roles válidos y enlaces a pantallas existentes', () => {
-  assert.equal(sections.length, 17);
+  assert.equal(sections.length, 16);
+  assert.deepEqual(Array.from(sections, section => section.number), Array.from({length:16}, (_,i) => String(i+1).padStart(2,'0')));
   for (const key of ['id', 'number']) assert.equal(new Set(sections.map(section => section[key])).size, sections.length);
   for (const section of sections) {
     assert(roles[section.role], section.id);
@@ -44,6 +45,9 @@ test('no confunde anticipos, deuda exigible, totales y consulta futura', () => {
   assert.doesNotMatch(indicators, /total descriptivo|pendiente exigible de la lista completa más/);
   assert.match(indicators, /todas las páginas/);
   assert.match(indicators, /no abonar, registrar fallas ni editar el recorrido/);
+  const totalFaq = faqs.find(([question]) => question === 'Busco un cliente y el total del día no cambia')[1];
+  assert.match(totalFaq, /base de cuotas de la fecha/);
+  assert.doesNotMatch(totalFaq, /no una base fija/);
 });
 
 test('explica guardado compartido y alternativas al arrastre', () => {
@@ -61,11 +65,11 @@ test('utilidad y pérdida no prometen efectivo disponible o irrecuperabilidad', 
   assert.match(report, /fecha de declaración/);
 });
 
-test('separa el permiso root, el bloqueo manual y la corrección opcional del ingreso', () => {
-  assert.equal(byId('membresias-root').role, 'root');
-  const root = text(byId('membresias-root'));
-  for (const expected of ['desmarcada inicialmente', 'ni hace una devolución', 'historial']) assert(root.includes(expected), expected);
-  assert.match(text(byId('membresias')), /subir un comprobante no devuelve acceso temporal/);
+test('la guía pública no incluye roles, enlaces ni procedimientos internos', () => {
+  assert.deepEqual(Object.keys(roles).sort(), ['administrador','ambos','trabajador']);
+  assert.doesNotMatch(source, /root|superusuario|\/dashboard\/admin\/|Vencer membresía manualmente|Anular también un pago manual|preactivación/i);
+  assert.match(text(byId('membresias')), /soporte de la plataforma/);
+  assert.match(text(byId('membresias')), /comprobante no equivale a una renovación confirmada/);
 });
 
 test('filtros y navegación mantienen destinos visibles y FAQ accesible', () => {
@@ -73,5 +77,5 @@ test('filtros y navegación mantienen destinos visibles y FAQ accesible', () => 
   assert(source.includes('aria-pressed={roleFilter === role}'));
   assert(source.includes('aria-expanded={showFaq}'));
   assert.equal(new Set(faqs.map(([question]) => question)).size, faqs.length);
-  assert.equal(context.guide.GUIDE_VERSION, 'v2.3');
+  assert.equal(context.guide.GUIDE_VERSION, 'v2.4');
 });

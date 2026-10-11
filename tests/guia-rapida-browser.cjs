@@ -26,7 +26,13 @@ const base = process.env.GUIA_FRONTEND || 'http://127.0.0.1:3052';
       const response = await page.goto(base + '/guia-rapida');
       assert.equal(response.status(), 200);
       await page.getByRole('heading', { name: 'Trabaja con claridad. Controla la cartera a tiempo.' }).waitFor();
-      assert.equal(await page.locator('article.guide-card').count(), 17);
+      assert.equal(await page.locator('article.guide-card').count(), 16);
+      const assertPublicGuide = async () => {
+        assert.doesNotMatch(await page.locator('body').innerText(), /\broot\b|superusuario|Vencer membresía manualmente|Anular también un pago manual/i);
+        assert.equal(await page.locator('a[href^="/dashboard/admin/"]').count(), 0);
+        assert.equal(await page.getByRole('button', { name: 'Root', exact: true }).count(), 0);
+      };
+      await assertPublicGuide();
       const index = page.getByRole('navigation', { name: 'Índice de la guía' });
       async function verifyIndex() {
         const ids = await page.locator('article.guide-card').evaluateAll(nodes => nodes.map(node => '#' + node.id));
@@ -40,11 +46,11 @@ const base = process.env.GUIA_FRONTEND || 'http://127.0.0.1:3052';
       await faq.click();
       assert.equal(await faq.getAttribute('aria-expanded'), 'true');
       await page.getByText('¿El mensual nuevo siempre vence a los 30 días?', { exact: true }).waitFor();
+      await assertPublicGuide();
       await faq.click();
       for (const [label, count, expected, excluded] of [
-        ['Trabajador', 10, 'jornada', 'membresias-root'],
+        ['Trabajador', 10, 'jornada', 'interpretar-utilidad'],
         ['Administrador', 16, 'interpretar-utilidad', 'membresias-root'],
-        ['Root', 11, 'membresias-root', 'interpretar-utilidad'],
       ]) {
         await page.getByRole('button', { name: label, exact: true }).click();
         assert.equal(await page.locator('article.guide-card').count(), count);
@@ -52,18 +58,20 @@ const base = process.env.GUIA_FRONTEND || 'http://127.0.0.1:3052';
         assert.equal(await page.locator('#' + excluded).count(), 0);
         assert.equal(await page.getByRole('button', { name: label, exact: true }).getAttribute('aria-pressed'), 'true');
         await verifyIndex();
+        await assertPublicGuide();
       }
-      await page.locator('#membresias-root').scrollIntoViewIfNeeded();
+      await page.locator('#membresias').scrollIntoViewIfNeeded();
       if (scenario.dark) await page.evaluate(() => document.documentElement.classList.add('dark'));
-      await page.screenshot({ path: `outputs/guia-${scenario.name}-root.png` });
+      await page.screenshot({ path: `outputs/guia-${scenario.name}-membresias.png` });
       await page.getByRole('button', { name: 'Toda la guía', exact: true }).click();
       await verifyIndex();
       await page.locator('#nueva-venta').scrollIntoViewIfNeeded();
       await page.screenshot({ path: `outputs/guia-${scenario.name}-calendario.png` });
       await page.emulateMedia({ media: 'print' });
-      assert.equal(await page.locator('article.guide-card:visible').count(), 17);
+      assert.equal(await page.locator('article.guide-card:visible').count(), 16);
+      await assertPublicGuide();
       assert.equal(await index.isVisible(), false);
-      results.push({ scenario: scenario.name, sections: 17, filters: 'OK', index: 'OK', faq: 'OK', print: 'OK' });
+      results.push({ scenario: scenario.name, sections: 16, publicOnly: true, filters: 'OK', index: 'OK', faq: 'OK', print: 'OK' });
       await context.close();
     }
     assert.deepEqual(errors, []);
