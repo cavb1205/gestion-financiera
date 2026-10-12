@@ -27,7 +27,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 
-const GUIDE_VERSION = "v2.4";
+const GUIDE_VERSION = "v2.5";
 const GUIDE_UPDATED = "octubre de 2026";
 
 const ROLES = {
@@ -230,13 +230,13 @@ const GUIDE_SECTIONS = [
     tone: "purple",
     reports: [
       ["Utilidad", "Capital recuperado primero, interés cobrado, gastos, pérdidas y utilidad estimada o cobrada.", "/dashboard/reportes/utilidad"],
-      ["Cartera", "Saldo activo, mora, capital expuesto, cuotas equivalentes vencidas y créditos para gestionar.", "/dashboard/reportes/cartera"],
+      ["Cartera", "Saldo pendiente, capital por recuperar y clientes por atender. Abre «Cómo interpretarlo» para distinguir saldo completo e importe atrasado. La lista incluye todos los créditos del cliente en la ruta y tiene paginación; los filtros no cambian el resumen. El control de datos se revisa dentro del reporte.", "/dashboard/reportes/cartera"],
       ["Gastos", "Total por periodo, categorías, días con gasto y detalle exportable.", "/dashboard/reportes/gastos"],
       ["Visitas", "Abonos y visitas fallidas de una fecha, con filtros por motivo y trabajador.", "/dashboard/reportes/visitas"],
       ["Comparativo", "Compara dos periodos y muestra variaciones de ventas, gastos, pérdidas y utilidad.", "/dashboard/reportes/comparativo"],
       ["Mapa de Cobros", "Muestra cobros con GPS, no un recorrido continuo. El mapa de entregas se consulta en «Publicidad».", "/dashboard/reportes/ubicaciones"],
     ],
-    note: "Para una fecha puntual usa Visitas o Mapa de Cobros. Para analizar un periodo usa Utilidad, Cartera, Gastos o Comparativo. Las entregas se revisan en Publicidad.",
+    note: "Cartera muestra la situación actual, no reconstruye un período histórico. En diarios, el importe atrasado es una estimación por jornadas registradas; días sin abono es una señal de seguimiento. Riesgo crítico no significa pérdida ni prueba de fraude. Para una fecha usa Visitas o Mapa de Cobros; para resultados de un período usa Utilidad, Gastos o Comparativo. Las entregas se revisan en Publicidad.",
   },
   {
     id: "cliente-riesgo",
