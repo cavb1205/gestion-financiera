@@ -9,6 +9,41 @@ import {
   portfolioCsv,
 } from "../app/dashboard/reportes/cartera/report-model.mjs";
 import { csvDocument } from "../app/utils/rootReports.mjs";
+import { getMontoParaPonerseAlDia } from "../app/utils/cartera.js";
+
+test("importe diario directo evita multiplicar cuotas equivalentes redondeadas", () => {
+  assert.equal(
+    getMontoParaPonerseAlDia(
+      sale(1, {
+        valor_cuota: 18000,
+        dias_atrasados: 0.99,
+        saldo_actual: 89900,
+        importe_atrasado_estimado: 17900,
+      }),
+    ),
+    17900,
+  );
+});
+test("compatibilidad gradual y calendario contractual prevalecen", () => {
+  assert.equal(getMontoParaPonerseAlDia(sale(1)), 5);
+  assert.equal(
+    getMontoParaPonerseAlDia(sale(1, { importe_atrasado_estimado: 0 })),
+    0,
+  );
+  assert.equal(
+    getMontoParaPonerseAlDia(
+      sale(1, {
+        importe_atrasado_estimado: 500,
+        calendario_pago: { importe_vencido: 30 },
+      }),
+    ),
+    30,
+  );
+  assert.equal(
+    getMontoParaPonerseAlDia(sale(1, { importe_atrasado_estimado: 500 })),
+    100,
+  );
+});
 
 const sale = (id, extra = {}) => ({
   id,
@@ -43,6 +78,8 @@ test("rechaza respuestas inválidas sin ocultarlas como cartera vacía", () => {
     [sale(1, { saldo_actual: "NaN" })],
     [sale(1), sale(1)],
     [sale(1, { capital_expuesto: null })],
+    [sale(1, { saldo_actual: false })],
+    [sale(1, { importe_atrasado_estimado: "inválido" })],
   ])
     assert.throws(() => validatePortfolio(data));
 });
@@ -115,6 +152,9 @@ test("auditoría usa total real y verifica ruta y contrato", () => {
     resumen: { casos: 105, monto_a_revisar: 90 },
     casos: Array.from({ length: 100 }, (_, i) => ({
       venta_id: i + 1,
+      titulo: "Caso",
+      detalle: "Detalle",
+      monto_a_revisar: 1,
       tienda: { id: 901 },
     })),
   };

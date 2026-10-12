@@ -115,7 +115,11 @@ function diferenciaCalendario(value) {
   const fecha = parseLocalDate(value);
   if (!fecha) return null;
   const hoy = new Date();
-  const fechaUtc = Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+  const fechaUtc = Date.UTC(
+    fecha.getFullYear(),
+    fecha.getMonth(),
+    fecha.getDate(),
+  );
   const hoyUtc = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
   return Math.max(0, Math.round((hoyUtc - fechaUtc) / 86400000));
 }
@@ -147,19 +151,33 @@ export function formatDiasSinAbono(venta) {
  * `dias_atrasados` es un cálculo de cuotas equivalentes, no días calendario.
  */
 export function getCuotasAtrasadas(venta) {
-  if (venta?.calendario_pago) return Math.max(0, Number(venta.calendario_pago.cuotas_atrasadas) || 0);
+  if (venta?.calendario_pago)
+    return Math.max(0, Number(venta.calendario_pago.cuotas_atrasadas) || 0);
   const atraso = Number(venta?.dias_atrasados);
   const atrasoRegistrado = Number.isFinite(atraso) ? Math.max(0, atraso) : 0;
   const sinPrimerAbono = getTotalAbonado(venta) <= 0;
   const diasSinAbono = getDiasSinAbono(venta);
-  const ciclosSinAbono = sinPrimerAbono && diasSinAbono !== null
-    ? Math.floor(diasSinAbono / getIntervaloCobro(venta))
-    : 0;
+  const ciclosSinAbono =
+    sinPrimerAbono && diasSinAbono !== null
+      ? Math.floor(diasSinAbono / getIntervaloCobro(venta))
+      : 0;
   return Math.max(atrasoRegistrado, ciclosSinAbono);
 }
 
 export function getMontoParaPonerseAlDia(venta) {
-  if (venta?.calendario_pago) return Math.max(0, Number(venta.calendario_pago.importe_vencido) || 0);
+  if (venta?.calendario_pago)
+    return Math.max(0, Number(venta.calendario_pago.importe_vencido) || 0);
+  // Fuente monetaria directa: no multiplicar equivalentes redondeados.
+  const importeEstimado = venta?.importe_atrasado_estimado;
+  if (importeEstimado != null && Number.isFinite(Number(importeEstimado))) {
+    const saldo = Number(venta?.saldo_actual);
+    return Math.round(
+      Math.min(
+        Math.max(0, Number(importeEstimado)),
+        Number.isFinite(saldo) ? Math.max(0, saldo) : Infinity,
+      ),
+    );
+  }
   const cuota = Number(venta?.valor_cuota);
   if (!Number.isFinite(cuota)) return 0;
   const montoCalculado = Math.round(getCuotasAtrasadas(venta) * cuota);
@@ -183,16 +201,16 @@ function getTotalAbonado(venta) {
 function calcularEnMora(venta, diasSinAbono, cuotasAtrasadas) {
   const atrasoOriginal = Number(venta?.dias_atrasados);
   const estado = getEstadoFinanciero(venta);
-  const pagosAdelantados = Number.isFinite(atrasoOriginal)
-    && atrasoOriginal < 0
-    && estado !== "Vencido";
-  const cicloIncumplido = diasSinAbono !== null
-    && diasSinAbono >= getIntervaloCobro(venta);
+  const pagosAdelantados =
+    Number.isFinite(atrasoOriginal) &&
+    atrasoOriginal < 0 &&
+    estado !== "Vencido";
+  const cicloIncumplido =
+    diasSinAbono !== null && diasSinAbono >= getIntervaloCobro(venta);
 
-  return !pagosAdelantados && (
-    estado === "Vencido"
-    || cuotasAtrasadas > 0
-    || cicloIncumplido
+  return (
+    !pagosAdelantados &&
+    (estado === "Vencido" || cuotasAtrasadas > 0 || cicloIncumplido)
   );
 }
 
@@ -216,19 +234,41 @@ export function getRiesgoCartera(venta) {
     const diasMora = Number(calendario.dias_mora) || 0;
     const cuotas = Number(calendario.cuotas_atrasadas) || 0;
     const umbrales = getUmbralesRiesgo(venta);
-    const cerrado = ['Pagado', 'Perdida'].includes(calendario.estado);
-    const critico = !cerrado && (calendario.estado === 'Vencido'
-      || (mora && (cuotas >= 5 || diasMora >= umbrales.critico)));
-    const nivel = cerrado ? 0 : critico ? 3 : mora && cuotas >= 2 ? 2
-      : mora || Number(calendario.importe_pendiente_hoy) > 0 ? 1 : 0;
+    const cerrado = ["Pagado", "Perdida"].includes(calendario.estado);
+    const critico =
+      !cerrado &&
+      (calendario.estado === "Vencido" ||
+        (mora && (cuotas >= 5 || diasMora >= umbrales.critico)));
+    const nivel = cerrado
+      ? 0
+      : critico
+        ? 3
+        : mora && cuotas >= 2
+          ? 2
+          : mora || Number(calendario.importe_pendiente_hoy) > 0
+            ? 1
+            : 0;
     riesgoApi = {
       nivel_cobranza: nivel,
-      clave_cobranza: ['al_dia', 'hoy', 'urgente', 'critico'][nivel],
-      motivo: cerrado ? 'Crédito cerrado' : critico ? 'Atraso crítico'
-        : mora ? 'Cuotas vencidas pendientes'
-          : nivel === 1 ? 'Cuota correspondiente hoy' : 'Sin cuota exigible hoy',
-      nivel_deterioro: !mora ? 0 : diasMora >= umbrales.critico ? 3
-        : diasMora >= umbrales.alto ? 2 : diasMora >= umbrales.atencion ? 1 : 0,
+      clave_cobranza: ["al_dia", "hoy", "urgente", "critico"][nivel],
+      motivo: cerrado
+        ? "Crédito cerrado"
+        : critico
+          ? "Atraso crítico"
+          : mora
+            ? "Cuotas vencidas pendientes"
+            : nivel === 1
+              ? "Cuota correspondiente hoy"
+              : "Sin cuota exigible hoy",
+      nivel_deterioro: !mora
+        ? 0
+        : diasMora >= umbrales.critico
+          ? 3
+          : diasMora >= umbrales.alto
+            ? 2
+            : diasMora >= umbrales.atencion
+              ? 1
+              : 0,
       en_mora: mora,
       dias_sin_abono: getDiasSinAbono(venta),
       cuotas_atrasadas: cuotas,
@@ -236,7 +276,10 @@ export function getRiesgoCartera(venta) {
     };
   }
   if (riesgoApi && Number.isFinite(Number(riesgoApi.nivel_cobranza))) {
-    const nivelCobranza = Math.max(0, Math.min(3, Number(riesgoApi.nivel_cobranza)));
+    const nivelCobranza = Math.max(
+      0,
+      Math.min(3, Number(riesgoApi.nivel_cobranza)),
+    );
     const clave = riesgoApi.clave_cobranza || "al_dia";
     return {
       prioridad: {
@@ -269,9 +312,10 @@ export function getRiesgoCartera(venta) {
   const enMora = calcularEnMora(venta, diasSinAbono, cuotasAtrasadas);
   const sinPrimerAbono = getTotalAbonado(venta) <= 0;
   const cicloIncumplido = diasSinAbono !== null && diasSinAbono >= intervalo;
-  const pagosAdelantados = Number.isFinite(atrasoOriginal)
-    && atrasoOriginal < 0
-    && estado !== "Vencido";
+  const pagosAdelantados =
+    Number.isFinite(atrasoOriginal) &&
+    atrasoOriginal < 0 &&
+    estado !== "Vencido";
 
   let nivelDeterioro = 0;
   if (enMora && diasSinAbono !== null) {
@@ -288,23 +332,20 @@ export function getRiesgoCartera(venta) {
   if (pagosAdelantados) {
     reason = "Pagos adelantados";
   } else if (
-    enMora
-    && (
-      estado === "Vencido"
-      || cuotasAtrasadas >= 5
-      || (diasSinAbono !== null && diasSinAbono >= umbrales.critico)
-    )
+    enMora &&
+    (estado === "Vencido" ||
+      cuotasAtrasadas >= 5 ||
+      (diasSinAbono !== null && diasSinAbono >= umbrales.critico))
   ) {
     rank = 3;
     key = "critico";
     label = "Crítico";
     reason = estado === "Vencido" ? "Crédito vencido" : "Atraso crítico";
   } else if (
-    enMora
-    && (
-      cuotasAtrasadas >= 2
-      || (diasSinAbono !== null && diasSinAbono >= Math.max(intervalo * 2, umbrales.atencion))
-    )
+    enMora &&
+    (cuotasAtrasadas >= 2 ||
+      (diasSinAbono !== null &&
+        diasSinAbono >= Math.max(intervalo * 2, umbrales.atencion)))
   ) {
     rank = 2;
     key = "urgente";
@@ -315,7 +356,10 @@ export function getRiesgoCartera(venta) {
     key = "hoy";
     label = "Gestionar hoy";
     reason = sinPrimerAbono ? "Sin primer abono" : "Ciclo pendiente";
-  } else if (diasSinAbono !== null && diasSinAbono >= Math.max(1, intervalo - 1)) {
+  } else if (
+    diasSinAbono !== null &&
+    diasSinAbono >= Math.max(1, intervalo - 1)
+  ) {
     rank = 0;
     key = "vigilar";
     label = "Vigilar";
@@ -331,9 +375,8 @@ export function getRiesgoCartera(venta) {
     intervalo,
     umbrales,
     plazo: venta?.plazo || "Diario",
-    candidatoCastigo: enMora
-      && diasSinAbono !== null
-      && diasSinAbono >= DIAS_CANDIDATO_CASTIGO,
+    candidatoCastigo:
+      enMora && diasSinAbono !== null && diasSinAbono >= DIAS_CANDIDATO_CASTIGO,
   };
 }
 

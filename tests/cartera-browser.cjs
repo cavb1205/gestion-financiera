@@ -90,7 +90,10 @@ const read = async (path) => (await fetch(api + path)).json();
         await p.goto(base + path);
         await p.waitForLoadState("networkidle");
       };
-      const report = () => goto("/dashboard/reportes/cartera");
+      const report = async () => {
+        await goto("/dashboard/reportes/cartera");
+        await p.getByLabel("Resumen de cartera").waitFor();
+      };
       const summary = p.getByLabel("Resumen de cartera");
       const clients = p.getByLabel("Clientes por atender", { exact: true });
       await report();
@@ -121,7 +124,7 @@ const read = async (path) => (await fetch(api + path)).json();
         .waitFor();
       await p.waitForLoadState("networkidle");
       await p
-        .getByRole('link', { name: /Cliente combinado/ })
+        .getByRole("link", { name: /Cliente combinado/ })
         .first()
         .waitFor();
       const creditIds = await p

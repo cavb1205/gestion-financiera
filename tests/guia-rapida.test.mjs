@@ -77,5 +77,5 @@ test('filtros y navegación mantienen destinos visibles y FAQ accesible', () => 
   assert(source.includes('aria-pressed={roleFilter === role}'));
   assert(source.includes('aria-expanded={showFaq}'));
   assert.equal(new Set(faqs.map(([question]) => question)).size, faqs.length);
-  assert.equal(context.guide.GUIDE_VERSION, 'v2.4');
+  assert.equal(context.guide.GUIDE_VERSION, 'v2.5');
 });

@@ -5,6 +5,11 @@ import {
 } from "../../../utils/cartera.js";
 import { normalizeSearchText } from "../../../utils/text.js";
 
+const validNumber = (value) =>
+  (typeof value === "number" ||
+    (typeof value === "string" && value.trim() !== "")) &&
+  Number.isFinite(Number(value));
+
 export function validatePortfolio(data) {
   if (
     data?.message === "No se han creado ventas" &&
@@ -28,9 +33,16 @@ export function validatePortfolio(data) {
         "total_a_pagar",
         "total_abonado",
         "valor_cuota",
-      ].some(
-        (k) => v[k] === null || v[k] === "" || !Number.isFinite(Number(v[k])),
-      )
+      ].some((k) => !validNumber(v[k])) ||
+      (v.importe_atrasado_estimado != null &&
+        !validNumber(v.importe_atrasado_estimado)) ||
+      (v.riesgo_cartera &&
+        (![
+          v.riesgo_cartera.nivel_cobranza,
+          v.riesgo_cartera.nivel_deterioro,
+        ].every((n) => Number.isInteger(n) && n >= 0 && n <= 3) ||
+          typeof v.riesgo_cartera.en_mora !== "boolean" ||
+          !validNumber(v.riesgo_cartera.cuotas_atrasadas)))
     ) {
       throw new Error(
         "La cartera contiene datos incompletos. No se calcularon totales.",
@@ -50,11 +62,17 @@ export function validateAudit(data, routeId) {
     !Number.isInteger(total) ||
     total < data.casos.length ||
     total < 0 ||
-    data.resumen?.monto_a_revisar == null ||
-    !Number.isFinite(Number(data.resumen.monto_a_revisar)) ||
+    !validNumber(data.resumen?.monto_a_revisar) ||
+    Number(data.resumen.monto_a_revisar) < 0 ||
     (total > 0 && !data.casos.length) ||
     data.casos.some(
-      (c) => !c.venta_id || String(c.tienda?.id) !== String(routeId),
+      (c) =>
+        !c.venta_id ||
+        String(c.tienda?.id) !== String(routeId) ||
+        typeof c.titulo !== "string" ||
+        typeof c.detalle !== "string" ||
+        !validNumber(c.monto_a_revisar) ||
+        Number(c.monto_a_revisar) < 0,
     )
   ) {
     throw new Error("No se pudo validar el control de datos de esta ruta.");
