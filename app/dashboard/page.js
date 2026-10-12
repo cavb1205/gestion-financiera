@@ -28,6 +28,8 @@ import ResumenGeneral from "../components/dashboard/ResumenGeneral";
 import Grafico from "../components/dashboard/Grafico";
 import UltimosMovimientos from "../components/dashboard/UltimosMovimientos";
 import LoadingSpinner from "../components/LoadingSpinner";
+import PendientesRevision from "../components/dashboard/PendientesRevision";
+import { puedeVerAlertas } from "../utils/alertas.mjs";
 import { SkeletonCard } from "../components/Skeleton";
 import { formatMoney, parseLocalDate } from "../utils/format";
 import { getRiesgoCartera } from "../utils/cartera";
@@ -386,6 +388,8 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      {puedeVerAlertas(user) && <PendientesRevision refreshKey={movimientosRefreshKey} />}
 
       {(dashboardError || alertasError) && (
         <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl">
