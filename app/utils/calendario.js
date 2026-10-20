@@ -1,7 +1,7 @@
 // Fechas de vista previa. La API valida y fija el calendario contractual.
 export const CUOTAS_PREDETERMINADAS = { Diario: 20, Semanal: 4, Mensual: 1 };
 
-export function fechasPlanPago(fecha, cuotas, plazo) {
+export function fechasPlanPago(fecha, cuotas, plazo, version = 1) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha || "") || !Number.isInteger(Number(cuotas)) || Number(cuotas) < 1 || Number(cuotas) > 120 || !Object.hasOwn(CUOTAS_PREDETERMINADAS, plazo)) return [];
   const [year, month, day] = fecha.split("-").map(Number);
   const ancla = new Date(Date.UTC(year, month - 1, day));
@@ -9,13 +9,13 @@ export function fechasPlanPago(fecha, cuotas, plazo) {
   return Array.from({ length: Number(cuotas) }, (_, indice) => {
     const numero = indice + 1;
     let vencimiento;
-    if (plazo === "Mensual") {
+    if (plazo === "Mensual" && version === 1) {
       const primerDia = new Date(Date.UTC(year, month - 1 + numero, 1));
       const ultimoDia = new Date(Date.UTC(primerDia.getUTCFullYear(), primerDia.getUTCMonth() + 1, 0)).getUTCDate();
       vencimiento = new Date(Date.UTC(primerDia.getUTCFullYear(), primerDia.getUTCMonth(), Math.min(day, ultimoDia)));
     } else {
       vencimiento = new Date(ancla);
-      vencimiento.setUTCDate(day + numero * (plazo === "Semanal" ? 7 : 1));
+      vencimiento.setUTCDate(day + numero * ({ Diario: 1, Semanal: 7, Mensual: 30 }[plazo]));
     }
     return vencimiento.toISOString().slice(0, 10);
   });

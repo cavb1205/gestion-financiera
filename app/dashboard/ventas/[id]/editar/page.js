@@ -1,21 +1,18 @@
 // app/dashboard/ventas/[id]/editar/page.js
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   FiArrowLeft,
   FiDollarSign,
-  FiCreditCard,
   FiCalendar,
   FiUser,
   FiPercent,
   FiSave,
-  FiAlertCircle,
   FiLock,
   FiActivity,
   FiShield,
-  FiInfo,
 } from "react-icons/fi";
 import { useAuth } from "../../../../context/AuthContext";
 import { apiFetch, getApiError } from "../../../../utils/api";
@@ -24,18 +21,24 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-toastify";
 import { formatMoney, calcularTotal, calcularCuota } from "../../../../utils/format";
+import { cambiarModalidad, validarEdicion } from "../../../../utils/edicionCredito.mjs";
+import PlanEdicionCredito from "./PlanEdicionCredito";
 
 export default function EditarVentaPage() {
   const router = useRouter();
   const params = useParams();
   const ventaId = params.id;
   const { selectedStore, isAuthenticated, loading, user } = useAuth();
+  const rutaId = selectedStore?.tienda?.id;
+  const esAdministrador = Boolean(user?.is_staff || user?.is_superuser);
+  const solicitudActual = useRef(0);
 
   const [formData, setFormData] = useState({
     fecha_venta: new Date(),
     valor_venta: "",
     interes: 0,
     cuotas: 0,
+    plazo: "Diario",
     comentario: "",
     cliente: ""
   });
@@ -46,26 +49,24 @@ export default function EditarVentaPage() {
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [hasPagos, setHasPagos] = useState(false);
   const [motivoCorreccion, setMotivoCorreccion] = useState("");
-
-  useEffect(() => {
-    if (!loading && isAuthenticated && selectedStore) {
-      fetchVenta();
-    }
-  }, [loading, isAuthenticated, selectedStore]);
+  const [ventaOriginal, setVentaOriginal] = useState(null);
 
   useEffect(() => {
     if (!loading && (!isAuthenticated || !selectedStore)) {
       router.push("/select-store");
     }
-    const isWorker = !(user?.is_staff || user?.is_superuser);
-    if (!loading && isAuthenticated && isWorker) {
+    if (!loading && isAuthenticated && !esAdministrador) {
       router.push("/dashboard/ventas");
     }
-  }, [loading, isAuthenticated, selectedStore, user, router]);
+  }, [loading, isAuthenticated, selectedStore, esAdministrador, router]);
 
-  const fetchVenta = async () => {
+  const fetchVenta = useCallback(async () => {
+    const solicitud = ++solicitudActual.current;
     try {
       setIsLoading(true);
+      setError("");
+      setVentaOriginal(null);
+      setMotivoCorreccion("");
       const [response, pagosResponse] = await Promise.all([
         apiFetch(`/ventas/${ventaId}/`),
         apiFetch(`/recaudos/list/${ventaId}/paginado/?page=1&page_size=1&filtro=todos`),
@@ -76,7 +77,10 @@ export default function EditarVentaPage() {
       const ventaData = await response.json();
 
       const pagosData = await pagosResponse.json();
-      setHasPagos(Number(pagosData?.count) > 0);
+      const tieneMovimientos = validarEdicion(ventaData, pagosData, rutaId, ventaId);
+      if (solicitud !== solicitudActual.current) return;
+      setHasPagos(tieneMovimientos);
+      setVentaOriginal(ventaData);
       
       const fechaVenta = new Date(ventaData.fecha_venta);
       const offset = fechaVenta.getTimezoneOffset() * 60000;
@@ -87,17 +91,27 @@ export default function EditarVentaPage() {
         valor_venta: ventaData.valor_venta,
         interes: ventaData.interes,
         cuotas: ventaData.cuotas,
+        plazo: ventaData.plazo,
         comentario: ventaData.comentario || "",
         cliente: ventaData.cliente.id
       });
       
       setClienteSeleccionado(ventaData.cliente);
-      setIsLoading(false);
     } catch (err) {
-      setError(err.message);
-      setIsLoading(false);
+      if (solicitud === solicitudActual.current) setError(err.message);
+    } finally {
+      if (solicitud === solicitudActual.current) setIsLoading(false);
     }
-  };
+  }, [ventaId, rutaId]);
+
+  useEffect(() => {
+    if (!loading && isAuthenticated && rutaId && esAdministrador) void fetchVenta();
+    return () => { solicitudActual.current += 1; };
+  }, [loading, isAuthenticated, rutaId, esAdministrador, fetchVenta]);
+
+  const rutaCorrecta = ventaOriginal && String(ventaOriginal.tienda) === String(rutaId);
+  const modalidadBloqueada = hasPagos || ['Pagado', 'Perdida'].includes(ventaOriginal?.estado_venta)
+    || Boolean(ventaOriginal?.origen_renovacion_id || ventaOriginal?.fue_renovada);
 
   const calcularTotalAPagar = () => {
     return calcularTotal(formData.valor_venta, formData.interes);
@@ -120,8 +134,13 @@ export default function EditarVentaPage() {
     setError("");
 
     try {
-      if (!formData.fecha_venta || !formData.cuotas || parseInt(formData.cuotas, 10) < 1) {
-        throw new Error("Indica una fecha y un número de cuotas válido.");
+      if (!rutaCorrecta || !esAdministrador) throw new Error("Abre la ruta del crédito antes de editarlo.");
+      if (!(formData.fecha_venta instanceof Date) || !Number.isFinite(formData.fecha_venta.getTime())
+          || !Number.isInteger(Number(formData.cuotas)) || Number(formData.cuotas) < 1 || Number(formData.cuotas) > 120) {
+        throw new Error("Indica una fecha y un número entero de cuotas entre 1 y 120.");
+      }
+      if (modalidadBloqueada && formData.plazo !== ventaOriginal.plazo) {
+        throw new Error("Este crédito no permite cambiar la modalidad de pago.");
       }
 
       let response;
@@ -143,6 +162,7 @@ export default function EditarVentaPage() {
           valor_venta: parseFloat(formData.valor_venta),
           interes: parseFloat(formData.interes),
           cuotas: parseInt(formData.cuotas, 10),
+          plazo: formData.plazo,
           comentario: formData.comentario,
           tienda: selectedStore.tienda.id,
         };
@@ -167,7 +187,7 @@ export default function EditarVentaPage() {
     }
   };
 
-  if (loading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
+  if (loading || !isAuthenticated || !selectedStore || !esAdministrador) return <LoadingSpinner />;
 
   if (isLoading) {
     return (
@@ -177,6 +197,14 @@ export default function EditarVentaPage() {
       </div>
     );
   }
+
+  if (!rutaCorrecta) return (
+    <div role="alert" className="mx-auto max-w-xl rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+      <h1 className="font-semibold">No se puede editar este crédito</h1>
+      <p className="mt-2 text-sm">{error || 'Selecciona la ruta a la que pertenece el crédito.'}</p>
+      <button type="button" onClick={fetchVenta} className="mt-4 rounded-lg border border-amber-400 px-4 py-2 text-sm font-semibold">Volver a cargar</button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-transparent pb-20 md:pb-12">
@@ -205,7 +233,7 @@ export default function EditarVentaPage() {
              <div>
                 <h3 className="text-sm font-black text-amber-900 dark:text-amber-400 uppercase tracking-tight mb-1">Bloqueo de Seguridad</h3>
                 <p className="text-[10px] font-bold text-amber-700/70 dark:text-amber-500/80 leading-relaxed uppercase tracking-widest">
-                  Esta venta tiene recaudos. Un administrador puede corregir únicamente la fecha y las cuotas; el saldo, capital, tasa y pagos quedan intactos. El motivo es obligatorio.
+                  Esta venta tiene abonos o visitas registradas. Puedes corregir únicamente la fecha y la cantidad de cuotas, con un motivo obligatorio. La modalidad, el saldo, capital, tasa y pagos quedan intactos.
                 </p>
              </div>
           </div>
@@ -327,6 +355,10 @@ export default function EditarVentaPage() {
                               <input
                                 id="cuotas"
                                 type="number"
+                                min="1"
+                                max="120"
+                                step="1"
+                                required
                                 value={formData.cuotas}
                                 onChange={(e) => setFormData({ ...formData, cuotas: e.target.value })}
                                 onWheel={(e) => e.target.blur()}
@@ -335,7 +367,26 @@ export default function EditarVentaPage() {
                             </div>
                          </div>
                       </div>
+                      <div className="space-y-2">
+                        <label htmlFor="plazo" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Modalidad de pago</label>
+                        <select id="plazo" value={formData.plazo} disabled={modalidadBloqueada || isSubmitting}
+                          aria-describedby="ayuda-modalidad"
+                          onChange={(event) => setFormData(actual => cambiarModalidad(actual, event.target.value))}
+                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3.5 text-sm font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                          <option value="Diario">Diario</option>
+                          <option value="Semanal">Semanal · cada 7 días</option>
+                          <option value="Mensual">Mensual · cada mes</option>
+                        </select>
+                        <p id="ayuda-modalidad" className="text-xs leading-relaxed text-slate-500">
+                          {modalidadBloqueada ? 'La modalidad no se puede cambiar en créditos con movimientos, cerrados o relacionados con renovaciones.'
+                            : 'Al cambiar se proponen 20 cuotas diarias, 4 semanales o 1 mensual. Puedes ajustar la cantidad antes de guardar. No cambia el capital ni la tasa.'}
+                        </p>
+                      </div>
                    </div>
+                   <PlanEdicionCredito original={ventaOriginal}
+                     fecha={formData.fecha_venta instanceof Date && Number.isFinite(formData.fecha_venta.getTime()) ? adjustDateToUTC(formData.fecha_venta) : ''}
+                     plazo={formData.plazo} cuotas={formData.cuotas}
+                     total={calcularTotalAPagar()} cuota={calcularValorCuota()} />
 
                    {hasPagos && (
                      <div className="space-y-2">
@@ -374,7 +425,7 @@ export default function EditarVentaPage() {
                 <div className="flex flex-col md:flex-row items-center justify-end gap-3 max-w-7xl mx-auto">
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !rutaCorrecta}
                     className="w-full md:flex-1 flex items-center justify-center gap-3 py-4.5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 dark:shadow-none active:scale-95 transition-all disabled:opacity-50 order-1 md:order-2"
                   >
                     {isSubmitting ? (
