@@ -42,7 +42,7 @@ import FechaLiquidacion from "./FechaLiquidacion";
 import { buildWhatsAppEstadoCuenta } from "../../utils/whatsapp";
 import OrganizadorRecorrido from "./OrganizadorRecorrido";
 import { ordenarCreditosRecorrido } from "../../utils/recorrido";
-import { leerLiquidacion } from "../../utils/liquidacion";
+import { leerLiquidacion, separarGestiones, etiquetaFalla } from "../../utils/liquidacion";
 
 function formatDiasSinAbono(credito) {
    return formatDiasSinAbonoBase(credito);
@@ -75,6 +75,7 @@ export default function LiquidarCreditosPage() {
    const [currentPage, setCurrentPage] = useState(1);
    const [itemsPerPage] = useState(10);
    const [searchTerm, setSearchTerm] = useState("");
+   const [vistaGestion, setVistaGestion] = useState('pendientes');
    const router = useRouter();
    const hoy = getAppDateString(0, new Date(), selectedStore?.tienda?.zona_horaria);
    const vistaPrevia = selectedDate > hoy;
@@ -174,7 +175,7 @@ export default function LiquidarCreditosPage() {
          };
 
          const [creditosData, recaudosData, tiendaData] = await Promise.all([
-            fetchJson(`/ventas/activas/liquidar/${selectedDate}/t/${tiendaId}/?resumen=1${vistaPrevia ? '&vista=previa' : ''}`),
+            fetchJson(`/ventas/activas/liquidar/${selectedDate}/t/${tiendaId}/?resumen=1&incluir_gestionados=1${vistaPrevia ? '&vista=previa' : ''}`),
             vistaPrevia ? Promise.resolve([]) : fetchJson(`/recaudos/list/${selectedDate}/t/${tiendaId}/?vista=lista`),
             vistaPrevia ? Promise.resolve(null) : fetchJson(`/tiendas/detail/admin/${tiendaId}/`),
          ]);
@@ -220,15 +221,17 @@ export default function LiquidarCreditosPage() {
          const fullName = `${c.cliente?.nombres ?? ''} ${c.cliente?.apellidos ?? ''}`.toLowerCase();
          return fullName.includes(filtroCliente);
    });
+   const gruposGestion = separarGestiones(filteredCreditos);
+   const creditosVista = vistaPrevia ? filteredCreditos : gruposGestion[vistaGestion];
    useEffect(() => {
       setCurrentPage(1);
-   }, [searchTerm, tiendaId, selectedDate]);
+   }, [searchTerm, tiendaId, selectedDate, vistaGestion]);
+   useEffect(() => { setVistaGestion('pendientes'); }, [tiendaId, selectedDate]);
 
    // Paginación
-   const indexOfLastItem = currentPage * itemsPerPage;
-   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-   const totalPages = Math.ceil(filteredCreditos.length / itemsPerPage);
-   const currentItems = filteredCreditos.slice(indexOfFirstItem, indexOfLastItem);
+   const totalPages = Math.ceil(creditosVista.length / itemsPerPage);
+   const paginaVisible = Math.min(currentPage, Math.max(totalPages, 1));
+   const currentItems = creditosVista.slice((paginaVisible - 1) * itemsPerPage, paginaVisible * itemsPerPage);
 
    const getStatusBadge = (estado) => {
       switch (estado) {
@@ -291,7 +294,7 @@ export default function LiquidarCreditosPage() {
    const handleReportarFalla = (credito) => {
       if (!puedeRegistrar) return;
       if (!permiteFalla(credito)) {
-         toast.info("No hay una cuota exigible pendiente: este cobro es voluntario.");
+         toast.info(etiquetaFalla(credito, vistaPrevia));
          return;
       }
       const noPago = {
@@ -464,7 +467,7 @@ export default function LiquidarCreditosPage() {
                         {formatMoney(totalPendientes)}
                      </p>
                      <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">{vistaPrevia ? "Pendiente proyectado" : "Pendiente por cobrar"}</p>
-                     <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400" title="Deuda exigible de los clientes de la consulta; en semanal y mensual incluye atrasos anteriores. Puede diferir de las cuotas correspondientes a esta fecha. El filtro solo modifica este indicador.">{filtroCliente ? "Solo clientes del filtro" : "Toda la ruta"}</p>
+                     <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400" title="Deuda exigible de los clientes de la consulta, incluidos los ya gestionados; en semanal y mensual incluye atrasos anteriores. Cambiar de vista no reduce la deuda. El filtro de cliente solo modifica este indicador.">{filtroCliente ? "Solo clientes del filtro" : "Toda la ruta · incluye gestionados"}</p>
                   </div>
                </div>
 
@@ -514,11 +517,27 @@ export default function LiquidarCreditosPage() {
                      <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center gap-4">
                         <FiFilter className="text-slate-400" />
                         <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                           {filteredCreditos.length} Resultados
+                           {creditosVista.length} Resultados
                         </span>
                      </div>
                   </div>
                </div>
+
+               {!vistaPrevia && (
+                  <div role="group" aria-label="Estado del recorrido" className="flex gap-2 px-4 py-3 md:px-8 border-b border-slate-100 dark:border-slate-800">
+                     {[
+                        ['pendientes', 'Por gestionar', gruposGestion.pendientes.length],
+                        ['gestionados', 'Gestionados', gruposGestion.gestionados.length],
+                     ].map(([valor, nombre, cantidad]) => (
+                        <button key={valor} type="button" aria-pressed={vistaGestion === valor}
+                           onClick={() => setVistaGestion(valor)}
+                           title={valor === 'gestionados' ? 'Visitas o abonos registrados en esta fecha. Puedes añadir otro abono.' : 'Clientes aún sin registro en esta fecha; incluye cobros voluntarios.'}
+                           className={`flex-1 md:flex-none rounded-xl px-4 py-3 text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${vistaGestion === valor ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
+                           {nombre} <span className="ml-1 tabular-nums">{cantidad}</span>
+                        </button>
+                     ))}
+                  </div>
+               )}
 
                {/* Desktop Table */}
                <div className="hidden md:block overflow-x-auto min-h-[400px]">
@@ -527,13 +546,13 @@ export default function LiquidarCreditosPage() {
                         <LoadingSpinner />
                         <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Sincronizando datos</p>
                      </div>
-                  ) : filteredCreditos.length === 0 ? (
+                  ) : creditosVista.length === 0 ? (
                      <div className="flex flex-col items-center justify-center py-24 px-10 text-center">
                         <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center mb-6 text-slate-300">
                            <FiSearch size={40} />
                         </div>
                         <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Sin Registros</h3>
-                        <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-tighter">No hay créditos pendientes para el periodo {selectedDate}</p>
+                        <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-tighter">{filtroCliente ? 'No hay coincidencias en esta vista.' : vistaPrevia ? `No hay créditos previstos para ${selectedDate}.` : vistaGestion === 'gestionados' ? 'No hay créditos activos gestionados en esta fecha.' : 'No hay clientes por gestionar en esta fecha.'}</p>
                      </div>
                   ) : (
                      <table className="w-full table-fixed border-collapse">
@@ -673,9 +692,9 @@ export default function LiquidarCreditosPage() {
                                           <button
                                              onClick={() => handleReportarFalla(credito)}
                                              disabled={!puedeRegistrar || !permiteFalla(credito)}
-                                             aria-label={vistaPrevia ? "Vista previa: falla no permitida" : permiteFalla(credito) ? "Reportar falla" : "Sin cuota exigible: falla no permitida"}
+                                             aria-label={etiquetaFalla(credito, vistaPrevia)}
                                              className="p-2.5 bg-white dark:bg-slate-800 text-slate-400 rounded-lg hover:text-rose-600 hover:shadow-lg transition-all border border-slate-100 dark:border-slate-700"
-                                             title="Reportar Falla"
+                                             title={etiquetaFalla(credito, vistaPrevia)}
                                           >
                                              <FiX size={15} />
                                           </button>
@@ -702,10 +721,10 @@ export default function LiquidarCreditosPage() {
                      <div className="flex flex-col items-center justify-center py-20">
                         <LoadingSpinner />
                      </div>
-                  ) : filteredCreditos.length === 0 ? (
+                  ) : creditosVista.length === 0 ? (
                      <div className="glass p-6 md:p-10 text-center rounded-[1.5rem] md:rounded-[2rem]">
                         <FiSearch size={30} className="mx-auto text-slate-300 mb-4" />
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sin Pendientes</p>
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{filtroCliente ? 'Sin coincidencias en esta vista' : vistaGestion === 'gestionados' ? 'Sin créditos activos gestionados' : 'Sin clientes por gestionar'}</p>
                      </div>
                   ) : (
                      currentItems.map((credito) => {
@@ -829,9 +848,9 @@ export default function LiquidarCreditosPage() {
                                  <button
                                     onClick={() => handleReportarFalla(credito)}
                                     disabled={!puedeRegistrar || !permiteFalla(credito)}
-                                    aria-label={vistaPrevia ? "Vista previa: falla no permitida" : permiteFalla(credito) ? "Reportar falla" : "Sin cuota exigible: falla no permitida"}
+                                    aria-label={etiquetaFalla(credito, vistaPrevia)}
                                     className="p-4 bg-white dark:bg-slate-900 text-slate-400 rounded-xl border border-slate-200 dark:border-slate-800 active:scale-90 transition-all shadow-sm"
-                                    title="Reportar Falla"
+                                    title={etiquetaFalla(credito, vistaPrevia)}
                                  >
                                     <FiX size={18} />
                                  </button>
@@ -850,10 +869,10 @@ export default function LiquidarCreditosPage() {
                </div>
 
                <Pagination
-                  currentPage={currentPage}
+                  currentPage={paginaVisible}
                   totalPages={totalPages}
                   onPageChange={setCurrentPage}
-                  totalItems={filteredCreditos.length}
+                  totalItems={creditosVista.length}
                   itemsPerPage={itemsPerPage}
                />
             </div>

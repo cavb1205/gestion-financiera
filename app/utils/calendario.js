@@ -22,10 +22,14 @@ export function fechasPlanPago(fecha, cuotas, plazo, version = 1) {
 }
 
 export function permiteFalla(credito) {
+  if (credito.falla_registrada_hoy === true || credito.calendario_pago?.falla_registrada_hoy === true) return false;
   return credito.calendario_pago ? credito.calendario_pago.permite_falla === true : true;
 }
 
 export function montoPendienteHoy(credito) {
+  const jornada = credito.importe_pendiente_jornada;
+  if ((typeof jornada === 'number' || (typeof jornada === 'string' && jornada.trim() !== ''))
+      && Number.isFinite(Number(jornada)) && Number(jornada) >= 0) return Number(jornada);
   return credito.calendario_pago ? Number(credito.calendario_pago.importe_pendiente_hoy) || 0 : Number(credito.valor_cuota) || 0;
 }
 

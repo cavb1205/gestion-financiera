@@ -12,3 +12,22 @@ export function leerLiquidacion(data, fechaConsulta, vistaPrevia) {
   }
   return { creditos: data.creditos, totalACobrar: total };
 }
+
+// La gestión es un estado del recorrido, no una cancelación de deuda.
+export function gestionadoEnFecha(credito) {
+  return credito.gestionado_hoy === true || credito.calendario_pago?.gestionado_hoy === true;
+}
+
+export function separarGestiones(creditos) {
+  return creditos.reduce((grupos, credito) => {
+    grupos[gestionadoEnFecha(credito) ? 'gestionados' : 'pendientes'].push(credito);
+    return grupos;
+  }, { pendientes: [], gestionados: [] });
+}
+
+export function etiquetaFalla(credito, vistaPrevia) {
+  if (vistaPrevia) return 'Vista previa: falla no permitida';
+  if (credito.falla_registrada_hoy || credito.calendario_pago?.falla_registrada_hoy) return 'Falla ya registrada en esta fecha';
+  if (credito.calendario_pago?.permite_falla === false) return 'Sin cuota exigible: falla no permitida';
+  return 'Reportar falla';
+}
