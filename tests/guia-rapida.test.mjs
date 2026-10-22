@@ -36,7 +36,9 @@ test('documenta calendario nuevo sin convertir contratos históricos', () => {
 
 test('no confunde anticipos, deuda exigible, totales y consulta futura', () => {
   assert.match(text(byId('jornada')), /cobro voluntario/);
-  assert.match(text(byId('jornada')), /Agregar pago/);
+  assert.match(text(byId('jornada')), /Registrar Abono/);
+  assert.match(text(byId('jornada')), /«Recaudos», desde el menú/);
+  assert.match(text(byId('jornada')), /sale de Liquidación para esa fecha/);
   assert.doesNotMatch(text(byId('jornada')), /desaparece de la lista/);
   const indicators = text(byId('indicadores-liquidar'));
   assert.match(indicators, /solo las cuotas correspondientes a la fecha seleccionada/);
@@ -77,5 +79,5 @@ test('filtros y navegación mantienen destinos visibles y FAQ accesible', () => 
   assert(source.includes('aria-pressed={roleFilter === role}'));
   assert(source.includes('aria-expanded={showFaq}'));
   assert.equal(new Set(faqs.map(([question]) => question)).size, faqs.length);
-  assert.equal(context.guide.GUIDE_VERSION, 'v2.5');
+  assert.equal(context.guide.GUIDE_VERSION, 'v2.6');
 });

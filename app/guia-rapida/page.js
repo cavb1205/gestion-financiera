@@ -27,7 +27,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 
-const GUIDE_VERSION = "v2.5";
+const GUIDE_VERSION = "v2.6";
 const GUIDE_UPDATED = "octubre de 2026";
 
 const ROLES = {
@@ -97,8 +97,8 @@ const GUIDE_SECTIONS = [
       "Si paga, pulsa «Abonar Cuota» y registra el dinero realmente recibido. Se permiten abonos parciales, dobles o superiores a una cuota, sin superar el saldo.",
       "En un semanal o mensual sin cuota exigible ni anticipos no es necesario registrar una falla. Cuando tiene anticipos y saldo pendiente puede aparecer como «Adelantado · cobro voluntario»; no exige otro pago ni permite una falla injustificada.",
       "Si tiene una obligación pendiente y no paga o no lo encuentras, registra la incidencia correspondiente. Una visita reduce la tarea de gestión, pero no elimina la deuda.",
-      "Un abono no siempre hace desaparecer el crédito: los semanales y mensuales pueden permanecer para otro cobro voluntario. Revisa la etiqueta, el saldo y la próxima cuota, no solo si aparece en la lista.",
-      "Para un anticipo fuera del recorrido, abre el detalle del crédito y usa «Agregar pago». El movimiento queda con la fecha registrada; comprueba monto y fecha antes de confirmar.",
+      "Después de registrar un abono o falla, el crédito sale de Liquidación para esa fecha. Consulta lo registrado en «Recaudos», desde el menú. Si luego paga otra vez, abre el detalle del crédito y usa «Registrar Abono». La deuda no desaparece por registrar una visita.",
+      "Para un anticipo fuera del recorrido, abre el detalle del crédito y usa «Registrar Abono». El movimiento queda con la fecha registrada; comprueba monto y fecha antes de confirmar.",
       "Usa WhatsApp para preparar el estado de cuenta y enviarlo desde tu cuenta. También está disponible en la proyección futura si el cliente tiene un teléfono válido; abrir WhatsApp no registra un pago ni envía el mensaje por sí solo.",
       "Registra los gastos reales de la jornada en «Control Gastos», con monto, fecha y concepto, antes de revisar el cierre. Un gasto no es un abono del cliente ni un retiro de utilidad.",
       "Al terminar, entra a «Cierre de Caja» y registra el cierre calculado por el sistema.",
@@ -293,7 +293,7 @@ const GUIDE_SECTIONS = [
     tone: "emerald",
     steps: [
       "«Total a cobrar del día» suma solo las cuotas correspondientes a la fecha seleccionada de toda la ruta, antes de los abonos de ese día. No suma deuda atrasada de otras fechas ni cobros voluntarios; descuenta los anticipos anteriores que ya cubren la cuota. Los pagos del día, las fallas y los filtros no cambian esta base, incluso si un crédito se termina de pagar y deja de aparecer.",
-      "«Pendiente por cobrar» es lo exigible que sigue sin pagar y puede incluir deuda atrasada. Si buscas un cliente, suma solo las coincidencias en todas las páginas; al quitar el filtro vuelve a mostrar la ruta completa.",
+      "«Pendiente por cobrar» es lo exigible que sigue sin pagar y puede incluir deuda atrasada, incluso de clientes que ya tienen abono o falla y salieron de la lista. Si buscas un cliente, suma solo las coincidencias en todas las páginas; al quitar el filtro vuelve a mostrar la ruta completa.",
       "«Total cobrado del día» muestra los abonos reales de la ruta para esa fecha, sin asientos de renovación. Puede superar las cuotas del día si se reciben anticipos o se recupera deuda anterior.",
       "Una falla o visita no es un cobro: la deuda pendiente continúa aunque la gestión ya esté registrada. Tampoco confundas estos totales con la caja disponible o la utilidad.",
       "Como administrador, una fecha futura abre una proyección que supone que no habrá nuevos pagos desde hoy. Puedes consultar y preparar WhatsApp, pero no abonar, registrar fallas ni editar el recorrido en esa vista.",
@@ -405,7 +405,7 @@ const FAQS = [
   ["¿Debo crear otro usuario para cada ruta?", "No. Desde la ruta de destino, un administrador puede asignar a un trabajador existente de otra ruta propia. Se conserva su cuenta y contraseña; al entrar, el trabajador elige qué ruta operar cuando tiene más de una asignada."],
   ["El trabajador no ve una ruta que debería tener", "Confirma que la ruta de destino esté activa y que el trabajador pertenezca a una ruta del mismo administrador. En la ruta de destino, abre «Trabajadores» y asígnalo con «Asignar trabajador existente». Si ya aparece en la lista, ya tiene acceso."],
   ["¿El botón «Salir» quita las rutas asignadas?", "No. «Salir» cierra la sesión del trabajador. Para retirar su acceso a una ruta, el administrador debe usar «Quitar ruta» desde «Trabajadores» en esa ruta; sus otras asignaciones permanecen."],
-  ["No veo al cliente en Liquidación", "Confirma ruta, fecha y búsqueda. Un semanal o mensual sin cuota exigible ni anticipos no tiene que aparecer antes de su fecha; un crédito totalmente pagado o en pérdida tampoco aparece. Consulta el detalle del crédito para comprobar calendario y saldo."],
+  ["No veo al cliente en Liquidación", "Confirma ruta, fecha y búsqueda. Si ya registraste un abono o falla en esa fecha, revisa «Recaudos» desde el menú; puedes añadir otro pago desde el detalle del crédito. Un semanal o mensual sin cuota exigible ni anticipos no tiene que aparecer antes de su fecha; un crédito totalmente pagado o en pérdida tampoco aparece. Consulta el detalle para comprobar calendario y saldo."],
   ["El cliente adelantó pagos, ¿debo ponerle falla?", "No, si no tiene una obligación exigible pendiente. La etiqueta «Adelantado · cobro voluntario» permite recibir otro abono, pero no exige pago ni falla para completar la gestión del día."],
   ["Busco un cliente y el total del día no cambia", "Es correcto. «Total a cobrar del día» y «Total cobrado del día» no responden a la búsqueda; «Pendiente por cobrar» sí suma únicamente los clientes del filtro, incluso si ocupan varias páginas. El total a cobrar es la base de cuotas de la fecha, antes de sus abonos; no se calcula sumando cobrado y pendiente."],
   ["Mañana no me deja abonar, ¿es un error?", "No. Para administradores, una fecha futura es una proyección de solo lectura. Puedes preparar el estado de cuenta por WhatsApp, pero pagos, fallas y edición del recorrido requieren una fecha de operación permitida."],

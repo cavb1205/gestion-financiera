@@ -42,7 +42,7 @@ import FechaLiquidacion from "./FechaLiquidacion";
 import { buildWhatsAppEstadoCuenta } from "../../utils/whatsapp";
 import OrganizadorRecorrido from "./OrganizadorRecorrido";
 import { ordenarCreditosRecorrido } from "../../utils/recorrido";
-import { leerLiquidacion, separarGestiones, etiquetaFalla } from "../../utils/liquidacion";
+import { leerLiquidacion, creditosParaLiquidar, etiquetaFalla } from "../../utils/liquidacion";
 
 function formatDiasSinAbono(credito) {
    return formatDiasSinAbonoBase(credito);
@@ -75,7 +75,6 @@ export default function LiquidarCreditosPage() {
    const [currentPage, setCurrentPage] = useState(1);
    const [itemsPerPage] = useState(10);
    const [searchTerm, setSearchTerm] = useState("");
-   const [vistaGestion, setVistaGestion] = useState('pendientes');
    const router = useRouter();
    const hoy = getAppDateString(0, new Date(), selectedStore?.tienda?.zona_horaria);
    const vistaPrevia = selectedDate > hoy;
@@ -221,12 +220,10 @@ export default function LiquidarCreditosPage() {
          const fullName = `${c.cliente?.nombres ?? ''} ${c.cliente?.apellidos ?? ''}`.toLowerCase();
          return fullName.includes(filtroCliente);
    });
-   const gruposGestion = separarGestiones(filteredCreditos);
-   const creditosVista = vistaPrevia ? filteredCreditos : gruposGestion[vistaGestion];
+   const creditosVista = creditosParaLiquidar(filteredCreditos, vistaPrevia);
    useEffect(() => {
       setCurrentPage(1);
-   }, [searchTerm, tiendaId, selectedDate, vistaGestion]);
-   useEffect(() => { setVistaGestion('pendientes'); }, [tiendaId, selectedDate]);
+   }, [searchTerm, tiendaId, selectedDate]);
 
    // Paginación
    const totalPages = Math.ceil(creditosVista.length / itemsPerPage);
@@ -467,7 +464,7 @@ export default function LiquidarCreditosPage() {
                         {formatMoney(totalPendientes)}
                      </p>
                      <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">{vistaPrevia ? "Pendiente proyectado" : "Pendiente por cobrar"}</p>
-                     <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400" title="Deuda exigible de los clientes de la consulta, incluidos los ya gestionados; en semanal y mensual incluye atrasos anteriores. Cambiar de vista no reduce la deuda. El filtro de cliente solo modifica este indicador.">{filtroCliente ? "Solo clientes del filtro" : "Toda la ruta · incluye gestionados"}</p>
+                     <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400" title="Deuda exigible de los clientes de la consulta, también de quienes ya tienen abono o falla en esta fecha. Registrar una visita no reduce la deuda. En semanal y mensual incluye atrasos anteriores. La búsqueda de cliente sí modifica este indicador.">{filtroCliente ? "Solo clientes del filtro" : "Toda la ruta"}</p>
                   </div>
                </div>
 
@@ -523,22 +520,6 @@ export default function LiquidarCreditosPage() {
                   </div>
                </div>
 
-               {!vistaPrevia && (
-                  <div role="group" aria-label="Estado del recorrido" className="flex gap-2 px-4 py-3 md:px-8 border-b border-slate-100 dark:border-slate-800">
-                     {[
-                        ['pendientes', 'Por gestionar', gruposGestion.pendientes.length],
-                        ['gestionados', 'Gestionados', gruposGestion.gestionados.length],
-                     ].map(([valor, nombre, cantidad]) => (
-                        <button key={valor} type="button" aria-pressed={vistaGestion === valor}
-                           onClick={() => setVistaGestion(valor)}
-                           title={valor === 'gestionados' ? 'Visitas o abonos registrados en esta fecha. Puedes añadir otro abono.' : 'Clientes aún sin registro en esta fecha; incluye cobros voluntarios.'}
-                           className={`flex-1 md:flex-none rounded-xl px-4 py-3 text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${vistaGestion === valor ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
-                           {nombre} <span className="ml-1 tabular-nums">{cantidad}</span>
-                        </button>
-                     ))}
-                  </div>
-               )}
-
                {/* Desktop Table */}
                <div className="hidden md:block overflow-x-auto min-h-[400px]">
                   {loading ? (
@@ -551,8 +532,8 @@ export default function LiquidarCreditosPage() {
                         <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center mb-6 text-slate-300">
                            <FiSearch size={40} />
                         </div>
-                        <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Sin Registros</h3>
-                        <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-tighter">{filtroCliente ? 'No hay coincidencias en esta vista.' : vistaPrevia ? `No hay créditos previstos para ${selectedDate}.` : vistaGestion === 'gestionados' ? 'No hay créditos activos gestionados en esta fecha.' : 'No hay clientes por gestionar en esta fecha.'}</p>
+                        <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">{filtroCliente ? 'Sin coincidencias' : vistaPrevia ? 'Sin créditos previstos' : 'Sin clientes por registrar'}</h3>
+                        <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-tighter">{filtroCliente ? 'No hay coincidencias en esta lista.' : vistaPrevia ? `No hay créditos previstos para ${selectedDate}.` : `No hay clientes pendientes de registro en esta lista para ${selectedDate}.`}</p>
                      </div>
                   ) : (
                      <table className="w-full table-fixed border-collapse">
@@ -724,7 +705,7 @@ export default function LiquidarCreditosPage() {
                   ) : creditosVista.length === 0 ? (
                      <div className="glass p-6 md:p-10 text-center rounded-[1.5rem] md:rounded-[2rem]">
                         <FiSearch size={30} className="mx-auto text-slate-300 mb-4" />
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{filtroCliente ? 'Sin coincidencias en esta vista' : vistaGestion === 'gestionados' ? 'Sin créditos activos gestionados' : 'Sin clientes por gestionar'}</p>
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{filtroCliente ? 'Sin coincidencias en esta lista' : vistaPrevia ? 'Sin créditos previstos' : 'Sin clientes por registrar'}</p>
                      </div>
                   ) : (
                      currentItems.map((credito) => {

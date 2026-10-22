@@ -12,3 +12,11 @@ test('Liquidar pide y usa la base contractual, no pendiente + cobrado', () => {
   assert.match(source, /resumirLiquidacion\(filteredCreditos\)\.importePendiente/);
   assert.doesNotMatch(source, /Los anticipos siguen visibles/);
 });
+
+test('Liquidar mantiene una sola lista y no duplica el acceso a Recaudos', () => {
+  const source = readFileSync(new URL('../app/dashboard/liquidar/page.js', import.meta.url), 'utf8');
+  assert.match(source, /creditosParaLiquidar\(filteredCreditos, vistaPrevia\)/);
+  assert.doesNotMatch(source, /vistaGestion|Estado del recorrido|Gestionados|Ver clientes con abono o falla/);
+  assert.doesNotMatch(source, /href=[^\n]*dashboard\/recaudos/);
+  assert.match(source, /resumirLiquidacion\(filteredCreditos\)\.importePendiente/);
+});

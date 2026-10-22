@@ -1,11 +1,13 @@
-# Guía de usuario — revisión v2.4
+# Guía de usuario — revisión v2.6
 
 Referencia para usuarios en `/guia-rapida`, actualizada en octubre de 2026. Se conservó la presentación por tarjetas, filtros de lectura y versión imprimible. La aclaración de Liquidar acompaña la restauración de la base de cuotas del día calculada en el backend; no modifica permisos ni registros financieros.
+
+Actualización v2.6 del 22 de octubre: Liquidar vuelve a una lista única, sin pestañas ni accesos que dupliquen Recaudos. La guía indica dónde revisar lo registrado y cómo añadir otro abono desde el detalle del crédito, usando el nombre actual «Registrar Abono». El pendiente financiero sigue incluyendo a los clientes con registro; el total fijo del día no cambia. Esta actualización es solo frontend y está pendiente de desplegar.
 
 ## Correcciones importantes
 
 - Los créditos mensuales nuevos usan mes calendario, no un intervalo fijo de 30 días. Las propuestas son 20 cuotas diarias, 4 semanales o 1 mensual; el número puede ajustarse antes de guardar. Los históricos no se convierten.
-- Liquidación no es solo una lista de clientes que desaparecen al pagar: semanales/mensuales pueden conservar cobros voluntarios y anticipos sin exigir fallas.
+- Liquidación conserva una sola lista: un abono o falla retira el crédito en esa fecha. Lo registrado se consulta en Recaudos desde el menú, sin pestañas ni accesos duplicados. Los anticipos sin registro del día permanecen disponibles sin exigir fallas; otro abono se registra desde el detalle del crédito.
 - «Total a cobrar del día» suma solo las cuotas correspondientes a la fecha de toda la ruta, antes de sus cobros; descuenta anticipos anteriores que cubren la cuota. No suma atrasos de otras fechas ni cobros voluntarios. Pagos del día, fallas, filtros y cancelaciones completas no alteran esta base. Corregir un contrato o un pago anterior puede cambiarla. El pendiente responde a la búsqueda; el cobrado real permanece separado y puede superar la base.
 - Declarar pérdida conserva evidencia y saldo; no implica que una recuperación posterior sea imposible ni representa una pérdida neta definitiva del período.
 

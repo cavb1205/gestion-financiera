@@ -18,11 +18,8 @@ export function gestionadoEnFecha(credito) {
   return credito.gestionado_hoy === true || credito.calendario_pago?.gestionado_hoy === true;
 }
 
-export function separarGestiones(creditos) {
-  return creditos.reduce((grupos, credito) => {
-    grupos[gestionadoEnFecha(credito) ? 'gestionados' : 'pendientes'].push(credito);
-    return grupos;
-  }, { pendientes: [], gestionados: [] });
+export function creditosParaLiquidar(creditos, vistaPrevia = false) {
+  return vistaPrevia ? creditos : creditos.filter(credito => !gestionadoEnFecha(credito));
 }
 
 export function etiquetaFalla(credito, vistaPrevia) {
