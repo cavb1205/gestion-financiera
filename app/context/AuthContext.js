@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch, tryRefreshToken } from '../utils/api';
+import { publicUserData } from '../utils/authUser.mjs';
 
 const AuthContext = createContext({
   user: null,
@@ -85,7 +86,10 @@ export const AuthProvider = ({ children }) => {
       }
 
       setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      const safeUser = publicUserData(JSON.parse(storedUser));
+      if (!safeUser) throw new Error('Los datos de la sesión no son válidos.');
+      localStorage.setItem('userData', JSON.stringify(safeUser));
+      setUser(safeUser);
       setProfile(JSON.parse(storedProfile));
       
       if (storedStore) {
@@ -143,14 +147,16 @@ export const AuthProvider = ({ children }) => {
   }, [loadAuthData, logout]);
 
   const login = useCallback((data) => {
+    const safeUser = publicUserData(data.user);
+    if (!safeUser) throw new Error('Los datos de la sesión no son válidos.');
     localStorage.setItem('authToken', data.token);
     localStorage.setItem('refreshToken', data.refresh);
-    localStorage.setItem('userData', JSON.stringify(data.user));
+    localStorage.setItem('userData', JSON.stringify(safeUser));
     localStorage.setItem('userProfile', JSON.stringify(data.perfil));
     localStorage.setItem('tokenTimestamp', new Date().getTime().toString());
     
     setToken(data.token);
-    setUser(data.user);
+    setUser(safeUser);
     setProfile(data.perfil);
     setLoading(false);
     

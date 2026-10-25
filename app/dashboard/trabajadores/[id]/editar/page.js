@@ -25,7 +25,8 @@ import { apiFetch } from "@/app/utils/api";
 export default function EditarTrabajadorPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { selectedStore, isAuthenticated, loading: authLoading } = useAuth();
+  const { selectedStore, isAuthenticated, user, loading: authLoading } = useAuth();
+  const canChangeRole = Boolean(user?.is_superuser);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChangingPass, setIsChangingPass] = useState(false);
@@ -71,7 +72,7 @@ export default function EditarTrabajadorPage() {
       }
     };
     fetchTrabajador();
-  }, [id]);
+  }, [id, router]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -320,8 +321,9 @@ export default function EditarTrabajadorPage() {
                   {/* Toggle: Admin */}
                   <button
                     type="button"
+                    disabled={!canChangeRole}
                     onClick={() => toggleBool("is_staff")}
-                    className="w-full flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl hover:border-indigo-300 active:scale-[0.98] transition-all text-left"
+                    className="w-full flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl hover:border-indigo-300 active:scale-[0.98] transition-all text-left disabled:cursor-default disabled:opacity-70"
                   >
                     <div>
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Rol de Sistema</p>
@@ -334,6 +336,11 @@ export default function EditarTrabajadorPage() {
                       : <FiToggleLeft className="text-slate-300 shrink-0" size={32} />
                     }
                   </button>
+                  {!canChangeRole && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Para cambiar permisos de administrador, contacta a soporte.
+                    </p>
+                  )}
                 </div>
               </div>
 
