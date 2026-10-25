@@ -20,7 +20,7 @@ import {
 import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
-import { apiFetch } from "@/app/utils/api";
+import { apiFetch, getApiError } from "@/app/utils/api";
 
 export default function EditarTrabajadorPage() {
   const { id } = useParams();
@@ -153,7 +153,7 @@ export default function EditarTrabajadorPage() {
           body: JSON.stringify({ passwordNuevo: passData.nueva }),
         }
       );
-      if (!response.ok) throw new Error("Error al cambiar la contraseña.");
+      if (!response.ok) throw new Error(await getApiError(response,"Error al cambiar la contraseña."));
       toast.success("Contraseña actualizada correctamente.");
       setPassData({ nueva: "", confirmar: "" });
     } catch (err) {

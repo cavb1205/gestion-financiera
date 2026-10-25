@@ -96,7 +96,7 @@ export default function TrabajadorDetailPage() {
           body: JSON.stringify({ passwordNuevo: newPassword }),
         }
       );
-      if (!response.ok) throw new Error("Error al cambiar la contraseña");
+      if (!response.ok) throw new Error(await getApiError(response,"Error al cambiar la contraseña"));
       toast.success("Contraseña actualizada correctamente");
       setNewPassword("");
       setConfirmPassword("");

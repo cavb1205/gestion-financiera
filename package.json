@@ -3,31 +3,34 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "test:telegram": "node --experimental-default-type=module --test tests/telegramInvitacion.test.js",
-    "test:utilidad": "node --experimental-default-type=module --test app/dashboard/reportes/utilidad/report-model.test.mjs"
+    "lint": "eslint .",
+    "test:telegram": "node --test tests/telegramInvitacion.test.js",
+    "test:utilidad": "node --test app/dashboard/reportes/utilidad/report-model.test.mjs",
+    "test:sesiones": "node --test tests/api-session.test.mjs tests/auth-user.test.mjs"
   },
+  "engines": { "node": "24.x" },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",
     "chart.js": "^4.5.0",
     "leaflet": "^1.9.4",
-    "next": "^15.5.7",
-    "react": "^19.2.1",
+    "next": "16.4.3",
+    "react": "19.3.1",
     "react-chartjs-2": "^5.3.0",
     "react-datepicker": "^8.4.0",
-    "react-dom": "^19.2.1",
+    "react-dom": "19.3.1",
     "react-icons": "^5.5.0",
     "react-leaflet": "^5.0.0",
-    "react-toastify": "^11.0.5"
+    "react-toastify": "^11.0.5",
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "eslint": "^9",
-    "eslint-config-next": "15.3.2",
+    "eslint-config-next": "16.4.3",
     "tailwindcss": "^4"
   }
 }

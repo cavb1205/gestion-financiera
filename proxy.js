@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export function middleware(request) {
+export function proxy(request) {
   const response = NextResponse.next();
 
   // Prevenir clickjacking — solo permitir carga en mismo origen

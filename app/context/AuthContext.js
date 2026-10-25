@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { useRouter } from 'next/navigation';
 import { apiFetch, tryRefreshToken } from '../utils/api';
 import { publicUserData } from '../utils/authUser.mjs';
+import { clearStoredSession } from '../utils/authSession.mjs';
 
 const AuthContext = createContext({
   user: null,
@@ -33,18 +34,7 @@ export const AuthProvider = ({ children }) => {
 
   // Función para limpiar la autenticación
   const clearAuth = useCallback(() => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('userData');
-    localStorage.removeItem('userProfile');
-    localStorage.removeItem('tokenTimestamp');
-    localStorage.removeItem('selectedStore');
-    localStorage.removeItem('noPago');
-    localStorage.removeItem('cliente');
-    localStorage.removeItem('liquidarFecha');
-    localStorage.removeItem('abono');
-    localStorage.removeItem('aporteEditar');
-    localStorage.removeItem('utilidadEditar');
+    clearStoredSession(localStorage);
 
     setToken(null);
     setUser(null);
@@ -89,6 +79,9 @@ export const AuthProvider = ({ children }) => {
       const safeUser = publicUserData(JSON.parse(storedUser));
       if (!safeUser) throw new Error('Los datos de la sesión no son válidos.');
       localStorage.setItem('userData', JSON.stringify(safeUser));
+      if (!localStorage.getItem('authSessionId')) {
+        localStorage.setItem('authSessionId', crypto.randomUUID());
+      }
       setUser(safeUser);
       setProfile(JSON.parse(storedProfile));
       
@@ -146,18 +139,33 @@ export const AuthProvider = ({ children }) => {
 
   }, [loadAuthData, logout]);
 
+  useEffect(() => {
+    const syncSession = (event) => {
+      if (event.storageArea === localStorage && event.key === 'authSessionId'
+        && event.newValue === localStorage.getItem('authSessionId')) {
+        // Descarta pantallas y formularios del usuario anterior en otra pestaña.
+        window.location.reload();
+      }
+    };
+    window.addEventListener('storage', syncSession);
+    return () => window.removeEventListener('storage', syncSession);
+  }, []);
+
   const login = useCallback((data) => {
     const safeUser = publicUserData(data.user);
     if (!safeUser) throw new Error('Los datos de la sesión no son válidos.');
+    clearStoredSession(localStorage);
     localStorage.setItem('authToken', data.token);
     localStorage.setItem('refreshToken', data.refresh);
     localStorage.setItem('userData', JSON.stringify(safeUser));
     localStorage.setItem('userProfile', JSON.stringify(data.perfil));
     localStorage.setItem('tokenTimestamp', new Date().getTime().toString());
+    localStorage.setItem('authSessionId', crypto.randomUUID());
     
     setToken(data.token);
     setUser(safeUser);
     setProfile(data.perfil);
+    setSelectedStore(null);
     setLoading(false);
     
     // Programar expiración exactamente a los 60 minutos
