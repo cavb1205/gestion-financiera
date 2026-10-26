@@ -1,7 +1,7 @@
 """Remote Nginx-only preview/apply. Never reads or writes application databases."""
 from pathlib import Path
 from datetime import datetime, timezone
-import hashlib,json,os,shutil,socket,subprocess,sys,urllib.parse
+import hashlib,json,os,shutil,socket,subprocess,sys,time
 
 assert socket.gethostname() == 'cartera-prod-lts-20261025'
 P=Path(__file__).resolve().parent
@@ -37,6 +37,19 @@ def check_all(http,tls):
             checks+=3
     return checks
 
+def wait_for_reload():
+    # systemctl reload returns before the new Nginx workers accept requests.
+    deadline=time.monotonic()+15
+    while time.monotonic()<deadline:
+        try:
+            headers,_=probe('carterafinanciera.com',443,'/')
+            if headers.get('location')=='https://app.carterafinanciera.com/actualizar-app?destino=/dashboard':
+                return
+        except (AssertionError,subprocess.CalledProcessError):
+            pass
+        time.sleep(0.2)
+    raise RuntimeError('New Nginx workers did not expose the expected redirect within 15 seconds')
+
 if phase=='preview':
     api=Path('/etc/nginx/sites-enabled/django-api')
     api_before=sha(api)
@@ -71,17 +84,22 @@ elif phase=='apply':
     assert not mapping.exists(),'Unexpected existing migration map'
     assert not (P/'applied.json').exists()
     api=Path('/etc/nginx/sites-enabled/django-api');api_before=sha(api)
-    backup=P/'backup';backup.mkdir(mode=0o700)
-    shutil.copy2(default,backup/'default.conf')
+    backup=P/'backup';backup.mkdir(mode=0o700,exist_ok=True)
+    if (backup/'default.conf').exists():
+        assert sha(backup/'default.conf')==release['expectedPreviousSiteSHA256']
+    else:
+        shutil.copy2(default,backup/'default.conf')
     try:
         shutil.copyfile(P/'destinations.conf',mapping);shutil.copyfile(P/'site.conf',default)
         os.chmod(mapping,0o644);os.chmod(default,0o644)
         run(['nginx','-t']);run(['systemctl','reload','nginx'])
+        wait_for_reload()
         count=check_all(80,443)
         assert sha(api)==api_before
         proof={'applied':True,'appliedAtUTC':datetime.now(timezone.utc).isoformat(),'commit':release['commit'],'frontendDeployment':release['frontendDeployment'],'redirectStatus':302,'checks':count,'apiConfigurationUnchanged':True,'siteSHA256':sha(default),'mappingSHA256':sha(mapping),'backupDirectory':str(backup),'financialWrites':False}
         save('applied.json',proof);print(json.dumps(proof))
-    except BaseException:
+    except BaseException as error:
+        save('apply-failure.json',{'type':type(error).__name__,'message':str(error)[:1000]})
         shutil.copyfile(backup/'default.conf',default);mapping.unlink(missing_ok=True)
         run(['nginx','-t']);run(['systemctl','reload','nginx'])
         raise
