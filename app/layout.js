@@ -40,7 +40,7 @@ export default function RootLayout({ children }) {
         <meta name="theme-color" content="#4f46e5" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
-        <link rel="apple-touch-icon" href="/icons/icon.svg" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         {/* Service Worker registration */}
         <script

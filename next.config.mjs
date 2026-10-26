@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async headers() {
+    return [{ source: '/actualizar-app', headers: [{ key: 'X-Robots-Tag', value: 'noindex, noarchive' }] }];
+  },
   async redirects() {
     return [
       {
