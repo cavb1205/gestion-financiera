@@ -1,7 +1,8 @@
 // app/dashboard/recaudos/page.js
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { createTextMatcher, clientSearchValues } from "@/app/utils/text";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/app/utils/api";
 import {
@@ -169,12 +170,22 @@ function CumplimientoDiario({ resumen, selectedDate }) {
 }
 
 export default function RecaudosPage() {
+  const { selectedStore } = useAuth();
+  return <RecaudosContent key={selectedStore?.tienda?.id ?? "sin-ruta"} />;
+}
+
+function RecaudosContent() {
   const { selectedStore, isAuthenticated, loading: authLoading, user } = useAuth();
   const router = useRouter();
   const isWorker = !(user?.is_staff || user?.is_superuser);
   const [recaudos, setRecaudos] = useState([]);
   const [ventasActivas, setVentasActivas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [resumenLoading, setResumenLoading] = useState(true);
+  const [resumenError, setResumenError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const requests = useRef(0);
+  const tiendaId = selectedStore?.tienda?.id;
   const [selectedDate, setSelectedDate] = useState("");
   const todayStr = getAppDateString(
     0,
@@ -204,57 +215,61 @@ export default function RecaudosPage() {
     }
   }, [selectedStore?.tienda?.zona_horaria]);
 
-  // Obtener recaudos
-  const fetchRecaudos = async () => {
-    if (!selectedStore || !selectedDate) return;
-
+  // El listado puede mostrarse antes que el resumen de cartera. Las respuestas
+  // de una fecha o ruta anterior nunca reemplazan la consulta actual.
+  const fetchRecaudos = useCallback(async () => {
+    if (!isAuthenticated || !tiendaId || !selectedDate) return;
+    const sequence = ++requests.current;
+    const current = () => sequence === requests.current;
     setLoading(true);
+    setLoadError("");
+    setResumenLoading(true);
+    setResumenError("");
     setRecaudos([]);
     setVentasActivas([]);
-    try {
-      const [response, ventasResponse] = await Promise.all([
-        apiFetch(`/recaudos/list/${selectedDate}/t/${selectedStore.tienda.id}/?vista=lista`),
-        apiFetch(`/ventas/activas/t/${selectedStore.tienda.id}/`),
-      ]);
 
-      if (!response.ok) throw new Error("Error al sincronizar recaudos");
-
-      const data = await response.json();
-      let ventasData = [];
-      if (ventasResponse.ok) {
-        try {
-          ventasData = await ventasResponse.json();
-        } catch (error) {
-          console.warn("No fue posible leer la cartera activa para el resumen:", error);
-        }
+    const ventasTask = isWorker ? Promise.resolve() : (async () => {
+      try {
+        const response = await apiFetch(`/ventas/activas/t/${tiendaId}/`);
+        if (!response.ok) throw new Error("No fue posible cargar el resumen de cumplimiento.");
+        const data = await response.json();
+        if (current()) setVentasActivas(Array.isArray(data) ? data : []);
+      } catch (error) {
+        if (current()) setResumenError(error.message);
+      } finally {
+        if (current()) setResumenLoading(false);
       }
-      setRecaudos(Array.isArray(data) ? data : []);
-      setVentasActivas(ventasResponse.ok && Array.isArray(ventasData) ? ventasData : []);
+    })();
+
+    try {
+      const response = await apiFetch(`/recaudos/list/${selectedDate}/t/${tiendaId}/?vista=lista`);
+      if (!response.ok) throw new Error("Error al sincronizar recaudos");
+      const data = await response.json();
+      if (current()) setRecaudos(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error:", error);
-      toast.error(error.message);
-      setRecaudos([]);
-      setVentasActivas([]);
+      if (current()) {
+        setLoadError(error.message);
+        toast.error(error.message);
+      }
     } finally {
-      setLoading(false);
+      if (current()) setLoading(false);
     }
-  };
+    await ventasTask;
+  }, [isAuthenticated, tiendaId, selectedDate, isWorker]);
 
   useEffect(() => {
-    if (selectedDate && selectedStore) {
-      fetchRecaudos();
-      localStorage.setItem("liquidarFecha", selectedDate);
-    }
-  }, [selectedStore, selectedDate]);
+    const pending = requests;
+    fetchRecaudos();
+    if (selectedDate) localStorage.setItem("liquidarFecha", selectedDate);
+    return () => { pending.current++; };
+  }, [fetchRecaudos, selectedDate]);
 
-  // Procesamiento de datos (Filtrado y Métricas)
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedDate, tiendaId]);
+
   const filteredRecaudos = useMemo(() => {
-    const term = searchTerm.toLowerCase();
-    return recaudos.filter((r) => {
-      const cliente = r.venta?.cliente || {};
-      const full = `${cliente.nombres || ""} ${cliente.apellidos || ""}`.toLowerCase();
-      return full.includes(term) || r.id.toString().includes(term);
-    });
+    const matches = createTextMatcher(searchTerm);
+    return recaudos.filter(r =>
+      matches([...clientSearchValues(r.venta?.cliente), r.id, r.venta?.id]));
   }, [searchTerm, recaudos]);
 
   const metrics = useMemo(() => {
@@ -365,9 +380,10 @@ export default function RecaudosPage() {
   };
 
   // Paginación
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const totalPages = Math.ceil(filteredRecaudos.length / itemsPerPage);
+  const paginaVisible = Math.min(currentPage, Math.max(totalPages, 1));
+  const indexOfLastItem = paginaVisible * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredRecaudos.slice(indexOfFirstItem, indexOfLastItem);
 
   const handleRecaudoEditado = (updated) => {
@@ -451,13 +467,14 @@ export default function RecaudosPage() {
 
           <div className="flex items-center gap-3">
              <button 
-              onClick={() => setSelectedDate(getAppDateString())}
+              onClick={() => setSelectedDate(todayStr)}
               className="px-6 py-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 font-black text-[10px] uppercase tracking-widest hover:text-indigo-600 transition-all shadow-sm"
              >
                Hoy
              </button>
              <button 
               onClick={fetchRecaudos}
+              aria-label="Actualizar recaudos"
               className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-emerald-600 transition-all shadow-sm group"
              >
                <FiRefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
@@ -466,10 +483,11 @@ export default function RecaudosPage() {
         </div>
 
         {!isWorker && (
-          <CumplimientoDiario
-            resumen={resumenCumplimiento}
-            selectedDate={selectedDate}
-          />
+          loading || resumenLoading ? (
+            <p role="status" className="mb-6 text-sm text-slate-500">Cargando resumen de cumplimiento…</p>
+          ) : resumenError || loadError ? (
+            <p role="status" className="mb-6 text-sm text-amber-600">No se pudo cargar el resumen de cumplimiento. Puedes actualizar para intentar de nuevo.</p>
+          ) : <CumplimientoDiario resumen={resumenCumplimiento} selectedDate={selectedDate} />
         )}
 
         {/* Premium Metrics */}
@@ -563,7 +581,7 @@ export default function RecaudosPage() {
                     <input
                       id="busqueda-recaudos"
                       type="text"
-                      placeholder="Identificador o nombre de cliente..."
+                      placeholder="Nombre, documento o número de recaudo/crédito..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full pl-16 pr-6 py-4.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-3xl text-[13px] font-black text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-inner outline-none placeholder:text-slate-300"
@@ -590,14 +608,16 @@ export default function RecaudosPage() {
                     <SkeletonTableRows rows={8} cols={5} />
                   </tbody>
                 </table>
+              ) : loadError ? (
+                <p role="alert" className="p-8 text-rose-600">{loadError}. Actualiza para intentar de nuevo.</p>
               ) : filteredRecaudos.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 px-10 text-center">
                    <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 rounded-[2rem] flex items-center justify-center mb-6">
                       <FiPackage size={40} className="text-emerald-400" />
                    </div>
-                   <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-2">Sin recaudos registrados</h3>
+                   <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-2">{searchTerm.trim() ? "Sin coincidencias" : "Sin recaudos registrados"}</h3>
                    <p className="text-xs font-bold text-slate-400 max-w-xs mx-auto mb-6">
-                      No se encontraron recaudos para el periodo seleccionado. Los recaudos se crean desde la liquidación diaria.
+                      {searchTerm.trim() ? "Ningún recaudo de esta fecha coincide con tu búsqueda." : "No se encontraron recaudos para el periodo seleccionado. Los recaudos se crean desde la liquidación diaria."}
                    </p>
                    <button
                      onClick={() => router.push("/dashboard/liquidar")}
@@ -700,13 +720,15 @@ export default function RecaudosPage() {
            <div className="md:hidden">
               {loading ? (
                 <div className="flex justify-center py-12"><LoadingSpinner /></div>
+              ) : loadError ? (
+                <p role="alert" className="p-8 text-rose-600">{loadError}. Actualiza para intentar de nuevo.</p>
               ) : filteredRecaudos.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
                    <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 rounded-[1.5rem] flex items-center justify-center mb-4">
                       <FiPackage size={28} className="text-emerald-400" />
                    </div>
-                   <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">Sin recaudos</p>
-                   <p className="text-[10px] font-bold text-slate-400 mb-5">No hay recaudos para este periodo.</p>
+                   <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">{searchTerm.trim() ? "Sin coincidencias" : "Sin recaudos"}</p>
+                   <p className="text-[10px] font-bold text-slate-400 mb-5">{searchTerm.trim() ? "Ningún recaudo de esta fecha coincide con tu búsqueda." : "No hay recaudos para este periodo."}</p>
                    <button
                      onClick={() => router.push("/dashboard/liquidar")}
                      className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
@@ -777,7 +799,7 @@ export default function RecaudosPage() {
            </div>
 
            <Pagination
-             currentPage={currentPage}
+             currentPage={paginaVisible}
              totalPages={totalPages}
              onPageChange={setCurrentPage}
              totalItems={filteredRecaudos.length}

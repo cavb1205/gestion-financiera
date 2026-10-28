@@ -1,7 +1,7 @@
 // app/dashboard/ventas/page.js
 "use client";
 
-import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   FiShoppingBag,
@@ -32,9 +32,8 @@ import {
 } from "../../utils/cartera";
 import Link from "next/link";
 import Pagination from "../../components/Pagination";
-import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { SkeletonCard, SkeletonTableRows } from "../../components/Skeleton";
-import { normalizeSearchText } from "../../utils/text";
+import { createTextMatcher, clientSearchValues } from "../../utils/text";
 import { matchesPortfolioSegment } from "../reportes/cartera/report-model.mjs";
 
 function calcVisitasRestantes(venta) {
@@ -111,7 +110,7 @@ function VentasPageContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearch = useDebouncedValue(searchTerm);
+  const matchesSearch = useMemo(() => createTextMatcher(searchTerm), [searchTerm]);
   const [filters, setFilters] = useState({
     estado: "Todos",
     plazo: "Todos",
@@ -177,7 +176,7 @@ function VentasPageContent() {
     setSearchTerm(buscar || "");
   }, [urlQuery]);
 
-  const ventasOrdered = [...ventas].sort((a, b) => {
+  const ventasOrdered = useMemo(() => [...ventas].sort((a, b) => {
     const prioridadA = getPrioridadCobranza(a);
     const prioridadB = getPrioridadCobranza(b);
     if (prioridadA.rank !== prioridadB.rank)
@@ -192,9 +191,9 @@ function VentasPageContent() {
     if (cuotasA !== cuotasB) return cuotasB - cuotasA;
 
     return Number(b.id) - Number(a.id);
-  });
+  }), [ventas]);
 
-  const filteredVentas = ventasOrdered.filter((venta) => {
+  const filteredVentas = useMemo(() => ventasOrdered.filter((venta) => {
     if (clienteId && String(venta.cliente?.id) !== clienteId) return false;
     if (!matchesPortfolioSegment(venta, filters.estado)) return false;
     const prioridad = getPrioridadCobranza(venta);
@@ -249,24 +248,12 @@ function VentasPageContent() {
     )
       return false;
 
-    if (debouncedSearch) {
-      const searchLower = normalizeSearchText(debouncedSearch);
-      const nombreCompleto = normalizeSearchText(
-        `${venta.cliente?.nombres || ""} ${venta.cliente?.apellidos || ""}`,
-      );
-      const identificacion = normalizeSearchText(venta.cliente?.identificacion);
-      const matchesCliente =
-        nombreCompleto.includes(searchLower) ||
-        identificacion.includes(searchLower);
-      const matchesVenta = String(venta.id).includes(searchLower);
-      return matchesCliente || matchesVenta;
-    }
-    return true;
-  });
+    return matchesSearch([...clientSearchValues(venta.cliente), venta.id]);
+  }), [ventasOrdered, clienteId, filters, matchesSearch]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filters, clienteId]);
+  }, [searchTerm, filters, clienteId]);
 
   const totalPages = Math.ceil(filteredVentas.length / itemsPerPage);
   const indexOfFirstItem = (currentPage - 1) * itemsPerPage;

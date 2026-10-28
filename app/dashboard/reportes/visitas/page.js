@@ -1,6 +1,8 @@
 // app/dashboard/reportes/visitas/page.js
 "use client";
 
+import { createTextMatcher, clientSearchValues } from "@/app/utils/text";
+
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
@@ -171,13 +173,13 @@ export default function VisitasReportePage() {
   );
 
   const visitasFallidasFiltradas = useMemo(() => {
-    const search = busquedaFalla.trim().toLowerCase();
+    const matchesSearch = createTextMatcher(busquedaFalla);
     return visitasFallidas.filter((recaudo) => {
       const tipo = recaudo.visita_blanco?.tipo_falla || "Otro Motivo";
       const ventaId = recaudo.venta?.id || recaudo.venta || "";
       const cliente = recaudo.venta?.cliente;
-      const texto = `${cliente?.nombres || ""} ${cliente?.apellidos || ""} ${tipo} ${recaudo.visita_blanco?.comentario || ""} ${ventaId}`.toLowerCase();
-      return (filtroFalla === "Todas" || tipo === filtroFalla) && (!search || texto.includes(search));
+      return (filtroFalla === "Todas" || tipo === filtroFalla) &&
+        matchesSearch([...clientSearchValues(cliente), tipo, recaudo.visita_blanco?.comentario, ventaId]);
     });
   }, [busquedaFalla, filtroFalla, visitasFallidas]);
 

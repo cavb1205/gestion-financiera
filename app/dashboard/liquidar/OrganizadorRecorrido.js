@@ -1,16 +1,18 @@
 "use client";
 
+import { createTextMatcher } from "@/app/utils/text";
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FiArrowUp, FiArrowDown, FiList, FiSearch, FiX, FiCheck, FiMove } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { apiFetch, getApiError } from '@/app/utils/api';
-import { mismoOrden, moverCliente, textoRecorrido, validarRecorrido } from '@/app/utils/recorrido';
+import { mismoOrden, moverCliente, validarRecorrido } from '@/app/utils/recorrido';
 import useArrastreRecorrido from './useArrastreRecorrido';
 
 const boton = 'min-h-11 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed dark:border-slate-700 dark:text-slate-200';
 const campo = 'min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:text-white';
 const nombre = c => `${c.nombres || ''} ${c.apellidos || ''}`.trim();
-const coincide = (c, texto) => textoRecorrido(`${nombre(c)} ${c.direccion || ''}`).includes(textoRecorrido(texto));
+const coincide = (c, texto) => createTextMatcher(texto)([nombre(c), c.direccion]);
 
 export default function OrganizadorRecorrido({ tiendaId, tiendaNombre, zonaHoraria, onSaved, vistaPrevia }) {
   const [recorrido, setRecorrido] = useState(null);

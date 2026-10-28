@@ -1,5 +1,7 @@
 "use client";
 
+import { createTextMatcher } from "@/app/utils/text";
+
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch, getApiError } from "@/app/utils/api";
@@ -127,11 +129,8 @@ export default function TrabajadoresPage() {
     }
   };
 
-  const filteredTrabajadores = trabajadores.filter(
-    (t) =>
-      t.trabajador.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.identificacion.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const matchesSearch = createTextMatcher(searchTerm);
+  const filteredTrabajadores = trabajadores.filter(t => matchesSearch([t.trabajador, t.identificacion]));
 
   if (authLoading || loading) {
     return (

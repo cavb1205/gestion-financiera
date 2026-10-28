@@ -1,6 +1,8 @@
 // app/dashboard/utilidades/page.js
 "use client";
 
+import { createTextMatcher } from "@/app/utils/text";
+
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { apiFetch } from "../../utils/api";
@@ -41,7 +43,6 @@ export default function UtilidadesPage() {
   // Estados para paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
 
   const fetchUtilidades = async () => {
     try {
@@ -100,13 +101,9 @@ export default function UtilidadesPage() {
   }, [selectedStore]);
 
   const filteredUtilidades = useMemo(() => {
-    return utilidades.filter(
-      (utilidad) =>
-        utilidad.trabajador.trabajador
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        (utilidad.comentario || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const matches = createTextMatcher(searchTerm);
+    return utilidades.filter(utilidad =>
+      matches([utilidad.trabajador?.trabajador, utilidad.comentario]));
   }, [utilidades, searchTerm]);
 
   const totalUtilidades = filteredUtilidades.reduce(
@@ -114,15 +111,10 @@ export default function UtilidadesPage() {
     0
   );
 
-  useEffect(() => {
-    const pages = Math.ceil(filteredUtilidades.length / itemsPerPage);
-    setTotalPages(pages || 1);
-    if (currentPage > pages && pages > 0) {
-      setCurrentPage(pages);
-    }
-  }, [filteredUtilidades, itemsPerPage]);
-
-  const indexOfLastItem = currentPage * itemsPerPage;
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, itemsPerPage, selectedStore?.tienda?.id]);
+  const totalPages = Math.ceil(filteredUtilidades.length / itemsPerPage);
+  const paginaVisible = Math.min(currentPage, Math.max(totalPages, 1));
+  const indexOfLastItem = paginaVisible * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentUtilidades = filteredUtilidades.slice(
     indexOfFirstItem,
@@ -420,7 +412,7 @@ export default function UtilidadesPage() {
 
           {/* Pagination */}
           <Pagination
-            currentPage={currentPage}
+            currentPage={paginaVisible}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
             totalItems={filteredUtilidades.length}

@@ -3,7 +3,7 @@ import {
   getMontoParaPonerseAlDia,
   NIVEL_DETERIORO,
 } from "../../../utils/cartera.js";
-import { normalizeSearchText } from "../../../utils/text.js";
+import { createTextMatcher } from "../../../utils/text.js";
 
 const validNumber = (value) =>
   (typeof value === "number" ||
@@ -220,13 +220,10 @@ export function selectClients(
     size = 15,
   } = {},
 ) {
-  const needle = normalizeSearchText(search);
+  const matches = createTextMatcher(search);
   const list = clients.filter(
     (c) =>
-      (!needle ||
-        normalizeSearchText(`${c.name} ${c.identification}`).includes(
-          needle,
-        )) &&
+      matches([c.name, c.identification]) &&
       (filter !== "urgente" || c.rank >= 2) &&
       (filter !== "critico" || c.level === 3) &&
       (filter !== "atraso" || c.arrears > 0) &&

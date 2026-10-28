@@ -1,6 +1,8 @@
 // app/dashboard/aportes/page.js
 "use client";
 
+import { createTextMatcher } from "@/app/utils/text";
+
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { apiFetch } from "../../utils/api";
@@ -95,18 +97,14 @@ export default function AportesPage() {
     }
   }, [selectedStore]);
 
-  const filteredAportes = aportes.filter(
-    (aporte) =>
-      aporte.trabajador.trabajador
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (aporte.comentario && aporte.comentario.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const indexOfLastItem = currentPage * itemsPerPage;
+  const matchesSearch = createTextMatcher(searchTerm);
+  const filteredAportes = aportes.filter(aporte =>
+    matchesSearch([aporte.trabajador?.trabajador, aporte.comentario]));
+  const totalPages = Math.ceil(filteredAportes.length / itemsPerPage);
+  const paginaVisible = Math.min(currentPage, Math.max(totalPages, 1));
+  const indexOfLastItem = paginaVisible * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentAportes = filteredAportes.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredAportes.length / itemsPerPage);
 
   const totalAportes = filteredAportes.reduce(
     (total, aporte) => total + parseMoney(aporte.valor),
@@ -215,7 +213,7 @@ export default function AportesPage() {
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                 placeholder="Filtrar por inversionista o descripción de aporte..."
                 className="block w-full pl-14 pr-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[15px] font-medium text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-inner"
               />
@@ -368,7 +366,7 @@ export default function AportesPage() {
           </div>
 
           <Pagination
-            currentPage={currentPage}
+            currentPage={paginaVisible}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
             totalItems={filteredAportes.length}

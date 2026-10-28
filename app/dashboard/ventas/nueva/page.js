@@ -1,7 +1,9 @@
 // app/dashboard/ventas/nueva/page.js
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { createTextMatcher, clientSearchValues } from "@/app/utils/text";
+
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   FiArrowLeft,
@@ -82,7 +84,11 @@ function NuevaVentaContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [busquedaCliente, setBusquedaCliente] = useState("");
-  const [clientesFiltrados, setClientesFiltrados] = useState([]);
+  const clientesFiltrados = useMemo(() => {
+    if (!busquedaCliente.trim()) return [];
+    const matches = createTextMatcher(busquedaCliente);
+    return clientes.filter(cliente => matches(clientSearchValues(cliente)));
+  }, [clientes, busquedaCliente]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [creditosActivosCliente, setCreditosActivosCliente] = useState(0);
   const [scoreCliente, setScoreCliente] = useState(null);
@@ -140,21 +146,6 @@ function NuevaVentaContent() {
     }
   };
 
-  const filtrarClientes = (busqueda) => {
-    setBusquedaCliente(busqueda);
-    if (!busqueda.trim()) {
-      setClientesFiltrados([]);
-      return;
-    }
-
-    const filtrados = (Array.isArray(clientes) ? clientes : []).filter(
-      (cliente) =>
-        `${cliente.nombres} ${cliente.apellidos}`.toLowerCase().includes(busqueda.toLowerCase()) ||
-        cliente.identificacion.toLowerCase().includes(busqueda.toLowerCase())
-    );
-    setClientesFiltrados(filtrados);
-  };
-
   // Score + cupo recomendado en el punto de decisión: la señal de riesgo
   // debe estar frente a los ojos al aprobar, no a dos clics en la ficha.
   const fetchScoreCliente = async (clienteId) => {
@@ -169,7 +160,6 @@ function NuevaVentaContent() {
     setFormData((prev) => ({ ...prev, cliente: cliente.id }));
     setClienteSeleccionado(cliente);
     setBusquedaCliente("");
-    setClientesFiltrados([]);
     setCreditosActivosCliente(0);
     fetchScoreCliente(cliente.id);
     try {
@@ -392,7 +382,7 @@ function NuevaVentaContent() {
                         autoComplete="off"
                         className="w-full pl-14 pr-6 py-4.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                         value={busquedaCliente}
-                        onChange={(e) => filtrarClientes(e.target.value)}
+                        onChange={(e) => setBusquedaCliente(e.target.value)}
                       />
                       {busquedaCliente.trim().length > 0 && (
                         <div className="absolute z-20 w-full mt-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden p-2">
@@ -412,7 +402,7 @@ function NuevaVentaContent() {
                           ))}
                           <button
                             type="button"
-                            onClick={() => { setShowCrearCliente(true); setBusquedaCliente(""); setClientesFiltrados([]); }}
+                            onClick={() => { setShowCrearCliente(true); setBusquedaCliente(""); }}
                             className="w-full flex items-center gap-3 p-4 mt-1 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all group border-t border-slate-100 dark:border-slate-800"
                           >
                             <div className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center shrink-0">

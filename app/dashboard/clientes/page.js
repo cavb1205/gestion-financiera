@@ -1,7 +1,7 @@
 // app/clientes/page.js
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FiUser, FiUsers, FiSearch, FiPlus, FiEdit, FiEye, FiFilter, FiX, FiPhone, FiMapPin, FiActivity, FiShield, FiAlertCircle, FiBarChart2, FiChevronUp, FiChevronDown } from 'react-icons/fi';
@@ -9,20 +9,23 @@ import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../utils/api';
 import LoadingSpinner from "../../components/LoadingSpinner";
 import Pagination from "../../components/Pagination";
-import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { createTextMatcher, clientSearchValues } from '../../utils/text';
 import { SkeletonCard, SkeletonTableRows } from "../../components/Skeleton";
 import { getClientesTienda } from '../../utils/clientesCache';
 
 export default function ClientesPage() {
+  const { selectedStore } = useAuth();
+  return <ClientesContent key={selectedStore?.tienda?.id ?? 'sin-ruta'} />;
+}
+
+function ClientesContent() {
   const router = useRouter();
   const { selectedStore, isAuthenticated, loading } = useAuth();
   const tiendaId = selectedStore?.tienda?.id;
   const [clientes, setClientes] = useState([]);
-  const [filteredClientes, setFilteredClientes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearch = useDebouncedValue(searchTerm);
   const [filters, setFilters] = useState({
     estado: 'Todos',
     telefono: ''
@@ -32,31 +35,36 @@ export default function ClientesPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [scores, setScores] = useState({});
   const [sortByScore, setSortByScore] = useState(null);
+  const requests = useRef(0);
 
   const fetchClientes = useCallback(async ({ force = false } = {}) => {
-    if (!tiendaId) return;
-
+    if (!tiendaId || !isAuthenticated) return;
+    const sequence = ++requests.current;
+    setClientes([]);
+    setScores({});
     try {
       setIsLoading(true);
       setError('');
 
       const clientesData = await getClientesTienda(tiendaId, { force });
+      if (sequence !== requests.current) return;
       setClientes(clientesData);
-      setFilteredClientes(clientesData);
 
       apiFetch(`/clientes/scores/t/${tiendaId}/`)
         .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d) setScores(d); })
+        .then(d => { if (d && sequence === requests.current) setScores(d); })
         .catch(() => {});
     } catch (err) {
+      if (sequence !== requests.current) return;
       setError(err.message || 'Error al cargar los clientes');
       console.error('Error fetching clients:', err);
     } finally {
-      setIsLoading(false);
+      if (sequence === requests.current) setIsLoading(false);
     }
-  }, [tiendaId]);
+  }, [tiendaId, isAuthenticated]);
 
   useEffect(() => {
+    const pending = requests;
     // Redirigir si no está autenticado o no tiene tienda seleccionada
     if (!loading && (!isAuthenticated || !tiendaId)) {
       router.push('/select-store');
@@ -64,41 +72,23 @@ export default function ClientesPage() {
     }
 
     // Cargar clientes solo si está autenticado y tiene tienda seleccionada
-    if (tiendaId && !loading) {
+    if (tiendaId && !loading && isAuthenticated) {
       fetchClientes();
     }
+    return () => { pending.current++; };
   }, [loading, isAuthenticated, tiendaId, router, fetchClientes]);
 
-  useEffect(() => {
-    // Aplicar filtros y búsqueda
-    let result = [...clientes];
-    
-    // Aplicar búsqueda
-    if (debouncedSearch) {
-      const term = debouncedSearch.toLowerCase();
-      result = result.filter(cliente => 
-        (cliente.nombres?.toLowerCase().includes(term) || '') ||
-        (cliente.apellidos?.toLowerCase().includes(term) || '') ||
-        (cliente.telefono_principal?.toLowerCase().includes(term) || '') ||
-        (cliente.nombre_local?.toLowerCase().includes(term) || '')
-      );
-    }
-    
-    // Aplicar filtros
-    if (filters.estado !== 'Todos') {
-      result = result.filter(cliente => cliente.estado_cliente === filters.estado);
-    }
-    
-    if (filters.telefono) {
-      result = result.filter(cliente => 
-        (cliente.telefono_principal?.includes(filters.telefono) || false) ||
-        (cliente.telefono_opcional?.includes(filters.telefono) || false)
-      );
-    }
-    
-    setFilteredClientes(result);
-    setCurrentPage(1); // Resetear a la primera página al cambiar filtros
-  }, [clientes, debouncedSearch, filters]);
+  const filteredClientes = useMemo(() => {
+    const matches = createTextMatcher(searchTerm);
+    return clientes.filter(cliente =>
+      matches(clientSearchValues(cliente)) &&
+      (filters.estado === 'Todos' || cliente.estado_cliente === filters.estado) &&
+      (!filters.telefono || [cliente.telefono_principal, cliente.telefono_opcional]
+        .some(phone => String(phone ?? '').includes(filters.telefono.trim())))
+    );
+  }, [clientes, searchTerm, filters]);
+
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, filters, tiendaId]);
 
   // Calcular clientes para la página actual
   const sortedClientes = sortByScore
@@ -108,10 +98,11 @@ export default function ClientesPage() {
         return sortByScore === 'desc' ? sb - sa : sa - sb;
       })
     : filteredClientes;
-  const indexOfLastItem = currentPage * itemsPerPage;
+  const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
+  const paginaVisible = Math.min(currentPage, Math.max(totalPages, 1));
+  const indexOfLastItem = paginaVisible * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentClientes = sortedClientes.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
 
   const toggleScoreSort = () => setSortByScore(s => s === 'desc' ? 'asc' : s === 'asc' ? null : 'desc');
 
@@ -576,7 +567,7 @@ export default function ClientesPage() {
             </div>
 
             <Pagination
-              currentPage={currentPage}
+              currentPage={paginaVisible}
               totalPages={totalPages}
               onPageChange={setCurrentPage}
               totalItems={filteredClientes.length}

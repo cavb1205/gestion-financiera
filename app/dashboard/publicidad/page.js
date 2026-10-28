@@ -1,5 +1,7 @@
 "use client";
 
+import { createTextMatcher } from "@/app/utils/text";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/app/context/AuthContext";
@@ -114,10 +116,11 @@ export default function PublicidadPage() {
 
   const vigentes = loadedKey === clave && !error && !rangoError ? puntos : [];
   const autores = useMemo(() => [...new Map(puntos.map(p => [claveAutor(p), nombreAutor(p)])).entries()], [puntos]);
+  const matchesSearch = createTextMatcher(busqueda);
   const visibles = vigentes.filter(p =>
     (!soloMios || esPropio(p, user?.id, profile?.id)) &&
     (!filtro || claveAutor(p) === filtro) &&
-    (nombreAutor(p) + " " + (p.nota || "")).toLowerCase().includes(busqueda.trim().toLowerCase()));
+    matchesSearch([nombreAutor(p), p.nota]));
   const propios = vigentes.filter(p => esPropio(p, user?.id, profile?.id)).length;
   const conGPS = visibles.filter(tieneCoordenadas).length;
   const bajaPrecision = visibles.filter(p => p.precision_gps == null || Number(p.precision_gps) > 100).length;

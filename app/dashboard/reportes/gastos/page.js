@@ -1,6 +1,8 @@
 // app/dashboard/reportes/gastos/page.js
 "use client";
 
+import { createTextMatcher } from "@/app/utils/text";
+
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../utils/api";
@@ -150,13 +152,13 @@ export default function ReporteGastosPage() {
     : null;
 
   // Group expenses by date
-  const busquedaNormalizada = busquedaDetalle.trim().toLowerCase();
+  const matchesSearch = createTextMatcher(busquedaDetalle);
   const gastosDetalle = gastos
     ? gastos.filter((g) => {
       const categoriaId = String(g.tipo_gasto?.id || 0);
-      const texto = `${g.tipo_gasto?.tipo_gasto || "Sin categoría"} ${g.comentario || ""}`.toLowerCase();
+      const texto = [g.tipo_gasto?.tipo_gasto || "Sin categoría", g.comentario];
       const coincideCategoria = categoriaSeleccionada === "Todas" || categoriaId === categoriaSeleccionada;
-      return coincideCategoria && (!busquedaNormalizada || texto.includes(busquedaNormalizada));
+      return coincideCategoria && matchesSearch(texto);
     })
     : [];
   const totalDetalle = gastosDetalle.reduce((sum, gasto) => sum + parseMoney(gasto.valor), 0);

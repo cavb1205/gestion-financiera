@@ -1,11 +1,11 @@
+import { createTextMatcher, normalizeSearchText } from "./text.js";
+
 export function normalizeRootSearch(value) {
-  return String(value ?? "").normalize("NFD").replace(/\p{Diacritic}/gu, "")
-    .toLowerCase().trim().replace(/^@/, "");
+  return normalizeSearchText(value).replace(/^@/, "");
 }
 
 export function matchesRootSearch(term, values) {
-  const needle = normalizeRootSearch(term);
-  return !needle || values.some(value => normalizeRootSearch(value).includes(needle));
+  return createTextMatcher(normalizeRootSearch(term))(values);
 }
 
 export function csvCell(value) {

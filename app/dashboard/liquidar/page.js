@@ -1,6 +1,8 @@
 // app/dashboard/liquidar/page.js
 "use client";
 
+import { createTextMatcher, clientSearchValues, normalizeSearchText } from "@/app/utils/text";
+
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch, getApiError } from "@/app/utils/api";
@@ -215,11 +217,9 @@ export default function LiquidarCreditosPage() {
    }, [selectedDate]);
 
    const creditosVigentes = claveCargadaRef.current === `${tiendaId}:${selectedDate}` ? creditos : [];
-   const filtroCliente = searchTerm.trim().toLowerCase();
-   const filteredCreditos = creditosVigentes.filter(c => {
-         const fullName = `${c.cliente?.nombres ?? ''} ${c.cliente?.apellidos ?? ''}`.toLowerCase();
-         return fullName.includes(filtroCliente);
-   });
+   const filtroCliente = normalizeSearchText(searchTerm);
+   const matchesSearch = createTextMatcher(searchTerm);
+   const filteredCreditos = creditosVigentes.filter(c => matchesSearch(clientSearchValues(c.cliente)));
    const creditosVista = creditosParaLiquidar(filteredCreditos, vistaPrevia);
    useEffect(() => {
       setCurrentPage(1);

@@ -1,6 +1,8 @@
 // app/dashboard/ventas/perdidas/page.js
 "use client";
 
+import { createTextMatcher, clientSearchValues } from "@/app/utils/text";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -98,16 +100,9 @@ export default function VentasPerdidasPage() {
 
   const ventasOrdered = [...ventas].sort((a, b) => b.id - a.id);
 
-  const filteredVentas = ventasOrdered.filter((venta) => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    const matchesCliente =
-      venta.cliente.nombres.toLowerCase().includes(searchLower) ||
-      venta.cliente.apellidos.toLowerCase().includes(searchLower) ||
-      venta.cliente.identificacion.toLowerCase().includes(searchLower);
-    const matchesVenta = venta.id.toString().includes(searchTerm);
-    return matchesCliente || matchesVenta;
-  });
+  const matchesSearch = createTextMatcher(searchTerm);
+  const filteredVentas = ventasOrdered.filter(venta =>
+    matchesSearch([...clientSearchValues(venta.cliente), venta.id]));
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm]);
 

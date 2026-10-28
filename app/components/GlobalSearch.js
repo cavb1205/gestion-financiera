@@ -1,5 +1,7 @@
 "use client";
 
+import { createTextMatcher, clientSearchValues, normalizeSearchText } from "@/app/utils/text";
+
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -48,38 +50,34 @@ export default function GlobalSearch({ isOpen, onClose }) {
   const [query, setQuery] = useState("");
   const [clientes, setClientes] = useState([]);
   const [loadingClientes, setLoadingClientes] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef(null);
 
   useEffect(() => {
     setClientes([]);
-    setLoaded(false);
     setLoadingClientes(false);
     setActiveIndex(0);
   }, [tiendaId]);
 
   useEffect(() => {
-    if (!isOpen || loaded || !tiendaId) return;
+    if (!isOpen || !tiendaId) return;
     let cancelled = false;
     setLoadingClientes(true);
     getClientesTienda(tiendaId)
       .then((data) => {
         if (cancelled) return;
         setClientes(data);
-        setLoaded(true);
       })
       .catch(() => {
         if (cancelled) return;
         setClientes([]);
-        setLoaded(false);
       })
       .finally(() => {
         if (!cancelled) setLoadingClientes(false);
       });
 
     return () => { cancelled = true; };
-  }, [isOpen, loaded, tiendaId]);
+  }, [isOpen, tiendaId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -89,28 +87,26 @@ export default function GlobalSearch({ isOpen, onClose }) {
     }
   }, [isOpen]);
 
-  const q = query.toLowerCase().trim();
+  const q = normalizeSearchText(query);
+  const matchesQuery = useMemo(() => createTextMatcher(query), [query]);
 
   const filteredPages = useMemo(
     () => PAGES.filter((p) => {
       if (p.adminOnly && !isAdmin) return false;
       if (p.alertasOnly && user?.username !== "cavb1205") return false;
       if (p.rootOnly && user?.username !== "root") return false;
-      return q ? p.label.toLowerCase().includes(q) : true;
+      return matchesQuery([p.label]);
     }).slice(0, q ? 6 : 4),
-    [isAdmin, q, user?.username]
+    [isAdmin, q, matchesQuery, user?.username]
   );
 
   const filteredClients = useMemo(
     () => q
       ? clientes
-          .filter((c) => {
-            const haystack = `${c.nombres} ${c.apellidos} ${c.identificacion} ${c.nombre_local || ""}`.toLowerCase();
-            return haystack.includes(q);
-          })
+          .filter((c) => matchesQuery(clientSearchValues(c)))
           .slice(0, 8)
       : [],
-    [clientes, q]
+    [clientes, q, matchesQuery]
   );
 
   const allResults = useMemo(
