@@ -45,6 +45,7 @@ import { buildWhatsAppEstadoCuenta } from "../../utils/whatsapp";
 import OrganizadorRecorrido from "./OrganizadorRecorrido";
 import { ordenarCreditosRecorrido } from "../../utils/recorrido";
 import { leerLiquidacion, creditosParaLiquidar, etiquetaFalla } from "../../utils/liquidacion";
+import { etiquetaCuotasAdelantadas } from "../../utils/adelantos.mjs";
 
 function formatDiasSinAbono(credito) {
    return formatDiasSinAbonoBase(credito);
@@ -560,6 +561,7 @@ export default function LiquidarCreditosPage() {
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                            {currentItems.map((credito) => {
                               const mora = Math.round(credito.dias_atrasados || 0);
+                              const adelanto = etiquetaCuotasAdelantadas(credito);
                               const riesgo = getRiesgoCartera(credito);
                               const diasSinAbono = getDiasSinAbono(credito);
                               const cuotasAtrasadas = getCuotasAtrasadas(credito);
@@ -661,9 +663,9 @@ export default function LiquidarCreditosPage() {
                                                 {mora}d mora
                                              </span>
                                           )}
-                                          {mora < 0 && (
-                                             <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">
-                                                {Math.abs(mora)}d adelantado
+                                          {adelanto && (
+                                             <span title="Cuotas cubiertas por anticipado para la fecha consultada; puede incluir una fracción de cuota." className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">
+                                                {adelanto}
                                              </span>
                                           )}
                                        </div>
@@ -710,6 +712,7 @@ export default function LiquidarCreditosPage() {
                   ) : (
                      currentItems.map((credito) => {
                         const mora = Math.round(credito.dias_atrasados || 0);
+                        const adelanto = etiquetaCuotasAdelantadas(credito);
                         const riesgo = getRiesgoCartera(credito);
                         const diasSinAbono = getDiasSinAbono(credito);
                         const cuotasAtrasadas = getCuotasAtrasadas(credito);
@@ -741,8 +744,8 @@ export default function LiquidarCreditosPage() {
                                        {mora > 0 && (
                                           <span className="px-2 py-0.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-rose-100 dark:border-rose-800">{mora} cuotas atrasadas</span>
                                        )}
-                                       {mora < 0 && (
-                                          <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-emerald-100 dark:border-emerald-800">{Math.abs(mora)} cuotas adelantadas</span>
+                                       {adelanto && (
+                                          <span title="Cuotas cubiertas por anticipado para la fecha consultada; puede incluir una fracción de cuota." className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-emerald-100 dark:border-emerald-800">{adelanto}</span>
                                        )}
                                     </div>
                                  </Link>
