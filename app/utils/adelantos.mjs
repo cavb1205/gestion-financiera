@@ -5,7 +5,10 @@ export function etiquetaCuotasAdelantadas(credito) {
     estado === 'Pagado' || estado === 'Perdida')) return '';
 
   let cuotas;
-  if (calendario) {
+  if (credito?.cuotas_adelantadas !== undefined && credito.cuotas_adelantadas !== null) {
+    // La API actual no representa los adelantos diarios como atraso negativo.
+    cuotas = Number(credito.cuotas_adelantadas);
+  } else if (calendario) {
     // El calendario separa anticipo y mora: cuotas_atrasadas nunca es negativo.
     // Usar el valor contractual evita redondear antes de convertir a cuotas.
     const total = Number(credito.total_a_pagar);

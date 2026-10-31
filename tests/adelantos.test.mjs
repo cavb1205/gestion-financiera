@@ -11,6 +11,14 @@ const semanal = (anticipo, extra = {}) => ({
 test('el calendario muestra dos cuotas adelantadas aunque el atraso sea cero', () => {
   assert.equal(etiquetaCuotasAdelantadas(semanal('60000')), '2 cuotas adelantadas');
 });
+
+test('respuesta real diaria: atraso cero, sin calendario y adelanto explícito de la API', () => {
+  const credito = { plazo: 'Diario', estado_venta: 'Vigente', dias_atrasados: 0, calendario_pago: null, cuotas_adelantadas: '2.5' };
+  assert.equal(etiquetaCuotasAdelantadas(credito), '2,5 cuotas adelantadas');
+  assert.equal(etiquetaCuotasAdelantadas({ ...credito, cuotas_adelantadas: 0.25 }), '0,25 cuotas adelantadas');
+  assert.equal(etiquetaCuotasAdelantadas({ ...credito, cuotas_adelantadas: 0, dias_atrasados: -3 }), '');
+  assert.equal(etiquetaCuotasAdelantadas({ ...credito, cuotas_adelantadas: 'inválido' }), '');
+});
 test('reconoce una cuota y anticipos parciales sin redondear a cuotas enteras', () => {
   assert.equal(etiquetaCuotasAdelantadas(semanal('30000')), '1 cuota adelantada');
   assert.equal(etiquetaCuotasAdelantadas(semanal('15000')), '0,5 cuotas adelantadas');
