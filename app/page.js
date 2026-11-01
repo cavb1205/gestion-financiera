@@ -172,7 +172,7 @@ const faqs = [
   },
   {
     q: "¿Cuánto cuesta?",
-    a: "Ofrecemos un período de prueba gratuito para que explores la plataforma sin compromiso. Luego puedes escoger entre planes mensuales o anuales. Contáctanos por WhatsApp para conocer los precios actualizados.",
+    a: "Ofrecemos un período de prueba gratuito para que explores la plataforma sin compromiso. Luego puedes renovar tu membresía mensual con acceso completo por 30 días. Contáctanos por WhatsApp para conocer los precios actualizados.",
   },
 ];
 

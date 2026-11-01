@@ -1,805 +1,242 @@
-// app/dashboard/membresias/page.js
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/app/context/AuthContext";
-import {
-  FiRefreshCw,
-  FiCalendar,
-  FiClock,
-  FiCheckCircle,
-  FiAlertTriangle,
-  FiAlertCircle,
-  FiZap,
-  FiStar,
-  FiShield,
-  FiMessageCircle,
-  FiCopy,
-  FiCheck,
-  FiX,
-  FiLoader,
-  FiUploadCloud,
-} from "react-icons/fi";
+import { FiRefreshCw, FiCalendar, FiCheckCircle, FiAlertCircle, FiClock, FiCopy, FiCheck, FiLoader, FiUploadCloud, FiX, FiArrowRight, FiMessageCircle } from "react-icons/fi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
-import { formatMoney } from "../../utils/format";
-import { apiFetch, getApiError } from "../../utils/api";
-import { formatAppDate, getAppDateDifference, shiftAppDate } from "../../utils/datetime";
+import { formatMoney } from "@/app/utils/format";
+import { apiFetch, getApiError } from "@/app/utils/api";
+import { formatAppDate, getAppDateString } from "@/app/utils/datetime";
+import { textoTransferencia, faseRenovacion, estadoAcceso } from "@/app/utils/membresia.mjs";
 
 const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "";
-
-const STATUS_CONFIG = {
-  Activa: { label: "Activa", bg: "bg-emerald-50 dark:bg-emerald-900/20", text: "text-emerald-600", border: "border-emerald-100 dark:border-emerald-800/30" },
-  "Pre-activada": { label: "Pre-activada", bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-600", border: "border-amber-100 dark:border-amber-800/30" },
-  "Pendiente Pago": { label: "Pendiente", bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-600", border: "border-amber-100 dark:border-amber-800/30" },
-  Vencida: { label: "Vencida", bg: "bg-rose-50 dark:bg-rose-900/20", text: "text-rose-600", border: "border-rose-100 dark:border-rose-800/30" },
+const PRIMARY = "inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-4 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50";
+const PANEL = "rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-7";
+const TONES = {
+  emerald: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+  amber: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+  rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300",
 };
 
-function CopyButton({ value, small }) {
+function CopyButton({ value, label = "Copiar", disabled = false }) {
   const [copied, setCopied] = useState(false);
-  const handleCopy = async () => {
+  const timeout = useRef(null);
+  useEffect(() => () => clearTimeout(timeout.current), []);
+  return <button type="button" disabled={disabled} onClick={async () => {
     try {
-      await navigator.clipboard.writeText(String(value ?? ""));
+      await navigator.clipboard.writeText(String(value));
       setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      toast.error("No se pudo copiar");
-    }
-  };
-  return (
-    <button
-      onClick={handleCopy}
-      className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg transition-all ${small ? "text-[9px]" : "text-[10px]"} font-black uppercase tracking-widest ${copied ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 dark:bg-slate-700 text-slate-500 hover:bg-indigo-100 hover:text-indigo-600"}`}
-    >
-      {copied ? <FiCheck size={10} /> : <FiCopy size={10} />}
-      {copied ? "Copiado" : "Copiar"}
-    </button>
-  );
+      clearTimeout(timeout.current);
+      timeout.current = setTimeout(() => setCopied(false), 2000);
+    } catch { toast.error("No se pudo copiar. Puedes seleccionar el texto y copiarlo manualmente."); }
+  }} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300">
+    {copied ? <FiCheck aria-hidden="true" /> : <FiCopy aria-hidden="true" />}<span aria-live="polite">{copied ? "Copiado" : label}</span>
+  </button>;
 }
 
-function Countdown({ expira, onExpired }) {
+function Expiry({ value, onExpired }) {
   const [remaining, setRemaining] = useState("");
-
   useEffect(() => {
+    let expired = false;
     const tick = () => {
-      const diff = new Date(expira) - new Date();
-      if (diff <= 0) {
-        setRemaining("Expirado");
-        onExpired?.();
+      const difference = new Date(value).getTime() - Date.now();
+      if (!Number.isFinite(difference)) { setRemaining("Consulta el estado antes de transferir"); return; }
+      if (difference <= 0) {
+        setRemaining("Código vencido. Actualizando…");
+        if (!expired) { expired = true; onExpired(); }
         return;
       }
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setRemaining(`${h}h ${m.toString().padStart(2, "0")}m ${s.toString().padStart(2, "0")}s`);
+      setRemaining(`Código válido por ${Math.floor(difference / 3600000)} h ${Math.floor(difference % 3600000 / 60000)} min`);
     };
     tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [expira, onExpired]);
-
-  return <span className="font-mono">{remaining}</span>;
-}
-
-function SupportButton({ tienda, quien }) {
-  if (!SUPPORT_WHATSAPP) return null;
-  const partes = ["Hola, necesito ayuda con el pago de mi plan."];
-  if (tienda) partes.push(`Ruta: ${tienda.nombre} (ID ${tienda.id}).`);
-  if (quien) partes.push(`Solicita: ${quien}.`);
-  const texto = encodeURIComponent(partes.join(" "));
-  return (
-    <a
-      href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${texto}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="w-full py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all active:scale-95"
-    >
-      <FiMessageCircle size={14} /> ¿No sabes cómo pagar? Escríbenos
-    </a>
-  );
-}
-
-function parseFechaLocal(dateStr) {
-  if (!dateStr || typeof dateStr !== "string") return null;
-  const [year, month, day] = dateStr.split("-").map(Number);
-  if (![year, month, day].every(Number.isFinite)) return null;
-  const date = new Date(year, month - 1, day);
-  return Number.isNaN(date.getTime()) ? null : date;
+    const timer = setInterval(tick, 30000);
+    return () => clearInterval(timer);
+  }, [value, onExpired]);
+  return <p className="text-xs text-slate-500 dark:text-slate-400">{remaining}</p>;
 }
 
 export default function MembresiasPage() {
+  const auth = useAuth();
+  if (auth.loading || !auth.isAuthenticated || !auth.selectedStore) return <LoadingSpinner />;
+  // Cada ruta tiene su propio formulario, comprobante y solicitudes en curso.
+  return <Renovacion key={auth.selectedStore.tienda.id} store={auth.selectedStore} refreshStore={auth.refreshSelectedStore} />;
+}
+
+function Renovacion({ store, refreshStore }) {
   const router = useRouter();
-  const { selectedStore, profile, isAuthenticated, loading: authLoading, refreshSelectedStore } = useAuth();
-  const [membresia, setMembresia] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [membershipError, setMembershipError] = useState("");
-  const [planes, setPlanes] = useState([]);
-  const [planesLoading, setPlanesLoading] = useState(true);
-  const [requesting, setRequesting] = useState(null); // 'Mensual' | 'Anual'
-  const [solicitud, setSolicitud] = useState(null);
-  const [solicitudLoading, setSolicitudLoading] = useState(true);
-  const [comprobante, setComprobante] = useState(null);
-  const [comprobantePreview, setComprobantePreview] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [canceling, setCanceling] = useState(false);
-  const pollingRef = useRef(null);
-  const manuallyExpired = selectedStore?.vencida_manualmente || membresia?.vencida_manualmente;
+  const id = store.tienda.id;
+  const [membership, setMembership] = useState(null);
+  const [now, setNow] = useState(() => new Date());
+  const [monthly, setMonthly] = useState(null);
+  const [request, setRequest] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState("");
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState("");
+  const [continuePayment, setContinuePayment] = useState(false);
+  const [paymentUncertain, setPaymentUncertain] = useState(false);
+  const mounted = useRef(false);
+  const sequence = useRef(0);
+  const writing = useRef(false);
+  const observedVersion = useRef(store.version);
+  const requestCode = useRef(null);
 
-  const fetchMembresia = useCallback(async () => {
-    if (!selectedStore) return;
+  const load = useCallback(async () => {
+    const current = ++sequence.current;
+    setRefreshing(true);
     try {
-      setIsLoading(true);
-      const response = await apiFetch(`/tiendas/detail/admin/${selectedStore.tienda.id}/`);
-      if (!response.ok) throw new Error(await getApiError(response, "No se pudo cargar la membresía."));
-      const data = await response.json();
-      setMembresia(data);
-      setMembershipError("");
-      return data;
-    } catch (error) {
-      setMembresia(null);
-      setMembershipError(error.message || "No se pudo cargar la membresía.");
-      toast.error(error.message);
-      return null;
+      const paths = [`/tiendas/detail/admin/${id}/?vista=membresia`, "/tiendas/planes/", `/tiendas/solicitud-pago/actual/t/${id}/?incluir_ultima=1`];
+      const [mem, plans, actual] = await Promise.all(paths.map(async path => {
+        const response = await apiFetch(path, { cache: "no-store" });
+        if (!response.ok) throw new Error(await getApiError(response, "No se pudo verificar la renovación. Intenta actualizar."));
+        return response.json();
+      }));
+      if (!mem?.fecha_vencimiento || !mem.renovacion_mensual?.hasta || !Array.isArray(plans) || !Object.hasOwn(actual, "solicitud")) {
+        throw new Error("No se pudo verificar la información de renovación. Actualiza o contacta a soporte.");
+      }
+      if (!mounted.current || current !== sequence.current) return;
+      setMembership(mem);
+      setNow(new Date());
+      setMonthly(plans.find(plan => plan.nombre === "Mensual") || null);
+      if ((actual.solicitud?.codigo || null) !== requestCode.current) {
+        requestCode.current = actual.solicitud?.codigo || null;
+        setFile(null); setPreview(""); setContinuePayment(false); setPaymentUncertain(false);
+      } else if (actual.solicitud?.estado !== "pendiente") {
+        setFile(null); setPreview("");
+      }
+      setRequest(actual.solicitud);
+      setError("");
+      if (mem.version !== observedVersion.current) {
+        observedVersion.current = mem.version;
+        await refreshStore?.({ membershipOnly: true });
+      }
+    } catch (problem) {
+      if (mounted.current && current === sequence.current) setError(problem.message || "No se pudo verificar la renovación.");
     } finally {
-      setIsLoading(false);
+      if (mounted.current && current === sequence.current) { setLoading(false); setRefreshing(false); }
     }
-  }, [selectedStore]);
+  }, [id, refreshStore]);
 
   useEffect(() => {
-    fetchMembresia();
-  }, [fetchMembresia]);
+    mounted.current = true;
+    const initialRead = setTimeout(load, 0);
+    const refresh = () => { if (document.visibilityState === "visible" && !writing.current) load(); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearTimeout(initialRead);
+      mounted.current = false;
+      sequence.current += 1;
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [load]);
 
-  const fetchPlanes = useCallback(async () => {
-    setPlanesLoading(true);
-    try {
-      const response = await apiFetch("/tiendas/planes/");
-      if (!response.ok) throw new Error(await getApiError(response, "No se pudieron cargar los precios."));
-      const data = await response.json();
-      setPlanes(
-        (Array.isArray(data) ? data : []).filter((plan) => ["Mensual", "Anual"].includes(plan.nombre))
-      );
-    } catch (error) {
-      setPlanes([]);
-      toast.error(error.message || "No se pudieron cargar los precios.");
-    } finally {
-      setPlanesLoading(false);
-    }
-  }, []);
-
-  const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-  }, []);
-
-  const handleSolicitudUpdate = useCallback(async (codigo) => {
-    try {
-      const res = await apiFetch(`/tiendas/solicitud-pago/${codigo}/`);
-      if (!res.ok) { stopPolling(); return; }
-      const data = await res.json();
-      setSolicitud(prev => ({ ...prev, ...data }));
-
-      if (data.estado === "confirmada" || data.estado === "aprobada") {
-        stopPolling();
-        const fresh = await refreshSelectedStore?.();
-        const membership = await fetchMembresia();
-        if (fresh && membership && !fresh.vencida_manualmente && !membership.vencida_manualmente) {
-          toast.success("✅ Pago confirmado. Tu membresía está activa.");
-        }
-      } else if (data.estado === "rechazada") {
-        stopPolling();
-        toast.error(`❌ Pago rechazado: ${data.motivo_rechazo || "verifica el comprobante."}`);
-        await refreshSelectedStore?.();
-        await fetchMembresia();
-      } else if (data.estado === "expirada") {
-        stopPolling();
-        fetchMembresia();
-      }
-    } catch { /* ignore network errors during polling */ }
-  }, [stopPolling, refreshSelectedStore, fetchMembresia]);
-
-  const startPolling = useCallback((codigo) => {
-    stopPolling();
-    pollingRef.current = setInterval(() => handleSolicitudUpdate(codigo), 10000);
-  }, [stopPolling, handleSolicitudUpdate]);
-
-  const fetchSolicitudActual = useCallback(async () => {
-    if (!selectedStore) return;
-    setSolicitudLoading(true);
-    try {
-      const response = await apiFetch(
-        `/tiendas/solicitud-pago/actual/t/${selectedStore.tienda.id}/`
-      );
-      if (!response.ok) throw new Error(await getApiError(response, "No se pudo recuperar la solicitud."));
-      const data = await response.json();
-      const actual = data.solicitud || null;
-      setSolicitud(actual);
-      if (actual?.estado === "pendiente_confirmacion") startPolling(actual.codigo);
-    } catch (error) {
-      console.error("Error al recuperar solicitud de membresía:", error);
-      setSolicitud(null);
-    } finally {
-      setSolicitudLoading(false);
-    }
-  }, [selectedStore, startPolling]);
-
-  useEffect(() => () => stopPolling(), [stopPolling]);
-
+  const phase = faseRenovacion(request);
   useEffect(() => {
-    if (!authLoading && isAuthenticated && selectedStore) {
-      fetchPlanes();
-      fetchSolicitudActual();
-    }
-  }, [authLoading, isAuthenticated, selectedStore, fetchPlanes, fetchSolicitudActual]);
+    if (phase !== "revision") return;
+    const timer = setInterval(() => { if (!writing.current && document.visibilityState === "visible") load(); }, 10000);
+    return () => clearInterval(timer);
+  }, [phase, load]);
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
-  useEffect(() => () => {
-    if (comprobantePreview) URL.revokeObjectURL(comprobantePreview);
-  }, [comprobantePreview]);
-
-  const solicitarPago = async (plan) => {
-    setRequesting(plan);
+  const resetFile = () => { setFile(null); setPreview(""); };
+  const mutate = async (action, path, options) => {
+    if (writing.current || refreshing || error) return;
+    writing.current = true;
+    sequence.current += 1;
+    setBusy(action);
     try {
-      const res = await apiFetch("/tiendas/solicitar-pago/", {
-        method: "POST",
-        body: JSON.stringify({ plan, tienda_id: selectedStore.tienda.id }),
-      });
-      if (!res.ok) {
-        throw new Error(await getApiError(res, "Error al generar el código de pago."));
+      const response = await apiFetch(path, options);
+      if (!response.ok) throw new Error(await getApiError(response, "No se pudo completar la operación. Actualiza el estado antes de reintentar."));
+      const result = await response.json();
+      if (!mounted.current) return;
+      if (action === "renew") { requestCode.current = result.codigo; setRequest(result); setContinuePayment(true); resetFile(); setPaymentUncertain(false); }
+      else if (action === "cancel") { setContinuePayment(false); resetFile(); }
+      else if (action === "upload") { setContinuePayment(false); resetFile(); }
+      await load();
+    } catch (problem) {
+      if (mounted.current) {
+        setError(`${problem.message} Verifica el estado con «Actualizar» antes de volver a intentarlo.`);
+        if (action === "upload") setPaymentUncertain(true);
       }
-      const data = await res.json();
-      setSolicitud(data);
-      if (data.estado === "pendiente_confirmacion") startPolling(data.codigo);
-    } catch (error) {
-      toast.error(error.message);
     } finally {
-      setRequesting(null);
+      writing.current = false;
+      if (mounted.current) setBusy("");
     }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("El comprobante debe ser una imagen.");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("La imagen no debe superar 5 MB.");
-      return;
-    }
-    if (comprobantePreview) URL.revokeObjectURL(comprobantePreview);
-    setComprobante(file);
-    setComprobantePreview(URL.createObjectURL(file));
+  const upload = () => {
+    if (!file || !request) return;
+    const data = new FormData(); data.append("comprobante", file);
+    mutate("upload", `/tiendas/solicitud-pago/${request.codigo}/comprobante/`, { method: "POST", body: data });
   };
+  const renew = () => mutate("renew", "/tiendas/solicitar-pago/", { method: "POST", body: JSON.stringify({ plan: "Mensual", tienda_id: id }) });
 
-  const subirComprobante = async () => {
-    if (!comprobante) {
-      toast.error("Adjunta la foto del comprobante.");
-      return;
-    }
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("comprobante", comprobante);
-      const res = await apiFetch(`/tiendas/solicitud-pago/${solicitud.codigo}/comprobante/`, {
-        method: "POST",
-        body: fd,
-      });
-      if (!res.ok) {
-        throw new Error(await getApiError(res, "No se pudo enviar el comprobante."));
-      }
-      const data = await res.json();
-      setSolicitud(prev => ({ ...prev, estado: data.estado, pre_activada_hasta: data.pre_activada_hasta }));
-      await refreshSelectedStore?.();
-      await fetchMembresia();
-      startPolling(solicitud.codigo);
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
+  if (loading) return <LoadingSpinner />;
+  const disabled = !!busy || refreshing || !!error;
+  const zone = store.tienda.zona_horaria || "America/Santiago";
+  const date = value => formatAppDate(value, { day: "numeric", month: "short", year: "numeric" }, zone);
+  const status = membership ? estadoAcceso(membership, getAppDateString(0, now, zone)) : null;
+  const bank = textoTransferencia(request?.cuenta);
+  const expiredCode = phase === "pagar" && (!request.expira || new Date(request.expira).getTime() <= now.getTime());
+  const payable = !!bank && request?.cuenta_historica_verificable !== false && request?.monto != null && !expiredCode;
+  const support = request?.wa_link || (SUPPORT_WHATSAPP ? `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(`Hola, necesito ayuda con la renovación de la ruta ${store.tienda.nombre}.${request ? ` Código ${request.codigo}.` : ""}`)}` : "");
+  const requiresHelp = (phase === "cerrada" && (request?.tiene_comprobante || request?.estado === "rechazada")) || paymentUncertain;
 
-  const cancelarSolicitud = async () => {
-    if (solicitud?.estado === "pendiente") {
-      setCanceling(true);
-      try {
-        const response = await apiFetch(`/tiendas/solicitud-pago/${solicitud.codigo}/cancelar/`, { method: "POST" });
-        if (!response.ok) throw new Error(await getApiError(response, "No se pudo cancelar la solicitud."));
-      } catch (error) {
-        toast.error(error.message);
-        setCanceling(false);
-        return;
-      } finally {
-        setCanceling(false);
-      }
-    }
-    stopPolling();
-    if (comprobantePreview) URL.revokeObjectURL(comprobantePreview);
-    setSolicitud(null);
-    setComprobante(null);
-    setComprobantePreview(null);
-  };
+  return <div className="mx-auto max-w-2xl px-4 pb-12 text-slate-800 dark:text-slate-100 md:px-0">
+    <header className="mb-6 flex items-center justify-between gap-3">
+      <div className="min-w-0"><h1 className="text-2xl font-black tracking-tight">Membresía</h1><p className="mt-1 break-words text-sm text-slate-500 dark:text-slate-400">{store.tienda.nombre}</p></div>
+      <button type="button" onClick={load} disabled={!!busy || refreshing} aria-label="Actualizar membresía" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-bold disabled:opacity-50 dark:border-slate-700"><FiRefreshCw className={refreshing ? "animate-spin" : ""} />Actualizar</button>
+    </header>
 
-  const getMembresiaInfo = () => {
-    if (manuallyExpired) return { days: 0, graceDays: 0, memStatus: "expired" };
-    if (!membresia) return { days: 0, graceDays: 0, memStatus: "expired" };
-    const vencimiento = membresia.fecha_vencimiento;
-    const vencimientoDiff = getAppDateDifference(vencimiento);
-    if (vencimientoDiff === null) return { days: 0, graceDays: 0, memStatus: "expired" };
-    const preactivadaDiff = getAppDateDifference(membresia.pre_activada_hasta);
-    const preactivadaVigente = membresia.estado === "Pre-activada"
-      && preactivadaDiff !== null
-      && preactivadaDiff <= 0;
-    const days = -vencimientoDiff;
-    const graceDays = -getAppDateDifference(shiftAppDate(vencimiento, 2));
-    let memStatus;
-    if (preactivadaVigente) memStatus = "preactive";
-    else if (days <= -2) memStatus = "expired";
-    else if (days <= -1) memStatus = "grace";
-    else if (days === 0) memStatus = "today";
-    else memStatus = days <= 3 ? "warn" : "ok";
-    return { days, graceDays, memStatus };
-  };
+    {error && <div role="alert" className={`mb-5 rounded-2xl border p-4 text-sm ${TONES.rose}`}><p className="font-bold">No pudimos verificar el estado</p><p className="mt-1">{error}</p><button type="button" onClick={load} disabled={refreshing || !!busy} className="mt-3 underline">Actualizar y verificar</button></div>}
 
-  const getPeriodProgress = () => {
-    if (!membresia) return 0;
-    const inicio = parseFechaLocal(membresia.fecha_activacion);
-    const fin = parseFechaLocal(membresia.fecha_vencimiento);
-    if (!inicio || !fin || fin <= inicio) return 0;
-    const hoy = new Date();
-    const total = fin - inicio;
-    const elapsed = hoy - inicio;
-    return Math.min(100, Math.max(0, (elapsed / total) * 100));
-  };
+    {membership && <>
+      <section className={`${PANEL} mb-5`} aria-label="Estado de la membresía">
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-slate-500">Membresía de la ruta</p><h2 className="mt-1 text-lg font-bold">{store.tienda.nombre}</h2></div><span className={`rounded-full border px-3 py-1 text-xs font-bold ${TONES[status.tone]}`}>{status.label}</span></div>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 text-sm dark:border-slate-800"><span className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400"><FiCalendar />Vencimiento actual</span><strong>{date(membership.fecha_vencimiento)}</strong></div>
+        {status.blocked && <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Renueva para reanudar el acceso. Tus clientes, créditos y recaudos se conservan.</p>}
+        {status.label === "Acceso temporal" && <p className="mt-3 text-sm text-amber-700 dark:text-amber-300">Puedes trabajar hasta el {date(membership.pre_activada_hasta)} mientras verificamos tu pago. La renovación todavía no está confirmada.</p>}
+      </section>
 
-  const formatDate = (dateStr) => {
-    return formatAppDate(dateStr, { day: "numeric", month: "short", year: "numeric" });
-  };
+      {phase === "pagar" && !continuePayment && <section className={`${PANEL} mb-5`}>
+        <p className="text-xs font-bold uppercase tracking-wider text-indigo-500">Renovación pendiente</p><h2 className="mt-2 text-xl font-bold">Continúa donde quedaste</h2><p className="mb-5 mt-2 text-sm text-slate-500 dark:text-slate-400">Ya tienes un código de pago. Retoma la transferencia o adjunta el comprobante si ya pagaste.</p><button type="button" onClick={() => setContinuePayment(true)} disabled={disabled} className={PRIMARY}>Continuar renovación<FiArrowRight /></button>
+      </section>}
 
-  if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
-
-  if (isLoading) {
-    return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center bg-transparent">
-        <LoadingSpinner />
-        <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Verificando Membresía</p>
-      </div>
-    );
-  }
-
-  if (membershipError || !membresia) {
-    return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center px-6 text-center">
-        <FiAlertCircle className="text-rose-500 mb-4" size={42} />
-        <p className="text-lg font-black text-slate-800 dark:text-white uppercase">No se pudo cargar la membresía</p>
-        <p className="text-xs text-slate-400 mt-2 max-w-sm">{membershipError || "La ruta no tiene una membresía configurada."}</p>
-        <button
-          onClick={fetchMembresia}
-          className="mt-6 px-5 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all"
-        >
-          Reintentar
-        </button>
-      </div>
-    );
-  }
-
-  const { days: daysRemaining, graceDays, memStatus } = getMembresiaInfo();
-  const periodProgress = getPeriodProgress();
-  const statusCfg = STATUS_CONFIG[manuallyExpired ? "Vencida" : membresia?.estado] || STATUS_CONFIG["Activa"];
-  const planNombre = membresia?.membresia?.nombre || "—";
-  const planMensual = planes.find((plan) => plan.nombre === "Mensual");
-  const planAnual = planes.find((plan) => plan.nombre === "Anual");
-
-  const daysColor = memStatus === "ok"
-    ? { bar: "bg-emerald-500", text: "text-emerald-600" }
-    : memStatus === "warn" || memStatus === "today" || memStatus === "preactive"
-      ? { bar: "bg-amber-500", text: "text-amber-600" }
-      : { bar: "bg-rose-500", text: "text-rose-600" };
-
-  const daysLabel = memStatus === "expired"
-    ? "Acceso bloqueado"
-    : memStatus === "preactive"
-      ? `Acceso temporal · confirma antes del ${formatDate(membresia.pre_activada_hasta)}`
-    : memStatus === "grace"
-      ? `Gracia · ${graceDays} día${graceDays !== 1 ? "s" : ""} para bloqueo`
-      : memStatus === "today"
-        ? `Vence hoy · ${graceDays} día${graceDays !== 1 ? "s" : ""} para el bloqueo`
-        : `${daysRemaining} día${daysRemaining !== 1 ? "s" : ""} restantes`;
-
-  // Paso del flujo de pago
-  const paso = !solicitud
-    ? "planes"
-    : solicitud.estado === "pendiente"
-      ? "pagar"
-      : solicitud.estado === "pendiente_confirmacion"
-        ? "confirmando"
-        : solicitud.estado === "confirmada" || solicitud.estado === "aprobada"
-          ? "confirmada"
-          : "cerrada"; // rechazada / expirada
-
-  return (
-    <div className="min-h-screen bg-transparent pb-12">
-      <div className="max-w-3xl mx-auto px-4 md:px-0">
-
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase truncate">Membresía</h1>
-            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none mt-1">
-              Suscripción • <span className="text-slate-400">{selectedStore.tienda.nombre}</span>
-            </p>
-          </div>
-          <button
-            onClick={fetchMembresia}
-            disabled={isLoading}
-            className="p-3.5 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FiRefreshCw size={18} />
-          </button>
+      {phase === "pagar" && continuePayment && <section className={`${PANEL} mb-5`} aria-label="Datos para renovar">
+        <p className="text-xs font-bold uppercase tracking-wider text-indigo-500">1. Transfiere · 2. Envía el comprobante</p><h2 className="mt-2 text-xl font-bold">Renovación {request.plan === "Mensual" ? "mensual" : "pendiente"}</h2>
+        <div className="my-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-800"><div><p className="text-xs text-slate-500 dark:text-slate-400">Monto a transferir</p><p className="mt-1 text-3xl font-black tracking-tight">{request.monto == null ? "Por verificar" : formatMoney(request.monto)}</p></div>{request.monto != null && <CopyButton value={request.monto} label="Copiar monto" disabled={disabled || !payable} />}</div>
+        <div className="mb-5"><h3 className="mb-3 text-sm font-bold">Datos de transferencia</h3>{bank ? <><div className="mb-3 whitespace-pre-wrap break-words rounded-2xl border border-slate-200 bg-slate-50 p-4 text-base leading-7 select-text dark:border-slate-700 dark:bg-slate-800">{bank}</div><CopyButton value={bank} label="Copiar datos de transferencia" disabled={disabled || !payable} /></> : <p className="text-sm text-amber-700 dark:text-amber-300">Esta solicitud no conserva una cuenta verificable. Contacta a soporte antes de transferir.</p>}</div>
+        {!payable && <p role="alert" className={`mb-5 rounded-xl border p-3 text-sm ${TONES.amber}`}>No transfieras con estos datos hasta verificar la solicitud. Si ya pagaste, puedes enviar el comprobante.</p>}
+        <div className="mb-6 rounded-2xl border border-indigo-200 p-4 dark:border-indigo-800"><p className="mb-2 text-sm font-bold">Escribe este código en el comentario de la transferencia</p><div className="mb-2 flex flex-wrap items-center justify-between gap-3"><strong className="font-mono text-xl tracking-wider">{request.codigo}</strong><CopyButton value={request.codigo} label="Copiar código" disabled={disabled || !payable} /></div><Expiry value={request.expira} onExpired={load} /></div>
+        <div className="border-t border-slate-100 pt-5 dark:border-slate-800"><h3 className="text-base font-bold">¿Ya realizaste la transferencia?</h3><p className="mb-4 mt-1 text-sm text-slate-500 dark:text-slate-400">Adjunta una foto o imagen del comprobante. No necesitas transferir otra vez.</p>
+          <label htmlFor="comprobante-membresia" className="inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 p-4 text-sm font-bold hover:border-indigo-400 dark:border-slate-600"><FiUploadCloud />{file ? "Cambiar comprobante" : "Adjuntar comprobante"}<input id="comprobante-membresia" type="file" accept="image/jpeg,image/png,image/webp" disabled={disabled || expiredCode} className="sr-only" onChange={event => {
+            const selected = event.target.files?.[0]; event.target.value = "";
+            if (!selected) return;
+            if (!["image/jpeg", "image/png", "image/webp"].includes(selected.type) || selected.size > 5 * 1024 * 1024) { toast.error("Adjunta una imagen JPG, PNG o WebP de hasta 5 MB."); return; }
+            setFile(selected); setPreview(URL.createObjectURL(selected));
+          }} /></label><p className="mt-2 text-xs text-slate-500 dark:text-slate-400">JPG, PNG o WebP · máximo 5 MB</p>
+          {preview && <div className="relative my-4 rounded-2xl border border-slate-200 p-2 dark:border-slate-700"><Image unoptimized width={800} height={500} src={preview} alt="Comprobante seleccionado" className="max-h-64 w-full rounded-xl object-contain" /><button type="button" aria-label="Quitar comprobante" onClick={resetFile} disabled={disabled} className="absolute right-3 top-3 rounded-full bg-slate-900 p-2 text-white"><FiX /></button><p className="mt-2 break-all text-xs text-slate-500">{file?.name}</p></div>}
+          <button type="button" onClick={upload} disabled={disabled || !file || expiredCode} className={`${PRIMARY} mt-4`}>{busy === "upload" ? <FiLoader className="animate-spin" /> : <FiCheckCircle />}{busy === "upload" ? "Enviando comprobante…" : "Enviar comprobante"}</button><p className="mt-3 text-xs text-slate-500 dark:text-slate-400">El envío queda en revisión. La renovación se confirma cuando se verifica el pago.</p>
         </div>
+        <button type="button" disabled={disabled} onClick={() => mutate("cancel", `/tiendas/solicitud-pago/${request.codigo}/cancelar/`, { method: "POST" })} className="mt-5 min-h-11 text-xs font-semibold text-slate-500 underline">Cancelar solicitud si todavía no transferiste</button>
+      </section>}
 
-        {/* Status Card */}
-        <div className="glass rounded-[2rem] border-white/60 dark:border-slate-800 shadow-2xl overflow-hidden mb-6">
-          <div className="p-7 md:p-10">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-none">
-                  <FiShield className="text-white" size={22} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Plan actual</p>
-                  <p className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">{planNombre}</p>
-                </div>
-              </div>
-              <span className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}>
-                {statusCfg.label}
-              </span>
-            </div>
+      {phase === "revision" && <section className={`${PANEL} mb-5`} aria-live="polite"><FiClock className="mb-3 text-amber-500" size={28} /><h2 className="text-xl font-bold">Pago en revisión</h2><p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{request.tiene_comprobante ? "Recibimos tu comprobante." : "Estamos verificando tu solicitud."} No necesitas volver a transferir ni generar otro pago.</p><p className="mt-3 text-sm font-bold">Código: {request.codigo}</p><p className="mt-3 text-xs text-slate-500 dark:text-slate-400">El estado se actualiza automáticamente. Si ya recibiste la confirmación, también puedes tocar «Actualizar».</p>{!status.blocked && <button type="button" onClick={() => router.push("/dashboard/liquidar")} className={`${PRIMARY} mt-5`}>Continuar trabajando<FiArrowRight /></button>}</section>}
 
-            <div className="space-y-3 mb-8">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vigencia del Plan</p>
-                <p className={`text-[11px] font-black uppercase tracking-widest ${daysColor.text}`}>{daysLabel}</p>
-              </div>
-              <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className={`h-full ${daysColor.bar} rounded-full transition-all duration-1000`} style={{ width: `${Math.max(0, 100 - periodProgress)}%` }} />
-              </div>
-              <div className="flex items-center justify-between text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">
-                <span>{formatDate(membresia?.fecha_activacion)}</span>
-                <span>{formatDate(membresia?.fecha_vencimiento)}</span>
-              </div>
-            </div>
+      {phase === "confirmada" && <section className={`${PANEL} mb-5`} aria-live="polite"><FiCheckCircle className="mb-3 text-emerald-500" size={28} /><h2 className="text-xl font-bold">Pago confirmado</h2><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{status.blocked ? "Este pago está confirmado, pero el acceso actual requiere revisión. Contacta a soporte antes de volver a pagar." : <>Tu membresía tiene vigencia hasta el <strong>{date(membership.fecha_vencimiento)}</strong>.</>}</p>{!status.blocked && <button type="button" onClick={() => router.push("/dashboard/liquidar")} className={`${PRIMARY} mt-5`}>Continuar trabajando<FiArrowRight /></button>}</section>}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <FiCalendar className="text-slate-400" size={13} />
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Activación</p>
-                </div>
-                <p className="text-[13px] font-black text-slate-700 dark:text-slate-200">{formatDate(membresia?.fecha_activacion)}</p>
-              </div>
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <FiClock className={daysColor.text} size={13} />
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Vencimiento</p>
-                </div>
-                <p className={`text-[13px] font-black ${memStatus !== "ok" ? daysColor.text : "text-slate-700 dark:text-slate-200"}`}>
-                  {formatDate(membresia?.fecha_vencimiento)}
-                </p>
-              </div>
-            </div>
-          </div>
+      {phase === "cerrada" && request.estado !== "cancelada" && <div className={`mb-5 rounded-2xl border p-4 text-sm ${TONES.amber}`}><p className="font-bold">{request.estado === "expirada" ? "La solicitud anterior venció" : "El pago necesita revisión"}</p>{request.motivo_rechazo && <p className="mt-1">{request.motivo_rechazo}</p>}<p className="mt-2">{requiresHelp ? "Si ya transferiste, contacta a soporte antes de pagar nuevamente." : "Si todavía no transferiste, puedes iniciar una nueva renovación mensual. Si ya pagaste, contacta a soporte."}</p></div>}
 
-          {!manuallyExpired && membresia?.estado === "Pendiente Pago" && (
-            <div className="mx-6 mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-2xl flex items-start gap-3">
-              <FiAlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={16} />
-              <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-tight leading-relaxed">
-                Tu suscripción está pendiente de renovación. Activa un plan para continuar accediendo a todas las funciones.
-              </p>
-            </div>
-          )}
-          {(manuallyExpired || membresia?.estado === "Vencida") && (
-            <div className="mx-6 mb-6 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl flex items-start gap-3">
-              <FiAlertCircle className="text-rose-500 shrink-0 mt-0.5" size={16} />
-              <p className="text-[10px] font-black text-rose-700 dark:text-rose-400 uppercase tracking-tight leading-relaxed">
-                {manuallyExpired ? "Tu membresía fue vencida manualmente. El bloqueo es inmediato, sin gracia ni preactivación. Tus clientes, créditos y recaudos se conservan. Renueva o contacta a soporte para reactivar el acceso." : "Tu membresía ha vencido. El acceso al sistema está restringido hasta que actives un nuevo plan."}
-              </p>
-            </div>
-          )}
-          {!manuallyExpired && membresia?.estado === "Pre-activada" && (
-            <div className="mx-6 mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-2xl flex items-start gap-3">
-              <FiClock className="text-amber-500 shrink-0 mt-0.5" size={16} />
-              <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-tight leading-relaxed">
-                Pre-activada · confirmando pago. Tienes acceso completo mientras verificamos tu comprobante.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* ── PASO: PAGAR (datos bancarios + subir comprobante) ── */}
-        {paso === "pagar" && (
-          <div className="mb-6 glass rounded-[2rem] border-indigo-200 dark:border-indigo-800/40 shadow-2xl overflow-hidden">
-            <div className="p-7 md:p-10">
-
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">Paso 2 de 3 · Realiza el pago</p>
-                  <p className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Plan {solicitud.plan}</p>
-                </div>
-                <button
-                  onClick={cancelarSolicitud}
-                  disabled={canceling}
-                  className="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/20"
-                  title="Cancelar"
-                >
-                  {canceling ? <FiLoader size={16} className="animate-spin" /> : <FiX size={16} />}
-                </button>
-              </div>
-
-              {/* Código — debe ir en el concepto */}
-              <div className="mb-5 p-5 bg-indigo-50 dark:bg-indigo-950/40 border-2 border-indigo-200 dark:border-indigo-800/60 rounded-2xl">
-                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2">
-                  Tu Código de Pago — escríbelo en el concepto de la transferencia
-                </p>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-3xl font-black text-indigo-700 dark:text-indigo-300 tracking-widest font-mono">{solicitud.codigo}</p>
-                  <CopyButton value={solicitud.codigo} />
-                </div>
-                <p className="text-[10px] text-indigo-400 mt-2 font-semibold">
-                  Válido por: <Countdown expira={solicitud.expira} onExpired={() => setSolicitud(p => ({ ...p, estado: "expirada" }))} />
-                </p>
-              </div>
-
-              {/* Monto */}
-              <div className="mb-5 flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 rounded-2xl">
-                <div>
-                  <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Monto a Transferir</p>
-                  <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 tracking-tight">{solicitud.monto == null ? "Monto por verificar" : formatMoney(solicitud.monto)}</p>
-                </div>
-                {solicitud.monto != null && <CopyButton value={solicitud.monto} />}
-              </div>
-
-              {/* Datos de la cuenta */}
-              {solicitud.cuenta_historica_verificable === false && <p className="text-sm text-amber-600 mb-4">
-                Esta solicitud anterior no conserva la cuenta original. Consulta con soporte antes de transferir; si ya pagaste, envía tu comprobante.
-              </p>}
-              <div className="mb-6 space-y-3">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Datos de la Cuenta</p>
-                {[
-                  { label: "Banco", value: solicitud.cuenta?.banco },
-                  { label: "Número / Cuenta", value: solicitud.cuenta?.numero },
-                  { label: "Titular", value: solicitud.cuenta?.titular },
-                  { label: "Tipo", value: solicitud.cuenta?.tipo },
-                ].map(({ label, value }) => value ? (
-                  <div key={label} className="flex items-center justify-between gap-3 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-700">
-                    <div className="min-w-0">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
-                      <p className="text-[13px] font-black text-slate-700 dark:text-slate-200 truncate">{value}</p>
-                    </div>
-                    <CopyButton value={value} small />
-                  </div>
-                ) : null)}
-              </div>
-
-              {/* Subir comprobante */}
-              <div className="mb-5">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Adjunta el Comprobante</p>
-                {comprobantePreview ? (
-                  <div className="relative rounded-2xl overflow-hidden border-2 border-indigo-200 dark:border-indigo-800/60">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={comprobantePreview} alt="Comprobante" className="w-full max-h-72 object-contain bg-slate-100 dark:bg-slate-800" />
-                    <button
-                      onClick={() => { setComprobante(null); setComprobantePreview(null); }}
-                      className="absolute top-2 right-2 p-1.5 bg-rose-500 text-white rounded-xl shadow-lg active:scale-90 transition-all"
-                    >
-                      <FiX size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center gap-2 py-8 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-600 transition-all">
-                    <FiUploadCloud size={28} className="text-slate-400" />
-                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Toca para subir la foto</p>
-                    <p className="text-[9px] font-bold text-slate-400">JPG o PNG · máx 5 MB</p>
-                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-                  </label>
-                )}
-              </div>
-
-              {/* Botón Ya pagué */}
-              <button
-                onClick={subirComprobante}
-                disabled={uploading || !comprobante}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[12px] uppercase tracking-widest flex items-center justify-center gap-2.5 active:scale-95 transition-all shadow-lg shadow-indigo-100 dark:shadow-none disabled:opacity-60 disabled:cursor-not-allowed mb-3"
-              >
-                {uploading ? <FiLoader size={16} className="animate-spin" /> : <FiCheckCircle size={16} />}
-                {uploading ? "Enviando..." : "Ya pagué — enviar comprobante"}
-              </button>
-
-              <SupportButton tienda={selectedStore.tienda} quien={profile?.trabajador} />
-
-              {/* Pasos */}
-              <div className="mt-6 space-y-2.5">
-                {[
-                  solicitud.monto == null ? "Esta solicitud es anterior al registro de precios. Confirma el importe con soporte antes de transferir; si ya pagaste, envía tu comprobante." : "Transfiere el monto exacto a la cuenta indicada.",
-                  "Escribe el código de pago en el concepto de la transferencia.",
-                  "Toma una foto del comprobante y súbela aquí.",
-                  manuallyExpired ? "Toca \"Ya pagué\" — el acceso se restablece cuando se apruebe tu pago." : "Toca \"Ya pagué\" — tu acceso se activa al instante.",
-                ].map((step, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <span className="w-5 h-5 rounded-md bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 text-[9px] font-black flex items-center justify-center shrink-0">{i + 1}</span>
-                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">{step}</p>
-                  </div>
-                ))}
-              </div>
-
-            </div>
-          </div>
-        )}
-
-        {/* ── PASO: CONFIRMANDO (acceso ya activo) ── */}
-        {paso === "confirmando" && (
-          <div className="mb-6 glass rounded-[2rem] border-emerald-200 dark:border-emerald-800/40 shadow-2xl overflow-hidden">
-            <div className="p-8 md:p-10 text-center">
-              <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                {manuallyExpired ? <FiClock className="text-amber-500" size={38} /> : <FiCheckCircle className="text-emerald-500" size={38} />}
-              </div>
-              <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight mb-2">
-                {manuallyExpired ? "Comprobante en revisión" : "¡Tu acceso ya está activo!"}
-              </h2>
-              <p className="text-sm font-medium text-slate-500 leading-relaxed mb-6">
-                {manuallyExpired ? "Recibimos tu comprobante. La membresía continúa vencida manualmente hasta que se apruebe el pago. Esta solicitud no concede acceso temporal." : "Recibimos tu comprobante. Confirmaremos tu pago en las próximas horas — mientras tanto puedes seguir trabajando con normalidad."}
-              </p>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-2xl mb-6">
-                <FiClock className="text-amber-500" size={13} />
-                <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">
-                  {manuallyExpired ? "Acceso bloqueado · confirmando pago" : "Pre-activada · confirmando pago"}
-                </span>
-              </div>
-              <button
-                onClick={() => router.push("/dashboard")}
-                disabled={manuallyExpired}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[12px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Ir al inicio
-              </button>
-              <SupportButton tienda={selectedStore.tienda} quien={profile?.trabajador} />
-            </div>
-          </div>
-        )}
-
-        {/* ── PASO: CONFIRMADA ── */}
-        {paso === "confirmada" && (
-          <div className="mb-6 glass rounded-[2rem] border-emerald-200 dark:border-emerald-800/40 shadow-2xl overflow-hidden">
-            <div className="p-8 md:p-10 text-center">
-              <div className="w-20 h-20 bg-emerald-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                <FiCheck className="text-white" size={40} />
-              </div>
-              <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight mb-2">
-                Pago confirmado
-              </h2>
-              <p className="text-sm font-medium text-slate-500 leading-relaxed mb-6">
-                {manuallyExpired ? "Este pago figura confirmado, pero tu membresía fue vencida manualmente. Revisa el estado actual o contacta a soporte." : <>Tu membresía <b>{solicitud.plan}</b> quedó activa. ¡Gracias!</>}
-              </p>
-              <button
-                onClick={cancelarSolicitud}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[12px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
-              >
-                Listo
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Solicitud rechazada / expirada ── */}
-        {paso === "cerrada" && (
-          <div className="mb-6 p-5 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800/30 rounded-2xl flex items-start gap-3">
-            <FiAlertCircle className="text-rose-500 shrink-0 mt-0.5" size={16} />
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-black text-rose-700 dark:text-rose-400 uppercase tracking-tight">
-                {solicitud.estado === "expirada"
-                  ? "El código expiró — genera uno nuevo."
-                  : solicitud.estado === "cancelada"
-                    ? "Solicitud cancelada. Puedes elegir otro plan."
-                  : `Pago rechazado: ${solicitud.motivo_rechazo || "verifica el comprobante e intenta de nuevo."}`}
-              </p>
-            </div>
-            <button onClick={cancelarSolicitud} className="text-rose-400 hover:text-rose-600 shrink-0">
-              <FiX size={14} />
-            </button>
-          </div>
-        )}
-
-        {/* ── PASO: PLANES ── */}
-        {paso === "planes" && (
-          <>
-            <div className="mb-6">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-1">Paso 1 de 3 · Elige tu plan</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-                {/* Mensual */}
-                <div className="glass p-7 rounded-[2rem] border-white/60 dark:border-slate-800 shadow-xl relative overflow-hidden group">
-                  <div className="absolute -right-8 -top-8 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl group-hover:bg-indigo-500/10 transition-all pointer-events-none" />
-                  <div className="relative z-10">
-                    <div className="flex items-start justify-between mb-5">
-                      <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl flex items-center justify-center">
-                        <FiZap size={22} />
-                      </div>
-                      <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-widest">30 Días</span>
-                    </div>
-                    <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">Plan Mensual</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-5">Acceso completo por 30 días</p>
-                    <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter mb-5">
-                      {planesLoading ? "Cargando..." : planMensual ? formatMoney(planMensual.precio) : "No disponible"}
-                      {!planesLoading && planMensual && <span className="text-[11px] font-black text-slate-400 ml-1">/ mes</span>}
-                    </p>
-                    <button
-                      onClick={() => solicitarPago("Mensual")}
-                      disabled={!!requesting || solicitudLoading || !planMensual}
-                      className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {requesting === "Mensual" ? <FiLoader size={15} className="animate-spin" /> : <FiZap size={15} />}
-                      {requesting === "Mensual" ? "Generando código..." : "Elegir Plan Mensual"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Anual */}
-                <div className="bg-slate-900 dark:bg-indigo-600 p-7 rounded-[2rem] shadow-2xl shadow-slate-300/30 dark:shadow-none relative overflow-hidden group">
-                  <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/5 rounded-full blur-3xl pointer-events-none" />
-                  <div className="absolute -left-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full blur-3xl pointer-events-none" />
-                  <div className="relative z-10">
-                    <div className="flex items-start justify-between mb-5">
-                      <div className="w-12 h-12 bg-white/20 text-white rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                        <FiStar size={22} />
-                      </div>
-                      <span className="px-3 py-1.5 bg-white/20 text-white rounded-xl text-[9px] font-black uppercase tracking-widest">365 Días</span>
-                    </div>
-                    <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">Plan Anual</h3>
-                    <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-5">Acceso completo por un año</p>
-                    <p className="text-2xl font-black text-white tracking-tighter mb-5">
-                      {planesLoading ? "Cargando..." : planAnual ? formatMoney(planAnual.precio) : "No disponible"}
-                      {!planesLoading && planAnual && <span className="text-[11px] font-black text-white/50 ml-1">/ año</span>}
-                    </p>
-                    <button
-                      onClick={() => solicitarPago("Anual")}
-                      disabled={!!requesting || solicitudLoading || !planAnual}
-                      className="w-full py-3.5 bg-white text-slate-900 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {requesting === "Anual" ? <FiLoader size={15} className="animate-spin" /> : <FiStar size={15} />}
-                      {requesting === "Anual" ? "Generando código..." : "Elegir Plan Anual"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Cómo funciona */}
-            <div className="glass rounded-[1.5rem] p-6 border border-white/60 dark:border-slate-800">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">¿Cómo funciona?</p>
-              <div className="space-y-3">
-                {[
-                  "Elige tu plan y se genera un código de pago único.",
-                  "Transfiere el monto y escribe el código en el concepto.",
-                  "Sube la foto del comprobante y toca \"Ya pagué\".",
-                  manuallyExpired ? "Tu acceso se restablece cuando se apruebe el pago." : "Tu acceso se activa al instante mientras confirmamos.",
-                ].map((step, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-black flex items-center justify-center shrink-0">{i + 1}</span>
-                    <p className="text-[12px] font-semibold text-slate-600 dark:text-slate-300">{step}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5">
-                <SupportButton tienda={selectedStore.tienda} quien={profile?.trabajador} />
-              </div>
-            </div>
-          </>
-        )}
-
-      </div>
-    </div>
-  );
+      {["renovar", "cerrada", "confirmada"].includes(phase) && <section className={PANEL} aria-label="Renovación mensual"><div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-lg font-bold">Renovación mensual</h2><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Acceso completo por 30 días</p></div><p className="text-3xl font-black tracking-tight">{monthly ? formatMoney(monthly.precio) : "No disponible"}</p></div><div className="my-5 rounded-2xl bg-slate-50 p-4 text-sm dark:bg-slate-800"><p className="text-slate-500 dark:text-slate-400">Al confirmar el pago, tu membresía quedaría hasta</p><p className="mt-1 text-lg font-bold">{date(membership.renovacion_mensual.hasta)}</p><p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Conservas los días vigentes. Si ya venció, los 30 días empiezan al confirmar la renovación.</p></div><button type="button" onClick={renew} disabled={disabled || !monthly || requiresHelp || (phase === "confirmada" && status.blocked)} className={PRIMARY}>{busy === "renew" ? <FiLoader className="animate-spin" /> : <FiArrowRight />}{busy === "renew" ? "Preparando renovación…" : phase === "confirmada" ? "Renovar otros 30 días" : "Renovar membresía"}</button>{requiresHelp && <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">Primero verifica con soporte la transferencia anterior para evitar un pago duplicado.</p>}</section>}
+    </>}
+    {support && <a href={support} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-50 dark:border-slate-700 dark:text-emerald-300 dark:hover:bg-emerald-950/30"><FiMessageCircle />Necesito ayuda con mi renovación</a>}
+    <p className="mt-5 text-center text-xs text-slate-500 dark:text-slate-400">La membresía corresponde únicamente a esta ruta.</p>
+  </div>;
 }

@@ -353,9 +353,9 @@ const GUIDE_SECTIONS = [
     action: "Consultar membresía",
     tone: "amber",
     steps: [
-      "Confirma la ruta y revisa el estado, plan y vencimiento en «Membresías». Si aparece «Acceso Suspendido», puedes abrir «Activar / Renovar Plan» para consultar las opciones disponibles.",
-      "Tramita la renovación siguiendo las instrucciones y guarda el comprobante cuando corresponda. Verifica que la solicitud esté confirmada y el estado permita operar antes de retomar los cobros.",
-      "Si el acceso sigue suspendido después de tramitar la renovación, revisa el estado de la solicitud y contacta al soporte de la plataforma. Subir un comprobante no equivale a una renovación confirmada.",
+      "Confirma la ruta y revisa el estado y vencimiento en «Membresía». La renovación mensual agrega 30 días y conserva los días vigentes. Antes de pagar verás hasta qué fecha quedaría renovada.",
+      "Toca «Renovar membresía», copia los datos de transferencia y el monto, e incluye el código en el comentario de la transferencia. Adjunta la imagen y toca «Enviar comprobante». Si sales, usa «Continuar renovación» para retomar la misma solicitud.",
+      "«Pago en revisión» significa que el comprobante está pendiente de verificación: no transfieras otra vez. Si se concede acceso temporal, se indica su fecha límite. Subir un comprobante no equivale a una renovación confirmada. Si el acceso sigue suspendido o el pago se rechaza, contacta al soporte de la plataforma.",
       "Si tienes otra ruta autorizada, puedes cambiar de ruta sin perder la cuenta. Los clientes, créditos, pagos y caja de la ruta suspendida se conservan.",
     ],
     note: "Si el estado no coincide con una renovación confirmada, actualiza la pantalla y contacta al soporte de la plataforma; no registres movimientos duplicados.",

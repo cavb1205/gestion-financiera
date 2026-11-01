@@ -20,7 +20,7 @@ export default function RootConfigurationHistory({ tipo, rows }) {
         <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[['Antes', entry.anterior], ['Después', entry.nuevo]].map(([label, value]) => <div key={label}>
             <p className="font-bold">{label}</p>
-            {Object.entries(value || {}).map(([key, item]) => <p key={key}>
+            {Object.entries(value || {}).map(([key, item]) => <p key={key} className="whitespace-pre-wrap break-words">
               {typeof item === 'object' && item !== null ? `${item.nombre}: $${item.precio} (versión ${item.version})` : `${key}: ${item}`}
             </p>)}
           </div>)}

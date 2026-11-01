@@ -14,7 +14,6 @@ import {
   FiAlertTriangle,
   FiXCircle,
   FiZap,
-  FiStar,
   FiUser,
   FiActivity,
   FiX,
@@ -88,10 +87,10 @@ const esPorVencer = (tm) => {
   return s === "warn" || s === "today";
 };
 
-const renewalExpiry = (tm, tipo) => {
+const renewalExpiry = (tm) => {
   const today = getAppDateString(0, new Date(), tm?.tienda?.zona_horaria);
   const start = !tm?.vencida_manualmente && tm?.fecha_vencimiento > today ? tm.fecha_vencimiento : today;
-  return shiftAppDate(start, tipo === "anual" ? 365 : 30);
+  return shiftAppDate(start, 30);
 };
 
 export default function AdminRutasPage() {
@@ -101,12 +100,12 @@ export default function AdminRutasPage() {
   const { read, loading, loadError, hasLoaded } = useRootRead();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEstado, setFilterEstado] = useState("Todos");
-  const [activating, setActivating] = useState(null); // "mensual-<id>" | "anual-<id>"
+  const [activating, setActivating] = useState(null); // "mensual-<id>"
   const [verArchivadas, setVerArchivadas] = useState(false);
   const [archiving, setArchiving] = useState(null); // id en proceso
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [confirmActivar, setConfirmActivar] = useState(null); // { tm, tipo: "mensual" | "anual" }
+  const [confirmActivar, setConfirmActivar] = useState(null); // { tm, tipo: "mensual" }
   const [detalle, setDetalle] = useState(null); // { tm, loading, data }
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -358,10 +357,7 @@ export default function AdminRutasPage() {
     const key = `${tipo}-${tm.id}`;
     setActivating(key);
     try {
-      const endpoint =
-        tipo === "mensual"
-          ? `/tiendas/activate/mounth/${tm.id}/`
-          : `/tiendas/activate/year/${tm.id}/`;
+      const endpoint = `/tiendas/activate/mounth/${tm.id}/`;
 
       const response = await apiFetch(endpoint, { method: "POST", body: JSON.stringify({ version: tm.version }) });
       if (response.status === 409) {
@@ -373,7 +369,7 @@ export default function AdminRutasPage() {
       if (detalle) await reloadExpiryDetail(tm.tienda.id);
       else if (!await fetchTiendas()) throw new Error("El plan fue activado, pero no se pudo actualizar la lista. Actualiza antes de continuar.");
       toast.success(
-        `Plan ${tipo === "mensual" ? "mensual (30d)" : "anual (365d)"} activado`
+        "Plan mensual (30 días) activado"
       );
       setConfirmActivar(null);
     } catch (error) {
@@ -754,18 +750,6 @@ export default function AdminRutasPage() {
                                   <><FiZap size={12} /> Mensual</>
                                 )}
                               </button>
-                              <button
-                                onClick={() => prepararActivacion(tm, "anual")}
-                                disabled={!!activating}
-                                className="px-3 py-2 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-1.5"
-                                title="Activar plan anual (365 días)"
-                              >
-                                {activating === `anual-${tm.id}` ? (
-                                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                  <><FiStar size={12} /> Anual</>
-                                )}
-                              </button>
                               {tm.puede_eliminar === true && (
                                 <button
                                   onClick={() => setDeleteTarget(tm)}
@@ -917,15 +901,6 @@ export default function AdminRutasPage() {
                           {activating === `mensual-${tm.id}` ? (
                             <div className="w-3 h-3 border-2 border-indigo-400/30 border-t-indigo-600 rounded-full animate-spin" />
                           ) : <><FiZap size={11} /> Mensual</>}
-                        </button>
-                        <button
-                          onClick={() => prepararActivacion(tm, "anual")}
-                          disabled={!!activating}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50"
-                        >
-                          {activating === `anual-${tm.id}` ? (
-                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          ) : <><FiStar size={11} /> Anual</>}
                         </button>
                         {tm.puede_eliminar === true && (
                           <button
@@ -1196,13 +1171,6 @@ export default function AdminRutasPage() {
                     >
                       <FiZap size={12} /> Mensual
                     </button>
-                    <button
-                      onClick={() => prepararActivacion(detalle.tm, "anual")}
-                      disabled={!!activating}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all"
-                    >
-                      <FiStar size={12} /> Anual
-                    </button>
                   </div>
                   {user?.is_superuser && <button
                     type="button"
@@ -1225,7 +1193,7 @@ export default function AdminRutasPage() {
         onClose={() => !activating && setConfirmActivar(null)}
         onConfirm={activationStale || activationRecorded ? () => setConfirmActivar(null) : handleActivar}
         isLoading={!!activating}
-        title={`¿Activar plan ${confirmActivar?.tipo === "anual" ? "anual (365 días)" : "mensual (30 días)"}?`}
+        title="¿Activar plan mensual (30 días)?"
         message={activationRecorded
           ? "El plan fue activado. Cierra y actualiza el detalle para verificar el resultado antes de hacer otra operación."
           : activationStale

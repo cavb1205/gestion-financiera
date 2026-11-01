@@ -27,6 +27,8 @@ import { formatMoney } from "@/app/utils/format";
 import { formatAppDateTime } from "@/app/utils/datetime";
 import { matchesRootSearch, downloadCsv } from "@/app/utils/rootReports.mjs";
 
+import { textoTransferencia } from "@/app/utils/membresia.mjs";
+
 function formatFecha(iso) {
   if (!iso) return "—";
   return formatAppDateTime(iso, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -57,8 +59,8 @@ function SolicitudCard({ solicitud, onVerComprobante, onAccion, actioning, modo 
 
       <p className="text-xs text-slate-500 mb-3 break-words">Administrador: {solicitud.administrador || "Sin administrador"}{solicitud.administrador_usuario ? ` · @${solicitud.administrador_usuario}` : ""}</p>
       <p className="text-xs mb-3 break-words">Referencia bancaria: {solicitud.referencia_bancaria || "No informada"}</p>
-      <p className="text-xs mb-3 break-words">Cuenta informada: {solicitud.cuenta_historica_verificable
-        ? `${solicitud.cuenta_acordada.banco} · ${solicitud.cuenta_acordada.numero}` : "Sin registro de la cuenta original"}</p>
+      <p className="text-xs mb-3 whitespace-pre-wrap break-words">Cuenta informada: {solicitud.cuenta_historica_verificable
+        ? textoTransferencia(solicitud.cuenta_acordada) : "Sin registro de la cuenta original"}</p>
       {solicitud.monto_detectado != null && <p className="text-xs mb-3">Importe detectado (sin verificar): {formatMoney(solicitud.monto_detectado)}</p>}
       {solicitud.motivo_revision && <p className="text-xs mb-3 break-words">Motivo registrado: {solicitud.motivo_revision}</p>}
       {solicitud.confirmada_fuera_plazo && <p className="text-xs mb-3 text-amber-600">Confirmada fuera de plazo por excepción.</p>}

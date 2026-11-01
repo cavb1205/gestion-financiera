@@ -17,17 +17,11 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 import RootReadError, { useRootRead } from "../_components/RootReadState";
 import RootConfigurationHistory from "../_components/RootConfigurationHistory";
 import { formatAppDateTime } from "@/app/utils/datetime";
-
-const CAMPOS = [
-  { key: "banco", label: "Banco", placeholder: "Ej: Banco Estado" },
-  { key: "numero", label: "Número / Cuenta", placeholder: "Ej: 25595432-6" },
-  { key: "titular", label: "Titular", placeholder: "Ej: Andrés Pérez" },
-  { key: "tipo", label: "Tipo de cuenta", placeholder: "Ej: Cuenta RUT" },
-];
+import { textoTransferencia, MAX_DATOS_TRANSFERENCIA } from "@/app/utils/membresia.mjs";
 
 export default function CuentaBancariaPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
-  const [form, setForm] = useState({ banco: "", numero: "", titular: "", tipo: "" });
+  const [form, setForm] = useState("");
   const [actualizada, setActualizada] = useState(null);
   const { read, loading, loadError, hasLoaded } = useRootRead();
   const [saving, setSaving] = useState(false);
@@ -38,17 +32,12 @@ export default function CuentaBancariaPage() {
   const [confirming, setConfirming] = useState(false);
   const [stale, setStale] = useState(false);
   const savingRef = useRef(false);
-  const valid = CAMPOS.every(({ key }) => form[key].trim().length > 0 && form[key].trim().length <= 100);
+  const valid = form.trim().length > 0 && form.trim().length <= MAX_DATOS_TRANSFERENCIA;
 
   const fetchCuenta = useCallback(async () => {
     return read("/tiendas/cuenta-destino/", (data) => {
-      if (!Number.isInteger(data?.version) || !CAMPOS.every(({key}) => typeof data[key] === 'string')) throw new Error("La cuenta no tiene datos o versión válidos. Actualiza el sistema.");
-      setForm({
-        banco: data.banco || "",
-        numero: data.numero || "",
-        titular: data.titular || "",
-        tipo: data.tipo || "",
-      });
+      if (!Number.isInteger(data?.version) || typeof data.datos_transferencia !== 'string') throw new Error("La cuenta no tiene datos o versión válidos. Actualiza el sistema.");
+      setForm(textoTransferencia(data));
       setActualizada(data.actualizada || null);
       setHasChanges(false);
       setOriginal(data);
@@ -62,8 +51,8 @@ export default function CuentaBancariaPage() {
     if (isAuthenticated && user?.is_superuser) fetchCuenta();
   }, [isAuthenticated, user, fetchCuenta]);
 
-  const handleChange = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+  const handleChange = (value) => {
+    setForm(value);
     setHasChanges(true);
   };
 
@@ -74,7 +63,7 @@ export default function CuentaBancariaPage() {
     try {
       const res = await apiFetch("/tiendas/cuenta-destino/", {
         method: "PUT",
-        body: JSON.stringify({ ...form, version: original.version, motivo: motivo.trim() }),
+        body: JSON.stringify({ datos_transferencia: form, version: original.version, motivo: motivo.trim() }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -82,7 +71,7 @@ export default function CuentaBancariaPage() {
       }
       const data = await res.json();
       setOriginal(data);
-      setForm(Object.fromEntries(CAMPOS.map(({key}) => [key, data[key]])));
+      setForm(textoTransferencia(data));
       setHistory(data.historial || []);
       setActualizada(data.actualizada || null);
       setHasChanges(false);
@@ -153,26 +142,16 @@ export default function CuentaBancariaPage() {
               </div>
             </div>
 
-            <div className="space-y-4 mb-7">
-              {CAMPOS.map(({ key, label, placeholder }) => (
-                <div key={key}>
-                  <label htmlFor={`cuenta-${key}`} className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                    {label}
-                  </label>
-                  <input
-                    id={`cuenta-${key}`}
-                    maxLength={100}
-                    disabled={saving || stale}
-                    type="text"
-                    value={form[key]}
-                    onChange={(e) => handleChange(key, e.target.value)}
-                    placeholder={placeholder}
-                    className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-[14px] font-bold text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 transition-all"
-                  />
-                </div>
-              ))}
+            <div className="mb-7">
+              <label htmlFor="datos-transferencia" className="mb-2 block text-sm font-bold">Datos de transferencia</label>
+              <p id="ayuda-transferencia" className="mb-3 text-sm text-slate-500 dark:text-slate-400">Pega todos los datos en el orden que quieras mostrar. Se conservarán los saltos de línea para que el usuario pueda copiarlos juntos.</p>
+              <textarea id="datos-transferencia" rows={7} maxLength={MAX_DATOS_TRANSFERENCIA} disabled={saving || stale}
+                value={form} onChange={event => handleChange(event.target.value)} aria-describedby="ayuda-transferencia"
+                placeholder={"RUT\nTitular\nBanco\nTipo de cuenta\nNúmero de cuenta"}
+                className="w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base leading-7 text-slate-800 focus:border-indigo-400 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+              <p className="mt-2 text-xs text-slate-500">{form.length} / {MAX_DATOS_TRANSFERENCIA} caracteres</p>
             </div>
-            {!original?.configurada && <p className="text-sm mb-4">Cuenta sin configurar: completa los cuatro datos antes de solicitar transferencias.</p>}
+            {!original?.configurada && <p className="mb-4 text-sm">Cuenta sin configurar: guarda los datos de transferencia antes de solicitar pagos.</p>}
             {stale && <p role="alert" className="text-amber-600 mb-4">Recarga la cuenta y revisa los datos antes de volver a guardar.</p>}
 
             {actualizada && (
@@ -199,9 +178,10 @@ export default function CuentaBancariaPage() {
           isLoading={saving} confirmDisabled={motivo.trim().length < 5 || stale} title="Confirmar cuenta bancaria"
           message="Las nuevas solicitudes utilizarán esta cuenta. Las solicitudes existentes conservarán los datos que recibieron."
           confirmText="Confirmar cuenta">
-          <div className="text-xs space-y-2 break-words mb-4">{CAMPOS.map(({key,label}) => <p key={key}>
-            <b>{label}:</b> {original?.[key] || 'Sin configurar'} → {form[key]}
-          </p>)}</div>
+          <div className="mb-4 grid gap-4 text-sm">
+            <div><p className="mb-1 font-bold">Antes</p><p className="whitespace-pre-wrap break-words">{textoTransferencia(original) || "Sin configurar"}</p></div>
+            <div><p className="mb-1 font-bold">Después</p><p className="whitespace-pre-wrap break-words">{form}</p></div>
+          </div>
           <label htmlFor="motivo-cuenta">Motivo del cambio</label>
           <textarea id="motivo-cuenta" value={motivo} onChange={event => setMotivo(event.target.value)} maxLength={500}
             disabled={saving} className="w-full border rounded-lg p-2 mt-1 dark:bg-slate-800" />

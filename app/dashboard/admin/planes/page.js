@@ -26,7 +26,6 @@ import { formatMoney } from "@/app/utils/format";
 const PLAN_META = {
   Prueba: { icon: FiGift, box: "bg-amber-500/10", color: "text-amber-500", desc: "Período de evaluación inicial" },
   Mensual: { icon: FiCalendar, box: "bg-indigo-500/10", color: "text-indigo-500", desc: "Renovación cada 30 días" },
-  Anual: { icon: FiTag, box: "bg-emerald-500/10", color: "text-emerald-500", desc: "Renovación cada 365 días" },
 };
 const PLAN_META_DEFAULT = { icon: FiTag, box: "bg-slate-500/10", color: "text-slate-500", desc: "" };
 
@@ -45,8 +44,8 @@ export default function PlanesPage() {
   const fetchPlanes = useCallback(async () => {
     return read("/tiendas/planes/", (data) => {
       if (!Array.isArray(data)) throw new Error("Respuesta de planes inválida.");
-      setPlanes(data);
-      setPrecios(Object.fromEntries(data.map((p) => [p.id, String(p.precio)])));
+      setPlanes(data.filter(plan => plan.nombre !== "Anual"));
+      setPrecios(Object.fromEntries(data.filter(plan => plan.nombre !== "Anual").map((p) => [p.id, String(p.precio)])));
       setStale(false);
       setConfirming(false);
     }, "No se pudieron cargar los planes.");
@@ -81,8 +80,8 @@ export default function PlanesPage() {
         throw new Error(err.error || "No se pudieron guardar los precios.");
       }
       const data = await res.json();
-      setPlanes(data);
-      setPrecios(Object.fromEntries(data.map((p) => [p.id, String(p.precio)])));
+      setPlanes(data.filter(plan => plan.nombre !== "Anual"));
+      setPrecios(Object.fromEntries(data.filter(plan => plan.nombre !== "Anual").map((p) => [p.id, String(p.precio)])));
       setConfirming(false);
       setMotivo("");
       setHistoryRevision((previous) => previous + 1);
