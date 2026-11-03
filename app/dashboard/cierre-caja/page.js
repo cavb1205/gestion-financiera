@@ -1,7 +1,7 @@
 // app/dashboard/cierre-caja/page.js
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   FiLock,
   FiCalendar,
@@ -29,26 +29,37 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "../../utils/format";
 import { formatAppDate, formatAppDateTime, getAppDateString } from "../../utils/datetime";
-import { apiFetch } from "../../utils/api";
+import { apiFetch, getApiError } from "../../utils/api";
 import Pagination from "../../components/Pagination";
+import { interpretarResumenCierre, mensajeErrorCierre } from "@/app/utils/cierres.mjs";
 
 export default function CierreCajaPage() {
   const { selectedStore, isAuthenticated, loading: authLoading, user } = useAuth();
-  const isWorker = !(user?.is_staff || user?.is_superuser);
   const router = useRouter();
+  useEffect(() => {
+    if (!authLoading && (!isAuthenticated || !selectedStore)) router.push("/login");
+  }, [authLoading, isAuthenticated, selectedStore, router]);
+  if (authLoading || !isAuthenticated || !selectedStore) return <LoadingSpinner />;
+  return <CierreCajaRuta key={`${user?.id}:${selectedStore.tienda.id}:${selectedStore.tienda.zona_horaria}`} selectedStore={selectedStore} user={user} />;
+}
 
+function CierreCajaRuta({ selectedStore, user }) {
+  const isWorker = !(user?.is_staff || user?.is_superuser);
+  const storeId = selectedStore.tienda.id;
   const [cierres, setCierres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(() => (
-    getAppDateString(0, new Date(), selectedStore?.tienda?.zona_horaria)
-  ));
-
+  const [selectedDate, setSelectedDate] = useState(() => getAppDateString(0, new Date(), selectedStore.tienda.zona_horaria));
+  const [resumenError, setResumenError] = useState("");
+  const alive = useRef(true);
+  const summarySequence = useRef(0);
+  const previousSequence = useRef(0);
+  const historySequence = useRef(0);
+  const creatingRef = useRef(false);
   useEffect(() => {
-    const zona = selectedStore?.tienda?.zona_horaria;
-    if (!zona) return;
-    setSelectedDate(getAppDateString(0, new Date(), zona));
-  }, [selectedStore?.tienda?.zona_horaria]);
+    alive.current = true;
+    return () => { alive.current = false; summarySequence.current += 1; previousSequence.current += 1; historySequence.current += 1; };
+  }, []);
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -72,223 +83,138 @@ export default function CierreCajaPage() {
   const [saldoActualHistorial, setSaldoActualHistorial] = useState(null);
   const [historialDesde, setHistorialDesde] = useState(null);
 
-  useEffect(() => {
-    if (!authLoading && (!isAuthenticated || !selectedStore)) {
-      router.push("/login");
-    }
-  }, [authLoading, isAuthenticated, selectedStore, router]);
-
   // Fetch lista de cierres
-  const fetchCierres = async () => {
-    if (!selectedStore) return;
+  const fetchCierres = useCallback(async () => {
     setLoading(true);
     try {
       const response = await apiFetch(
-        `/tiendas/cierres/t/${selectedStore.tienda.id}/`
+        `/tiendas/cierres/t/${storeId}/`
       );
       if (!response.ok) throw new Error("Error al obtener los cierres de caja");
       const data = await response.json();
+      if (!alive.current) return;
       if (data.message) {
         setCierres([]);
       } else {
         setCierres(Array.isArray(data) ? data : []);
       }
     } catch (error) {
-      toast.error(error.message);
+      if (alive.current) toast.error(error.message);
     } finally {
-      setLoading(false);
+      if (alive.current) setLoading(false);
     }
-  };
+  }, [storeId]);
 
-  const fetchMovimientosCaja = async () => {
-    if (!selectedStore) return;
+  const fetchMovimientosCaja = useCallback(async () => {
+    const version = ++historySequence.current;
     setLoadingMovimientos(true);
     try {
       const params = new URLSearchParams({ limit: "100" });
       if (tipoMovimiento) params.set("tipo", tipoMovimiento);
       const response = await apiFetch(
-        `/tiendas/caja/movimientos/t/${selectedStore.tienda.id}/?${params.toString()}`
+        `/tiendas/caja/movimientos/t/${storeId}/?${params.toString()}`
       );
       if (!response.ok) throw new Error("Error al obtener el historial de caja");
       const data = await response.json();
+      if (!alive.current || version !== historySequence.current) return;
       setMovimientosCaja(Array.isArray(data) ? data : (data.results || []));
       setSaldoActualHistorial(data.saldo_actual ?? null);
       setHistorialDesde(data.historial_desde || null);
     } catch (error) {
+      if (!alive.current || version !== historySequence.current) return;
       setMovimientosCaja([]);
       setSaldoActualHistorial(null);
       setHistorialDesde(null);
       toast.error(error.message);
     } finally {
-      setLoadingMovimientos(false);
+      if (alive.current && version === historySequence.current) setLoadingMovimientos(false);
     }
-  };
+  }, [storeId, tipoMovimiento]);
 
   // Fetch caja anterior para la fecha seleccionada
-  const fetchCajaAnterior = async () => {
-    if (!selectedStore || !selectedDate) return;
+  const fetchCajaAnterior = useCallback(async () => {
+    if (!selectedDate) return;
+    const version = ++previousSequence.current;
     try {
-      const response = await apiFetch(
-        `/tiendas/cierre/${selectedDate}/t/${selectedStore.tienda.id}/`
-      );
+      const response = await apiFetch(`/tiendas/cierre/${selectedDate}/t/${storeId}/`);
       if (!response.ok) throw new Error("Error al consultar caja anterior");
       const data = await response.json();
-      if (data.message) {
-        setCajaAnterior(null);
-      } else {
-        setCajaAnterior(data);
-      }
+      if (alive.current && version === previousSequence.current) setCajaAnterior(data.message ? null : data);
     } catch {
-      setCajaAnterior(null);
+      if (alive.current && version === previousSequence.current) setCajaAnterior(null);
     }
-  };
+  }, [selectedDate, storeId]);
 
   useEffect(() => {
-    if (selectedStore) {
-      fetchCierres();
-    }
-  }, [selectedStore]);
+    const timer = setTimeout(fetchCierres, 0);
+    return () => clearTimeout(timer);
+  }, [fetchCierres]);
 
   useEffect(() => {
-    if (selectedStore) {
-      fetchMovimientosCaja();
-    }
-  }, [selectedStore, tipoMovimiento]);
+    const timer = setTimeout(fetchMovimientosCaja, 0);
+    return () => { clearTimeout(timer); historySequence.current += 1; };
+  }, [fetchMovimientosCaja]);
 
   // Fetch resumen del día para la fecha seleccionada
-  const fetchResumenDia = async () => {
-    if (!selectedStore || !selectedDate) return;
+  const fetchResumenDia = useCallback(async () => {
+    if (!selectedDate) return;
+    const version = ++summarySequence.current;
     setLoadingResumen(true);
     try {
-      const id = selectedStore.tienda.id;
-      const hoyStr = getAppDateString(
-        0,
-        new Date(),
-        selectedStore?.tienda?.zona_horaria
-      );
-      const esHoy = selectedDate === hoyStr;
-
-      let datosConsolidados;
-      try {
-        const response = await apiFetch(
-          `/tiendas/cierre/resumen/${selectedDate}/t/${id}/`
-        );
-        if (!response.ok) throw new Error("Error al consultar el resumen consolidado");
-        datosConsolidados = await response.json();
-      } catch (consolidatedError) {
-        // Respaldo temporal: conserva el flujo anterior si el endpoint
-        // consolidado no está disponible o presenta una caída parcial.
-        console.warn(
-          "Se usará el respaldo del resumen de cierre:",
-          consolidatedError
-        );
-        const toArr = async (promise) => {
-          const r = await promise;
-          if (!r.ok) return [];
-          const d = await r.json();
-          return Array.isArray(d) ? d : [];
-        };
-        const fetchDayData = (fecha) => Promise.all([
-          toArr(apiFetch(`/aportes/list/${fecha}/t/${id}/`)),
-          toArr(apiFetch(`/gastos/list/${fecha}/t/${id}/`)),
-          toArr(apiFetch(`/utilidades/list/${fecha}/t/${id}/`)),
-          toArr(apiFetch(`/recaudos/list/${fecha}/t/${id}/?vista=lista`)),
-          toArr(apiFetch(`/ventas/list/${fecha}/t/${id}/?vista=reporte`)),
-        ]);
-        const [datosFecha, datosHoy] = await Promise.all([
-          fetchDayData(selectedDate),
-          esHoy ? Promise.resolve(null) : fetchDayData(hoyStr),
-        ]);
-        const [aportes, gastos, utilidades, recaudos, ventas] = datosFecha;
-        const sum = (arr, field) => arr.reduce((acc, item) => acc + parseFloat(item[field] || 0), 0);
-        const movsHoy = datosHoy ?? datosFecha;
-        datosConsolidados = {
-          fecha: {
-            aportes: sum(aportes, "valor"),
-            gastos: sum(gastos, "valor"),
-            utilidades: sum(utilidades, "valor"),
-            recaudos: sum(recaudos, "valor_recaudo"),
-            count_recaudos: recaudos.length,
-            ventas: sum(ventas, "valor_venta"),
-            count_ventas: ventas.length,
-          },
-          hoy: {
-            tiene_movimientos: movsHoy.some((items) => items.length > 0),
-          },
-        };
+      const response = await apiFetch(`/tiendas/cierre/resumen/${selectedDate}/t/${storeId}/`, { cache: "no-store" });
+      if (!response.ok) throw new Error(await getApiError(response, "No se pudo verificar el cierre de esta fecha."));
+      const data = await response.json().catch(() => null);
+      const resumen = interpretarResumenCierre(data, selectedDate, storeId);
+      if (!alive.current || version !== summarySequence.current) return;
+      if (isWorker && resumen.validacion.hoy !== selectedDate) {
+        setResumenDia(null); setSelectedDate(resumen.validacion.hoy); return;
       }
-
-      const datosFecha = datosConsolidados.fecha || {};
-      const cierreDelDia = cierres.find(c => c.fecha_cierre === selectedDate);
-
-      let saldo_cierre, estado_saldo;
-      if (cierreDelDia) {
-        saldo_cierre = cierreDelDia.valor;
-        estado_saldo = "registrado";
-      } else if (esHoy) {
-        saldo_cierre = selectedStore.tienda.caja;
-        estado_saldo = "pendiente";
-      } else {
-        saldo_cierre = null;
-        estado_saldo = "sin_registro";
+      setResumenDia(resumen);
+      setResumenError("");
+    } catch (error) {
+      if (alive.current && version === summarySequence.current) {
+        setResumenDia(null);
+        setResumenError(mensajeErrorCierre(error));
       }
-
-      setResumenDia({
-        aportes:        parseFloat(datosFecha.aportes || 0),
-        gastos:         parseFloat(datosFecha.gastos || 0),
-        utilidades:     parseFloat(datosFecha.utilidades || 0),
-        recaudos:       parseFloat(datosFecha.recaudos || 0),
-        count_recaudos: datosFecha.count_recaudos || 0,
-        ventas:         parseFloat(datosFecha.ventas || 0),
-        count_ventas:   datosFecha.count_ventas || 0,
-        saldo_cierre,
-        estado_saldo,
-        hoy_tiene_movimientos: Boolean(datosConsolidados.hoy?.tiene_movimientos),
-      });
-    } catch {
-      setResumenDia(null);
     } finally {
-      setLoadingResumen(false);
+      if (alive.current && version === summarySequence.current) setLoadingResumen(false);
     }
-  };
+  }, [selectedDate, storeId, isWorker]);
 
   useEffect(() => {
-    if (selectedStore && selectedDate) {
-      fetchCajaAnterior();
-      fetchResumenDia();
-    }
-  }, [selectedStore, selectedDate]);
+    const timer = setTimeout(() => { fetchCajaAnterior(); fetchResumenDia(); }, 0);
+    const refresh = () => {
+      if (document.visibilityState === "visible" && !creatingRef.current) { fetchCajaAnterior(); fetchResumenDia(); }
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearTimeout(timer);
+      summarySequence.current += 1;
+      previousSequence.current += 1;
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [fetchCajaAnterior, fetchResumenDia]);
 
   // Crear cierre
   const handleCrearCierre = async () => {
-    if (!selectedDate) {
-      toast.error("Seleccione una fecha para el cierre");
-      return;
-    }
-
-    // Verificar si ya existe un cierre para esa fecha
-    const yaExiste = cierres.some(c => c.fecha_cierre === selectedDate);
-    if (yaExiste) {
-      toast.error("Ya existe un cierre de caja para esta fecha");
-      return;
-    }
-
+    if (!puedeRegistrar || creatingRef.current) return;
+    creatingRef.current = true;
     setCreating(true);
     try {
-      const response = await apiFetch(
-        `/tiendas/cierre/post/${selectedDate}/t/${selectedStore.tienda.id}/`,
-        {
-          method: "POST",
-        }
-      );
-      if (!response.ok) throw new Error("Error al crear el cierre de caja");
+      const response = await apiFetch(`/tiendas/cierre/post/${selectedDate}/t/${storeId}/`, { method: "POST" });
+      if (!response.ok) throw new Error(await getApiError(response, "No se pudo confirmar el cierre. Actualiza antes de reintentar."));
+      if (!alive.current) return;
       toast.success("Cierre de caja registrado exitosamente");
-      fetchCierres();
-      fetchCajaAnterior();
     } catch (error) {
-      toast.error(error.message);
+      if (alive.current) toast.error(error.message);
     } finally {
-      setCreating(false);
+      if (alive.current) {
+        await Promise.allSettled([fetchCierres(), fetchCajaAnterior(), fetchResumenDia()]);
+        setCreating(false);
+      }
+      creatingRef.current = false;
     }
   };
 
@@ -303,10 +229,12 @@ export default function CierreCajaPage() {
           method: "DELETE",
         }
       );
-      if (!response.ok) throw new Error("Error al eliminar el cierre");
+      if (!response.ok) throw new Error(await getApiError(response, "Error al eliminar el cierre"));
       toast.success("Cierre de caja eliminado");
       setCierreToDelete(null);
       fetchCierres();
+      fetchResumenDia();
+      fetchCajaAnterior();
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -327,53 +255,18 @@ export default function CierreCajaPage() {
       day: "numeric",
       month: "short",
       year: "numeric",
-    });
+    }, selectedStore.tienda.zona_horaria);
   };
 
-  // Validación: se puede cerrar hoy (sin cierre previo)
-  // o ayer (sin cierre previo y sin movimientos hoy — saldo actual = saldo al cierre de ayer)
-  const hoyStr = getAppDateString(
-    0,
-    new Date(),
-    selectedStore?.tienda?.zona_horaria
-  );
-  const ayerStr = getAppDateString(
-    -1,
-    new Date(),
-    selectedStore?.tienda?.zona_horaria
-  );
-  const yaTieneCierre = cierres.some(c => c.fecha_cierre === selectedDate);
-  const esHoy = selectedDate === hoyStr;
-  const esAyer = selectedDate === ayerStr;
-  const esFuturo = selectedDate > hoyStr;
-  const hoyTieneMovimientos = resumenDia?.hoy_tiene_movimientos ?? false;
+  const hoyStr = getAppDateString(0, new Date(), selectedStore.tienda.zona_horaria);
+  const validacion = resumenDia?.fecha_consulta === selectedDate ? resumenDia.validacion : null;
+  const puedeRegistrar = !loadingResumen && !resumenError && validacion?.puede_registrar === true;
+  const motivoBloqueo = resumenError || (!selectedDate ? "Selecciona una fecha para verificar el cierre."
+    : loadingResumen || !validacion ? "Verificando si se puede cerrar esta fecha…"
+    : !validacion.puede_registrar ? validacion.mensaje : null);
+  const avisoInfo = puedeRegistrar && validacion.codigo === "sin_movimientos_posteriores" ? validacion.mensaje : null;
 
-  let motivoBloqueo = null;
-  let avisoInfo = null;
-  if (yaTieneCierre) {
-    motivoBloqueo = "Ya existe un cierre registrado para esta fecha";
-  } else if (esFuturo) {
-    motivoBloqueo = "No puedes registrar cierre de una fecha futura";
-  } else if (esHoy) {
-    // OK
-  } else if (esAyer) {
-    if (hoyTieneMovimientos) {
-      motivoBloqueo = "No puedes cerrar ayer porque hoy ya tuvo movimientos";
-    } else {
-      avisoInfo = "Cerrando ayer — el saldo actual coincide porque hoy no ha tenido movimientos";
-    }
-  } else {
-    motivoBloqueo = "Solo puedes cerrar el día actual o el anterior";
-  }
-  const puedeRegistrar = !motivoBloqueo;
-
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div className="py-4 md:py-0">
@@ -397,7 +290,11 @@ export default function CierreCajaPage() {
           onClick={() => {
             fetchCierres();
             fetchMovimientosCaja();
+            fetchResumenDia();
+            fetchCajaAnterior();
           }}
+          aria-label="Actualizar cierre de caja"
+          disabled={creating}
           className="p-4 bg-white dark:bg-slate-900 text-slate-500 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-all shadow-sm group"
         >
           <FiRefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
@@ -431,7 +328,16 @@ export default function CierreCajaPage() {
                 id="fecha-cierre"
                 type="date"
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+                min={selectedStore.tienda.fecha_registro > hoyStr ? hoyStr : selectedStore.tienda.fecha_registro}
+                max={validacion?.hoy || hoyStr}
+                disabled={creating}
+                onChange={(event) => {
+                  if (event.target.value === selectedDate) return;
+                  summarySequence.current += 1;
+                  previousSequence.current += 1;
+                  setResumenDia(null); setCajaAnterior(null); setResumenError("");
+                  setSelectedDate(event.target.value);
+                }}
                 className="block w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 transition-all"
               />
             )}
@@ -572,10 +478,10 @@ export default function CierreCajaPage() {
                 <div className="bg-slate-900 dark:bg-slate-800 rounded-2xl px-6 py-5 flex items-center justify-between">
                   <div>
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-                      {resumenDia.estado_saldo === "registrado" ? "Cierre Registrado" : "Saldo Actual de Caja"}
+                      {resumenDia.estado_saldo === "registrado" ? "Cierre Registrado" : validacion?.codigo === "sin_movimientos_posteriores" ? "Saldo verificado para esta fecha" : "Saldo Actual de Caja"}
                     </p>
                     <p className="text-[10px] font-bold text-slate-500">
-                      {resumenDia.estado_saldo === "registrado" ? "Valor consolidado al cierre del día" : "Se registrará al hacer el cierre"}
+                      {resumenDia.estado_saldo === "registrado" ? "Valor consolidado al cierre del día" : "Se verificará nuevamente al guardar el cierre"}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -589,7 +495,7 @@ export default function CierreCajaPage() {
 
           {!loadingResumen && !resumenDia && (
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              Sin actividad registrada para esta fecha
+              {resumenError || "Verificando el saldo de esta fecha…"}
             </p>
           )}
         </div>
@@ -597,7 +503,7 @@ export default function CierreCajaPage() {
         {/* Info */}
         <div className="mt-6 flex items-start gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
           <FiInfo size={14} className="shrink-0 mt-0.5" />
-          <span>El valor del cierre se calcula automáticamente basado en el balance actual de la tienda.</span>
+          <span>El cierre guarda el saldo de la ruta sin modificar la caja. Las fechas anteriores requieren que no existan cambios posteriores y que el historial permita verificar el saldo.</span>
         </div>
       </div>
 
