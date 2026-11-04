@@ -46,3 +46,6 @@ next-env.d.ts
 # Hyperframes renders (la versión final está en public/dashboard-promo.mp4)
 /hyperframes/*/renders/
 /hyperframes/*/.hyperframes/
+
+# Manual privado y archivos locales de operación
+/operacion-local
