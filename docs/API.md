@@ -246,10 +246,15 @@ KPIs calculados:
 |--------|----------|-------------|
 | GET | `/tiendas/cierres/` · `/tiendas/cierres/t/<tienda_id>/` | Todos los cierres, orden `-id` |
 | GET | `/tiendas/cierre/<fecha>/` · `…/t/<tienda_id>/` | Cierre del **día anterior** a `<fecha>` |
-| POST | `/tiendas/cierre/post/<fecha>/` · `…/t/<tienda_id>/` | Guarda snapshot de la caja |
+| GET | `/tiendas/cierre/resumen/<fecha>/t/<tienda_id>/` | Totales y validación del cierre para la ruta |
+| POST | `/tiendas/cierre/post/<fecha>/` · `…/t/<tienda_id>/` | Valida y guarda el saldo de caja |
 | DELETE | `/tiendas/cierre/delete/<pk>/` | Elimina un cierre |
 
-`POST` no recibe body: toma el valor de `tienda.caja_inicial` en ese momento. **No es idempotente** — llamarlo dos veces con la misma fecha crea dos registros.
+El resumen GET devuelve `fecha`, `hoy` y `validacion_cierre`. El objeto de validación incluye `fecha`, `tienda_id`, `hoy`, `puede_registrar`, `codigo`, `mensaje`, `saldo_a_registrar`, `cierre_existente` e `historial_desde`. Un resumen HTTP 200 puede informar un cierre bloqueado.
+
+El trabajador solo puede cerrar el día actual de la ruta. Para una fecha pasada se requiere permiso administrativo, historial suficiente y un saldo respaldado. Un movimiento ingresado después del día de cierre puede corresponder a ese día si su origen, ruta, fecha operativa e importe se verifican. Esto aplica a altas de abonos, gastos, aportes, retiros de utilidad y desembolsos. Las correcciones, anulaciones y asientos sin respaldo conservan sus controles.
+
+El POST no recibe importe. Vuelve a validar bajo el bloqueo de la ruta y registra `tienda.caja_inicial` como saldo del cierre. Devuelve HTTP 200 con `id`, `fecha_cierre` y `valor`. Si el cierre ya existe, responde HTTP 409 con `code: cierre_existente` y conserva el cierre original. La consulta previa no sustituye esta validación.
 
 `Cierre_Caja`: `id`, `fecha_cierre`, `valor` (decimal, 0 decimales), `tienda`.
 
@@ -267,16 +272,16 @@ KPIs calculados:
 
 El recálculo se dispara al hacer login, al listar recaudos por fecha, al listar rutas como root y en el cron diario `mantenimiento_membresias` (08:00 de `America/Santiago` en el VPS).
 
-**Planes**: `Prueba` (7 días), `Mensual` (+30 días), `Anual` (+365 días). La extensión se calcula desde `max(fecha_vencimiento, hoy)`, así que renovar antes de vencer no pierde días. Al pagar, una ruta archivada se desarchiva automáticamente.
+La prueba dura siete días. Las nuevas renovaciones son mensuales y añaden 30 días desde la fecha mayor entre el vencimiento y la fecha operativa actual. Si la suscripción se venció manualmente, la extensión parte del día actual. Al confirmar el pago se desarchiva la ruta. El plan anual se conserva para datos y solicitudes históricas.
 
 ### 5.5 Membresías — activación manual (root)
 
 | Método | Endpoint | Efecto |
 |--------|----------|--------|
-| POST | `/tiendas/activate/mounth/<pk>/` | Plan Mensual, vencimiento = hoy + 30 |
-| POST | `/tiendas/activate/year/<pk>/` | Plan Anual, vencimiento = hoy + 365 |
+| POST | `/tiendas/activate/mounth/<pk>/` | Extiende la membresía mensual y registra el pago manual |
+| POST | `/tiendas/activate/year/<pk>/` | Ruta antigua. Devuelve HTTP 400 con `plan_retirado` a un usuario autorizado |
 
-`<pk>` es el id de **`Tienda_Membresia`**, no de `Tienda`. Requiere `is_superuser`. Registra el ingreso en `PagoMembresia` con `origen='manual'`, idempotente por (tienda, plan, día). Nota: a diferencia de `extender_membresia()`, aquí el vencimiento se calcula desde hoy, no desde el vencimiento previo.
+`<pk>` identifica `Tienda_Membresia`. La operación requiere superusuario. Envía la `version` actual al activar; si cambió, el backend devuelve HTTP 409. El ingreso se registra en `PagoMembresia` con `origen='manual'`.
 
 ### 5.6 Membresías — flujo de pago con comprobante
 
@@ -290,13 +295,13 @@ Flujo de 4 pasos con modelo de confianza (pre-activación inmediata + confirmaci
 {
   "codigo": "MM-A3F1",
   "expira": "2026-07-19T14:30:00Z",
-  "monto": "12000",
+  "monto": "20000",
   "plan": "Mensual",
   "wa_link": "https://wa.me/...",
-  "cuenta": { "banco": "...", "numero": "...", "titular": "...", "tipo": "...", "actualizada": "..." }
+  "cuenta": { "datos_transferencia": "Datos de transferencia en varias líneas" }
 }
 ```
-El código es `MM-XXXX` (mensual) o `AA-XXXX` (anual) y expira en 24 h.
+Las solicitudes mensuales nuevas usan `MM-XXXX` y expiran en 24 horas. El importe y los datos de transferencia se guardan por solicitud. Si ya hay una solicitud vigente, el POST devuelve HTTP 200 con esa solicitud. También puede consultarse en `GET /tiendas/solicitud-pago/actual/t/<tienda_id>/`. Los códigos anuales corresponden a registros históricos.
 
 #### `POST /tiendas/solicitud-pago/<codigo>/comprobante/`
 `multipart/form-data`: `comprobante` (imagen, opcional) y `referencia` (string, opcional).

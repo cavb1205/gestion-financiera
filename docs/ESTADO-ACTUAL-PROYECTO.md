@@ -1,106 +1,40 @@
-# Estado actual del proyecto
+# Estado actual de Cartera Financiera
 
-Última actualización: 8 de agosto de 2026.
+Revisión del 4 de noviembre de 2026. Este documento es el punto de entrada para retomar el proyecto. Las referencias de despliegue son una foto de la última publicación verificada. Compáralas con `origin/main` y con producción antes de intervenir.
 
-Este documento resume lo implementado en la plataforma Cartera Financiera y sirve como memoria de continuidad para los siguientes cambios.
+## Repositorios y producción
 
-## 1. Operación de cartera
+| Componente | Fuente canónica | Producción verificada |
+| --- | --- | --- |
+| Frontend | [gestion-financiera, main](https://github.com/cavb1205/gestion-financiera/tree/main) | [Aplicación](https://app.carterafinanciera.com), Vercel, commit `f24d84b1db59ead1314e3802f6c775c1ab8beda9` |
+| Backend | [sellsystem, main](https://github.com/cavb1205/sellsystem/tree/main) | [API](https://api.carterafinanciera.com), VPS, commit `0fbb8d9b9967038fd29f643d65169061ee62b319` |
 
-### Ventas activas
+El frontend usa Next.js 16, React 19 y Tailwind 4. El backend usa Django 5.2 LTS, Django REST Framework, Gunicorn y PostgreSQL 18 en Ubuntu 24.04 LTS. Nginx sirve la API y el dominio antiguo. `carterafinanciera.com` dirige las navegaciones a `/actualizar-app` del frontend actual para orientar a quienes instalaron la PWA antigua.
 
-La lista está orientada a detectar rápidamente créditos que necesitan gestión:
+El último despliegue de backend fue el 3 de noviembre de 2026. Se comprobaron los 449 archivos versionados contra GitHub y se verificó el cierre de R4 con consultas GET autenticadas. El detalle operativo de SSH, servicios y recuperación está en el manual privado descrito en [Operación y entrega](OPERACION.md).
 
-- prioridad de cobranza visible y ordenada de mayor a menor;
-- días desde el último abono real;
-- cuotas atrasadas;
-- monto necesario para ponerse al día;
-- saldo actual, frecuencia de pago, contacto y acciones principales;
-- filtros para gestión del día, urgentes, días sin abono y cuotas vencidas.
+## Funciones y puntos de entrada
 
-El monto para ponerse al día nunca puede superar el saldo actual. Los pagos suficientes o adelantados no se marcan como atraso solo por el paso del tiempo.
+| Área | Comportamiento vigente | Dónde empezar |
+| --- | --- | --- |
+| Liquidar y Recaudos | Una lista de gestión por ruta y fecha, con recorrido configurable. Abonos y fallas registrados se consultan en Recaudos. El total a cobrar conserva la base de cuotas del día, el pendiente responde a la búsqueda y el cobrado muestra los pagos reales. | [Liquidar](LIQUIDAR-GESTIONES.md), [orden de visita](ORDEN-VISITA.md) |
+| Créditos | Frecuencias diaria, semanal y mensual. Los nuevos calendarios semanal y mensual usan intervalos de siete días y mes calendario, respectivamente. El cambio de modalidad al editar tiene restricciones si hay movimientos. | [Edición de modalidad](EDITAR-MODALIDAD-CREDITO.md), backend `Ventas/calendario.py` |
+| Cierre de caja | El trabajador cierra el día actual. El administrador puede cerrar una fecha pasada cuando el historial respalda el saldo y no hay movimientos posteriores que impidan usar la caja actual. Se conserva la fecha real de ingreso para auditoría y se verifica la fecha operativa contra el registro de origen. | [Contrato de cierres](API.md#53-cierres-de-caja), backend `Tiendas/cierres.py` y `Tiendas/caja.py` |
+| Reportes | Cartera muestra deuda, atraso y señales por frecuencia. Utilidad distingue el resultado calculado de los retiros que ya salieron de caja. | [Cartera y riesgo](CARTERA-RIESGO-FRECUENCIA.md), frontend `app/dashboard/reportes/` |
+| Alertas y Telegram | Centro de excepciones y reportes de rutas en el alcance privado de la cuenta operadora. El mantenimiento diario usa las 08:00 de `America/Santiago`. Las notificaciones de clientes tienen un flujo separado con consentimiento. | [Alertas](ALERTAS-PENDIENTES.md), [Telegram](TELEGRAM-GUIA-Y-OPERACION.md), [reportes de rutas](https://github.com/cavb1205/sellsystem/blob/main/docs/REPORTES-RUTAS-TELEGRAM.md) |
+| Publicidad | Registro, historial y mapa desde una sola sección, con acceso según la ruta autorizada. | [Navegación](PUBLICIDAD-NAVEGACION.md) |
+| Membresías | Renovaciones nuevas mensuales, con importe y datos de transferencia conservados por solicitud. Los planes anuales previos se preservan para el historial. La administración interna puede vencer manualmente una suscripción con registro de auditoría. | [API de membresías](API.md#54-membresías--ciclo-de-vida), [vencimiento manual](SUSCRIPCIONES-MANUALES.md) |
+| Sesiones y permisos | El frontend centraliza la renovación de sesión. El backend verifica identidad y acceso a la ruta en cada operación. Los roles de plataforma y los roles de ruta tienen permisos distintos. | [Sesiones](SECURITY-SESSIONS.md), [autorización](https://github.com/cavb1205/sellsystem/blob/main/docs/SECURITY-AUTHORIZATION.md) |
 
-### Liquidar
+Para reproducir el último caso de cierres en local, crea un gasto con fecha operativa del sábado y hora de registro del martes. El cierre del sábado debe incluir ese gasto si su origen, ruta e importe coinciden y el resto del historial es válido. El cierre del viernes debe bloquearse por el gasto del sábado. Las correcciones posteriores, las anulaciones y los asientos que no se pueden verificar se revisan aparte. La prueba está en `Tiendas/test_cierres.py`.
 
-La lista conserva el orden original por antigüedad del crédito. Los clientes que ya abonaron durante el día desaparecen de la lista, para que el trabajador vea únicamente lo pendiente.
+La guía para trabajadores y administradores se publica en [Guía rápida](https://app.carterafinanciera.com/guia-rapida). Los procedimientos del servidor se mantienen separados.
 
-Se agregaron días completos sin abono, cuotas atrasadas y monto para ponerse al día. El día actual no se suma mientras la jornada siga abierta; si el último abono fue ayer, se muestra “Ayer” sin etiquetarlo como atraso. En escritorio se redujo el ancho de la tabla: el contacto muestra solo los iconos de teléfono y WhatsApp, se quitó el icono junto al nombre y el seguimiento queda debajo de cada línea.
+## Cómo retomar una tarea
 
-## 2. Frecuencias y reglas de riesgo
+1. Ubica el repositorio correcto y comprueba `git status --short --branch`, `git remote -v` y el commit base contra `origin/main`. Si el checkout está sucio, conserva los cambios ajenos y trabaja en un checkout limpio.
+2. Lee el punto de entrada y las pruebas del módulo. Si hay un problema en producción, confirma primero el dominio, la ruta y la fecha operativa. Usa consultas de lectura acotadas a los datos autorizados.
+3. Reproduce con datos ficticios. Aplica los comandos de [Operación y entrega](OPERACION.md) y verifica el flujo que usa el usuario.
+4. Guarda el cambio en GitHub. Cuando se autorice publicar, verifica primero los commits y sigue el procedimiento de despliegue. El código servido debe corresponder a GitHub.
 
-- Diario es el valor predeterminado al crear una venta.
-- El trabajador no puede modificar la frecuencia; siempre registra créditos diarios.
-- Solo los administradores pueden elegir Diario, Semanal o Mensual.
-- El backend aplica la misma restricción, no depende únicamente del formulario.
-- Los umbrales se calculan según la frecuencia y las jornadas completas desde el último abono real.
-- El primer abono del día actual no se considera atrasado antes de que termine ese día.
-- Las renovaciones técnicas no se confunden con pagos reales.
-
-Umbrales actuales:
-
-| Frecuencia | Atención | Riesgo alto | Crítico |
-|---|---:|---:|---:|
-| Diario | 3 días | 7 días | 14 días |
-| Semanal | 9 días | 16 días | 30 días |
-| Mensual | 35 días | 45 días | 75 días |
-
-También existe una señal de posible pérdida desde 90 días sin abono, como alerta administrativa y no como castigo contable automático.
-
-## 3. Alertas dentro del panel
-
-El panel `/dashboard/alertas` quedó organizado por ruta:
-
-- al entrar desde una ruta se muestran primero sus alertas;
-- se puede cambiar a la vista global de las rutas administradas;
-- una venta permanece como una sola alerta activa, aunque el panel se consulte varias veces;
-- si la venta vuelve a estar al día, la alerta desaparece;
-- el umbral se recalcula con los abonos y fallas reales;
-- una falta de pago aislada no se interpreta automáticamente como pérdida si el cliente compensa después con dos cuotas.
-
-El Centro de anomalías muestra exposición deteriorada, créditos sin primer abono cuando ya corresponde, créditos críticos, saldos altos expuestos y diferencias de caja. Las diferencias son señales para revisar; no bloquean operaciones ni declaran una pérdida automáticamente.
-
-## 4. Telegram y reportes diarios
-
-Telegram operativo está limitado al usuario `cavb1205` y a sus rutas administradas. No se mezclan rutas de otros usuarios.
-
-La política actual es:
-
-- no enviar una notificación individual por cada falla de no pago o cierre ausente;
-- guardar y mostrar esas señales en el panel;
-- enviar en el reporte consolidado las excepciones importantes y los umbrales de riesgo;
-- mantener separadas las dos comunicaciones:
-  - **Resumen de membresías:** estado de suscripciones, actividad e ingresos de membresías;
-  - **Resumen de cartera:** cobro programado, recaudo, pendientes, fallas, cierres y riesgos por ruta.
-
-El cron de producción debe cerrar la jornada anterior a las **08:00 de `America/Santiago`**. Como el servidor trabaja en UTC, se ejecuta cada hora y un wrapper solo continúa cuando la hora local de Chile es 08:00; esto mantiene el horario correcto cuando cambia el horario de verano.
-
-Comando:
-
-```bash
-python manage.py mantenimiento_membresias
-```
-
-El 7 de agosto de 2026 se ejecutó manualmente para validar el reporte del 6 de agosto. Terminó correctamente: envió ambos reportes, procesó 5 rutas, registró 6 alertas nuevas de riesgo y detectó 5 cierres ausentes.
-
-## 5. Despliegue y repositorios
-
-- Frontend: `https://app.carterafinanciera.com`.
-- Frontend en GitHub: `cavb1205/gestion-financiera`, rama `main`.
-- Vercel está conectado al repositorio; cada push a `main` inicia el despliegue automático.
-- Backend en GitHub: `cavb1205/sellsystem`, rama `main`.
-- Backend publicado en `https://api.carterafinanciera.com` y Gunicorn recargado después de los cambios.
-- Verificaciones realizadas: `manage.py check`, `npm run lint` y `npm run build` correctos.
-
-Antes de actualizar el backend se conservan respaldos remotos en `.deploy-backups`.
-
-## 6. Siguiente punto recomendado
-
-El siguiente paso es convertir el Centro de anomalías en un flujo de investigación y seguimiento, sin generar ruido:
-
-1. historial de revisiones por anomalía;
-2. nota administrativa y acción acordada;
-3. responsable y fecha de próxima gestión;
-4. estados `pendiente`, `en gestión`, `resuelta` y `descartada`;
-5. filtros por ruta, trabajador, severidad y antigüedad;
-6. detección de renovaciones o refinanciaciones repetidas.
-
-La meta es que el administrador pueda pasar de “hay una señal rara” a “esta persona debe ser contactada por X motivo, por un monto de Y, antes de Z fecha”, conservando el historial de lo realizado.
+Los archivos `PRODUCTION_BASELINE.md` y sus manifiestos del 9 de octubre documentan una sincronización histórica. Para una intervención nueva, usa el commit servido y genera las huellas desde ese árbol.

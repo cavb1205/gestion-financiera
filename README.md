@@ -1,51 +1,14 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Cartera Financiera
 
-## Documentación del proyecto
+Frontend de la plataforma de créditos, recaudos y operación de rutas. La API Django vive en el repositorio [sellsystem](https://github.com/cavb1205/sellsystem).
 
-- [Estado actual y memoria del proyecto](docs/ESTADO-ACTUAL-PROYECTO.md)
-- [Reglas de cartera, frecuencia y riesgo](docs/CARTERA-RIESGO-FRECUENCIA.md)
-- [Referencia de la API](docs/API.md)
+## Para retomar el proyecto
 
-## Getting Started
+- [Estado actual](docs/ESTADO-ACTUAL-PROYECTO.md) — arquitectura, versiones verificadas y módulos.
+- [Operación y entrega](docs/OPERACION.md) — acceso autorizado, desarrollo local, pruebas y despliegue.
+- [Referencia de la API](docs/API.md) — contratos entre el frontend y el backend.
+- [Guía rápida](https://app.carterafinanciera.com/guia-rapida) — uso de la aplicación por trabajadores y administradores.
 
-First, run the development server:
+## Desarrollo
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-
-
-
-
-
-
-
-
+Usa Node 24 y ejecuta `npm ci`. Configura `NEXT_PUBLIC_API_URL` en `.env.local` con una API local o de pruebas y ejecuta `npm run dev`. La aplicación abre en `http://localhost:3000`. El manual de operación incluye los comandos de prueba y el entorno aislado del backend.

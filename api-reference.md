@@ -99,8 +99,8 @@ Store-scoped endpoints use `/t/{tienda_id}/` suffix.
 |--------|------|-------------|
 | GET | `/tiendas/list/tiendas/admin/` | List admin's stores |
 | GET | `/tiendas/detail/admin/{id}/` | Store details + stats |
-| PUT | `/tiendas/activate/mounth/{membresia_id}/` | Activate monthly plan |
-| PUT | `/tiendas/activate/year/{membresia_id}/` | Activate annual plan |
+| POST | `/tiendas/activate/mounth/{membresia_id}/` | Extend monthly membership |
+| POST | `/tiendas/activate/year/{membresia_id}/` | Retired endpoint, returns `plan_retirado` |
 
 ## Cierre de Caja (Cash Closing)
 
@@ -108,7 +108,8 @@ Store-scoped endpoints use `/t/{tienda_id}/` suffix.
 |--------|------|-------------|
 | GET | `/tiendas/cierres/t/{tienda_id}/` | List all closings |
 | GET | `/tiendas/cierre/{fecha}/t/{tienda_id}/` | Previous day's closing |
-| POST | `/tiendas/cierre/post/{fecha}/t/{tienda_id}/` | Create closing (valor auto-set) |
+| GET | `/tiendas/cierre/resumen/{fecha}/t/{tienda_id}/` | Read totals and closing eligibility |
+| POST | `/tiendas/cierre/post/{fecha}/t/{tienda_id}/` | Revalidate and create closing, duplicate returns 409 |
 | DELETE | `/tiendas/cierre/delete/{id}/` | Delete closing |
 
 ## Notes
