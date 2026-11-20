@@ -212,10 +212,10 @@ const GUIDE_SECTIONS = [
       "Al finalizar la jornada entra a «Cierre de Caja».",
       "Revisa el resumen del día: aportes, recaudos, créditos, gastos y utilidades.",
       "El sistema calcula automáticamente el valor del cierre. No debes inventar ni ingresar otro saldo en un campo manual.",
-      "Pulsa «Registrar Cierre». El trabajador cierra su día actual. El administrador puede cerrar cualquier fecha pasada sin cierre si no hubo cambios de caja posteriores y el historial permite verificar su saldo.",
+      "Pulsa «Registrar Cierre». El trabajador cierra su día actual. El administrador puede cerrar cualquier fecha pasada sin cierre, aunque ya existan movimientos de días posteriores: el sistema calcula el saldo que correspondía a esa fecha.",
       "En «Movimientos de Caja» revisa fecha, usuario, tipo, saldo anterior, variación y saldo posterior.",
     ],
-    note: "Antes de un cierre anterior, el sistema revisa también los días intermedios, las correcciones y anulaciones. Si falta historial o hubo cambios posteriores, muestra el motivo y no usa el saldo actual como si fuera histórico. Los cierres ya registrados conservan su valor.",
+    note: "En un cierre anterior, el saldo es la caja actual menos lo registrado para días posteriores; los abonos o gastos de esa fecha ingresados tarde sí cuentan en ella. Cada movimiento se verifica con el historial de caja: si algo no se puede verificar, muestra el motivo y no registra un saldo supuesto. Los cierres ya registrados conservan su valor.",
   },
   {
     id: "reportes",

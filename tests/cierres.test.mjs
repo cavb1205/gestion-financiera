@@ -46,6 +46,21 @@ test('un cierre existente muestra su fotografía original y nunca ofrece otro re
   assert.equal(r.validacion.puede_registrar, false);
 });
 
+test('fecha anterior con movimientos de hoy usa el saldo reconstruido por el servidor y muestra su desglose', () => {
+  const r = interpretarResumenCierre(respuesta({ codigo: 'saldo_reconstruido', saldo_a_registrar: '10000',
+    saldo_actual: '12500', efecto_posterior: '2500' }), fecha, 12);
+  assert.equal(r.validacion.puede_registrar, true);
+  assert.equal(r.saldo_cierre, 10000);
+  assert.deepEqual(r.desglose, { saldo_actual: 12500, efecto_posterior: 2500 });
+  assert.equal(interpretarResumenCierre(respuesta(), fecha, 12).desglose, null);
+});
+
+test('un saldo reconstruido sin desglose o un código desconocido no habilitan el cierre', () => {
+  assert.throws(() => interpretarResumenCierre(respuesta({ codigo: 'saldo_reconstruido' }), fecha, 12), /verificar/);
+  assert.throws(() => interpretarResumenCierre(respuesta({ codigo: 'saldo_reconstruido', saldo_actual: '1', efecto_posterior: 'x' }), fecha, 12), /verificar/);
+  assert.throws(() => interpretarResumenCierre(respuesta({ codigo: 'otro_codigo' }), fecha, 12), /verificar/);
+});
+
 test('caja cero o negativa son valores reales y no una consulta fallida', () => {
   for (const saldo of ['0', '-500']) assert.equal(interpretarResumenCierre(respuesta({ saldo_a_registrar: saldo }), fecha, 12).saldo_cierre, Number(saldo));
 });

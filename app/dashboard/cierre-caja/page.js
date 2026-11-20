@@ -264,7 +264,8 @@ function CierreCajaRuta({ selectedStore, user }) {
   const motivoBloqueo = resumenError || (!selectedDate ? "Selecciona una fecha para verificar el cierre."
     : loadingResumen || !validacion ? "Verificando si se puede cerrar esta fecha…"
     : !validacion.puede_registrar ? validacion.mensaje : null);
-  const avisoInfo = puedeRegistrar && validacion.codigo === "sin_movimientos_posteriores" ? validacion.mensaje : null;
+  const esFechaAnterior = ["sin_movimientos_posteriores", "saldo_reconstruido"].includes(validacion?.codigo);
+  const avisoInfo = puedeRegistrar && esFechaAnterior ? validacion.mensaje : null;
 
   if (loading) return <LoadingSpinner />;
 
@@ -478,11 +479,18 @@ function CierreCajaRuta({ selectedStore, user }) {
                 <div className="bg-slate-900 dark:bg-slate-800 rounded-2xl px-6 py-5 flex items-center justify-between">
                   <div>
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-                      {resumenDia.estado_saldo === "registrado" ? "Cierre Registrado" : validacion?.codigo === "sin_movimientos_posteriores" ? "Saldo verificado para esta fecha" : "Saldo Actual de Caja"}
+                      {resumenDia.estado_saldo === "registrado" ? "Cierre Registrado" : esFechaAnterior ? "Saldo verificado para esta fecha" : "Saldo Actual de Caja"}
                     </p>
                     <p className="text-[10px] font-bold text-slate-500">
                       {resumenDia.estado_saldo === "registrado" ? "Valor consolidado al cierre del día" : "Se verificará nuevamente al guardar el cierre"}
                     </p>
+                    {resumenDia.desglose && (
+                      <p className="text-[10px] font-bold text-slate-400 mt-1">
+                        Caja actual {formatMoney(resumenDia.desglose.saldo_actual)}
+                        {resumenDia.desglose.efecto_posterior >= 0 ? " − " : " + "}
+                        {formatMoney(Math.abs(resumenDia.desglose.efecto_posterior))} de movimientos de días posteriores
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <div className={`w-2 h-2 rounded-full ${resumenDia.estado_saldo === "registrado" ? "bg-emerald-400" : "bg-indigo-400 animate-pulse"}`} />
@@ -503,7 +511,7 @@ function CierreCajaRuta({ selectedStore, user }) {
         {/* Info */}
         <div className="mt-6 flex items-start gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
           <FiInfo size={14} className="shrink-0 mt-0.5" />
-          <span>El cierre guarda el saldo de la ruta sin modificar la caja. Las fechas anteriores requieren que no existan cambios posteriores y que el historial permita verificar el saldo.</span>
+          <span>El cierre guarda el saldo de la ruta sin modificar la caja. En una fecha anterior, el sistema descuenta los movimientos de días posteriores (por ejemplo, los cobros de hoy) y verifica cada uno con el historial de caja.</span>
         </div>
       </div>
 
