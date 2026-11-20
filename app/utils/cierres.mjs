@@ -28,6 +28,7 @@ export function interpretarResumenCierre(data, fecha, tiendaId) {
     count_ventas: data.fecha.count_ventas,
     fecha_consulta: fecha,
     validacion,
+    verificacion_registrado: registrado ? verificacionCierre(registrado.verificacion) : null,
     saldo_cierre: registrado ? Number(registrado.valor)
       : validacion.puede_registrar ? Number(validacion.saldo_a_registrar) : null,
     estado_saldo: registrado ? 'registrado' : validacion.puede_registrar ? 'pendiente' : 'sin_registro',
@@ -35,6 +36,19 @@ export function interpretarResumenCierre(data, fecha, tiendaId) {
       ? { saldo_actual: Number(validacion.saldo_actual), efecto_posterior: Number(validacion.efecto_posterior) }
       : null,
   };
+}
+
+/**
+ * Verificación informativa de un cierre guardado frente al saldo que hoy
+ * corresponde a su día. Ante datos ausentes o inválidos, nunca afirma nada.
+ */
+export function verificacionCierre(verificacion) {
+  const numero = value => ['string', 'number'].includes(typeof value) && String(value).trim() !== '' && Number.isFinite(Number(value));
+  if (verificacion?.estado === 'coincide') return { estado: 'coincide' };
+  if (verificacion?.estado === 'desactualizado' && numero(verificacion.saldo_del_dia) && numero(verificacion.diferencia)) {
+    return { estado: 'desactualizado', saldo_del_dia: Number(verificacion.saldo_del_dia), diferencia: Number(verificacion.diferencia) };
+  }
+  return { estado: 'sin_verificacion' };
 }
 
 export function mensajeErrorCierre(error) {

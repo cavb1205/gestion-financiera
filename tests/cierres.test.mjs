@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { interpretarResumenCierre, mensajeErrorCierre } from '../app/utils/cierres.mjs';
+import { interpretarResumenCierre, mensajeErrorCierre, verificacionCierre } from '../app/utils/cierres.mjs';
 
 const fecha = '2026-10-30';
 const respuesta = extra => ({
@@ -59,6 +59,19 @@ test('un saldo reconstruido sin desglose o un código desconocido no habilitan e
   assert.throws(() => interpretarResumenCierre(respuesta({ codigo: 'saldo_reconstruido' }), fecha, 12), /verificar/);
   assert.throws(() => interpretarResumenCierre(respuesta({ codigo: 'saldo_reconstruido', saldo_actual: '1', efecto_posterior: 'x' }), fecha, 12), /verificar/);
   assert.throws(() => interpretarResumenCierre(respuesta({ codigo: 'otro_codigo' }), fecha, 12), /verificar/);
+});
+
+test('un cierre desactualizado expone saldo del día y diferencia; datos dudosos no afirman nada', () => {
+  assert.deepEqual(verificacionCierre({ estado: 'desactualizado', saldo_del_dia: '10250', diferencia: '250' }),
+    { estado: 'desactualizado', saldo_del_dia: 10250, diferencia: 250 });
+  assert.deepEqual(verificacionCierre({ estado: 'coincide' }), { estado: 'coincide' });
+  for (const v of [undefined, null, {}, { estado: 'desactualizado' }, { estado: 'desactualizado', saldo_del_dia: 'x', diferencia: '1' }, { estado: 'otro' }]) {
+    assert.deepEqual(verificacionCierre(v), { estado: 'sin_verificacion' });
+  }
+  const r = interpretarResumenCierre(respuesta({ puede_registrar: false, codigo: 'cierre_existente', saldo_a_registrar: null,
+    cierre_existente: { id: 1, fecha_cierre: fecha, valor: '8500', verificacion: { estado: 'desactualizado', saldo_del_dia: '8300', diferencia: '-200' } } }), fecha, 12);
+  assert.deepEqual(r.verificacion_registrado, { estado: 'desactualizado', saldo_del_dia: 8300, diferencia: -200 });
+  assert.equal(interpretarResumenCierre(respuesta(), fecha, 12).verificacion_registrado, null);
 });
 
 test('caja cero o negativa son valores reales y no una consulta fallida', () => {
