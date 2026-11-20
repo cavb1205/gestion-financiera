@@ -21,6 +21,7 @@ import {
   FiList,
   FiArrowDownRight,
   FiArrowUpRight,
+  FiAlertTriangle,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -31,7 +32,23 @@ import { formatMoney } from "../../utils/format";
 import { formatAppDate, formatAppDateTime, getAppDateString } from "../../utils/datetime";
 import { apiFetch, getApiError } from "../../utils/api";
 import Pagination from "../../components/Pagination";
-import { interpretarResumenCierre, mensajeErrorCierre } from "@/app/utils/cierres.mjs";
+import { interpretarResumenCierre, mensajeErrorCierre, verificacionCierre } from "@/app/utils/cierres.mjs";
+
+const signoMoney = (valor) => `${valor >= 0 ? "+" : "−"}${formatMoney(Math.abs(valor))}`;
+
+function AvisoDesactualizado({ verificacion, compacto = false }) {
+  if (verificacion.estado !== "desactualizado") return null;
+  const detalle = `Hoy corresponde ${formatMoney(verificacion.saldo_del_dia)} para este día (diferencia ${signoMoney(verificacion.diferencia)}). Hubo movimientos o correcciones de esa fecha después de registrar el cierre.`;
+  return (
+    <span
+      title={detalle}
+      className={`inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 font-black uppercase tracking-widest ${compacto ? "px-2 py-0.5 text-[8px]" : "px-2.5 py-1 text-[9px]"}`}
+    >
+      <FiAlertTriangle size={compacto ? 9 : 10} />
+      Desactualizado {signoMoney(verificacion.diferencia)}
+    </span>
+  );
+}
 
 export default function CierreCajaPage() {
   const { selectedStore, isAuthenticated, loading: authLoading, user } = useAuth();
@@ -241,6 +258,10 @@ function CierreCajaRuta({ selectedStore, user }) {
       setDeleting(false);
     }
   };
+
+  const cierresDesactualizados = cierres.filter(
+    (cierre) => verificacionCierre(cierre.verificacion).estado === "desactualizado"
+  ).length;
 
   // Paginación
   const totalPages = Math.ceil(cierres.length / itemsPerPage);
@@ -484,6 +505,12 @@ function CierreCajaRuta({ selectedStore, user }) {
                     <p className="text-[10px] font-bold text-slate-500">
                       {resumenDia.estado_saldo === "registrado" ? "Valor consolidado al cierre del día" : "Se verificará nuevamente al guardar el cierre"}
                     </p>
+                    {resumenDia.verificacion_registrado?.estado === "desactualizado" && (
+                      <p className="text-[10px] font-bold text-amber-400 mt-1 max-w-md leading-snug">
+                        ⚠ Hoy corresponde {formatMoney(resumenDia.verificacion_registrado.saldo_del_dia)} para este día (diferencia {signoMoney(resumenDia.verificacion_registrado.diferencia)}): hubo movimientos o correcciones de esa fecha después de registrar el cierre.
+                        {!isWorker && " Para corregirlo, elimínalo en el historial y vuelve a registrarlo."}
+                      </p>
+                    )}
                     {resumenDia.desglose && (
                       <p className="text-[10px] font-bold text-slate-400 mt-1">
                         Caja actual {formatMoney(resumenDia.desglose.saldo_actual)}
@@ -720,6 +747,15 @@ function CierreCajaRuta({ selectedStore, user }) {
             {cierres.length} registros
           </span>
         </div>
+        {cierresDesactualizados > 0 && (
+          <div className="px-8 py-4 border-b border-amber-100 dark:border-amber-900/40 bg-amber-50/70 dark:bg-amber-900/10 flex items-start gap-3">
+            <FiAlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400 leading-snug">
+              {cierresDesactualizados === 1 ? "1 cierre no coincide" : `${cierresDesactualizados} cierres no coinciden`} con el saldo que hoy corresponde a su día: hubo movimientos o correcciones de esa fecha después de registrarlo (por ejemplo, se cerró a media jornada o se ingresó un abono tarde).
+              {!isWorker && " Para corregir uno, elimínalo y vuelve a registrarlo: se calculará con el saldo correcto de ese día y el valor anterior no se conserva."}
+            </p>
+          </div>
+        )}
 
         {cierres.length === 0 ? (
           <div className="p-16 text-center">
@@ -776,6 +812,9 @@ function CierreCajaRuta({ selectedStore, user }) {
                         <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">
                           {formatMoney(cierre.valor)}
                         </span>
+                        <div className="mt-1">
+                          <AvisoDesactualizado verificacion={verificacionCierre(cierre.verificacion)} />
+                        </div>
                       </td>
                       <td className="px-8 py-6 text-right">
                         {!isWorker && (
@@ -809,6 +848,9 @@ function CierreCajaRuta({ selectedStore, user }) {
                       <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
                         {formatMoney(cierre.valor)}
                       </p>
+                      <div className="mt-1">
+                        <AvisoDesactualizado verificacion={verificacionCierre(cierre.verificacion)} compacto />
+                      </div>
                     </div>
                   </div>
                   {!isWorker && (
