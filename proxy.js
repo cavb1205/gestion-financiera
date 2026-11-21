@@ -1,4 +1,10 @@
 import { NextResponse } from 'next/server';
+import { construirCsp } from './app/utils/csp.mjs';
+
+const CSP = construirCsp({
+  apiUrl: process.env.NEXT_PUBLIC_API_URL,
+  dev: process.env.NODE_ENV !== 'production',
+});
 
 export function proxy(request) {
   const response = NextResponse.next();
@@ -14,6 +20,9 @@ export function proxy(request) {
 
   // Permisos de funcionalidades del navegador
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
+
+  // Orígenes permitidos para scripts, conexiones, imágenes, etc.
+  response.headers.set('Content-Security-Policy', CSP);
 
   // Forzar HTTPS en producción
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
