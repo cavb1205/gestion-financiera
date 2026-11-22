@@ -2,6 +2,8 @@
 // Utilidad centralizada para llamadas API con autenticación automática
 
 import { clearStoredSession, storedSessionIdentity } from './authSession.mjs';
+import { EVENTO_DATOS_MODIFICADOS, esEscritura } from './storeRefresh.mjs';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Singleton: si ya hay un refresh en vuelo, todas las llamadas comparten la misma promesa
@@ -152,6 +154,9 @@ export async function apiFetch(path, options = {}) {
       throw new Error('Sesión expirada');
     }
 
+    if (response.ok && esEscritura(options.method) && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(EVENTO_DATOS_MODIFICADOS));
+    }
     return response;
   } catch (err) {
     if (err.name === 'AbortError') {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { apiFetch, tryRefreshToken } from '../utils/api';
 import { publicUserData } from '../utils/authUser.mjs';
 import { clearStoredSession } from '../utils/authSession.mjs';
+import { EVENTO_DATOS_MODIFICADOS, refrescoReciente, registrarRefresco } from '../utils/storeRefresh.mjs';
 
 const AuthContext = createContext({
   user: null,
@@ -31,6 +32,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const tokenTimeoutRef = useRef(null);
   const storeRefreshRef = useRef(null);
+  const lastStoreRefreshRef = useRef(null);
 
   // Función para limpiar la autenticación
   const clearAuth = useCallback(() => {
@@ -228,7 +230,7 @@ export const AuthProvider = ({ children }) => {
     });
   }, []);
 
-  const refreshSelectedStore = useCallback(async ({ membershipOnly = false } = {}) => {
+  const refreshSelectedStore = useCallback(async ({ membershipOnly = false, maxAgeMs = 0 } = {}) => {
     const storedToken = localStorage.getItem('authToken');
     const storedStore = localStorage.getItem('selectedStore');
     if (!storedToken || !storedStore) return null;
@@ -238,6 +240,8 @@ export const AuthProvider = ({ children }) => {
     } catch { return null; }
     if (!tiendaId) return null;
     if (storeRefreshRef.current?.id === tiendaId) return storeRefreshRef.current.promise;
+    // Navegar sin cambios no necesita volver a pedir la ruta en cada pantalla.
+    if (refrescoReciente(lastStoreRefreshRef.current, { id: tiendaId, membershipOnly, maxAgeMs })) return null;
 
     const requestUser = localStorage.getItem('userData');
     const operation = { id: tiendaId, promise: null };
@@ -250,6 +254,7 @@ export const AuthProvider = ({ children }) => {
         if (String(current?.tienda?.id) !== String(tiendaId)
           || localStorage.getItem('userData') !== requestUser) return null;
         if (res.ok) {
+          lastStoreRefreshRef.current = registrarRefresco(lastStoreRefreshRef.current, { id: tiendaId, membershipOnly });
           const received = await res.json();
           const latestRaw = localStorage.getItem('selectedStore');
           const latest = latestRaw ? JSON.parse(latestRaw) : null;
@@ -290,19 +295,27 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (!token || !selectedStore?.tienda?.id) return;
+    // Volver a la app (cambiar de WhatsApp o mapas) o el intervalo: como
+    // máximo una consulta de membresía cada 30 s. Un bloqueo, siempre.
     const refreshVisibleStore = () => {
+      if (document.visibilityState === 'visible') void refreshSelectedStore({ membershipOnly: true, maxAgeMs: 30000 });
+    };
+    const refreshBlockedStore = () => {
       if (document.visibilityState === 'visible') void refreshSelectedStore({ membershipOnly: true });
     };
+    const invalidateStoreRefresh = () => { lastStoreRefreshRef.current = null; };
     refreshVisibleStore();
     window.addEventListener('focus', refreshVisibleStore);
     document.addEventListener('visibilitychange', refreshVisibleStore);
-    window.addEventListener('cartera:membership-blocked', refreshVisibleStore);
+    window.addEventListener('cartera:membership-blocked', refreshBlockedStore);
+    window.addEventListener(EVENTO_DATOS_MODIFICADOS, invalidateStoreRefresh);
     const interval = setInterval(refreshVisibleStore, 60000);
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', refreshVisibleStore);
       document.removeEventListener('visibilitychange', refreshVisibleStore);
-      window.removeEventListener('cartera:membership-blocked', refreshVisibleStore);
+      window.removeEventListener('cartera:membership-blocked', refreshBlockedStore);
+      window.removeEventListener(EVENTO_DATOS_MODIFICADOS, invalidateStoreRefresh);
     };
   }, [token, selectedStore?.tienda?.id, refreshSelectedStore]);
 
