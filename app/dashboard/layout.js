@@ -269,7 +269,9 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
-    if (isAuthenticated) refreshSelectedStore?.();
+    // Como máximo un refresco completo por minuto mientras solo se navega;
+    // tras guardar algo (POST/PUT/DELETE) el siguiente cambio de pantalla refresca.
+    if (isAuthenticated) refreshSelectedStore?.({ maxAgeMs: 60000 });
     sessionStorage.setItem('cartera_last_path', pathname);
   }, [pathname, isAuthenticated, refreshSelectedStore]);
 
