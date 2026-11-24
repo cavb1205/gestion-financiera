@@ -1,7 +1,7 @@
 // app/dashboard/gastos/page.js
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   FiPlus,
   FiFilter,
@@ -26,14 +26,18 @@ import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { formatMoney, parseMoney } from "../../utils/format";
+import { formatMoney } from "../../utils/format";
 import Pagination from "../../components/Pagination";
+import { consultaGastos, leerPaginaGastos } from "../../utils/gastosListado.mjs";
 
 export default function GastosPage() {
   const { selectedStore, isAuthenticated, loading: authLoading, user } = useAuth();
   const isWorker = !(user?.is_staff || user?.is_superuser);
   const [gastos, setGastos] = useState([]);
+  const [resumen, setResumen] = useState({ totalRegistros: 0, totalMonto: 0, paginas: 1 });
   const [loading, setLoading] = useState(true);
+  const [actualizando, setActualizando] = useState(false);
+  const solicitudRef = useRef(0);
   const [tiposGasto, setTiposGasto] = useState([]);
   const [filters, setFilters] = useState({
     fechaInicio: "",
@@ -44,9 +48,10 @@ export default function GastosPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [gastoToDelete, setGastoToDelete] = useState(null);
 
-  // Paginación en el cliente
+  // Paginación y filtros en el servidor: solo se descarga la página visible.
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(10);
+  const tiendaId = selectedStore?.tienda?.id;
 
   const router = useRouter();
 
@@ -62,23 +67,30 @@ export default function GastosPage() {
     }
   };
 
-  // Obtener gastos
-  const fetchGastos = async () => {
-    if (!selectedStore) return;
-    setLoading(true);
+  // Obtener la página visible de gastos (con los totales de todo el filtro)
+  const fetchGastos = useCallback(async () => {
+    if (!tiendaId) return;
+    const solicitud = ++solicitudRef.current;
+    setActualizando(true);
     try {
       const response = await apiFetch(
-        `/gastos/t/${selectedStore.tienda.id}/`
+        `/gastos/t/${tiendaId}/${consultaGastos({ pagina: currentPage, limite: itemsPerPage, filtros: filters })}`
       );
-      if (!response.ok) throw new Error("Error al obtener los gastos");
-      const data = await response.json();
-      setGastos(Array.isArray(data) ? data : []);
+      if (!response.ok) throw new Error(await getApiError(response, "Error al obtener los gastos"));
+      const pagina = leerPaginaGastos(await response.json());
+      if (solicitud !== solicitudRef.current) return;
+      setGastos(pagina.gastos);
+      setResumen({ totalRegistros: pagina.totalRegistros, totalMonto: pagina.totalMonto, paginas: pagina.paginas });
+      if (pagina.pagina !== currentPage) setCurrentPage(pagina.pagina);
     } catch (error) {
-      toast.error(error.message);
+      if (solicitud === solicitudRef.current) toast.error(error.message);
     } finally {
-      setLoading(false);
+      if (solicitud === solicitudRef.current) {
+        setLoading(false);
+        setActualizando(false);
+      }
     }
-  };
+  }, [tiendaId, currentPage, itemsPerPage, filters]);
 
   const handleDelete = async () => {
     if (!gastoToDelete) return;
@@ -104,26 +116,15 @@ export default function GastosPage() {
   };
 
   useEffect(() => {
-    if (selectedStore) {
-      fetchTiposGasto();
-      fetchGastos();
-    }
-  }, [selectedStore]);
+    if (tiendaId) fetchTiposGasto();
+  }, [tiendaId]);
 
-  const filteredGastos = useMemo(() => {
-    return gastos.filter((gasto) => {
-      if (filters.fechaInicio && gasto.fecha < filters.fechaInicio) return false;
-      if (filters.fechaFin && gasto.fecha > filters.fechaFin) return false;
-      if (filters.tipoGasto !== "Todos" && gasto.tipo_gasto.id.toString() !== filters.tipoGasto) return false;
-      return true;
-    });
-  }, [gastos, filters]);
+  useEffect(() => {
+    fetchGastos();
+  }, [fetchGastos]);
 
-  // Paginación
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredGastos.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredGastos.length / itemsPerPage);
+  const currentItems = gastos;
+  const totalPages = resumen.paginas;
 
 
   const handleFilterChange = (e) => {
@@ -149,7 +150,8 @@ export default function GastosPage() {
     );
   }
 
-  const totalGastosMonto = filteredGastos.reduce((acc, gasto) => acc + parseMoney(gasto.valor), 0);
+  const totalGastosMonto = resumen.totalMonto;
+  const totalRegistros = resumen.totalRegistros;
 
   return (
     <div className="min-h-screen bg-transparent pb-12">
@@ -224,7 +226,7 @@ export default function GastosPage() {
                 </div>
               </div>
               <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-1">
-                {filteredGastos.length}
+                {totalRegistros}
               </p>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Registros Emitidos</p>
             </div>
@@ -234,7 +236,7 @@ export default function GastosPage() {
              <div className="relative z-10">
                 <p className="text-[10px] font-black text-rose-400 uppercase tracking-[0.2em] mb-2 tracking-widest">Gasto Promedio por Operación</p>
                 <h3 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">
-                   {formatMoney(filteredGastos.length > 0 ? totalGastosMonto / filteredGastos.length : 0)}
+                   {formatMoney(totalRegistros > 0 ? totalGastosMonto / totalRegistros : 0)}
                 </h3>
              </div>
              <div className="opacity-10 group-hover:opacity-20 transition-opacity">
@@ -296,7 +298,7 @@ export default function GastosPage() {
         </div>
 
         {/* Table Section */}
-        <div className="glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl">
+        <div aria-busy={actualizando} className={`glass rounded-[2.5rem] overflow-hidden border-white/60 dark:border-slate-800 shadow-2xl transition-opacity ${actualizando ? "opacity-60" : ""}`}>
 
           {/* Desktop Table */}
           <div className="hidden md:block overflow-x-auto">
@@ -440,7 +442,7 @@ export default function GastosPage() {
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
-            totalItems={filteredGastos.length}
+            totalItems={totalRegistros}
             itemsPerPage={itemsPerPage}
           />
         </div>
