@@ -239,12 +239,15 @@ export const AuthProvider = ({ children }) => {
       tiendaId = JSON.parse(storedStore)?.tienda?.id;
     } catch { return null; }
     if (!tiendaId) return null;
-    if (storeRefreshRef.current?.id === tiendaId) return storeRefreshRef.current.promise;
+    // Reutiliza la consulta en curso si cubre lo pedido: una completa sirve
+    // para todo; una de solo membresía no trae la caja actualizada.
+    const enCurso = storeRefreshRef.current;
+    if (enCurso?.id === tiendaId && (membershipOnly || !enCurso.membershipOnly)) return enCurso.promise;
     // Navegar sin cambios no necesita volver a pedir la ruta en cada pantalla.
     if (refrescoReciente(lastStoreRefreshRef.current, { id: tiendaId, membershipOnly, maxAgeMs })) return null;
 
     const requestUser = localStorage.getItem('userData');
-    const operation = { id: tiendaId, promise: null };
+    const operation = { id: tiendaId, membershipOnly, promise: null };
     operation.promise = (async () => {
       try {
         const res = await apiFetch(`/tiendas/detail/admin/${tiendaId}/${membershipOnly ? '?vista=membresia' : ''}`, { cache: 'no-store' });
