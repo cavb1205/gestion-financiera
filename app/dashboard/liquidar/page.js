@@ -61,7 +61,7 @@ function formatCuotasAtrasadas(value) {
 }
 
 export default function LiquidarCreditosPage() {
-   const { selectedStore, user, isAuthenticated, loading: authLoading } = useAuth();
+   const { selectedStore, user, isAuthenticated, loading: authLoading, refreshSelectedStore } = useAuth();
    const isWorker = !(user?.is_staff || user?.is_superuser);
    const [gpsPermission, setGpsPermission] = useState(null); // null | "granted" | "denied" | "prompt"
    const [gpsBannerDismissed, setGpsBannerDismissed] = useState(false);
@@ -179,7 +179,8 @@ export default function LiquidarCreditosPage() {
          const [creditosData, recaudosData, tiendaData] = await Promise.all([
             fetchJson(`/ventas/activas/liquidar/${selectedDate}/t/${tiendaId}/?resumen=1&incluir_gestionados=1${vistaPrevia ? '&vista=previa' : ''}`),
             vistaPrevia ? Promise.resolve([]) : fetchJson(`/recaudos/list/${selectedDate}/t/${tiendaId}/?vista=lista`),
-            vistaPrevia ? Promise.resolve(null) : fetchJson(`/tiendas/detail/admin/${tiendaId}/`),
+            // Comparte la consulta de la ruta con el menú (una sola llamada por carga).
+            vistaPrevia ? Promise.resolve(null) : refreshSelectedStore().catch(() => null),
          ]);
 
          if (solicitud !== solicitudRef.current) return;
@@ -195,7 +196,15 @@ export default function LiquidarCreditosPage() {
          setCreditos(liquidacion.creditos);
          setBaseCuotasDia(liquidacion.totalACobrar);
          setRecaudos(Array.isArray(recaudosData) ? recaudosData : []);
-         if (tiendaData?.tienda?.caja !== undefined) setCaja(tiendaData.tienda.caja);
+         // Si la consulta falla o no corresponde, se usa la caja guardada de la ruta.
+         let tiendaActual = String(tiendaData?.tienda?.id) === String(tiendaId) ? tiendaData.tienda : null;
+         if (!tiendaActual && !vistaPrevia) {
+            try {
+               const guardada = JSON.parse(localStorage.getItem("selectedStore") || "null")?.tienda;
+               if (String(guardada?.id) === String(tiendaId)) tiendaActual = guardada;
+            } catch { /* sin caja guardada */ }
+         }
+         if (tiendaActual?.caja !== undefined) setCaja(tiendaActual.caja);
          setFetchError(null);
       } catch (error) {
          if (solicitud !== solicitudRef.current) return;
@@ -204,7 +213,7 @@ export default function LiquidarCreditosPage() {
       } finally {
          if (solicitud === solicitudRef.current) setLoading(false);
       }
-   }, [tiendaId, selectedDate, vistaPrevia]);
+   }, [tiendaId, selectedDate, vistaPrevia, refreshSelectedStore]);
 
    useEffect(() => {
       fetchData();
