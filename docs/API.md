@@ -224,7 +224,7 @@ Si el usuario no es root devuelve **200** con `{"message": "No tiene permisos pa
 La **primera** ruta de un admin recibe trial de 7 días. Las siguientes nacen en `Pendiente Pago` (sin trial) y disparan alerta de Telegram. Valida nombre único por administrador (case-insensitive).
 
 #### `PATCH /tiendas/<pk>/settings/`
-Acepta `prefijo_telefono`, `telefono`, `cupo_minimo_nuevo`, `zona_horaria` e `interes_defecto`. Solo un administrador de la ruta. `interes_defecto` solo se puede cambiar en rutas que ya lo tienen (no en las anteriores, que quedan en `null`) y exige `acepta_responsabilidad_interes: true`; registra de nuevo quién aceptó y cuándo. Devuelve los cinco valores actuales.
+Acepta `prefijo_telefono`, `telefono`, `cupo_minimo_nuevo`, `zona_horaria` e `interes_defecto`. Solo un administrador de la ruta. `interes_defecto` exige `acepta_responsabilidad_interes: true` y registra quién aceptó y cuándo. Las rutas anteriores quedan en `null` (20 % histórico) hasta que un administrador declare su tasa por esta vía. Devuelve los cinco valores actuales.
 
 #### `DELETE /tiendas/<pk>/admin/delete/`
 Requiere `username == 'root'`. **409** si la ruta tiene clientes o ventas — se archivan, no se borran, para preservar los datos financieros.

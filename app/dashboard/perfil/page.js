@@ -22,6 +22,7 @@ import {
   AYUDA_INTERES_RUTA,
   TEXTO_RESPONSABILIDAD_INTERES,
   camposDeclaracionInteres,
+  interesInicialCredito,
   rutaConInteresDefecto,
   validarDeclaracionInteres,
 } from "@/app/utils/interesRuta.mjs";
@@ -50,11 +51,11 @@ export default function PerfilPage() {
     selectedStore?.tienda?.zona_horaria || getDeviceTimeZone()
   );
   const [savingZona, setSavingZona] = useState(false);
-  // Solo rutas creadas con tasa declarada; las anteriores no la muestran.
+  // Rutas sin tasa declarada muestran el 20 % que usan hoy; al guardar,
+  // el administrador la declara con la misma aceptación que una ruta nueva.
   const tieneInteresRuta = rutaConInteresDefecto(selectedStore?.tienda);
-  const [interesRuta, setInteresRuta] = useState(
-    tieneInteresRuta ? String(selectedStore.tienda.interes_defecto) : ""
-  );
+  const [interesEditado, setInteresRuta] = useState(null);
+  const interesRuta = interesEditado ?? String(interesInicialCredito(selectedStore?.tienda));
   const [aceptaInteres, setAceptaInteres] = useState(false);
   const [savingInteres, setSavingInteres] = useState(false);
 
@@ -152,7 +153,7 @@ export default function PerfilPage() {
         throw new Error(await getApiError(response, "Error al guardar el interés de la ruta"));
       }
       const data = await response.json();
-      setInteresRuta(String(data.interes_defecto));
+      setInteresRuta(null);
       setAceptaInteres(false);
       updateStoreData?.({
         tienda: { ...selectedStore.tienda, interes_defecto: data.interes_defecto },
@@ -394,8 +395,8 @@ export default function PerfilPage() {
           </div>
         )}
 
-        {/* Interés por defecto — admin, solo rutas creadas con tasa declarada */}
-        {isAdmin && tieneInteresRuta && (
+        {/* Interés por defecto — admin */}
+        {isAdmin && (
           <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 mt-6">
             <div className="flex items-center gap-3 mb-7">
               <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-xl">
@@ -428,6 +429,11 @@ export default function PerfilPage() {
                 <p className="text-[9px] font-bold text-slate-400 ml-1">
                   {AYUDA_INTERES_RUTA} Los trabajadores usan siempre esta tasa.
                 </p>
+                {!tieneInteresRuta && (
+                  <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 ml-1">
+                    Esta ruta usa hoy el 20 % por defecto. Al guardar, la tasa queda declarada por ti.
+                  </p>
+                )}
               </div>
 
               <label htmlFor="acepta_interes_perfil" className="flex items-start gap-3 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 cursor-pointer">
