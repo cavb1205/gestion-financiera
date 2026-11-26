@@ -20,6 +20,12 @@ import {
 import { toast } from "react-toastify";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { formatMoney } from "../utils/format";
+import {
+  AYUDA_INTERES_RUTA,
+  TEXTO_RESPONSABILIDAD_INTERES,
+  camposDeclaracionInteres,
+  validarDeclaracionInteres,
+} from "../utils/interesRuta.mjs";
 import { apiFetch, getApiError } from "../utils/api";
 import { getDeviceTimeZone } from "../utils/datetime";
 
@@ -61,6 +67,8 @@ export default function SelectStorePage() {
   const [newPrefijo, setNewPrefijo] = useState("57");
   const [newCupo, setNewCupo] = useState("");
   const [newZonaHoraria, setNewZonaHoraria] = useState(() => getDeviceTimeZone());
+  const [newInteres, setNewInteres] = useState("");
+  const [newAceptaInteres, setNewAceptaInteres] = useState(false);
   const [selectingStoreId, setSelectingStoreId] = useState(null);
   const isWorker = Boolean(user && !(user.is_staff || user.is_superuser));
 
@@ -200,6 +208,11 @@ export default function SelectStorePage() {
   const handleCrear = async (e) => {
     e.preventDefault();
     if (!newNombre.trim()) return;
+    const interesErr = validarDeclaracionInteres(newInteres, newAceptaInteres);
+    if (interesErr) {
+      toast.error(interesErr);
+      return;
+    }
     const esPrimera = stores.length === 0;
     setCreating(true);
     try {
@@ -210,6 +223,7 @@ export default function SelectStorePage() {
           nombre: newNombre.trim(),
           administrador: user.id,
           zona_horaria: newZonaHoraria,
+          ...camposDeclaracionInteres(newInteres),
         }),
       });
       if (!response.ok) {
@@ -238,6 +252,8 @@ export default function SelectStorePage() {
       setNewPrefijo("57");
       setNewCupo("");
       setNewZonaHoraria(getDeviceTimeZone());
+      setNewInteres("");
+      setNewAceptaInteres(false);
       setShowCreateModal(false);
       fetchStores();
     } catch (err) {
@@ -663,6 +679,40 @@ export default function SelectStorePage() {
                 <p className="text-[10px] text-slate-500 mt-1.5 pl-1">
                   Crédito sugerido al registrar un cliente nuevo.
                 </p>
+              </div>
+
+              <div>
+                <label htmlFor="nueva-ruta-interes" className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                  Interés por defecto (%) *
+                </label>
+                <input
+                  id="nueva-ruta-interes"
+                  type="number"
+                  value={newInteres}
+                  onChange={(e) => setNewInteres(e.target.value)}
+                  placeholder="Ej. 20"
+                  min="0"
+                  max="100"
+                  step="1"
+                  required
+                  inputMode="numeric"
+                  onWheel={(e) => e.target.blur()}
+                  className="w-full px-4 py-3.5 bg-slate-800/50 border border-slate-700 rounded-2xl text-[13px] font-medium text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+                />
+                <p className="text-[10px] text-slate-500 mt-1.5 pl-1">{AYUDA_INTERES_RUTA}</p>
+                <label htmlFor="nueva-ruta-acepta-interes" className="mt-3 flex items-start gap-3 rounded-2xl border border-slate-700 bg-slate-800/50 px-4 py-3 cursor-pointer">
+                  <input
+                    id="nueva-ruta-acepta-interes"
+                    type="checkbox"
+                    required
+                    checked={newAceptaInteres}
+                    onChange={(e) => setNewAceptaInteres(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-indigo-500"
+                  />
+                  <span className="text-[11px] font-medium leading-relaxed text-slate-300">
+                    {TEXTO_RESPONSABILIDAD_INTERES}
+                  </span>
+                </label>
               </div>
 
               <div className="flex gap-3 pt-1">
