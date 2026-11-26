@@ -14,9 +14,17 @@ import {
   FiPhone,
   FiDollarSign,
   FiGlobe,
+  FiPercent,
 } from "react-icons/fi";
 import { useAuth } from "@/app/context/AuthContext";
-import { apiFetch } from "@/app/utils/api";
+import { apiFetch, getApiError } from "@/app/utils/api";
+import {
+  AYUDA_INTERES_RUTA,
+  TEXTO_RESPONSABILIDAD_INTERES,
+  camposDeclaracionInteres,
+  rutaConInteresDefecto,
+  validarDeclaracionInteres,
+} from "@/app/utils/interesRuta.mjs";
 import { getDeviceTimeZone, normalizeTimeZone } from "@/app/utils/datetime";
 import { toast } from "react-toastify";
 
@@ -42,6 +50,13 @@ export default function PerfilPage() {
     selectedStore?.tienda?.zona_horaria || getDeviceTimeZone()
   );
   const [savingZona, setSavingZona] = useState(false);
+  // Solo rutas creadas con tasa declarada; las anteriores no la muestran.
+  const tieneInteresRuta = rutaConInteresDefecto(selectedStore?.tienda);
+  const [interesRuta, setInteresRuta] = useState(
+    tieneInteresRuta ? String(selectedStore.tienda.interes_defecto) : ""
+  );
+  const [aceptaInteres, setAceptaInteres] = useState(false);
+  const [savingInteres, setSavingInteres] = useState(false);
 
   const zonasHorarias = [
     { value: "America/Bogota", label: "Colombia (Bogotá)" },
@@ -118,6 +133,35 @@ export default function PerfilPage() {
       toast.error("Error al guardar el prefijo");
     } finally {
       setSavingPrefijo(false);
+    }
+  };
+
+  const handleSaveInteres = async () => {
+    const error = validarDeclaracionInteres(interesRuta, aceptaInteres);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    setSavingInteres(true);
+    try {
+      const response = await apiFetch(`/tiendas/${selectedStore.tienda.id}/settings/`, {
+        method: "PATCH",
+        body: JSON.stringify(camposDeclaracionInteres(interesRuta)),
+      });
+      if (!response.ok) {
+        throw new Error(await getApiError(response, "Error al guardar el interés de la ruta"));
+      }
+      const data = await response.json();
+      setInteresRuta(String(data.interes_defecto));
+      setAceptaInteres(false);
+      updateStoreData?.({
+        tienda: { ...selectedStore.tienda, interes_defecto: data.interes_defecto },
+      });
+      toast.success("Interés por defecto actualizado");
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSavingInteres(false);
     }
   };
 
@@ -343,6 +387,74 @@ export default function PerfilPage() {
                   <>
                     <FiSave size={15} />
                     Guardar Cupo Mínimo
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Interés por defecto — admin, solo rutas creadas con tasa declarada */}
+        {isAdmin && tieneInteresRuta && (
+          <div className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-white/60 dark:border-slate-800 mt-6">
+            <div className="flex items-center gap-3 mb-7">
+              <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-xl">
+                <FiPercent size={18} />
+              </div>
+              <div>
+                <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Interés por Defecto</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tasa inicial de los créditos nuevos</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="interes_defecto" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Interés (%)
+                </label>
+                <input
+                  id="interes_defecto"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  inputMode="numeric"
+                  value={interesRuta}
+                  onChange={(e) => setInteresRuta(e.target.value)}
+                  onWheel={(e) => e.target.blur()}
+                  placeholder="Ej. 20"
+                  className="block w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-bold text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                />
+                <p className="text-[9px] font-bold text-slate-400 ml-1">
+                  {AYUDA_INTERES_RUTA} Los trabajadores usan siempre esta tasa.
+                </p>
+              </div>
+
+              <label htmlFor="acepta_interes_perfil" className="flex items-start gap-3 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 cursor-pointer">
+                <input
+                  id="acepta_interes_perfil"
+                  type="checkbox"
+                  checked={aceptaInteres}
+                  onChange={(e) => setAceptaInteres(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-indigo-600"
+                />
+                <span className="text-xs font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+                  {TEXTO_RESPONSABILIDAD_INTERES}
+                </span>
+              </label>
+
+              <button
+                type="button"
+                onClick={handleSaveInteres}
+                disabled={savingInteres}
+                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-indigo-100 dark:shadow-none active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                {savingInteres ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <FiSave size={15} />
+                    Guardar Interés
                   </>
                 )}
               </button>

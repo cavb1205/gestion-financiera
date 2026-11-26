@@ -41,6 +41,7 @@ import { toast } from "react-toastify";
 import { getAppDateString, parseAppDate } from "../../../utils/datetime";
 import { CUOTAS_PREDETERMINADAS } from "../../../utils/calendario";
 import PlanPagosPreview from "./PlanPagosPreview";
+import { interesInicialCredito } from "../../../utils/interesRuta.mjs";
 
 function NuevaVentaContent() {
   const router = useRouter();
@@ -60,7 +61,8 @@ function NuevaVentaContent() {
       getAppDateString(0, new Date(), selectedStore?.tienda?.zona_horaria)
     ),
     valor_venta: "",
-    interes: 20,
+    // null = usar la tasa de la ruta (llega al hidratarse la sesión).
+    interes: null,
     cuotas: 20,
     plazo: "Diario",
     comentario: "",
@@ -78,6 +80,10 @@ function NuevaVentaContent() {
       fecha_venta: parseAppDate(getAppDateString(0, new Date(), zona)),
     }));
   }, [selectedStore?.tienda?.zona_horaria]);
+
+  // Tasa de la ruta mientras el administrador no la cambie en este crédito.
+  // Rutas sin tasa declarada conservan el 20 % histórico.
+  const interesCredito = formData.interes ?? interesInicialCredito(selectedStore?.tienda);
 
   const [clientes, setClientes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -222,7 +228,7 @@ function NuevaVentaContent() {
   };
 
   const calcularTotalAPagar = () => {
-    return calcularTotal(formData.valor_venta, formData.interes);
+    return calcularTotal(formData.valor_venta, interesCredito);
   };
 
   const calcularValorCuota = () => {
@@ -255,7 +261,7 @@ function NuevaVentaContent() {
 
     const capital = parseFloat(formData.valor_venta);
     const cuotas = parseInt(formData.cuotas);
-    const interes = parseFloat(formData.interes);
+    const interes = parseFloat(interesCredito);
 
     if (isNaN(capital) || capital <= 0) {
       toast.error("El capital debe ser mayor a cero");
@@ -285,7 +291,7 @@ function NuevaVentaContent() {
       const ventaData = {
         fecha_venta: formatDateToLocalISO(formData.fecha_venta),
         valor_venta: parseFloat(formData.valor_venta),
-        interes: parseFloat(formData.interes),
+        interes: parseFloat(interesCredito),
         cuotas: parseInt(formData.cuotas),
         plazo: formData.plazo || "Diario",
         comentario: formData.comentario,
@@ -617,14 +623,14 @@ function NuevaVentaContent() {
                   </div>
                   {isWorker ? (
                     <div className="w-full px-4 md:px-5 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
-                      <span className="text-[13px] font-black text-slate-800 dark:text-white">{formData.interes}%</span>
+                      <span className="text-[13px] font-black text-slate-800 dark:text-white">{interesCredito}%</span>
                       <FiPercent className="text-slate-400" size={14} />
                     </div>
                   ) : (
                     <input
                       type="number"
                       inputMode="decimal"
-                      value={formData.interes}
+                      value={interesCredito}
                       onChange={(e) => setFormData({ ...formData, interes: e.target.value })}
                       onWheel={(e) => e.target.blur()}
                       className="w-full px-4 md:px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-[13px] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
@@ -700,7 +706,7 @@ function NuevaVentaContent() {
                      </div>
                      <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
                         <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Interés</p>
-                        <p className="text-sm font-black text-emerald-500">{formData.interes}%</p>
+                        <p className="text-sm font-black text-emerald-500">{interesCredito}%</p>
                      </div>
                   </div>
 

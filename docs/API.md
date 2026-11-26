@@ -172,9 +172,13 @@ Público. Throttle 10/hora por IP. Crea usuario + ruta + trial de 7 días y devu
   "first_name": "Ana",
   "last_name": "Gómez",
   "nombre_ruta": "Ruta Centro",
-  "telefono": "3001234567"
+  "telefono": "3001234567",
+  "interes_defecto": 20,
+  "acepta_responsabilidad_interes": true
 }
 ```
+
+`interes_defecto` (entero 0–100, % total por crédito) y `acepta_responsabilidad_interes: true` son obligatorios. Si la ruta no es válida no se crea el usuario (todo es atómico).
 
 **Efectos**: crea `User` (`is_staff=True`, email autogenerado `<username>@carterafinanciera.com`), `Tienda`, `Cierre_Caja` de ayer con la caja inicial, `Tienda_Membresia` plan *Prueba* con vencimiento a 7 días, `Tienda_Administrador` y `Perfil`. Envía alerta de nuevo usuario por Telegram.
 
@@ -213,19 +217,21 @@ Solo si `user.username == 'root'` (comparación literal, no `is_superuser`). Rec
 Si el usuario no es root devuelve **200** con `{"message": "No tiene permisos para acceder a esta vista"}` (no 403).
 
 #### `POST /tiendas/create/`
-**Body**: `{ "nombre": "Ruta Norte", "administrador": <user_id> }`
+**Body**: `{ "nombre": "Ruta Norte", "administrador": <user_id>, "zona_horaria": "America/Bogota", "interes_defecto": 20, "acepta_responsabilidad_interes": true }`
+
+`interes_defecto` es obligatorio (entero 0–100, % total sobre el capital de cada crédito, igual que `venta.interes`) y `acepta_responsabilidad_interes` debe ser `true`: el usuario declara que la tasa la define él y que es responsable de que cumpla la ley de su país. Se guardan `interes_aceptado_por` y `interes_aceptado_en`. Las rutas creadas antes de esta regla tienen `interes_defecto = null`.
 
 La **primera** ruta de un admin recibe trial de 7 días. Las siguientes nacen en `Pendiente Pago` (sin trial) y disparan alerta de Telegram. Valida nombre único por administrador (case-insensitive).
 
 #### `PATCH /tiendas/<pk>/settings/`
-Solo acepta tres campos: `prefijo_telefono`, `telefono`, `cupo_minimo_nuevo`. Devuelve `{"prefijo_telefono": "..."}`.
+Acepta `prefijo_telefono`, `telefono`, `cupo_minimo_nuevo`, `zona_horaria` e `interes_defecto`. Solo un administrador de la ruta. `interes_defecto` solo se puede cambiar en rutas que ya lo tienen (no en las anteriores, que quedan en `null`) y exige `acepta_responsabilidad_interes: true`; registra de nuevo quién aceptó y cuándo. Devuelve los cinco valores actuales.
 
 #### `DELETE /tiendas/<pk>/admin/delete/`
 Requiere `username == 'root'`. **409** si la ruta tiene clientes o ventas — se archivan, no se borran, para preservar los datos financieros.
 
 ### 5.2 Campos devueltos por `TiendaSerializer`
 
-Datos base: `id`, `nombre`, `telefono`, `prefijo_telefono`, `fecha_registro`, `administrador` (nombre), `administrador_id`, `caja` (= `caja_inicial`), `estado`, `cupo_minimo_nuevo`, `cantidad_clientes`, `cantidad_ventas`.
+Datos base: `id`, `nombre`, `telefono`, `prefijo_telefono`, `fecha_registro`, `administrador` (nombre), `administrador_id`, `caja` (= `caja_inicial`), `estado`, `cupo_minimo_nuevo`, `zona_horaria`, `interes_defecto` (solo lectura; `null` en rutas anteriores), `cantidad_clientes`, `cantidad_ventas`.
 
 KPIs calculados:
 
@@ -582,6 +588,8 @@ Busca el documento en **otras rutas del mismo administrador** para precargar el 
 El backend calcula: `tienda` (URL o perfil), `saldo_actual = valor_venta × (1 + interes/100)` y `fecha_vencimiento = fecha_venta + (cuotas + 4) días` (independientemente del `plazo`).
 
 **Efecto en caja**: `caja_inicial −= valor_venta`, atómico.
+
+**Interés de la ruta**: si la ruta tiene `interes_defecto`, un trabajador (no administrador) solo puede usar esa tasa; si omite `interes` se aplica la de la ruta y si envía otra recibe **403**. Lo mismo vale para `/renovar/`. Los administradores pueden usar cualquier tasa, y las rutas sin `interes_defecto` no tienen restricción.
 
 ### `PUT /ventas/<pk>/update/`
 Usa `VentaUpdateSerializer` (excluye `cliente` — el cliente de un crédito no se puede cambiar). Recalcula `saldo_actual` y `fecha_vencimiento`. Si cambió `valor_venta`, ajusta la caja por la diferencia.

@@ -23,7 +23,14 @@ import {
   FiCheckCircle,
   FiGift,
   FiAlertTriangle,
+  FiPercent,
 } from "react-icons/fi";
+import {
+  AYUDA_INTERES_RUTA,
+  TEXTO_RESPONSABILIDAD_INTERES,
+  camposDeclaracionInteres,
+  validarDeclaracionInteres,
+} from "@/app/utils/interesRuta.mjs";
 
 const features = [
   { icon: FiTrendingUp, label: "Cartera de créditos en tiempo real" },
@@ -65,6 +72,11 @@ function translateBackendError(data) {
     nombre_ruta: "Nombre del negocio",
     telefono: "Teléfono",
   };
+  // Mensajes propios del backend, ya redactados para el usuario.
+  for (const campo of ["interes_defecto", "acepta_responsabilidad_interes"]) {
+    const msgs = data[campo];
+    if (msgs) return Array.isArray(msgs) ? msgs[0] : String(msgs);
+  }
   const errorMap = {
     "already exists": "ya está en uso. Elige otro.",
     "may not be blank": "es obligatorio.",
@@ -101,6 +113,8 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     nombre_ruta: "",
+    interes_defecto: "",
+    acepta_interes: false,
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -110,7 +124,8 @@ export default function RegisterPage() {
   const router = useRouter();
 
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, type, checked, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
     if (error) setError("");
   };
 
@@ -122,6 +137,12 @@ export default function RegisterPage() {
     const rutaErr = validateNombreRuta(form.nombre_ruta);
     if (rutaErr) {
       setError(`Nombre del negocio: ${rutaErr.toLowerCase()}`);
+      setIsLoading(false);
+      return;
+    }
+    const interesErr = validarDeclaracionInteres(form.interes_defecto, form.acepta_interes);
+    if (interesErr) {
+      setError(interesErr);
       setIsLoading(false);
       return;
     }
@@ -147,6 +168,7 @@ export default function RegisterPage() {
           telefono: form.telefono.trim(),
           password: form.password,
           nombre_ruta: form.nombre_ruta.trim(),
+          ...camposDeclaracionInteres(form.interes_defecto),
         }),
       });
 
@@ -331,6 +353,48 @@ export default function RegisterPage() {
                 </div>
               );
             })()}
+
+            {/* Interés por defecto de la ruta: lo define el usuario */}
+            <div className="space-y-2">
+              <label htmlFor="interes_defecto" className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                Interés por defecto (%) *
+              </label>
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 group-focus-within:text-indigo-500 transition-colors">
+                  <FiPercent size={18} />
+                </div>
+                <input
+                  id="interes_defecto"
+                  name="interes_defecto"
+                  type="number"
+                  required
+                  min="0"
+                  max="100"
+                  step="1"
+                  inputMode="numeric"
+                  placeholder="Ej. 20"
+                  value={form.interes_defecto}
+                  onChange={handleChange}
+                  onWheel={(e) => e.target.blur()}
+                  className={inputClass}
+                />
+              </div>
+              <p className="text-[9px] font-bold text-slate-400 ml-1">{AYUDA_INTERES_RUTA}</p>
+              <label htmlFor="acepta_interes" className="flex items-start gap-3 rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-white/5 px-4 py-3 cursor-pointer">
+                <input
+                  id="acepta_interes"
+                  name="acepta_interes"
+                  type="checkbox"
+                  required
+                  checked={form.acepta_interes}
+                  onChange={handleChange}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-indigo-600"
+                />
+                <span className="text-xs font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+                  {TEXTO_RESPONSABILIDAD_INTERES}
+                </span>
+              </label>
+            </div>
 
             {/* Nombre y Apellido */}
             <div className="grid grid-cols-2 gap-3">
